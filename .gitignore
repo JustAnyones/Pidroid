@@ -1,0 +1,16 @@
+# Bot configuration file
+bot/config.json
+
+# Python cache
+__pycache__
+
+# Data files
+bot/data/*
+
+# JetBrains PyCharm
+.idea/*
+
+# Scripts and files used for changelog generation
+build changelog.py
+changelog.html
+changes.txt

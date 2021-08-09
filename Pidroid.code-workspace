@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "./bot"
+		}
+	],
+	"settings": {
+		"python.linting.enabled": true,
+		"python.linting.pylintEnabled": false,
+		"python.linting.flake8Enabled": true,
+		"python.linting.flake8Args": [
+				"--ignore=E302,E261,E701,W503",
+				"--max-line-length=69420"
+		],
+		"python.linting.flake8CategorySeverity.W": "Information",
+		"python.analysis.autoSearchPaths": false
+	}
+}

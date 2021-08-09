@@ -1,0 +1,12 @@
+git+git://github.com/Rapptz/discord.py@58ca9e99325ac2678a51cd63afd7ae917f14bc8d#egg=discord.py[voice]
+aiofiles==0.6.0
+aiocron==1.3
+jishaku==2.1.0
+asyncpraw==7.4.0
+psutil==5.8.0
+pillow==8.1.0
+mcrcon==0.6.0
+dill==0.3.3
+lxml==4.6.3
+motor==2.5.0
+git+git://github.com/JustAnyones/bitly-api-python#egg=bitly-api

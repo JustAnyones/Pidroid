@@ -1,0 +1,30 @@
+{
+   "embed color": 5928495,
+   "prefixes": ["P", "p", "TT"],
+   "authentication": {
+      "bot token": "",
+
+      "database": {
+         "connection string": "" // Your MongoDB connection string
+      },
+
+      "theotown api token": "Token used for communicating with secure TheoTown API. Ask JustAnyone to get one.",
+
+      "unbelievaboat" : {"token": ""},
+      "tenor": {"token": ""},
+      "bitly": {"login": "", "api key": ""},
+      "reddit": {
+         "client id": "",
+         "client secret": "",
+         "username": "",
+         "password": ""
+      },
+      "minecraft rcon": {
+         "server name": {
+            "address": "",
+            "password": "",
+            "managers": ["array of user snowflakes as integers"]
+         }
+      }
+   }
+}

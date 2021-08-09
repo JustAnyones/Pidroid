@@ -1,0 +1,3 @@
+[flake8]
+ignore = E302,E265,W293,E251,E401,W292,E303,E261,E262,E722,E301,E111,E501,E114
+max-complexity = 10
