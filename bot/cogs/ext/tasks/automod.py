@@ -22,7 +22,7 @@ BANNED_WORDS = [
 ]
 
 SUSPICIOUS_USERS = [
-    'hitler', 'porn', 'nazi'
+    'hitler', 'porn', 'nazi',
     'sairam'
 ]
 
