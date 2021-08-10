@@ -1,6 +1,5 @@
 import discord
 import os
-import textwrap
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
@@ -74,17 +73,9 @@ class ImageManipCommands(commands.Cog):
             draw = ImageDraw.Draw(img)
             font = ImageFont.truetype(COMIC_FONT_PATH, 14)
             # Target
-            margin = 165
-            offset = 140
-            #for line in textwrap.wrap(member.display_name, width=7):
-            draw_text_with_border(draw, margin, offset, member.display_name, font)
-            offset += font.getsize(member.display_name)[1]
+            draw_text_with_border(draw, 165, 140, member.display_name, font)
             # Issuer of command
-            margin = 7
-            offset = 43
-            #for line in textwrap.wrap(ctx.author.display_name, width=7):
-            draw_text_with_border(draw, margin, offset, ctx.author.display_name, font)
-            offset += font.getsize(member.display_name)[1]
+            draw_text_with_border(draw, 7, 43, ctx.author.display_name, font)
 
             img.save(output_file, format='png')
             img.close()
@@ -118,7 +109,10 @@ class ImageManipCommands(commands.Cog):
             img.close()
             input_file.close()
             output_file.seek(0)
-            await ctx.reply(content='Meme has been updated to comply within German regulations.', file=discord.File(output_file, filename=f'image{extension}'))
+            await ctx.reply(
+                content='Meme has been updated to comply within German regulations.',
+                file=discord.File(output_file, filename=f'image{extension}')
+            )
         output_file.close()
 
     @commands.command(
