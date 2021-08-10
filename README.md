@@ -48,7 +48,7 @@ Pidroid uses a `config.json` file at its `./bot` path (the same path where `main
   "authentication": {
     "bot token": "",            // Bot token given by Discord
 
-    // MySQL database
+    // MondoDB database
     "database": {
       "connection string": ""   // MongoDB connection string
     },
