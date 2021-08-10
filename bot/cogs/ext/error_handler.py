@@ -142,7 +142,8 @@ class Error(commands.Cog):
                 await interface.send_to(ctx)
                 return
             await ctx.reply(embed=error_embed(
-                f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. If you\'ve encountered this multiple times, please notify my owner.'
+                f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
+                'If you\'ve encountered this multiple times, please notify my owner.'
             ))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)

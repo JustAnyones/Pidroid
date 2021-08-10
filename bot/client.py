@@ -19,7 +19,11 @@ class Pidroid(commands.Bot):
         intents = discord.Intents.all()
         intents.presences = False
         allowed_mentions = AllowedMentions(everyone=False, replied_user=False)
-        super().__init__(command_prefix=None, intents=intents, help_command=None, case_insensitive=True, allowed_mentions=allowed_mentions)
+        super().__init__(
+            command_prefix=None, help_command=None,
+            intents=intents, allowed_mentions=allowed_mentions,
+            case_insensitive=True
+        )
 
         # This is necessary to allow reloading of code while the bot is running
         self.extensions_to_load = [

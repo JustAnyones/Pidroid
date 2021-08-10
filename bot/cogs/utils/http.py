@@ -86,7 +86,7 @@ async def download_file(client: Pidroid, url: str, file_path, filename=None, hea
     """Downloads a file from url to specified path."""
     headers = get_headers(headers, require_auth)
 
-    async with await get(client, url, headers, require_auth=require_auth) as r:
+    async with await get(client, url, headers) as r:
         status = r.status
         response_headers = r.headers
         payload = await r.read()
@@ -108,19 +108,16 @@ async def download_file(client: Pidroid, url: str, file_path, filename=None, hea
     await f.close()
     return filename
 
-async def get(client: Pidroid, url: str, headers: dict = None, cookies: dict = None, timeout: int = 30, require_auth: bool = False):
+async def get(client: Pidroid, url: str, headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a GET request to the specified URL."""
-    headers = get_headers(headers, require_auth)
     return client.session.get(url, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def post(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30, require_auth: bool = False):
+async def post(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a POST request to the specified URL."""
-    headers = get_headers(headers, require_auth)
     return client.session.post(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30, require_auth: bool = False):
+async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a PATCH request to the specified URL."""
-    headers = get_headers(headers, require_auth)
     return client.session.patch(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
 

@@ -126,10 +126,10 @@ class ModeratorInfoCommands(commands.Cog):
         user_total = len(user_data)
         for row in user_data:
             punishment = row['type']
-            if punishment == 'ban': bans += 1
-            if punishment == 'kick': kicks += 1
-            if punishment == 'jail': jails += 1
-            if punishment == 'warning': warnings += 1
+            if punishment == 'ban': bans += 1         # noqa: E701
+            if punishment == 'kick': kicks += 1       # noqa: E701
+            if punishment == 'jail': jails += 1       # noqa: E701
+            if punishment == 'warning': warnings += 1 # noqa: E701
 
         embed = build_embed(title=f'Displaying moderation statistics for {str(member)}')
         embed.add_field(name='Bans', value=bans)
