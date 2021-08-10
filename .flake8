@@ -6,7 +6,10 @@ ignore =
     # Commented out features
     E261, E265,
 
-    # Additional blank lines for readabilitt
-    E302
+    # Additional blank lines for readability
+    E302,
+
+    # Ignore lines for now
+    E501
 max-complexity = 10
 max-line-length = 150
