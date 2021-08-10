@@ -70,7 +70,6 @@ class InfoCommands(commands.Cog):
         else:
             await ctx.invoke(self.client.get_command('profile-avatar'), member=member)
 
-
     @commands.command(
         name='user-info',
         brief='Displays the user information of a specified member.',
@@ -98,7 +97,8 @@ class InfoCommands(commands.Cog):
             roleList.reverse()
             roles = []
             for role in roleList:
-                if role.name == '@everyone': continue
+                if role.name == '@everyone':
+                    continue
                 roles.append(role.mention)
 
             # List roles

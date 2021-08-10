@@ -66,7 +66,10 @@ def timedelta_to_datetime(delta: datetime.timedelta) -> datetime.datetime:
     """Converts a timedelta object to a datetime object."""
     return utcnow() + delta
 
-def humanize(delta: Union[datetime.datetime, int, float, relativedelta], timestamp: bool = True, precision: str = "seconds", max_units: int = 6) -> str:
+def humanize(
+    delta: Union[datetime.datetime, int, float, relativedelta],
+    timestamp: bool = True, precision: str = "seconds", max_units: int = 6
+) -> str:
     """
     Returns a human-readable version of the relativedelta or datetime.datetime.
     timestamp specifies whether to parse delta values of ints and floats as a timestamp or as duration in seconds
