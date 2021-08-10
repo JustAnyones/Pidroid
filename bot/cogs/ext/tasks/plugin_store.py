@@ -97,7 +97,7 @@ class PluginStoreTasks(commands.Cog):
                             if plugin.approval_author_id != 1880:
                                 return
 
-                        thread = await message.start_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion")
+                        thread = await message.start_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
                         await self.api.create_new_plugin_thread(thread.id, timedelta_to_datetime(timedelta(days=2)).timestamp())
 
         except Exception as e:
