@@ -1,3 +1,12 @@
 [flake8]
-ignore = E302,E265,W293,E251,E401,W292,E303,E261,E262,E722,E301,E111,E501,E114
+ignore = 
+    # Actually, an anti-pattern, https://www.flake8rules.com/rules/W503.html
+    W503,
+
+    # Commented out features
+    E261, E265,
+
+    # Additional blank lines for readabilitt
+    E302
 max-complexity = 10
+max-line-length = 150
