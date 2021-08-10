@@ -79,7 +79,7 @@ class Error(commands.Cog):
             await self.notify(ctx, error)
             return
 
-        # Extensive logging for notfound errors
+        # Extensive logging for NotFound and Forbidden errors
         if isinstance(error, discord.errors.NotFound):
             print('Unhandled NotFound exception encountered!')
             print(error.args)
@@ -89,8 +89,7 @@ class Error(commands.Cog):
             print(error.text)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
-        # Handle specific errors
-        if isinstance(error, discord.errors.Forbidden):
+        elif isinstance(error, discord.errors.Forbidden):
             print(f'A 403 error has been encountered in {ctx.command} command, printing stack trace')
             print(error.args)
             print(error.code)
@@ -98,6 +97,7 @@ class Error(commands.Cog):
             print(error.status)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
+        # Handle specific errors
         elif isinstance(error, commands.NotOwner):
             await self.notify(ctx, "The command can only be used by the bot owner")
 

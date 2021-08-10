@@ -83,7 +83,9 @@ class command_checks:
         """Checks whether the command is invoked by an authorized member."""
         async def predicate(ctx: Context):
             if not is_cheese_consumer(ctx.author):
-                raise MissingUserPermissions(f'Sorry {ctx.author.display_name}, I can\'t run that command. Come back when you\'re a little, mmmmm, richer!')
+                raise MissingUserPermissions(
+                    f'Sorry {ctx.author.display_name}, I can\'t run that command. Come back when you\'re a little, mmmmm, richer!'
+                )
             return True
         return commands.check(predicate)
 
