@@ -8,6 +8,7 @@ import sys
 import logging
 
 from aiohttp import ClientSession
+from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.mentions import AllowedMentions
 from discord.message import Message
@@ -154,6 +155,8 @@ class Pidroid(commands.Bot):
         """Sets up client logging module."""
         self.logger = logging.getLogger('Pidroid')
         self.logger.setLevel(logging.WARNING)
+        if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
+            self.logger.setLevel(logging.DEBUG)
 
     async def get_prefix(self, message: Message):
         """Returns client prefix."""
@@ -165,7 +168,7 @@ class Pidroid(commands.Bot):
     def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
-        logging.critical("Reloading bot configuration data and all cogs")
+        self.logger.critical("Reloading bot configuration data and all cogs")
         for ext in self.extensions_to_load:
             self.unload_extension(ext)
         with open('./config.json') as data:
@@ -176,39 +179,54 @@ class Pidroid(commands.Bot):
     def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
         for ext in self.extensions_to_load:
-            logging.debug(f"Loading {ext}.")
+            self.logger.debug(f"Loading {ext}.")
             try:
                 self.load_extension(ext)
-                logging.debug(f"Successfully loaded {ext}.")
+                self.logger.debug(f"Successfully loaded {ext}.")
             except Exception:
-                logging.exception(f"Failed to load {ext}.")
+                self.logger.exception(f"Failed to load {ext}.")
 
     def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
-        logging.info("Starting the bot")
+        self.logger.info("Starting the bot")
         self.load_all_extensions()
 
-    def run(self, *args, **kwargs):
+    # Borrowed method from the client
+    def run(self): # noqa: C901
         """Runs the client."""
-        try:
-            if not IS_WINDOWS:
-                self.loop.add_signal_handler(signal.SIGTERM, self._handle_graceful_shutdown)
-            self.loop.run_until_complete(self.start(self.token))
-        except KeyboardInterrupt:
-            pass
-        except Exception:
-            logging.critical("Fatal exception", exc_info=True)
-        finally:
-            self._handle_graceful_shutdown()
+        loop = self.loop
 
-    def _handle_graceful_shutdown(self):
-        self.loop.run_until_complete(self.session.close())
-        self.loop.run_until_complete(self.close())
-        for task in asyncio.all_tasks(self.loop):
-            task.cancel()
         try:
-            self.loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(self.loop)))
-        except asyncio.CancelledError:
-            logging.debug("All pending tasks has been cancelled.")
+            loop.add_signal_handler(signal.SIGINT, lambda: loop.stop())
+            loop.add_signal_handler(signal.SIGTERM, lambda: loop.stop())
+        except NotImplementedError:
+            pass
+
+        async def runner():
+            try:
+                await self.start(self.token)
+            finally:
+                if not self.is_closed():
+                    await self.close()
+                    await self.session.close() # All this chonkers methpd borrowing, just for this single call
+
+        def stop_loop_on_completion(f):
+            loop.stop()
+
+        future = asyncio.ensure_future(runner(), loop=loop)
+        future.add_done_callback(stop_loop_on_completion)
+        try:
+            loop.run_forever()
+        except KeyboardInterrupt:
+            self.logger.info('Received signal to terminate bot and event loop.')
         finally:
-            logging.info("Shutting down the bot")
+            future.remove_done_callback(stop_loop_on_completion)
+            self.logger.info('Cleaning up tasks.')
+            _cleanup_loop(loop)
+
+        if not future.cancelled():
+            try:
+                return future.result()
+            except KeyboardInterrupt:
+                # I am unsure why this gets raised here but suppress it anyway
+                return None
