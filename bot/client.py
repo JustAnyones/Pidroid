@@ -1,16 +1,22 @@
-__VERSION__ = (4, 0, 0, 'alpha')
+__VERSION__ = (4, 0, 1, 'alpha')
 
 import asyncio
 import discord
 import json
+import signal
+import sys
 import logging
 
 from aiohttp import ClientSession
 from discord.ext import commands
 from discord.mentions import AllowedMentions
+from discord.message import Message
 
 from cogs.utils.api import API
 from cogs.utils.data import PersistentDataManager
+
+IS_WINDOWS = sys.platform == "win32"
+
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
@@ -149,7 +155,7 @@ class Pidroid(commands.Bot):
         self.logger = logging.getLogger('Pidroid')
         self.logger.setLevel(logging.WARNING)
 
-    async def get_prefix(self, message):
+    async def get_prefix(self, message: Message):
         """Returns client prefix."""
         if not message.guild:
             # Only allow first defined prefix to be used in DMs
@@ -185,19 +191,24 @@ class Pidroid(commands.Bot):
     def run(self, *args, **kwargs):
         """Runs the client."""
         try:
+            if not IS_WINDOWS:
+                self.loop.add_signal_handler(signal.SIGTERM, self._handle_graceful_shutdown)
             self.loop.run_until_complete(self.start(self.token))
         except KeyboardInterrupt:
             pass
         except Exception:
             logging.critical("Fatal exception", exc_info=True)
         finally:
-            self.loop.run_until_complete(self.session.close())
-            self.loop.run_until_complete(self.close())
-            for task in asyncio.all_tasks(self.loop):
-                task.cancel()
-            try:
-                self.loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(self.loop)))
-            except asyncio.CancelledError:
-                logging.debug("All pending tasks has been cancelled.")
-            finally:
-                logging.info("Shutting down the bot")
+            self._handle_graceful_shutdown()
+
+    def _handle_graceful_shutdown(self):
+        self.loop.run_until_complete(self.session.close())
+        self.loop.run_until_complete(self.close())
+        for task in asyncio.all_tasks(self.loop):
+            task.cancel()
+        try:
+            self.loop.run_until_complete(asyncio.gather(*asyncio.all_tasks(self.loop)))
+        except asyncio.CancelledError:
+            logging.debug("All pending tasks has been cancelled.")
+        finally:
+            logging.info("Shutting down the bot")
