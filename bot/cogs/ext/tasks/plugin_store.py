@@ -48,7 +48,10 @@ class PluginStoreTasks(commands.Cog):
         for thread_item in threads_to_archive:
             thread = self.showcase_channel.get_thread(thread_item["thread_id"])
             try:
-                await thread.edit(archived=True, locked=True)
+                if not thread.archived:
+                    await thread.edit(archived=True, locked=True)
+                else:
+                    await thread.edit(locked=True)
             except Exception:
                 self.client.logger.exception("An exception was encountered while trying to lock a plugin thread")
             await self.api.remove_plugin_thread_record(thread_item["_id"])
