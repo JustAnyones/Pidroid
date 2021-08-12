@@ -94,7 +94,7 @@ class PluginStoreTasks(commands.Cog):
                     await message.add_reaction(emoji="👎")
 
                     if self.use_threads:
-                        thread = await message.start_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
+                        thread = await message.create_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
                         await self.api.create_new_plugin_thread(thread.id, timedelta_to_datetime(timedelta(days=2)).timestamp())
 
         except Exception as e:
