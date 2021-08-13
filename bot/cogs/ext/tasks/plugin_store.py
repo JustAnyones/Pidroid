@@ -20,7 +20,6 @@ class PluginStoreTasks(commands.Cog):
         self.use_threads = True
 
         self.new_plugins_cache = []
-        self.showcase_channel: TextChannel = None
 
         self.retrieve_new_plugins.start()
         self.archive_threads.start()
@@ -30,22 +29,19 @@ class PluginStoreTasks(commands.Cog):
         self.retrieve_new_plugins.cancel()
         self.archive_threads.cancel()
 
-    def resolve_channel(self) -> None:
-        """Resolves plugin showcase channel."""
-        if self.showcase_channel is None:
-            self.showcase_channel = self.client.get_channel(640522649033769000)
-
-            # If lookup failed, call cog unload method to cancel any tasks belonging to this class
-            if self.showcase_channel is None:
-                self.cog_unload()
+    @property
+    def showcase_channel(self) -> TextChannel:
+        """Returns plugin showcase channel object."""
+        return self.client.get_channel(640522649033769000)
 
     @tasks.loop(seconds=60)
     async def archive_threads(self) -> None:
         """Archives plugin showcase threads."""
-        self.resolve_channel()
         threads_to_archive = await self.api.get_archived_plugin_threads(utcnow().timestamp())
         for thread_item in threads_to_archive:
             thread = self.showcase_channel.get_thread(thread_item["thread_id"])
+            if not thread:
+                self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_item['thread_id']}")
             try:
                 if not thread.archived:
                     await thread.edit(archived=True, locked=True)
@@ -77,7 +73,6 @@ class PluginStoreTasks(commands.Cog):
             latest_approval_time = plugins[0].time
 
             if latest_approval_time > last_approval_time:
-                self.resolve_channel()
 
                 self.client.persistent_data.data.update({"last plugin approval": latest_approval_time})
                 self.client.persistent_data.save()
