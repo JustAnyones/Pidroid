@@ -81,13 +81,13 @@ class Pidroid(commands.Bot):
             'cogs.ext.events.copypasta',
             'cogs.ext.events.events_handler',
             'cogs.ext.events.initialization',
-            'cogs.ext.events.message_forwarder',
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
 
             # Tasks
             'cogs.ext.tasks.automod',
             'cogs.ext.tasks.cronjobs',
+            'cogs.ext.tasks.forum_messages',
             'cogs.ext.tasks.guild_statistics',
             'cogs.ext.tasks.plugin_store',
             'cogs.ext.tasks.punishment_handler',
