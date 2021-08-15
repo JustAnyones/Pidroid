@@ -1,4 +1,4 @@
-__VERSION__ = (4, 0, 2, 'alpha')
+__VERSION__ = (4, 0, 3, 'alpha')
 
 import asyncio
 import discord
