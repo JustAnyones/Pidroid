@@ -2,7 +2,7 @@ from discord.ext import commands
 from discord.errors import InvalidArgument
 from discord.ext.commands.context import Context
 
-from constants import BOT_COMMANDS_CHANNEL
+from constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN
 from cogs.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
 from cogs.utils.checks import client_is_pidroid, is_bot_commands, is_cheese_consumer, is_theotown_developer, is_theotown_guild, check_permissions, guild_has_configuration, check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, can_purge
 
@@ -80,11 +80,22 @@ class command_checks:
 
     @staticmethod
     def is_cheese_consumer():
-        """Checks whether the command is invoked by an authorized member."""
+        """Checks whether the command is invoked by an authorized user."""
         async def predicate(ctx: Context):
             if not is_cheese_consumer(ctx.author):
                 raise MissingUserPermissions(
                     f'Sorry {ctx.author.display_name}, I can\'t run that command. Come back when you\'re a little, mmmmm, richer!'
+                )
+            return True
+        return commands.check(predicate)
+
+    @staticmethod
+    def can_shutdown_bot():
+        """Checks whether the command is invoked by an authorized user to shutdown the bot."""
+        async def predicate(ctx: Context):
+            if ctx.author.id not in EMERGENCY_SHUTDOWN:
+                raise MissingUserPermissions(
+                    "You are not authorized to perform an emergency shutdown!"
                 )
             return True
         return commands.check(predicate)

@@ -6,6 +6,7 @@ import sys
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from discord.message import Message
 
 from client import Pidroid
 from constants import ALLOWED_MENTIONS
@@ -30,7 +31,7 @@ class BotCommands(commands.Cog):
     @commands.cooldown(rate=1, per=1, type=commands.BucketType.user)
     async def ping(self, ctx: Context):
         async with ctx.typing():
-            msg = await ctx.reply("**Pinging...**")
+            msg: Message = await ctx.reply("**Pinging...**")
             client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
             api_ping = round(self.client.latency * 1000)
             embed = build_embed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')

@@ -8,8 +8,11 @@ from discord.ext import commands
 from discord.ext.commands.context import Context
 
 from client import Pidroid
+from constants import JUSTANYONE_ID
 from cogs.models.categories import OwnerCategory
+from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import error
+
 
 class QuestionInteraction(ui.View):
     @ui.button(label='Yes', style=ButtonStyle.green)
@@ -27,6 +30,7 @@ class QuestionInteraction(ui.View):
 
         await interaction.message.edit(content="Fair enough", view=self)
         self.stop()
+
 
 class OwnerCommands(commands.Cog):
     """This class implements a cog for special bot owner only commands."""
@@ -69,10 +73,10 @@ class OwnerCommands(commands.Cog):
         permissions=["Bot owner"],
         category=OwnerCategory
     )
-    @commands.is_owner()
+    @command_checks.can_shutdown_bot()
     @commands.bot_has_permissions(send_messages=True)
     async def stop(self, ctx: Context):
-        user = self.client.get_user(333871512496898059)
+        user = self.client.get_user(JUSTANYONE_ID)
         print(f'Kill request received by {ctx.message.author}')
         await user.send(f'The bot was manually shut down by {ctx.message.author}')
         await ctx.reply('Shutting down!')
