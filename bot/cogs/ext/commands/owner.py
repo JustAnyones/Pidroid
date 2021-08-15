@@ -87,7 +87,6 @@ class OwnerCommands(commands.Cog):
     @commands.command(
         brief="Sends a message to the specified user as the bot.",
         usage="<user> <message>",
-        aliases=["reply"],
         category=OwnerCategory,
         hidden=True
     )
