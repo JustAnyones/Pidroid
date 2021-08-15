@@ -206,7 +206,7 @@ class Pidroid(commands.Bot):
             finally:
                 if not self.is_closed():
                     await self.close()
-                    await self.session.close() # All this chonkers methpd borrowing, just for this single call
+                    await self.session.close() # All this chonkers method borrowing, just for this single call
 
         def stop_loop_on_completion(f):
             loop.stop()

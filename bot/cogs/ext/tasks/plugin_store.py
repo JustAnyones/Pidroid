@@ -4,6 +4,7 @@ import sys
 from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
+from discord.threads import Thread
 
 from client import Pidroid
 from cogs.utils.checks import is_client_pidroid
@@ -39,9 +40,14 @@ class PluginStoreTasks(commands.Cog):
         """Archives plugin showcase threads."""
         threads_to_archive = await self.api.get_archived_plugin_threads(utcnow().timestamp())
         for thread_item in threads_to_archive:
-            thread = self.showcase_channel.get_thread(thread_item["thread_id"])
-            if not thread:
-                self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_item['thread_id']}")
+            thread_id: int = thread_item["thread_id"]
+
+            try:
+                thread: Thread = self.client.fetch_channel(thread_id) # Wack name, I'll make an issue to add an alias for threads on d.py
+            except Exception as e:
+                self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
+                continue
+
             try:
                 if not thread.archived:
                     await thread.edit(archived=True, locked=True)
