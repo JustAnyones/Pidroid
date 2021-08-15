@@ -33,7 +33,7 @@ class ForumCommands(commands.Cog):
     async def forum_user(self, ctx: Context, *, username: str):
         async with ctx.typing():
             data = await self.api.get(Route(
-                "/private/forum",
+                "/private/forum_deprecated",
                 {"type": "find", "user": username}
             ))
             try:
@@ -135,7 +135,7 @@ class ForumCommands(commands.Cog):
     async def forum_pm(self, ctx: Context, target: int, subject: str, *, text: str):
         async with ctx.typing():
             data = await self.api.get(Route(
-                "/private/forum",
+                "/private/forum_deprecated",
                 {"type": "pm", "author": 10911, "target": target, "subject": subject, "text": text}
             ))
             await ctx.message.delete(delay=0)
@@ -153,7 +153,7 @@ class ForumCommands(commands.Cog):
     async def forum_authorise(self, ctx: Context, *, user: str):
         async with ctx.typing():
             data = await self.api.get(Route(
-                "/private/forum",
+                "/private/forum_deprecated",
                 {"type": "authorise", "user": user}
             ))
             await ctx.reply(data["details"])
