@@ -142,9 +142,10 @@ class FunCommands(commands.Cog):
             ) as response:
                 data = await response.json()
             if 'results' in data:
-                gif = random.choice(data['results'])
-                await ctx.reply(gif['url'])
-                return
+                if len(data["results"]) > 0:
+                    gif = random.choice(data['results'])
+                    await ctx.reply(gif['url'])
+                    return
             await ctx.reply(embed=error("I couldn't find any GIFs for the specified query!"))
 
     @commands.command(
