@@ -47,12 +47,21 @@ def colour_from_hex(hex_str: str) -> Colour:
     r, g, b = (int(hex_str[i:i + 2], 16) for i in (0, 2, 4))
     return Colour((r << 16) + (g << 8) + b)
 
+
 class FunCommands(commands.Cog):
     """This class implements a cog which contains commands for entertainment."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.api = self.client.api
+
+    @property
+    def tenor_token(self) -> str:
+        """Returns TENOR GIF API token."""
+        try:
+            return self.client.config['authentication']['tenor']['token']
+        except KeyError:
+            raise BadArgument("Credentials for TENOR GIF API could not be found!")
 
     @commands.command(
         brief='Returns a random color.',
@@ -130,15 +139,9 @@ class FunCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def gif(self, ctx: Context, *, query: str):
         async with ctx.typing():
-            try:
-                token = self.client.config['authentication']['tenor']['token']
-            except KeyError:
-                await ctx.reply(embed=error("Credentials for TENOR GIF API could not be found!"))
-                return
-
             async with await get(
                 self.client,
-                f"https://api.tenor.com/v1/search?q={query}&key={token}&limit=30&contentfilter=medium"
+                f"https://api.tenor.com/v1/search?q={query}&key={self.tenor_token}&limit=30&contentfilter=medium"
             ) as response:
                 data = await response.json()
             if 'results' in data:
