@@ -43,7 +43,7 @@ class PluginStoreTasks(commands.Cog):
             thread_id: int = thread_item["thread_id"]
 
             try:
-                thread: Thread = self.client.fetch_channel(thread_id) # Wack name, I'll make an issue to add an alias for threads on d.py
+                thread: Thread = await self.client.fetch_channel(thread_id)
             except Exception as e:
                 self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
                 continue
