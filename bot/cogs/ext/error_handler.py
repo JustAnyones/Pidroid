@@ -4,6 +4,7 @@ import traceback
 import random
 
 from contextlib import suppress
+from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
@@ -141,10 +142,11 @@ class Error(commands.Cog):
                 interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
                 await interface.send_to(ctx)
                 return
-            await ctx.reply(embed=error_embed(
-                f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
-                'If you\'ve encountered this multiple times, please notify my owner.'
-            ))
+            with suppress(HTTPException):
+                await ctx.reply(embed=error_embed(
+                    f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
+                    'If you\'ve encountered this multiple times, please notify my owner.'
+                ))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
