@@ -48,13 +48,8 @@ class PluginStoreTasks(commands.Cog):
                 self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
                 continue
 
-            try:
-                if not thread.archived:
-                    await thread.edit(archived=True, locked=True)
-                else:
-                    await thread.edit(locked=True)
-            except Exception:
-                self.client.logger.exception("An exception was encountered while trying to lock a plugin thread")
+            await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
+            await thread.edit(archived=True, locked=True)
             await self.api.remove_plugin_thread_record(thread_item["_id"])
 
     @archive_threads.before_loop
