@@ -4,7 +4,7 @@ import traceback
 import random
 
 from contextlib import suppress
-from discord.errors import HTTPException
+from discord.errors import HTTPException, InvalidArgument
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
@@ -38,6 +38,7 @@ use_default = (
     commands.TooManyArguments,
     commands.MissingRequiredArgument,
     exceptions.InvalidDuration,
+    InvalidArgument,
 
     # Quoted argument parser errors
     commands.UnexpectedQuoteError,
