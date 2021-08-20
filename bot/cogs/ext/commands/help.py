@@ -128,7 +128,7 @@ class HelpCommand(commands.Cog):
 
                 embed = create_embed(
                     title=f"{get_full_command_name(command)}",
-                    description=command.brief or "Not description."
+                    description=command.brief or "No description."
                 )
 
                 embed.add_field(name="Usage", value=get_command_usage(self.prefix, command), inline=False)
