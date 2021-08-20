@@ -3,7 +3,7 @@ from discord.ext import commands
 from discord.ext.commands.core import Command
 from discord.ext.commands.context import Context
 from math import ceil
-from typing import List
+from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import Category, BotCategory, UncategorizedCategory
@@ -11,7 +11,7 @@ from cogs.utils.embeds import create_embed, error
 
 COMMANDS_PER_PAGE = 6
 
-def get_full_command_name(command: Command):
+def get_full_command_name(command: Command) -> str:
     """Returns full command name including any command groups."""
     name = ''
     if len(command.parents) > 0:
@@ -25,7 +25,7 @@ def get_command_usage(prefix: str, command: Command) -> str:
         usage += ' `' + command.usage + '`'
     return usage
 
-def get_command_documentation(prefix: str, c: Command) -> tuple:
+def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
     command_name = get_full_command_name(c)
     description = 'Not documented.'
     if c.brief is not None:
@@ -49,17 +49,6 @@ class HelpCommand(commands.Cog):
         self.client = client
         self.prefix = self.client.prefix
 
-    def get_all_category_commands(self, category: Category) -> List[Command]:
-        "Returns a filtered list of all commands belonging to the specified category."
-        cmd_list = []
-        for command in self.client.walk_commands():
-            orig_kwargs: dict = command.__original_kwargs__
-            command_category = orig_kwargs.get("category", UncategorizedCategory)
-            if not isinstance(category, command_category):
-                continue
-            cmd_list.append(command)
-        return cmd_list
-
     def get_visible_category_commands(self, category: Category) -> List[Command]:
         "Returns a filtered list of all visible commands belonging to the specified category."
         cmd_list = []
@@ -72,23 +61,6 @@ class HelpCommand(commands.Cog):
                 continue
             cmd_list.append(command)
         return cmd_list
-
-    async def clean_commands(self, commands: list) -> list:
-        """Returns a list of cleaned commands.\n
-        Cleaned in this case refers to checks whether commands can be ran and their documentation created."""
-        cleaned_commands = []
-        for c in commands:
-            c: Command
-            # Ignores hidden commands
-            if c.hidden:
-                continue
-
-            # Generates command documentation
-            command_name, description = get_command_documentation(self.prefix, c)
-
-            cleaned_commands.append({'name': command_name, 'description': description})
-        cleaned_commands.sort(key=lambda x: x['name'])
-        return cleaned_commands
 
     def return_category_commands(self, category: Category, page: int) -> Embed:
         """Returns an Embed of category commands."""
@@ -149,7 +121,7 @@ class HelpCommand(commands.Cog):
 
             # Plain command
             if query in command_name_list:
-                command = command_object_list[command_name_list.index(query)]
+                command: Command = command_object_list[command_name_list.index(query)]
                 if command.hidden:
                     await ctx.reply(embed=error("I could not find any commands by the specified query!"))
                     return
@@ -161,16 +133,12 @@ class HelpCommand(commands.Cog):
 
                 embed.add_field(name="Usage", value=get_command_usage(self.prefix, command), inline=False)
 
-                aliases = "None."
                 if len(command.aliases) > 0:
-                    aliases = ', '.join(command.aliases)
-                embed.add_field(name="Aliases", value=aliases)
+                    embed.add_field(name="Aliases", value=', '.join(command.aliases))
 
-                perm_str = "???"
                 permissions = command.__original_kwargs__.get("permissions", [])
                 if len(permissions) > 0:
-                    perm_str = ', '.join(permissions)
-                embed.add_field(name="Permissions", value=perm_str)
+                    embed.add_field(name="Permissions", value=', '.join(permissions))
 
                 await ctx.reply(embed=embed)
                 return
