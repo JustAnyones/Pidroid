@@ -55,6 +55,10 @@ class HelpCommand(commands.Cog):
         for command in self.client.walk_commands():
             if command.hidden:
                 continue
+
+            if get_full_command_name(command).startswith("jishaku"):
+                continue
+
             orig_kwargs: dict = command.__original_kwargs__
             command_category = orig_kwargs.get("category", UncategorizedCategory)
             if not isinstance(category, command_category):
