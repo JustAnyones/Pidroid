@@ -3,7 +3,7 @@ from discord.ext.commands import MissingPermissions, Context
 from discord.utils import get
 from typing import Union
 
-from constants import THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
+from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
 from client import Pidroid
 from cogs.models.exceptions import MissingUserPermissions
 
@@ -63,6 +63,9 @@ def is_number(string: str):
 
 def is_justanyone(user: Union[Member, User]):
     return user.id == JUSTANYONE_ID
+
+def is_client_development(client: Pidroid):
+    return client.user.id in DEVELOPMENT_BOTS
 
 def is_client_pidroid(client: Client):
     return client.user.id == PIDROID_ID
