@@ -1,5 +1,4 @@
 from __future__ import annotations
-from cogs.models.configuration import GuildConfiguration
 
 import bson
 import motor.motor_asyncio
@@ -13,6 +12,7 @@ from motor.core import AgnosticCollection
 from urllib.parse import quote_plus
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
+from cogs.models.configuration import GuildConfiguration
 from cogs.models.plugins import NewPlugin, Plugin
 from cogs.utils.http import get, Route
 from cogs.utils.time import utcnow
