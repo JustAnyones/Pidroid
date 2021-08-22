@@ -1,7 +1,6 @@
 import discord
 import typing
 
-from discord.asset import Asset
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.guild import Guild
@@ -12,15 +11,6 @@ from cogs.models.categories import InformationCategory
 from cogs.utils.checks import is_guild_moderator, is_guild_administrator
 from cogs.utils.embeds import build_embed
 
-def _from_guild_avatar(state, guild_id: int, member_id: int, avatar: str) -> Asset:
-    animated = avatar.startswith('a_')
-    format = 'gif' if animated else 'png'
-    return Asset(
-        state,
-        url=f"{Asset.BASE}/guilds/{guild_id}/users/{member_id}/avatars/{avatar}.{format}?size=1024",
-        key=avatar,
-        animated=animated,
-    )
 
 class InfoCommands(commands.Cog):
     """This class implements a cog for various discord information commands."""
