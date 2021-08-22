@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import discord
 import json
@@ -9,11 +11,15 @@ from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.mentions import AllowedMentions
 from discord.message import Message
+from typing import TYPE_CHECKING, List, Optional
 
 from cogs.utils.api import API
 from cogs.utils.data import PersistentDataManager
 
 __VERSION__ = discord.VersionInfo(major=4, minor=0, micro=5, releaselevel='alpha', serial=0)
+
+if TYPE_CHECKING:
+    from cogs.models.configuration import GuildConfiguration
 
 
 class Pidroid(commands.Bot):
@@ -37,6 +43,7 @@ class Pidroid(commands.Bot):
             # Models
             'cogs.models.exceptions', # Load first so that I can use it in error_handler
             'cogs.models.categories',
+            'cogs.models.configuration',
             'cogs.models.case',
             'cogs.models.plugins',
             'cogs.models.punishments',
@@ -95,6 +102,11 @@ class Pidroid(commands.Bot):
             # Debugging tool jishaku
             'jishaku'
         ]
+
+        # This holds cached guild configurations
+        self._guild_config_ready = asyncio.Event()
+        self._cached_configurations = {}
+
         self._connected = asyncio.Event()
 
         self.client_version = __VERSION__
@@ -138,6 +150,41 @@ class Pidroid(commands.Bot):
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
         return f"{version_str} {self.client_version.releaselevel} {self.client_version.serial}"
 
+    async def wait_guild_config_cache_ready(self):
+        """Waits until the internal guild configuration cache is ready.
+
+        It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()
+        is no longer needed.
+        """
+        await self._guild_config_ready.wait()
+
+    @property
+    def guild_config_cache_ready(self) -> bool:
+        """Returns true if the internal guild configuration cache is ready."""
+        return self._guild_config_ready.is_set()
+
+    @property
+    def guild_configurations(self) -> dict:
+        """Returns raw guild configuration dictionary, should not be called."""
+        return self._cached_configurations
+
+    @property
+    def guild_configuration_guilds(self) -> List[int]:
+        """Returns guild configuration guild IDs."""
+        return self._cached_configurations.keys()
+
+    def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
+        """Returns guild configuration for specified guild."""
+        return self.guild_configurations.get(guild_id)
+
+    def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
+        self.guild_configurations[guild_id] = config
+        return self.get_guild_configuration(guild_id)
+
+    def _remove_guild_configuration(self, guild_id: int) -> None:
+        self.guild_configurations.pop(guild_id)
+
+    # ETC
     async def resolve_user(self, user_id: int) -> discord.User:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
         result = self.get_user(user_id)

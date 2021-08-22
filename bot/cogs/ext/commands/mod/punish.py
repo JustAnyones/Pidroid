@@ -4,6 +4,7 @@ import typing
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from discord.member import Member
 
 from client import Pidroid
 from cogs.models.categories import ModerationCategory
@@ -38,24 +39,21 @@ class ModeratorCommands(commands.Cog):
     @command_checks.can_purge()
     @commands.guild_only()
     async def purge(self, ctx: Context, amount: int = 0):
-        async with ctx.typing():
-            if amount <= 0:
-                await ctx.reply(embed=error(
-                    "Please specify an amount of messages to delete!"
-                ))
-                return
-            await ctx.channel.purge(limit=amount + 1)
-            await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
+        if amount <= 0:
+            return await ctx.reply(embed=error(
+                "Please specify an amount of messages to delete!"
+            ))
+        await ctx.channel.purge(limit=amount + 1)
+        await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
 
     @commands.command(hidden=True)
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
     @command_checks.is_junior_moderator(manage_messages=True)
     @commands.guild_only()
     async def deletethis(self, ctx: Context):
-        async with ctx.typing():
-            await ctx.message.delete(delay=0)
-            await ctx.channel.purge(limit=1)
-            await ctx.reply(file=discord.File('./resources/delete_this.png'))
+        await ctx.message.delete(delay=0)
+        await ctx.channel.purge(limit=1)
+        await ctx.reply(file=discord.File('./resources/delete_this.png'))
 
     @commands.command(
         brief='Issues a warning to specified member.',
@@ -82,10 +80,13 @@ class ModeratorCommands(commands.Cog):
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
     async def mute(self, ctx: Context, member: str = None, duration_datetime: typing.Optional[Duration] = None, *, reason: str = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
         member = await Offender().convert(ctx, member, True)
 
-        c = await self.client.api.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.get('mute_role', None))
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        role = get_role(ctx.guild, c.mute_role)
         if role is None:
             await ctx.reply(embed=error("Mute role not found!"))
             return
@@ -117,10 +118,13 @@ class ModeratorCommands(commands.Cog):
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
     async def unmute(self, ctx: Context, *, member: str = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
         member = await Offender().convert(ctx, member, True)
 
-        c = await self.api.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.get('mute_role', None))
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        role = get_role(ctx.guild, c.mute_role)
         if role is None:
             await ctx.reply(embed=error("Mute role not found, cannot remove!"))
             return
@@ -143,15 +147,18 @@ class ModeratorCommands(commands.Cog):
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
     async def jail(self, ctx: Context, member: str = None, *, reason: str = None):
-        member = await Offender().convert(ctx, member, True)
+        if not self.client.guild_config_cache_ready:
+            return
 
-        c = await self.api.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.get('jail_role', None))
+        member: Member = await Offender().convert(ctx, member, True)
+
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        role = get_role(ctx.guild, c.jail_role)
         if role is None:
             await ctx.reply(embed=error("Jail role not found!"))
             return
 
-        channel = get_channel(ctx.guild, c.get('jail_channel', None))
+        channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
             await ctx.reply(embed=error("Jail channel not found!"))
             return
@@ -176,15 +183,18 @@ class ModeratorCommands(commands.Cog):
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
     async def kidnap(self, ctx: Context, member: str = None, *, reason: str = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
         member = await Offender().convert(ctx, member, True)
 
-        c = await self.api.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.get('jail_role', None))
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        role = get_role(ctx.guild, c.jail_role)
         if role is None:
             await ctx.reply(embed=error("Jail role not found!"))
             return
 
-        channel = get_channel(ctx.guild, c.get('jail_channel', None))
+        channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
             await ctx.reply(embed=error("Jail channel not found!"))
             return
@@ -207,10 +217,13 @@ class ModeratorCommands(commands.Cog):
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
     async def unjail(self, ctx: Context, *, member: str = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
         member = await Offender().convert(ctx, member, True)
 
-        c = await self.api.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.get('jail_role', None))
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        role = get_role(ctx.guild, c.jail_role)
         if role is None:
             await ctx.reply(embed=error("Jail role not found, cannot remove!"))
             return

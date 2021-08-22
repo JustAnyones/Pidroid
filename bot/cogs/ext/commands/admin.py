@@ -59,28 +59,39 @@ class AdminCommands(commands.Cog):
     )
     @commands.has_permissions(administrator=True)
     async def configuration(self, ctx: Context):
-        if ctx.invoked_subcommand is None:
-            async with ctx.typing():
-                data = await self.api.get_guild_configuration(ctx.guild.id)
-                if data is None:
-                    await ctx.reply(embed=error(
-                        f'No configuration was found for the server. You can create one by running ``{self.client.prefix}configuration setup`` command.'
-                    ))
-                    return
+        if not self.client.guild_config_cache_ready:
+            return
 
-                guild: Guild = ctx.guild
-                jail_role = guild.get_role(data.get('jail_role', None))
-                jail_channel = guild.get_channel(data.get('jail_channel', None))
-                mute_role = guild.get_role(data.get('mute_role', None))
-                embed = build_embed(title=f'Displaying configuration for {escape_markdown(ctx.guild.name)}')
-                if jail_role is not None:
-                    embed.add_field(name='Jail role', value=jail_role.mention)
-                if jail_channel is not None:
-                    embed.add_field(name='Jail channel', value=jail_channel.mention)
-                if mute_role is not None:
-                    embed.add_field(name='Mute role', value=mute_role.mention)
-                embed.set_footer(text=f'To edit the configuration, view administration category with {self.client.prefix}help administration.')
-            await ctx.reply(embed=embed)
+        if ctx.invoked_subcommand is None:
+            guild = ctx.guild
+            data = self.client.get_guild_configuration(guild.id)
+
+            if data is None:
+                return await ctx.reply(
+                    embed=error(
+                        'No configuration was found for the server. '
+                        f'You can create one by running ``{self.client.prefix}configuration setup`` command.'
+                    ))
+
+            embed = build_embed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
+
+            prefixes = data.prefixes or self.client.prefixes
+            embed.add_field(name='Prefixes', value=', '.join(prefixes))
+
+            jail_role = guild.get_role(data.jail_role)
+            if jail_role is not None:
+                embed.add_field(name='Jail role', value=jail_role.mention)
+
+            jail_channel = guild.get_channel(data.jail_channel)
+            if jail_channel is not None:
+                embed.add_field(name='Jail channel', value=jail_channel.mention)
+
+            mute_role = guild.get_role(data.mute_role)
+            if mute_role is not None:
+                embed.add_field(name='Mute role', value=mute_role.mention)
+
+            embed.set_footer(text=f'To edit the configuration, view administration category with {self.client.prefix}help administration.')
+        await ctx.reply(embed=embed)
 
     @configuration.command(
         brief='Sets up server configuration automatically.\nConfiguration consists out of creating channels and roles required for moderation functionality of the bot.\nRequires administrator permissions.',
@@ -90,20 +101,22 @@ class AdminCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(administrator=True)
     async def setup(self, ctx: Context):
+        if not self.client.guild_config_cache_ready:
+            return
+
         guild: Guild = ctx.guild
         guild_channels = guild.channels
-        async with ctx.typing():
 
-            if await self.api.get_guild_configuration(guild.id) is not None:
-                await ctx.reply(embed=error(
-                    'Configuration already exists! If you want to edit the configuration, use other subcommands.'
-                ))
-                return
+        if guild.id in self.client.guild_configuration_guilds:
+            return await ctx.reply(embed=error(
+                'Configuration already exists! If you want to edit the configuration, use other subcommands.'
+            ))
 
-            jail_role, jail_channel = await self.setup_jail_system(ctx, guild_channels)
-            mute_role = await self.setup_mute_system(ctx, guild_channels)
+        jail_role, jail_channel = await self.setup_jail_system(ctx, guild_channels)
+        mute_role = await self.setup_mute_system(ctx, guild_channels)
 
-            await self.api.create_new_guild_configuration(guild.id, jail_channel.id, jail_role.id, mute_role.id)
+        config = await self.api.create_new_guild_configuration(guild.id, jail_channel.id, jail_role.id, mute_role.id)
+        self.client._update_guild_configuration(ctx.guild.id, config)
         await ctx.reply('Configuration complete')
         await ctx.invoke(self.client.get_command('configuration'))
 
@@ -116,8 +129,10 @@ class AdminCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(administrator=True)
     async def setjail(self, ctx: Context, channel: discord.TextChannel):
-        async with ctx.typing():
-            await self.api.update_guild_jail_channel(ctx.guild.id, channel.id)
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_jail_channel(channel)
         await ctx.reply(f'Jail channel set to {channel.mention}')
 
     @configuration.command(
@@ -129,8 +144,10 @@ class AdminCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(administrator=True)
     async def setjailrole(self, ctx: Context, role: discord.Role):
-        async with ctx.typing():
-            await self.api.update_guild_jail_role(ctx.guild.id, role.id)
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_jail_role(role)
         await ctx.reply(f'Jail role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
 
     @configuration.command(
@@ -142,10 +159,12 @@ class AdminCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(administrator=True)
     async def setmuterole(self, ctx: Context, role: discord.Role):
-        async with ctx.typing():
-            await self.api.update_guild_mute_role(ctx.guild.id, role.id)
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_mute_role(role)
         await ctx.reply(f'Mute role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
 
 
-def setup(client):
+def setup(client: Pidroid):
     client.add_cog(AdminCommands(client))

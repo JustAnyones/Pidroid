@@ -1,4 +1,5 @@
 from __future__ import annotations
+from cogs.models.configuration import GuildConfiguration
 
 import bson
 import motor.motor_asyncio
@@ -10,7 +11,7 @@ from bson.objectid import ObjectId
 from discord.ext.commands.errors import BadArgument
 from motor.core import AgnosticCollection
 from urllib.parse import quote_plus
-from typing import List, Union, TYPE_CHECKING
+from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 from cogs.models.plugins import NewPlugin, Plugin
 from cogs.utils.http import get, Route
@@ -266,20 +267,30 @@ class API:
 
     """Guild configuration related methods"""
 
-    async def get_all_guild_configurations(self) -> Union[list, None]:
+    async def get_all_guild_configurations(self) -> List[GuildConfiguration]:
         """Returns a list of all guild configurations."""
         cursor = self.guild_configurations.find({})
-        return [i async for i in cursor] or None
+        return [GuildConfiguration(self, i) async for i in cursor]
 
-    async def get_guild_configuration(self, guild_id: int) -> Union[dict, None]:
+    async def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Returns a specified guild configuration."""
-        return await self.guild_configurations.find_one({"guild_id": guild_id})
+        data = await self.guild_configurations.find_one({"guild_id": guild_id})
+        if data:
+            return GuildConfiguration(self, data)
+        return None
+
+    async def get_guild_configuration_by_id(self, object_id: ObjectId) -> Optional[GuildConfiguration]:
+        """Returns a specified guild configuration."""
+        data = await self.guild_configurations.find_one({"_id": object_id})
+        if data:
+            return GuildConfiguration(self, data)
+        return None
 
     async def create_new_guild_configuration(
         self, guild_id: int,
         jail_id: int = None, jail_role_id: int = None,
         mute_role_id: int = None
-    ) -> None:
+    ) -> GuildConfiguration:
         """Creates a new guild configuration entry."""
         d = {
             "guild_id": bson.Int64(guild_id),
@@ -290,36 +301,25 @@ class API:
             d["jail_role"] = bson.Int64(jail_role_id)
         if mute_role_id:
             d["mute_role"] = bson.Int64(mute_role_id)
-        await self.guild_configurations.insert_one(d)
+        inserted_id = await self.guild_configurations.insert_one(d)
+        return self.get_guild_configuration_by_id(inserted_id)
 
-    async def update_guild_jail_channel(self, guild_id: int, channel_id: int):
-        """Updates jail channel for the guild."""
-        if await self.get_guild_configuration(guild_id) is None:
-            await self.create_new_guild_configuration(guild_id, jail_id=channel_id)
-            return
+    async def delete_guild_configuration(self, object_id: ObjectId) -> None:
+        """Deletes a guild configuration document."""
+        await self.guild_configurations.delete_one({'_id': object_id})
+
+    async def set_guild_config(self, object_id: ObjectId, key: str, value: Any) -> None:
+        """Sets a guild configuration key with specified value."""
         await self.guild_configurations.update_one(
-            {'guild_id': guild_id},
-            {'$set': {'jail_channel': bson.Int64(channel_id)}}
+            {"_id": object_id},
+            {"$set": {key: value}}
         )
 
-    async def update_guild_jail_role(self, guild_id: int, role_id: int):
-        """Updates jail role for the guild."""
-        if await self.get_guild_configuration(guild_id) is None:
-            await self.create_new_guild_configuration(guild_id, jail_role_id=role_id)
-            return
+    async def unset_guild_config(self, object_id: ObjectId, key: str) -> None:
+        """Unsets a guild configuration key."""
         await self.guild_configurations.update_one(
-            {'guild_id': guild_id},
-            {'$set': {'jail_role': bson.Int64(role_id)}}
-        )
-
-    async def update_guild_mute_role(self, guild_id: int, role_id: int):
-        """Updates mute role for the guild."""
-        if await self.get_guild_configuration(guild_id) is None:
-            await self.create_new_guild_configuration(guild_id, mute_role_id=role_id)
-            return
-        await self.guild_configurations.update_one(
-            {'guild_id': guild_id},
-            {'$set': {'mute_role': bson.Int64(role_id)}}
+            {'_id': object_id},
+            {"$unset": {key: 1}}
         )
 
     """FAQ related methods"""

@@ -89,8 +89,8 @@ def is_event_manager(member: Member):
 def can_purge(member: Member):
     return is_normal_moderator(member) or is_event_manager(member)
 
-async def guild_has_configuration(client: Pidroid, guild: Guild):
-    return await client.api.get_guild_configuration(guild.id) is not None
+def guild_has_configuration(client: Pidroid, guild: Guild):
+    return guild.id in client.guild_configuration_guilds
 
 
 def is_administrator(member: Member):

@@ -41,7 +41,7 @@ class command_checks:
     def guild_configuration_exists():
         """Checks whether the command is invoked in a guild with Pidroid configuration."""
         async def predicate(ctx: Context):
-            if not await guild_has_configuration(ctx.bot, ctx.guild):
+            if not guild_has_configuration(ctx.bot, ctx.guild):
                 raise InvalidArgument('Server does not have a moderation system set up!')
             return True
         return commands.check(predicate)
