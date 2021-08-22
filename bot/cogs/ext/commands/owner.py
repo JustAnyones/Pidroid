@@ -104,9 +104,20 @@ class OwnerCommands(commands.Cog):
             await ctx.reply(embed=error(f"Message was not sent\n```{e}```"))
 
     @commands.command(
+        name="update-guild-cache",
+        brief="Forcefully updates the internal guild configuration cache.\nShould only be called when desynced on development versions.",
+        category=OwnerCategory
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def updateguildcache(self, ctx: Context):
+        cog = await self.client.get_cog("InvocationEventHandler")
+        await cog._fill_guild_config_cache()
+        await ctx.send("Guild cache updated!")
+
+    @commands.command(
         brief="Experiment with new discord interactions interface.",
     )
-    #@commands.is_owner()
     @commands.bot_has_permissions(send_messages=True)
     async def interface(self, ctx: Context):
         await ctx.send(content="Hello, my friend. Would you like to answer a survey?", view=QuestionInteraction())
