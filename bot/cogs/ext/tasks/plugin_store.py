@@ -7,7 +7,7 @@ from discord.ext import tasks, commands
 from discord.threads import Thread
 
 from client import Pidroid
-from cogs.utils.checks import is_client_pidroid
+from cogs.utils.checks import is_client_development
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timedelta_to_datetime, utcnow
 
@@ -56,7 +56,7 @@ class PluginStoreTasks(commands.Cog):
     async def before_archive_threads(self) -> None:
         """Runs before archive_threads task to ensure that the task is allowed to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
+        if is_client_development(self.client):
             self.archive_threads.cancel()
 
     @tasks.loop(seconds=30)
@@ -101,7 +101,7 @@ class PluginStoreTasks(commands.Cog):
     async def before_new_plugin_retriever(self) -> None:
         """Runs before retrieve_new_plugins task to ensure that the task is allowed to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
+        if is_client_development(self.client):
             self.retrieve_new_plugins.cancel()
 
 def setup(client: Pidroid) -> None:

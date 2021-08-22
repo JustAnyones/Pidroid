@@ -4,7 +4,11 @@ from discord.ext.commands.context import Context
 
 from constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN
 from cogs.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
-from cogs.utils.checks import client_is_pidroid, is_bot_commands, is_cheese_consumer, is_theotown_developer, is_theotown_guild, check_permissions, guild_has_configuration, check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, can_purge
+from cogs.utils.checks import (
+    is_bot_commands, is_cheese_consumer, is_client_development, is_theotown_developer, is_theotown_guild,
+    check_permissions, guild_has_configuration, check_junior_moderator_permissions,
+    check_normal_moderator_permissions, check_senior_moderator_permissions, can_purge
+)
 
 # noinspection PyPep8Naming
 class command_checks:
@@ -104,7 +108,7 @@ class command_checks:
     def client_is_pidroid():
         """Checks whether the command invocation is handled by the original Pidroid client user."""
         async def predicate(ctx: Context):
-            if not client_is_pidroid(ctx.bot.user):
+            if is_client_development(ctx.bot.user):
                 raise ClientIsNotPidroid
             return True
         return commands.check(predicate)

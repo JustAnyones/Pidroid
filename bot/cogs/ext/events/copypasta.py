@@ -8,7 +8,7 @@ from time import time
 
 from client import Pidroid
 from constants import JUSTANYONE_ID
-from cogs.utils.checks import is_client_pidroid, is_theotown_guild
+from cogs.utils.checks import is_client_development, is_theotown_guild
 
 def find_whole_word(word: str, string: str) -> bool:
     """Returns true if specified word is in the string."""
@@ -24,7 +24,7 @@ class CopypastaEventHandler(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
-        if not is_client_pidroid(self.client):
+        if is_client_development(self.client):
             return
 
         if message.author.bot:

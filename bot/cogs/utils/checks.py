@@ -70,9 +70,6 @@ def is_client_development(client: Pidroid):
 def is_client_pidroid(client: Client):
     return client.user.id == PIDROID_ID
 
-def client_is_pidroid(user: User):
-    return user.id == PIDROID_ID
-
 def is_theotown_developer(user: User):
     return user.id in THEOTOWN_DEVELOPERS
 
