@@ -1,10 +1,7 @@
-__VERSION__ = (4, 0, 5, 'alpha')
-
 import asyncio
 import discord
 import json
 import signal
-import sys
 import logging
 
 from aiohttp import ClientSession
@@ -16,7 +13,7 @@ from discord.message import Message
 from cogs.utils.api import API
 from cogs.utils.data import PersistentDataManager
 
-IS_WINDOWS = sys.platform == "win32"
+__VERSION__ = discord.VersionInfo(major=4, minor=0, micro=5, releaselevel='alpha', serial=0)
 
 
 class Pidroid(commands.Bot):
@@ -100,6 +97,8 @@ class Pidroid(commands.Bot):
         ]
         self._connected = asyncio.Event()
 
+        self.client_version = __VERSION__
+
         self.command_categories = []
 
         self.version_cache = {}
@@ -127,17 +126,17 @@ class Pidroid(commands.Bot):
 
     @property
     def version(self) -> str:
-        """Returns client version."""
-        major, minor, patch, _ = __VERSION__
-        if patch == 0:
-            return f"{major}.{minor}"
-        return f"{major}.{minor}.{patch}"
+        """Returns shorthand client version."""
+        version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
+        if self.client_version.releaselevel != "final":
+            return f"{version_str} {self.client_version.releaselevel}"
+        return version_str
 
     @property
     def full_version(self) -> str:
         """Returns full client version."""
-        major, minor, patch, channel = __VERSION__
-        return f"{major}.{minor}.{patch}-{channel[:3]}"
+        version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
+        return f"{version_str} {self.client_version.releaselevel} {self.client_version.serial}"
 
     async def resolve_user(self, user_id: int) -> discord.User:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
