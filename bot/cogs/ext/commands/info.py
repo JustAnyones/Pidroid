@@ -53,22 +53,9 @@ class InfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def server_avatar(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
         member = member or ctx.author
-
-        if isinstance(member, discord.Member):
-            # VERY HACKY SOLUTION, REFACTOR WHEN DISCORD.PY 2.0 IMPLEMENTS PROPER METHOD
-            user_data = await self.client._get_state().http.get_member(ctx.guild.id, member.id)
-
-            if user_data["avatar"] is None:
-                await ctx.invoke(self.client.get_command('profile-avatar'), member=member)
-
-            else:
-                avatar_url = _from_guild_avatar(self.client._get_state(), ctx.guild.id, member.id, user_data["avatar"]).with_size(4096).url
-
-                embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
-                embed.set_image(url=avatar_url)
-                await ctx.send(embed=embed)
-        else:
-            await ctx.invoke(self.client.get_command('profile-avatar'), member=member)
+        embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
+        embed.set_image(url=member.display_avatar.with_size(4096).url)
+        await ctx.send(embed=embed)
 
     @commands.command(
         name='user-info',
