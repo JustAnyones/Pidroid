@@ -204,11 +204,18 @@ class Pidroid(commands.Bot):
             self.logger.setLevel(logging.DEBUG)
 
     async def get_prefix(self, message: Message):
-        """Returns client prefix."""
+        """Returns a prefix for client to respond to."""
         if not message.guild:
             # Only allow first defined prefix to be used in DMs
             return self.prefixes[0]
-        return commands.when_mentioned_or(*self.prefixes)(self, message)
+
+        if self.guild_config_cache_ready:
+            guild_prefixes = self.get_guild_configuration(message.guild.id).prefixes
+            prefixes = guild_prefixes or self.prefixes
+            return commands.when_mentioned_or(*prefixes)(self, message)
+
+        # If cache is not yet ready, only allow commands by mention
+        return commands.when_mentioned(self, message)
 
     def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
