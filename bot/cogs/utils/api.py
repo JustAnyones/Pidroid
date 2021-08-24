@@ -9,9 +9,11 @@ import string
 from bson.objectid import ObjectId
 from discord.ext.commands.errors import BadArgument
 from motor.core import AgnosticCollection
+from pymongo.results import InsertOneResult
 from urllib.parse import quote_plus
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
+from cogs.ext.commands.tags import Tag
 from cogs.models.configuration import GuildConfiguration
 from cogs.models.plugins import NewPlugin, Plugin
 from cogs.utils.http import get, Route
@@ -53,6 +55,11 @@ class API:
     def faq(self) -> AgnosticCollection:
         """Returns a MongoDB collection for frequently asked TheoTown questions."""
         return self.db["FAQ"]
+
+    @property
+    def tags(self) -> AgnosticCollection:
+        """Returns a MongoDB collection for tags."""
+        return self.db["Tags"]
 
     @property
     def shitposts(self) -> AgnosticCollection:
@@ -301,8 +308,8 @@ class API:
             d["jail_role"] = bson.Int64(jail_role_id)
         if mute_role_id:
             d["mute_role"] = bson.Int64(mute_role_id)
-        inserted_id = await self.guild_configurations.insert_one(d)
-        return self.get_guild_configuration_by_id(inserted_id)
+        result: InsertOneResult = await self.guild_configurations.insert_one(d)
+        return self.get_guild_configuration_by_id(result.inserted_id)
 
     async def delete_guild_configuration(self, object_id: ObjectId) -> None:
         """Deletes a guild configuration document."""
@@ -338,6 +345,36 @@ class API:
         """Returns a dictionary list of all frequently asked questions."""
         cursor = self.faq.find({}).sort("question", 1)
         return [i async for i in cursor]
+
+    """Tag related methods"""
+
+    async def create_tag(self, data: dict) -> ObjectId:
+        """Creates a guild tag from a dictionary."""
+        result: InsertOneResult = await self.tags.insert_one(data)
+        return result.inserted_id
+
+    async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
+        """Returns a guild tag for the appropriate name."""
+        raw_tag = await self.tags.find_one({
+            "guild_id": bson.Int64(guild_id),
+            "name": {"$regex": tag_name, "$options": "i"}
+        })
+        if raw_tag is None:
+            return None
+        return Tag(self, raw_tag)
+
+    async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
+        """Returns a list of all tags defined in the guild."""
+        cursor = self.tags.find({"guild_id": bson.Int64(guild_id)}).sort("name", 1)
+        return [Tag(self, i) async for i in cursor]
+
+    async def edit_tag(self, object_id: ObjectId, data: dict) -> None:
+        """Edits a tag by specified object ID."""
+        await self.tags.update_one({'_id': object_id}, {'$set': data})
+
+    async def remove_tag(self, object_id: ObjectId) -> None:
+        """Removes a tag by specified object ID."""
+        await self.tags.delete_one({'_id': object_id})
 
     """Shitpost related methods"""
 

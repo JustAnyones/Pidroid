@@ -76,6 +76,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.commands.owner',
             'cogs.ext.commands.reddit',
             'cogs.ext.commands.sticker',
+            'cogs.ext.commands.tags',
             'cogs.ext.commands.theotown',
             'cogs.ext.commands.utilities',
             'cogs.ext.commands.mod.punish',

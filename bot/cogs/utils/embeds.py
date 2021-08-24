@@ -27,14 +27,11 @@ def create_embed(**kwargs) -> Embed:
         timestamp=timestamp
     )
 
-def create_success_embed(**kwargs) -> Embed:
-    return create_embed(color=Colour.green(), **kwargs)
+def success(content: str) -> Embed:
+    return Embed(description=content, color=Colour.green())
 
 def error(content: str) -> Embed:
-    return create_error_embed(description=content)
-
-def create_error_embed(title=Embed.Empty, description=Embed.Empty) -> Embed:
-    return create_embed(title=title, description=description, color=Colour.red())
+    return Embed(description=content, color=Colour.red())
 
 def build_embed(**kwargs):
     """Creates a discord embed object."""

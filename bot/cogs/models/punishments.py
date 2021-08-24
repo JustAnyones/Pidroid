@@ -9,7 +9,7 @@ from discord.role import Role
 from typing import Union
 
 from cogs.utils.api import API
-from cogs.utils.embeds import create_success_embed
+from cogs.utils.embeds import success
 from cogs.utils.time import timedelta_to_datetime, utcnow
 
 class Punishment:
@@ -91,14 +91,14 @@ class Punishment:
         try:
             if not self.silent:
                 if self.case_id is not None:
-                    embed = create_success_embed(
+                    embed = success(
                         title=f"Case #{self.case_id}",
                         description=message
                     )
                     if image is not None:
                         embed.set_image(url="attachment://picture.png")
                 else:
-                    embed = create_success_embed(description=message)
+                    embed = success(description=message)
                 await self.ctx.send(embed=embed, file=image)
         except Forbidden:
             pass
