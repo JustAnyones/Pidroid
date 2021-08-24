@@ -104,7 +104,7 @@ class TagCommands(commands.Cog):
 
         embed = create_embed()
         embed.title = f"{escape_markdown(ctx.guild.name)}'s tags"
-        embed.description = '**' + '**, **'.join([t.name for t in guild_tags]) + '**'
+        embed.description = f'({len(guild_tags)}) **' + '**, **'.join([t.name for t in guild_tags]) + '**'
         await ctx.reply(embed=embed)
 
     @commands.command(
