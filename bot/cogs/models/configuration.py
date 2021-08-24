@@ -45,6 +45,11 @@ class GuildConfiguration:
 
         self.mute_role = c.get(ConfigKeys.mute_role.value, None)
 
+    async def update_prefix(self, prefix: str) -> None:
+        """Updates the guild bot prefix."""
+        self.prefixes = [prefix]
+        await self.api.set_guild_config(self._id, "prefixes", self.prefixes)
+
     async def update_jail_channel(self, channel: TextChannel) -> None:
         """Updates the guild jail text channel."""
         self.jail_channel = channel.id

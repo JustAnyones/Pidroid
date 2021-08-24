@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import AdministrationCategory
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import build_embed, error, success
 
 SETUP_REASON = "Guild configuration setup"
 
@@ -164,6 +164,29 @@ class AdminCommands(commands.Cog):
         config = self.client.get_guild_configuration(ctx.guild.id)
         await config.update_mute_role(role)
         await ctx.reply(f'Mute role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
+
+    @configuration.command(
+        brief='Sets server bot prefix.\nRequires manage server permission.',
+        usage='<prefix>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.has_permissions(manage_guild=True)
+    async def setprefix(self, ctx: Context, prefix: str):
+        if not self.client.guild_config_cache_ready:
+            return
+
+        if len(prefix) > 1:
+            return await ctx.send(embed=error("Prefix cannot be longer than a single character!"))
+
+        if prefix == "\\":
+            return await ctx.send(embed=error("Prefix cannot be a forbidden character!"))
+
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_prefix(prefix)
+
+        await ctx.reply(embed=success(f'My prefix set to \'{prefix}\''))
 
 
 def setup(client: Pidroid):
