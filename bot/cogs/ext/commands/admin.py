@@ -178,10 +178,10 @@ class AdminCommands(commands.Cog):
             return
 
         if len(prefix) > 1:
-            return await ctx.send(embed=error("Prefix cannot be longer than a single character!"))
+            return await ctx.reply(embed=error("Prefix cannot be longer than a single character!"))
 
         if prefix == "\\":
-            return await ctx.send(embed=error("Prefix cannot be a forbidden character!"))
+            return await ctx.reply(embed=error("Prefix cannot be a forbidden character!"))
 
         config = self.client.get_guild_configuration(ctx.guild.id)
         await config.update_prefix(prefix)

@@ -45,7 +45,7 @@ class InfoCommands(commands.Cog):
         member = member or ctx.author
         embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.display_avatar.with_size(4096).url)
-        await ctx.send(embed=embed)
+        await ctx.reply(embed=embed)
 
     @commands.command(
         name='user-info',

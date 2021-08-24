@@ -113,14 +113,14 @@ class OwnerCommands(commands.Cog):
     async def updateguildcache(self, ctx: Context):
         cog = await self.client.get_cog("InvocationEventHandler")
         await cog._fill_guild_config_cache()
-        await ctx.send("Guild cache updated!")
+        await ctx.reply("Internal guild cache updated!")
 
     @commands.command(
         brief="Experiment with new discord interactions interface.",
     )
     @commands.bot_has_permissions(send_messages=True)
     async def interface(self, ctx: Context):
-        await ctx.send(content="Hello, my friend. Would you like to answer a survey?", view=QuestionInteraction())
+        await ctx.reply(content="Hello, my friend. Would you like to answer a survey?", view=QuestionInteraction())
 
 def setup(client: Pidroid) -> None:
     client.add_cog(OwnerCommands(client))

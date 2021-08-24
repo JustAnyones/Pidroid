@@ -137,7 +137,7 @@ class TagCommands(commands.Cog):
         tag.content = content
 
         if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
-            return await ctx.send(embed=error("There's already a tag by the specified name!"))
+            return await ctx.reply(embed=error("There's already a tag by the specified name!"))
 
         await tag.create()
         await ctx.reply(embed=success("Tag created successfully!"))

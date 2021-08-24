@@ -44,7 +44,7 @@ class ModeratorCommands(commands.Cog):
                 "Please specify an amount of messages to delete!"
             ))
         await ctx.channel.purge(limit=amount + 1)
-        await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
+        await ctx.reply(f'{amount} messages have been purged!', delete_after=1.5)
 
     @commands.command(hidden=True)
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
