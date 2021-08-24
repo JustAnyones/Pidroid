@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 
 class NotInTheoTownGuild(CheckFailure):
     def __init__(self, message: str = None):
-        super().__init__(message or "The command can only be used inside TheoTown guild")
+        super().__init__(message or "The command can only be used inside the TheoTown server!")
 
 class InvalidChannel(CheckFailure):
     def __init__(self, message: str):
@@ -21,11 +21,11 @@ class InvalidDuration(BadArgument):
 
 class MissingUserPermissions(CheckFailure):
     def __init__(self, message: str = None):
-        super().__init__(message or "You are missing the required permissions to proceed")
+        super().__init__(message or "You are missing the required permissions to proceed!")
 
 class ClientIsNotPidroid(CheckFailure):
     def __init__(self, message: str = None):
-        super().__init__(message or "Client user is not Pidroid")
+        super().__init__(message or "Client user is not Pidroid!")
 
 
 def setup(client: Pidroid) -> None:
