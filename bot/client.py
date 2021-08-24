@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, List, Optional
 from cogs.utils.api import API
 from cogs.utils.data import PersistentDataManager
 
-__VERSION__ = discord.VersionInfo(major=4, minor=0, micro=5, releaselevel='alpha', serial=0)
+__VERSION__ = discord.VersionInfo(major=4, minor=1, micro=0, releaselevel='alpha', serial=0)
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
