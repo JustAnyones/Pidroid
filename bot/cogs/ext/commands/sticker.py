@@ -81,7 +81,6 @@ class StickerCommands(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     async def get_sticker(self, ctx: Context, message: typing.Optional[Message]):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)

@@ -24,7 +24,6 @@ class InfoCommands(commands.Cog):
         usage='[member]',
         category=InformationCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
     async def profile_avatar(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
         member = member or ctx.author

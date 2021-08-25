@@ -61,7 +61,6 @@ class EmojiCommands(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     async def emoji(self, ctx: Context, *, emoji: discord.PartialEmoji = None):
         if emoji is None:
             await ctx.reply(embed=error("Please specify a custom emoji you want to view!"))
@@ -119,7 +118,6 @@ class EmojiCommands(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     async def get_emojis(self, ctx: Context, message: typing.Optional[Message], emoji_index: int = -1):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)

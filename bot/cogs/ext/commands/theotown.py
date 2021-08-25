@@ -37,8 +37,7 @@ class TheoTownCommands(commands.Cog):
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
-    @commands.cooldown(rate=1, per=5, type=commands.BucketType.channel)
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def version(self, ctx: Context):
         async with ctx.typing():
             cache = self.client.version_cache
@@ -79,7 +78,7 @@ class TheoTownCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @commands.cooldown(rate=1, per=15, type=commands.BucketType.channel)
-    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.max_concurrency(number=3, per=commands.BucketType.guild)
     async def online(self, ctx: Context):
         async with ctx.typing():
             data = await self.api.get(Route("/private/get_online_statistics"))
@@ -105,7 +104,6 @@ class TheoTownCommands(commands.Cog):
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def gallery(self, ctx: Context, query: str = 'recent', number: int = None):
         async with ctx.typing():
@@ -231,7 +229,6 @@ class TheoTownCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True)  # permissions kind of obsolete
     @command_checks.is_bot_commands()
     @command_checks.is_theotown_guild()
-    @commands.guild_only()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user)
     @command_checks.client_is_pidroid()
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
@@ -300,7 +297,6 @@ class TheoTownCommands(commands.Cog):
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     async def faq(self, ctx: Context, *, entry: str = 'list'):
         async with ctx.typing():
             if entry == "list":

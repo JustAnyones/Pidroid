@@ -69,7 +69,6 @@ class FunCommands(commands.Cog):
         aliases=['colour'],  # Bri'ish spelling
         category=RandomCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
     async def color(self, ctx: Context, hex_str: str = None):
         if hex_str is not None:
@@ -86,7 +85,6 @@ class FunCommands(commands.Cog):
         brief='Noot noot!',
         category=RandomCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def pingu(self, ctx: Context):
         async with ctx.typing():
@@ -97,7 +95,6 @@ class FunCommands(commands.Cog):
         brief='Summons a very slow creature.',
         category=RandomCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def sloth(self, ctx: Context):
         async with ctx.typing():
@@ -122,7 +119,6 @@ class FunCommands(commands.Cog):
         brief='I smell fire, do you? In either case, lets call a fireman!',
         category=RandomCategory
     )
-    @commands.guild_only()
     @command_checks.is_theotown_guild()
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def fire(self, ctx: Context):
@@ -138,7 +134,6 @@ class FunCommands(commands.Cog):
         usage='<search term>',
         category=RandomCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
     async def gif(self, ctx: Context, *, query: str):
         async with ctx.typing():
