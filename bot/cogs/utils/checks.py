@@ -1,4 +1,4 @@
-from discord import Member, User, TextChannel, Guild, Client
+from discord import Member, User, TextChannel, Guild
 from discord.ext.commands import MissingPermissions, Context
 from discord.utils import get
 from typing import Union
@@ -67,7 +67,7 @@ def is_justanyone(user: Union[Member, User]):
 def is_client_development(client: Pidroid):
     return client.user.id in DEVELOPMENT_BOTS
 
-def is_client_pidroid(client: Client):
+def is_client_pidroid(client: Pidroid):
     return client.user.id == PIDROID_ID
 
 def is_theotown_developer(user: User):

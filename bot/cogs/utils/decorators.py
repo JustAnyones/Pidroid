@@ -108,7 +108,7 @@ class command_checks:
     def client_is_pidroid():
         """Checks whether the command invocation is handled by the original Pidroid client user."""
         async def predicate(ctx: Context):
-            if is_client_development(ctx.bot.user):
+            if is_client_development(ctx.bot):
                 raise ClientIsNotPidroid
             return True
         return commands.check(predicate)
