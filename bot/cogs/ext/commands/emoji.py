@@ -115,7 +115,7 @@ class EmojiCommands(commands.Cog):
     @commands.command(
         name='get-emojis',
         brief='Retrieves all custom emojis from a referenced message.',
-        aliases=['getemojis'],
+        aliases=['getemojis', 'get-emoji', 'getemoji'],
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
