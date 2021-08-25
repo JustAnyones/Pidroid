@@ -1,8 +1,8 @@
 import discord
-import typing
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from typing import Optional, Union
 
 from client import Pidroid
 from cogs.models.categories import ModerationCategory
@@ -28,7 +28,7 @@ class ModeratorInfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def case(self, ctx: Context, case_id: str, *, reason: str = None):
+    async def case(self, ctx: Context, case_id: str, *, reason: Optional[str]):
         case = await get_case(ctx, case_id)
 
         if reason is not None:
@@ -61,7 +61,7 @@ class ModeratorInfoCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def warnings(self, ctx: Context, user: typing.Union[discord.Member, discord.User] = None, amount: str = 'none'):
+    async def warnings(self, ctx: Context, user: Optional[Union[discord.Member, discord.User]], amount: str = 'none'):
         user = user or ctx.author
 
         error_msg = "I could not find any warnings for you!"
@@ -91,7 +91,7 @@ class ModeratorInfoCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def modlogs(self, ctx: Context, *, user: typing.Union[discord.Member, discord.User] = None):
+    async def modlogs(self, ctx: Context, *, user: Optional[Union[discord.Member, discord.User]]):
         user = user or ctx.author
 
         error_msg = "I could not find any modlogs related to you!"
@@ -119,7 +119,7 @@ class ModeratorInfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def modstats(self, ctx: Context, *, member: discord.Member = None):
+    async def modstats(self, ctx: Context, *, member: Optional[discord.Member]):
         member = member or ctx.author
         bans = kicks = jails = warnings = 0
         user_data, guild_total = await self.api.get_moderation_statistics(ctx.guild.id, member.id)

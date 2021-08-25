@@ -5,13 +5,14 @@ from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.member import Member
+from typing import Optional
 
 from client import Pidroid
 from cogs.models.categories import ModerationCategory
 from cogs.models.punishments import Ban, Jail, Kidnap, Mute, Kick, Warn
 from cogs.utils.converters import Duration, Offender
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import error
+from cogs.utils.embeds import error, success
 from cogs.utils.getters import get_role, get_channel
 from cogs.utils.time import datetime_to_duration
 
@@ -259,7 +260,7 @@ class ModeratorCommands(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
     @command_checks.is_moderator(ban_members=True)
     @commands.guild_only()
-    async def ban(self, ctx: Context, user: str = None, duration_datetime: typing.Optional[Duration] = None, *, reason: str = None):
+    async def ban(self, ctx: Context, user: str = None, duration_datetime: Optional[Duration] = None, *, reason: str = None):
         user = await Offender().convert(ctx, user)
 
         if await is_banned(ctx, user):
@@ -284,14 +285,13 @@ class ModeratorCommands(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
     @command_checks.is_senior_moderator(administrator=True)
     @commands.guild_only()
-    async def unban(self, ctx: Context, *, user: discord.User = None):
+    async def unban(self, ctx: Context, *, user: Optional[discord.User]):
         if user is None:
-            await ctx.reply(embed=error("Please specify someone you are trying to unban!"))
-            return
+            return await ctx.reply(embed=error("Please specify someone you are trying to unban!"))
 
         try:
             await ctx.guild.unban(user)
-            await ctx.reply(f"{str(user)} has been unbanned!")
+            await ctx.reply(embed=success(f"{str(user)} has been unbanned!"))
         except HTTPException:
             await ctx.reply(embed=error("Specified user could not be unbanned! Perhaps the user is already unbanned?"))
 
