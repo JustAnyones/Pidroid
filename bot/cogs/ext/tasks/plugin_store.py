@@ -91,7 +91,7 @@ class PluginStoreTasks(commands.Cog):
 
                     if self.use_threads:
                         thread = await message.create_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
-                        await self.api.create_new_plugin_thread(thread.id, timedelta_to_datetime(timedelta(days=2)).timestamp())
+                        await self.api.create_new_plugin_thread(thread.id, timedelta_to_datetime(timedelta(days=7)).timestamp())
 
         except Exception as e:
             self.client.logger.exception("An exception was encountered while trying to retrieve and publish new plugin information")
