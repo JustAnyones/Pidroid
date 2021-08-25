@@ -69,18 +69,12 @@ class InfoCommands(commands.Cog):
 
         if not is_user:
 
-            roleList = member.roles
-            roleList.reverse()
-            roles = []
-            for role in roleList:
-                if role.name == '@everyone':
-                    continue
-                roles.append(role.mention)
+            role_list = [role.mention for role in reversed(member.roles) if role.name != "@everyone"]
 
             # List roles
-            roleCount = len(roles)
-            roles = " ".join(roles)
-            if roleCount == 0:
+            role_count = len(role_list)
+            roles = " ".join(role_list)
+            if role_count == 0:
                 roles = 'None'
 
             # Get server member bot acknowledgement
@@ -101,7 +95,7 @@ class InfoCommands(commands.Cog):
             # Get join position
             pos = sum(m.joined_at < member.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
 
-            embed.add_field(name=f'Roles [{roleCount:,}]', value=roles, inline=True)
+            embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
             embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
             embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
