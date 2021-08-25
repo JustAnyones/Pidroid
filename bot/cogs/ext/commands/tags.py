@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bson.int64 import Int64
 from bson.objectid import ObjectId
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -35,10 +36,10 @@ class Tag:
 
     def _serialize(self) -> dict:
         return {
-            "guild_id": self.guild_id,
+            "guild_id": Int64(self.guild_id),
             "name": self.name,
             "content": self.content,
-            "author_id": self.author_id
+            "author_id": Int64(self.author_id)
         }
 
     def _deserialize(self, data) -> None:

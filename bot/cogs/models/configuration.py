@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from bson.int64 import Int64
 from bson.objectid import ObjectId
 from discord.channel import TextChannel
 from discord.role import Role
@@ -56,7 +57,7 @@ class GuildConfiguration:
         key = ConfigKeys.jail_channel.value
         if channel is None:
             return await self.api.unset_guild_config(self._id, key)
-        await self.api.set_guild_config(self._id, key, channel.id)
+        await self.api.set_guild_config(self._id, key, Int64(channel.id))
 
     async def update_jail_role(self, role: Role) -> None:
         """Updates the guild jail role."""
@@ -64,7 +65,7 @@ class GuildConfiguration:
         key = ConfigKeys.jail_role.value
         if role is None:
             return await self.api.unset_guild_config(self._id, key)
-        await self.api.set_guild_config(self._id, key, role.id)
+        await self.api.set_guild_config(self._id, key, Int64(role.id))
 
     async def update_mute_role(self, role: Role) -> None:
         """Updates the guild mute role."""
@@ -72,7 +73,7 @@ class GuildConfiguration:
         key = ConfigKeys.mute_role.value
         if role is None:
             return await self.api.unset_guild_config(self._id, key)
-        await self.api.set_guild_config(self._id, key, role.id)
+        await self.api.set_guild_config(self._id, key, Int64(role.id))
 
 
 def setup(client: Pidroid):
