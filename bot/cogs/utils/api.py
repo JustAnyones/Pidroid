@@ -309,7 +309,7 @@ class API:
         if mute_role_id:
             d["mute_role"] = bson.Int64(mute_role_id)
         result: InsertOneResult = await self.guild_configurations.insert_one(d)
-        return self.get_guild_configuration_by_id(result.inserted_id)
+        return await self.get_guild_configuration_by_id(result.inserted_id)
 
     async def delete_guild_configuration(self, object_id: ObjectId) -> None:
         """Deletes a guild configuration document."""
