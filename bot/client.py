@@ -94,6 +94,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.tasks.cronjobs',
             'cogs.ext.tasks.forum_messages',
             'cogs.ext.tasks.guild_statistics',
+            'cogs.ext.tasks.http_server',
             'cogs.ext.tasks.plugin_store',
             'cogs.ext.tasks.punishment_handler',
 
@@ -115,6 +116,9 @@ class Pidroid(commands.Bot):
         self.command_categories = []
 
         self.version_cache = {}
+
+        self.http_server_testing = True
+        self.scavenger_hunt_complete = False
 
         self.config = config
         self.prefixes = self.config['prefixes']
