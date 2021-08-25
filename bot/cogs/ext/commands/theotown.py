@@ -13,7 +13,7 @@ from cogs.utils import http
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import create_embed, error
 from cogs.utils.http import Route
-from cogs.utils.paginators import PluginListPaginator, MenuPages
+from cogs.utils.paginators import PidroidPages, PluginListPaginator
 from cogs.utils.parsers import format_version_code
 
 ALLOWED_GALLERY_QUERIES = ['recent', 'trends', 'rating']
@@ -183,9 +183,8 @@ class TheoTownCommands(commands.Cog):
                         break
 
                 if not found:
-                    pages = MenuPages(source=PluginListPaginator(plugin_list), clear_reactions_after=True, timeout=60.0)
-                    await pages.start(ctx)
-                    return
+                    pages = PidroidPages(PluginListPaginator(plugin_list), ctx=ctx)
+                    return await pages.start()
 
             await ctx.reply(embed=plugin_list[index].to_embed())
 

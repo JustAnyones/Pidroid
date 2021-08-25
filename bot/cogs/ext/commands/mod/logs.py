@@ -10,7 +10,7 @@ from cogs.utils.checks import check_junior_moderator_permissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import build_embed, error
 from cogs.utils.getters import get_all_warnings, get_case, get_modlogs, get_warnings
-from cogs.utils.paginators import MenuPages, ModLogPaginator, WarningPaginator
+from cogs.utils.paginators import PidroidPages, WarningPaginator, ModLogPaginator
 
 
 class ModeratorInfoCommands(commands.Cog):
@@ -78,11 +78,11 @@ class ModeratorInfoCommands(commands.Cog):
             await ctx.reply(embed=error(error_msg))
             return
 
-        pages = MenuPages(
+        pages = PidroidPages(
             source=WarningPaginator(f"Displaying warnings for {str(user)}", warnings),
-            clear_reactions_after=True
+            ctx=ctx
         )
-        await pages.start(ctx)
+        await pages.start()
 
     @commands.command(
         brief='Displays all moderation logs for the specified user.',
@@ -105,11 +105,11 @@ class ModeratorInfoCommands(commands.Cog):
             await ctx.reply(embed=error(error_msg))
             return
 
-        pages = MenuPages(
+        pages = PidroidPages(
             source=ModLogPaginator(f"Displaying moderation logs for {str(user)}", cases),
-            clear_reactions_after=True
+            ctx=ctx
         )
-        await pages.start(ctx)
+        await pages.start()
 
     @commands.command(
         brief='Displays moderation statistics for the specified member.',
