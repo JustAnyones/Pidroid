@@ -10,7 +10,7 @@ from discord.utils import escape_markdown
 from typing import List, Tuple
 
 from client import Pidroid
-from cogs.models.categories import AdministrationCategory
+from cogs.models.categories import AdministrationCategory, UtilityCategory
 from cogs.utils.embeds import build_embed, error, success
 
 SETUP_REASON = "Guild configuration setup"
@@ -58,6 +58,7 @@ class AdminCommands(commands.Cog):
         invoke_without_command=True
     )
     @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def configuration(self, ctx: Context):
         if not self.client.guild_config_cache_ready:
             return
@@ -100,6 +101,7 @@ class AdminCommands(commands.Cog):
     @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def setup(self, ctx: Context):
         if not self.client.guild_config_cache_ready:
             return
@@ -127,7 +129,8 @@ class AdminCommands(commands.Cog):
     )
     @commands.bot_has_guild_permissions(send_messages=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setjail(self, ctx: Context, channel: discord.TextChannel):
         if not self.client.guild_config_cache_ready:
             return
@@ -142,7 +145,8 @@ class AdminCommands(commands.Cog):
     )
     @commands.bot_has_guild_permissions(send_messages=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setjailrole(self, ctx: Context, role: discord.Role):
         if not self.client.guild_config_cache_ready:
             return
@@ -157,7 +161,8 @@ class AdminCommands(commands.Cog):
     )
     @commands.bot_has_guild_permissions(send_messages=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
-    @commands.has_permissions(administrator=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setmuterole(self, ctx: Context, role: discord.Role):
         if not self.client.guild_config_cache_ready:
             return
@@ -173,6 +178,7 @@ class AdminCommands(commands.Cog):
     @commands.bot_has_guild_permissions(send_messages=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setprefix(self, ctx: Context, prefix: str):
         if not self.client.guild_config_cache_ready:
             return
@@ -187,6 +193,23 @@ class AdminCommands(commands.Cog):
         await config.update_prefix(prefix)
 
         await ctx.reply(embed=success(f'My prefix set to \'{prefix}\''))
+
+    @commands.command(
+        brief='Retrieves all custom emojis from a referenced message.',
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
+    async def prefix(self, ctx: Context):
+        if not self.client.guild_config_cache_ready:
+            return
+
+        config = self.client.get_guild_configuration(ctx.guild.id)
+
+        prefixes = config.prefixes or self.client.prefixes
+        prefix_str = '**, **'.join(prefixes)
+
+        await ctx.reply(f"My prefixes are: **{prefix_str}**")
 
 
 def setup(client: Pidroid):
