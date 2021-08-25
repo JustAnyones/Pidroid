@@ -195,7 +195,7 @@ class AdminCommands(commands.Cog):
         await ctx.reply(embed=success(f'My prefix set to \'{prefix}\''))
 
     @commands.command(
-        brief='Retrieves all custom emojis from a referenced message.',
+        brief='Returns current server bot prefix.',
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
