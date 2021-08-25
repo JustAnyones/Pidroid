@@ -1,10 +1,10 @@
 import discord
-import typing
 
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.guild import Guild
 from discord.utils import escape_markdown, format_dt
+from typing import Optional, Union
 
 from client import Pidroid
 from cogs.models.categories import InformationCategory
@@ -25,7 +25,7 @@ class InfoCommands(commands.Cog):
         category=InformationCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def profile_avatar(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
+    async def profile_avatar(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
         embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.avatar.with_size(4096).url)
@@ -40,7 +40,7 @@ class InfoCommands(commands.Cog):
     )
     @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
-    async def server_avatar(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
+    async def server_avatar(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
         embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.display_avatar.with_size(4096).url)
@@ -55,7 +55,7 @@ class InfoCommands(commands.Cog):
     )
     @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
-    async def user_info(self, ctx: Context, *, member: typing.Union[discord.Member, discord.User] = None):
+    async def user_info(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
         is_user = isinstance(member, discord.User)
 
