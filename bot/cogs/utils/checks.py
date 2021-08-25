@@ -74,6 +74,8 @@ def is_theotown_developer(user: User):
     return user.id in THEOTOWN_DEVELOPERS
 
 def is_theotown_guild(guild: Guild):
+    if not guild:
+        return False
     return guild.id == THEOTOWN_GUILD
 
 def is_event_voter(member: Member):
