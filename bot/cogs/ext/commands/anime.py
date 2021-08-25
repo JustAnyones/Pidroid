@@ -97,10 +97,9 @@ class AnimeCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def cancer_fact(self, ctx: Context):
-        async with ctx.typing():
-            async with await http.get(self.client, f"{NEKO_API}/fact") as r:
-                data = await r.json()
-            await ctx.reply(data["fact"])
+        async with await http.get(self.client, f"{NEKO_API}/fact") as r:
+            data = await r.json()
+        await ctx.reply(data["fact"])
 
     @cancer.command(
         name='name',
@@ -110,10 +109,9 @@ class AnimeCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def cancer_name(self, ctx: Context):
-        async with ctx.typing():
-            async with await http.get(self.client, f"{NEKO_API}/name") as r:
-                data = await r.json()
-            await ctx.reply(data["name"])
+        async with await http.get(self.client, f"{NEKO_API}/name") as r:
+            data = await r.json()
+        await ctx.reply(data["name"])
 
     @cancer.command(
         name='why',
@@ -123,10 +121,9 @@ class AnimeCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def cancer_why(self, ctx: Context):
-        async with ctx.typing():
-            async with await http.get(self.client, f"{NEKO_API}/why") as r:
-                data = await r.json()
-            await ctx.reply(data["why"])
+        async with await http.get(self.client, f"{NEKO_API}/why") as r:
+            data = await r.json()
+        await ctx.reply(data["why"])
 
     @cancer.command(
         name='image',
@@ -159,11 +156,9 @@ class AnimeCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def cancer_owo(self, ctx: Context, *, text: str = None):
-        async with ctx.typing():
-            if text is None:
-                await ctx.reply(embed=error("UwU, what do you want to owoify?")) # I apologize
-                return
-            await ctx.reply(get_owo(text))
+        if text is None:
+            return await ctx.reply(embed=error("UwU, what do you want to owoify?")) # I apologize
+        await ctx.reply(get_owo(text))
 
     @commands.command(
         brief='Gets a random waifu from mywaifulist.',

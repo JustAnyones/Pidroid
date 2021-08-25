@@ -112,12 +112,11 @@ class FunCommands(commands.Cog):
     @command_checks.is_theotown_developer()
     @commands.bot_has_permissions(send_messages=True)
     async def happiness(self, ctx: Context):
-        async with ctx.typing():
-            data = await self.api.get(Route("/private/reviews"))
-            embed = build_embed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
-            embed.set_author(name=data['author'])
-            embed.set_footer(text=f"{data['rating']} ⭐")
-            await ctx.reply(embed=embed)
+        data = await self.api.get(Route("/private/reviews"))
+        embed = build_embed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
+        embed.set_author(name=data['author'])
+        embed.set_footer(text=f"{data['rating']} ⭐")
+        await ctx.reply(embed=embed)
 
     @commands.command(
         brief='I smell fire, do you? In either case, lets call a fireman!',
@@ -128,7 +127,11 @@ class FunCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def fire(self, ctx: Context):
         async with ctx.typing():
-            await ctx.reply(content="There's a fire somewhere? Call <@326167365677219840> to the rescue!", allowed_mentions=AllowedMentions(users=False), file=discord.File('./resources/evan.png'))
+            await ctx.reply(
+                content="There's a fire somewhere? Call <@326167365677219840> to the rescue!",
+                allowed_mentions=AllowedMentions(users=False),
+                file=discord.File('./resources/evan.png')
+            )
 
     @commands.command(
         brief='Queries a GIF from TENOR.',
@@ -171,8 +174,7 @@ class FunCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.client_is_pidroid()
     async def fact(self, ctx: Context):
-        async with ctx.typing():
-            await ctx.reply(random.choice(FACTS))
+        await ctx.reply(random.choice(FACTS))
 
     @commands.command(
         brief='Calls a cloaker to kickdrop your friends in a voice channel.',
