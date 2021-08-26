@@ -386,7 +386,7 @@ class API:
         cursor = self.shitposts.find({
             "_id": {"$nin": last_posts}, "times_shown": data["times_shown"]
         })
-        return random.choice([i async for i in cursor])
+        return random.choice([i async for i in cursor]) # nosec
 
     async def log_shitpost(self, object_id: ObjectId) -> None:
         """Marks shitpost by specified ID as read by increasing times_shown."""

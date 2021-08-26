@@ -117,7 +117,7 @@ class TheoTownCommands(commands.Cog):
                 return
 
             if number is None:
-                number = random.randint(1, 200)
+                number = random.randint(1, 200) # nosec
 
             try:
                 number = int(number)
