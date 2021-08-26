@@ -59,38 +59,62 @@ class Duration(DurationDelta):
         except (ValueError, OverflowError):
             raise BadArgument(f"`{duration}` results in a datetime outside the supported range.")
 
-class Offender(Converter):
-    """Convert usernames, names, nicknames and IDs to discord member or user objects."""
+class MemberOffender(Converter):
 
-    async def convert(self, ctx: Context, user: str, require_member=False) -> typing.Union[discord.Member, discord.User]:
+    async def convert(self, ctx: Context, argument: str) -> discord.Member:
         command_name = ctx.command.name
 
-        if user is None:
+        if argument is None:
             raise BadArgument(f"Please specify someone you are trying to {command_name}!")
 
-        # discord.py uses similiar method, but it just wraps it in a for loop
-        try:
-            user = await MemberConverter().convert(ctx, user)
-        except CommandError:
-            if require_member:
-                raise BadArgument("Unable to resolve member")
+        member = await MemberConverter().convert(ctx, argument)
 
-            user = await UserConverter().convert(ctx, user)
-
-        if user == ctx.message.author:
+        if member == ctx.message.author:
             raise BadArgument(f"You cannot {command_name} yourself!")
 
         if command_name != "warn":
-            if is_guild_moderator(ctx.guild, ctx.channel, user):
+            if is_guild_moderator(ctx.guild, ctx.channel, member):
                 if command_name == 'kidnap':
                     raise BadArgument("You cannot kidnap one of your own!")
                 raise BadArgument(f"You cannot {command_name} a moderator!")
 
-        if member_above_moderator(user, ctx.author):
+        if member_above_moderator(member, ctx.author):
             raise BadArgument("Specified member is above you!")
 
-        if member_above_bot(ctx.guild, user):
+        if member_above_bot(ctx.guild, member):
             raise BadArgument("Specified member is above me!")
+
+        return member
+
+class UserOffender(Converter):
+
+    async def convert(self, ctx: Context, argument: str) -> typing.Union[discord.Member, discord.User]:
+        command_name = ctx.command.name
+
+        if argument is None:
+            raise BadArgument(f"Please specify someone you are trying to {command_name}!")
+
+        try:
+            user = await MemberConverter().convert(ctx, argument)
+        except CommandError:
+            user = await UserConverter().convert(ctx, argument)
+
+        if user == ctx.message.author:
+            raise BadArgument(f"You cannot {command_name} yourself!")
+
+        if isinstance(user, discord.Member):
+
+            if command_name != "warn":
+                if is_guild_moderator(ctx.guild, ctx.channel, user):
+                    if command_name == 'kidnap':
+                        raise BadArgument("You cannot kidnap one of your own!")
+                    raise BadArgument(f"You cannot {command_name} a moderator!")
+
+            if member_above_moderator(user, ctx.author):
+                raise BadArgument("Specified member is above you!")
+
+            if member_above_bot(ctx.guild, user):
+                raise BadArgument("Specified member is above me!")
 
         return user
 

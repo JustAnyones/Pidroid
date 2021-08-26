@@ -8,7 +8,7 @@ from discord.utils import get
 from typing import Union
 
 from client import Pidroid
-from cogs.utils.getters import get_user, get_role
+from cogs.utils.getters import get_role
 from cogs.utils.time import utcnow
 
 class PunishmentHandlerTask(commands.Cog):
@@ -56,7 +56,9 @@ class PunishmentHandlerTask(commands.Cog):
                 punishments = await self.api.get_active_guild_punishments(guild.id)
                 for p in punishments:
                     if current_time >= p['date_expires']:
-                        user = await get_user(self.client, p["user"]["id"])
+                        user = await self.client.resolve_user(p["user"]["id"])
+                        if user is None:
+                            continue
 
                         if p['type'] == 'ban':
                             await self.handle_ban(guild, user)

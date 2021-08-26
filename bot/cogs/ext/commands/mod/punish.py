@@ -4,13 +4,12 @@ import typing
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
-from discord.member import Member
 from typing import Optional
 
 from client import Pidroid
+from cogs.models.case import Punishment
 from cogs.models.categories import ModerationCategory
-from cogs.models.punishments import Ban, Jail, Kidnap, Mute, Kick, Warn
-from cogs.utils.converters import Duration, Offender
+from cogs.utils.converters import Duration, MemberOffender, UserOffender
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import error, success
 from cogs.utils.getters import get_role, get_channel
@@ -64,11 +63,9 @@ class ModeratorCommands(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def warn(self, ctx: Context, member: str = None, *, warning: str):
-        member = await Offender().convert(ctx, member, True)
-
-        w = Warn(ctx, member, warning)
-        await w.issue()
+    async def warn(self, ctx: Context, member: MemberOffender, *, warning: str):
+        w = Punishment(ctx, member)
+        await w.warn(warning)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -80,11 +77,9 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
-    async def mute(self, ctx: Context, member: str = None, duration_datetime: typing.Optional[Duration] = None, *, reason: str = None):
+    async def mute(self, ctx: Context, member: MemberOffender, duration_datetime: typing.Optional[Duration] = None, *, reason: str = None):
         if not self.client.guild_config_cache_ready:
             return
-
-        member = await Offender().convert(ctx, member, True)
 
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.mute_role)
@@ -96,17 +91,17 @@ class ModeratorCommands(commands.Cog):
             await ctx.reply(embed=error("The user is already muted!"))
             return
 
-        m = Mute(ctx, member, role, reason)
+        m = Punishment(ctx, member)
         if duration_datetime is None:
-            await m.issue()
-        else:
-            if datetime_to_duration(duration_datetime) < 30:
-                await ctx.reply(embed=error(
-                    'The duration for the mute is too short! Make sure it\'s at least 30 seconds long.'
-                ))
-                return
-            m.length = int(duration_datetime.timestamp())
-            await m.issue()
+            await m.mute(role, reason=reason)
+            return await ctx.message.delete(delay=0)
+
+        if datetime_to_duration(duration_datetime) < 30:
+            return await ctx.reply(embed=error(
+                'The duration for the mute is too short! Make sure it\'s at least 30 seconds long.'
+            ))
+        m.length = int(duration_datetime.timestamp())
+        await m.mute(role, reason=reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -118,24 +113,20 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
-    async def unmute(self, ctx: Context, *, member: str = None):
+    async def unmute(self, ctx: Context, *, member: MemberOffender):
         if not self.client.guild_config_cache_ready:
             return
-
-        member = await Offender().convert(ctx, member, True)
 
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.mute_role)
         if role is None:
-            await ctx.reply(embed=error("Mute role not found, cannot remove!"))
-            return
+            return await ctx.reply(embed=error("Mute role not found, cannot remove!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            await ctx.reply(embed=error("The user is not muted!"))
-            return
+            return await ctx.reply(embed=error("The user is not muted!"))
 
-        m = Mute(ctx, member, role)
-        await m.revoke()
+        p = Punishment(ctx, member)
+        await p.unmute(role)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -147,29 +138,24 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
-    async def jail(self, ctx: Context, member: str = None, *, reason: str = None):
+    async def jail(self, ctx: Context, member: MemberOffender, *, reason: str = None):
         if not self.client.guild_config_cache_ready:
             return
-
-        member: Member = await Offender().convert(ctx, member, True)
 
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            await ctx.reply(embed=error("Jail role not found!"))
-            return
+            return await ctx.reply(embed=error("Jail role not found!"))
 
         channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
-            await ctx.reply(embed=error("Jail channel not found!"))
-            return
+            return await ctx.reply(embed=error("Jail channel not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            await ctx.reply(embed=error("The user is already jailed!"))
-            return
+            return await ctx.reply(embed=error("The user is already jailed!"))
 
-        j = Jail(ctx, member, role, reason)
-        await j.issue()
+        p = Punishment(ctx, member)
+        await p.jail(role, reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -183,45 +169,39 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
-    async def kidnap(self, ctx: Context, member: str = None, *, reason: str = None):
+    async def kidnap(self, ctx: Context, member: MemberOffender, *, reason: str = None):
         if not self.client.guild_config_cache_ready:
             return
-
-        member = await Offender().convert(ctx, member, True)
 
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            await ctx.reply(embed=error("Jail role not found!"))
-            return
+            return await ctx.reply(embed=error("Jail role not found!"))
 
         channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
-            await ctx.reply(embed=error("Jail channel not found!"))
-            return
+            return await ctx.reply(embed=error("Jail channel not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            await ctx.reply(embed=error("The user is already kidnapped, don't you remember?"))
-            return
+            return await ctx.reply(embed=error("The user is already kidnapped, don't you remember?"))
 
-        j = Kidnap(ctx, member, role, reason)
-        await j.issue()
+        p = Punishment(ctx, member)
+        await p.jail(role, reason, True)
         await ctx.message.delete(delay=0)
 
     @commands.command(
         brief='Releases specified member from jail.',
         usage='<member>',
+        aliases=["release"],
         category=ModerationCategory
     )
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only()
-    async def unjail(self, ctx: Context, *, member: str = None):
+    async def unjail(self, ctx: Context, *, member: MemberOffender):
         if not self.client.guild_config_cache_ready:
             return
-
-        member = await Offender().convert(ctx, member, True)
 
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
@@ -233,8 +213,8 @@ class ModeratorCommands(commands.Cog):
             await ctx.reply(embed=error("The user is not in jail!"))
             return
 
-        j = Jail(ctx, member, role)
-        await j.revoke()
+        p = Punishment(ctx, member)
+        await p.unjail(role)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -245,11 +225,9 @@ class ModeratorCommands(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, kick_members=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def kick(self, ctx: Context, member: str = None, *, reason: str = None):
-        member = await Offender().convert(ctx, member, True)
-
-        k = Kick(ctx, member, reason)
-        await k.issue()
+    async def kick(self, ctx: Context, member: MemberOffender, *, reason: str = None):
+        k = Punishment(ctx, member)
+        await k.kick(reason=reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -260,21 +238,18 @@ class ModeratorCommands(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
     @command_checks.is_moderator(ban_members=True)
     @commands.guild_only()
-    async def ban(self, ctx: Context, user: str = None, duration_datetime: Optional[Duration] = None, *, reason: str = None):
-        user = await Offender().convert(ctx, user)
-
+    async def ban(self, ctx: Context, user: UserOffender, duration_datetime: Optional[Duration] = None, *, reason: str = None):
         if await is_banned(ctx, user):
             await ctx.reply(embed=error("Specified user is already banned!"))
 
-        b = Ban(ctx, user, reason)
+        b = Punishment(ctx, user)
         if duration_datetime is None:
-            await b.issue()
+            await b.ban(reason=reason)
         else:
             if datetime_to_duration(duration_datetime) < 60:
-                await ctx.reply(embed=error('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
-                return
+                return await ctx.reply(embed=error('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
             b.length = int(duration_datetime.timestamp())
-            await b.issue()
+            await b.ban(reason=reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(

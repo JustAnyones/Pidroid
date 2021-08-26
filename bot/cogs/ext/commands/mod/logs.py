@@ -5,12 +5,12 @@ from discord.ext.commands.context import Context
 from typing import Optional, Union
 
 from client import Pidroid
+from cogs.models.case import CasePaginator
 from cogs.models.categories import ModerationCategory
 from cogs.utils.checks import check_junior_moderator_permissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import build_embed, error
-from cogs.utils.getters import get_all_warnings, get_case, get_modlogs, get_warnings
-from cogs.utils.paginators import PidroidPages, WarningPaginator, ModLogPaginator
+from cogs.utils.paginators import PidroidPages
 
 
 class ModeratorInfoCommands(commands.Cog):
@@ -29,12 +29,11 @@ class ModeratorInfoCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
     async def case(self, ctx: Context, case_id: str, *, reason: Optional[str]):
-        case = await get_case(ctx, case_id)
+        case = await self.client.fetch_case(ctx.guild.id, case_id)
 
         if reason is not None:
             await case.update(reason)
-            await ctx.reply("Case details updated successfully!")
-            return
+            return await ctx.reply("Case details updated successfully!")
 
         await ctx.reply(embed=case.to_embed())
 
@@ -49,7 +48,7 @@ class ModeratorInfoCommands(commands.Cog):
     @command_checks.is_senior_moderator(ban_members=True)
     @commands.guild_only()
     async def invalidatewarning(self, ctx: Context, case_id: str):
-        case = await get_case(ctx, case_id)
+        case = await self.client.fetch_case(ctx.guild.id, case_id)
         await case.invalidate()
         await ctx.reply('Warning invalidated successfully!')
 
@@ -70,16 +69,16 @@ class ModeratorInfoCommands(commands.Cog):
             error_msg = "Specified user has no warnings."
 
         if amount.lower() == 'all':
-            warnings = await get_all_warnings(ctx, user)
+            warnings = await self.client.fetch_warnings(ctx.guild.id, user.id)
         else:
-            warnings = await get_warnings(ctx, user)
+            warnings = await self.client.fetch_active_warnings(ctx.guild.id, user.id)
 
         if len(warnings) == 0:
             await ctx.reply(embed=error(error_msg))
             return
 
         pages = PidroidPages(
-            source=WarningPaginator(f"Displaying warnings for {str(user)}", warnings),
+            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings),
             ctx=ctx
         )
         await pages.start()
@@ -99,14 +98,14 @@ class ModeratorInfoCommands(commands.Cog):
             check_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no modlogs!"
 
-        cases = await get_modlogs(ctx, user)
+        cases = await self.client.fetch_cases(ctx.guild.id, user.id)
 
         if len(cases) == 0:
             await ctx.reply(embed=error(error_msg))
             return
 
         pages = PidroidPages(
-            source=ModLogPaginator(f"Displaying moderation logs for {str(user)}", cases),
+            source=CasePaginator(f"Displaying moderation logs for {str(user)}", cases),
             ctx=ctx
         )
         await pages.start()

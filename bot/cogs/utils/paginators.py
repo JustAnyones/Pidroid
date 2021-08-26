@@ -25,14 +25,11 @@ DEALINGS IN THE SOFTWARE.
 import asyncio
 import discord
 
-from discord.embeds import Embed
 from discord.ext import commands
 from typing import List, Optional, Dict, Any
 
-from cogs.models.case import Case
 from cogs.models.plugins import Plugin
 from cogs.utils.embeds import build_embed
-from cogs.utils.time import timestamp_to_date
 
 
 class PageSource:
@@ -343,44 +340,6 @@ class PidroidPages(discord.ui.View):
 """
 The following definitions are custom made for the specific use case.
 """
-
-class ModLogPaginator(ListPageSource):
-    def __init__(self, paginator_title: str, cases: List[Case]):
-        super().__init__(cases, per_page=6)
-        self.embed = build_embed(title=paginator_title)
-
-    async def format_page(self, menu: PidroidPages, cases: List[Case]) -> Embed:
-        self.embed.clear_fields()
-
-        for case in cases:
-            name = f"Case #{case.id}: {case.type}"
-            value = (
-                f"**Issued by:** {case.moderator_name}\n"
-                f"**Issued on:** {timestamp_to_date(case.date_issued)}\n"
-                f"**Reason:** {case.clean_reason.capitalize()}"
-            )
-            self.embed.add_field(name=name, value=value, inline=False)
-
-        if self.get_max_pages() > 1:
-            self.embed.set_footer(text=f'{len(self.entries)} entries')
-        return self.embed
-
-class WarningPaginator(ListPageSource):
-    def __init__(self, paginator_title: str, cases: List[Case]):
-        super().__init__(cases, per_page=6)
-        self.embed = build_embed(title=paginator_title)
-
-    async def format_page(self, menu: PidroidPages, cases: List[Case]) -> Embed:
-        self.embed.clear_fields()
-
-        for case in cases:
-            name = f"#{case.id} issued by {case.moderator_name}"
-            value = f"\"{case.reason}\" issued on {timestamp_to_date(case.date_issued)}"
-            self.embed.add_field(name=name, value=value, inline=False)
-
-        if self.get_max_pages() > 1:
-            self.embed.set_footer(text=f'{len(self.entries)} entries')
-        return self.embed
 
 class PluginListPaginator(ListPageSource):
     def __init__(self, data: List[Plugin]):

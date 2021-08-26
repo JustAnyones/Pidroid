@@ -9,10 +9,12 @@ import logging
 from aiohttp import ClientSession
 from discord.client import _cleanup_loop
 from discord.ext import commands
+from discord.ext.commands.errors import BadArgument
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, List, Optional
 
+from cogs.models.case import Case
 from cogs.utils.api import API
 from cogs.utils.data import PersistentDataManager
 
@@ -42,11 +44,10 @@ class Pidroid(commands.Bot):
 
             # Models
             'cogs.models.exceptions', # Load first so that I can use it in error_handler
+            'cogs.models.case',
             'cogs.models.categories',
             'cogs.models.configuration',
-            'cogs.models.case',
             'cogs.models.plugins',
-            'cogs.models.punishments',
 
             # Various utility functions
             'cogs.utils.api',
@@ -131,7 +132,6 @@ class Pidroid(commands.Bot):
 
         self.persistent_data = PersistentDataManager()
 
-        self.logger = None
         self.setup_logging()
 
         self.load_cogs()
@@ -176,7 +176,7 @@ class Pidroid(commands.Bot):
     @property
     def guild_configuration_guilds(self) -> List[int]:
         """Returns guild configuration guild IDs."""
-        return self._cached_configurations.keys()
+        return self._cached_configurations.keys() # type: ignore
 
     def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Returns guild configuration for specified guild."""
@@ -184,13 +184,40 @@ class Pidroid(commands.Bot):
 
     def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
         self.guild_configurations[guild_id] = config
-        return self.get_guild_configuration(guild_id)
+        return self.get_guild_configuration(guild_id) # type: ignore
 
     def _remove_guild_configuration(self, guild_id: int) -> None:
         self.guild_configurations.pop(guild_id)
 
-    # ETC
-    async def resolve_user(self, user_id: int) -> discord.User:
+    """???"""
+
+    async def _resolve_case_users(self, d: dict) -> dict:
+        d["user"] = await self.resolve_user(d["user_id"])
+        d["moderator"] = await self.resolve_user(d["moderator_id"])
+        return d
+
+    async def fetch_case(self, guild_id: int, case_id: str) -> Case:
+        c = await self.api.get_guild_case(guild_id, case_id)
+        if c is None:
+            raise BadArgument("Specified case could not be found!")
+        c = await self._resolve_case_users(c)
+        return Case(self.api, c)
+
+    async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
+        warnings = await self.api.get_moderation_logs(guild_id, user_id)
+        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+
+    async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        warnings = await self.api.get_all_warnings(guild_id, user_id)
+        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+
+    async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        warnings = await self.api.get_active_warnings(guild_id, user_id)
+        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+
+    """???"""
+
+    async def resolve_user(self, user_id: int) -> Optional[discord.User]:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
         result = self.get_user(user_id)
         if result is None:
@@ -200,10 +227,10 @@ class Pidroid(commands.Bot):
                 return None
         return result
 
-    def setup_logging(self):
+    def setup_logging(self, logging_level: int = logging.WARNING):
         """Sets up client logging module."""
         self.logger = logging.getLogger('Pidroid')
-        self.logger.setLevel(logging.WARNING)
+        self.logger.setLevel(logging_level)
         if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
             self.logger.setLevel(logging.DEBUG)
 
@@ -211,7 +238,7 @@ class Pidroid(commands.Bot):
         """Returns a prefix for client to respond to."""
         await self.wait_guild_config_cache_ready()
 
-        if message.guild:
+        if message.guild and message.guild.id in self.guild_configuration_guilds:
             guild_prefixes = self.get_guild_configuration(message.guild.id).prefixes
             prefixes = guild_prefixes or self.prefixes
         else:

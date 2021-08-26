@@ -27,8 +27,8 @@ def create_embed(**kwargs) -> Embed:
         timestamp=timestamp
     )
 
-def success(content: str) -> Embed:
-    return Embed(description=content, color=Colour.green())
+def success(description: str) -> Embed:
+    return Embed(description=description, color=Colour.green())
 
 def error(content: str) -> Embed:
     return Embed(description=content, color=Colour.red())
