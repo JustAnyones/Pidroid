@@ -5,6 +5,7 @@ from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
 from discord.threads import Thread
+from typing import Optional
 
 from client import Pidroid
 from cogs.utils.checks import is_client_development
@@ -31,7 +32,7 @@ class PluginStoreTasks(commands.Cog):
         self.archive_threads.cancel()
 
     @property
-    def showcase_channel(self) -> TextChannel:
+    def showcase_channel(self) -> Optional[TextChannel]:
         """Returns plugin showcase channel object."""
         return self.client.get_channel(640522649033769000)
 

@@ -15,7 +15,7 @@ class PersistentDataManager:
         """Returns a mutable dictionary of persistent data."""
         if self._data is None:
             self.load()
-        return self._data
+        return self._data or {}
 
     def load(self) -> None:
         """Loads persistent data from a file. Returns a plain dictionary if data file doesn't exist."""

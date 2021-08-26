@@ -114,7 +114,11 @@ class InfoCommands(commands.Cog):
     async def server_info(self, ctx: Context):
         guild: Guild = ctx.guild
         embed = build_embed(timestamp=guild.created_at)
-        embed.set_author(name=guild.name, icon_url=guild.icon.url)
+        if guild.icon:
+            embed.set_author(name=guild.name, icon_url=guild.icon.url)
+            embed.set_thumbnail(url=guild.icon.with_size(4096).url)
+        else:
+            embed.set_author(name=guild.name)
         embed.add_field(name='Owner', value=guild.owner)
         embed.add_field(name='Region', value=str(guild.region).capitalize())
         embed.add_field(name='Channel Categories', value=f'{len(guild.categories):,}')
@@ -123,7 +127,6 @@ class InfoCommands(commands.Cog):
         embed.add_field(name='Members', value=f'{guild.member_count:,}')
         embed.add_field(name='Roles', value=f'{len(guild.roles):,}')
         embed.set_footer(text='Server created')
-        embed.set_thumbnail(url=guild.icon.with_size(4096).url)
         await ctx.reply(embed=embed)
 
 

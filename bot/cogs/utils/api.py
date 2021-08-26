@@ -204,14 +204,14 @@ class API:
         ).sort("date_issued", -1)
         return [i async for i in cursor]
 
-    async def update_case_reason(self, case_id: int, reason: str) -> None:
+    async def update_case_reason(self, case_id: str, reason: str) -> None:
         """Updates case reason."""
         await self.punishments.update_one(
             {'id': case_id},
             {'$set': {'reason': reason}}
         )
 
-    async def invalidate_case(self, case_id: int) -> None:
+    async def invalidate_case(self, case_id: str) -> None:
         """Invalidates a case by the specified ID by making it expired and hiding it."""
         await self.punishments.update_one(
             {'id': case_id},

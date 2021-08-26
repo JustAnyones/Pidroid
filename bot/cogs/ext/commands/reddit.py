@@ -17,7 +17,7 @@ BASE_REDDIT_URL = 'https://www.reddit.com'
 
 async def get_random_submission(subreddit: Subreddit, limit: int = 50) -> Submission:
     """Returns a random submission from hot subreddit submissions."""
-    return random.choice([s async for s in subreddit.hot(limit=limit)])
+    return random.choice([s async for s in subreddit.hot(limit=limit)]) # nosec
 
 def assure_content_rating(ctx: Context, content: typing.Union[Submission, Subreddit]) -> None:
     """This function assures that the content is safe for consumption in accordance to channel NSFW level."""

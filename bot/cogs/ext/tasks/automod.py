@@ -94,7 +94,7 @@ class AutomodTask(commands.Cog):
         if word is not None and not is_guild_moderator(message.guild, message.channel, message.author):
             self.client.logger.debug(f'"{word}" has been detected as a bad word in "{content}"')
             await message.delete(delay=0)
-            await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5)
+            await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
 
 
 def setup(client: Pidroid) -> None:

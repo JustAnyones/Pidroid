@@ -7,7 +7,7 @@ from io import BytesIO
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
-from typing import Union, Tuple
+from typing import Tuple
 
 from discord.ext.commands.errors import BadArgument
 
@@ -28,7 +28,7 @@ def draw_text_with_border(draw, x, y, text, font, text_colour='white', border_co
     draw.text((x, y), text, font=font, fill=text_colour)
 
 
-async def handle_attachment(ctx: Context) -> Union[Tuple[discord.Attachment, str], None]:
+async def handle_attachment(ctx: Context) -> Tuple[discord.Attachment, str]:
     """Returns None or discord.Attachment after assuring it is safe to use."""
     attachments = ctx.message.attachments
     if len(attachments) < 1:

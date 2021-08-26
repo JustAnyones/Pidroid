@@ -1,4 +1,4 @@
-import dill
+import dill # nosec
 import json
 import random
 import os
@@ -27,7 +27,7 @@ class EconomyCommands(commands.Cog):
         if os.path.exists(COOLDOWN_FILE_PATH):
             self.client.logger.info("Restoring cooldown buckets of beg command")
             with open(COOLDOWN_FILE_PATH, "rb") as f:
-                self.beg._buckets._cache = dill.load(f) # noqa (bandit B301)
+                self.beg._buckets._cache = dill.load(f) # nosec
 
     def cog_unload(self):
         self.client.logger.info("Saving cooldown buckets of beg command")
@@ -50,13 +50,13 @@ class EconomyCommands(commands.Cog):
             await ctx.reply(embed=error('I could not find a token for unbelievaboat!'))
             return
 
-        if random.randint(1, 100) >= 75: # 25 %
+        if random.randint(1, 100) >= 75: # nosec 25 %
             cash = random.randint(9410, 78450)
             async with await http.patch(self.client, f"{BASE_API_URL}/{ctx.author.id}", json.dumps({'cash': cash}), headers=headers):
                 pass
             await ctx.reply(random.choice(BEG_SUCCESS_RESPONSES).replace('%cash%', f'{cash:,} <:theon:658301468637528095>'))
             return
-        if random.randint(1, 1000) <= 12:
+        if random.randint(1, 1000) <= 12: # nosec
             async with await http.get(self.client, f"{BASE_API_URL}/{ctx.author.id}", headers=headers) as response:
                 data = await response.json()
             steal_amount = round(data['total'] * 0.025) # 2.5% of their total money :)
@@ -65,7 +65,7 @@ class EconomyCommands(commands.Cog):
                     pass
                 await ctx.reply(f'You know what, I think I need some funding myself. Let me take a fine amount of {steal_amount:,} <:theon:658301468637528095>')
             return
-        await ctx.reply(random.choice(BEG_FAILURE_RESPONSES))
+        await ctx.reply(random.choice(BEG_FAILURE_RESPONSES)) # nosec
 
     @beg.error
     async def clear_error(self, ctx: Context, e):

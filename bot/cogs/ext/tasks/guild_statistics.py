@@ -2,7 +2,6 @@ import traceback
 import sys
 
 from discord.ext import tasks, commands
-from discord.guild import Guild
 
 from client import Pidroid
 from constants import THEOTOWN_GUILD
@@ -15,7 +14,6 @@ class GuildStatisticsTask(commands.Cog):
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.api = self.client.api
-        self.guild: Guild = None
         self.update_statistics.start()
 
     def cog_unload(self) -> None:
@@ -26,10 +24,8 @@ class GuildStatisticsTask(commands.Cog):
     async def update_statistics(self) -> None:
         """Updates TheoTown API with guild member count."""
         try:
-            if self.guild is None:
-                self.guild = self.client.get_guild(THEOTOWN_GUILD)
-
-            await self.api.get(Route("/private/discord", {"type": "write", "members": self.guild.member_count}))
+            guild = self.client.get_guild(THEOTOWN_GUILD)
+            await self.api.get(Route("/private/discord", {"type": "write", "members": guild.member_count}))
         except Exception as e:
             self.client.logger.exception("An exception was encountered while trying to update guild statistics")
             traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)

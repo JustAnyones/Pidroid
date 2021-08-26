@@ -116,7 +116,7 @@ class Error(commands.Cog):
             await self.notify(ctx, f"You're on cooldown, try again in {humanize(error.retry_after, False, max_units=2)}.", delete_after=3)
 
         elif isinstance(error, exceptions.InvalidChannel):
-            await self.notify(ctx, random.choice(REFUSE_COMMAND_RESPONSES))
+            await self.notify(ctx, random.choice(REFUSE_COMMAND_RESPONSES)) # nosec
 
         elif isinstance(error, commands.NSFWChannelRequired):
             await self.notify(ctx, "The command can only be used inside NSFW channel")

@@ -7,7 +7,7 @@ import os
 
 from aiohttp.client import ClientTimeout
 from urllib.parse import urlparse, urlencode
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -40,7 +40,7 @@ class Route:
         return self.url
 
     @property
-    def query(self) -> str:
+    def query(self) -> Optional[str]:
         """Returns route query dictionary as string."""
         query = urlencode(self._query).strip()
         if query == "":
@@ -59,11 +59,13 @@ class Route:
         """Returns route request headers."""
         return get_headers(self._headers, self.private)
 
-def get_headers(headers: dict, require_auth: bool = False) -> dict:
+def get_headers(headers: Optional[dict], require_auth: bool = False) -> dict:
     """Returns merged headers including or excluding TheoTown API auth token."""
+    if headers is None:
+        return DEFAULT_HEADERS.copy()
+
     new_headers = DEFAULT_HEADERS.copy()
-    if headers is not None:
-        new_headers.update(headers)
+    new_headers.update(headers)
     if require_auth:
         new_headers['Authorization'] = AUTH_TOKEN
     return new_headers

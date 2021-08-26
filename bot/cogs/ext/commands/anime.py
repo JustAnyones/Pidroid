@@ -57,7 +57,7 @@ def get_owo(text: str) -> str:
     r = re.sub('ove', 'uv', r)
     r = re.sub('n', 'ny', r)
     r = re.sub('N', 'NY', r)
-    r = re.sub('[!]', " " + random.choice(faces) + " ", r)
+    r = re.sub('[!]', " " + random.choice(faces) + " ", r) # nosec
     return r
 
 class AnimeCommands(commands.Cog):
@@ -136,7 +136,7 @@ class AnimeCommands(commands.Cog):
     async def cancer_image(self, ctx: Context, endpoint: str = None):
         async with ctx.typing():
             if endpoint is None:
-                endpoint = random.choice(NEKO_ENDPOINTS)
+                endpoint = random.choice(NEKO_ENDPOINTS) # nosec
             endpoint = endpoint.lower()
             if endpoint in NEKO_ENDPOINTS:
                 async with await http.get(self.client, f"{NEKO_API}/img/{endpoint}") as r:
@@ -208,7 +208,7 @@ class AnimeCommands(commands.Cog):
             if endpoint not in WAIFU_PICS_ENDPOINTS:
                 raise BadArgument("WRONG!!!")
         else:
-            endpoint = random.choice(WAIFU_PICS_ENDPOINTS)
+            endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
         async with await http.get(self.client, f"{WAIFU_PICS_API}/{endpoint}") as r:
             data = await r.json()
 
@@ -226,7 +226,7 @@ class AnimeCommands(commands.Cog):
     async def weeb(self, ctx: Context):
         if ctx.guild.id == THEOTOWN_GUILD:
             for _ in range(7):
-                await asyncio.sleep(random.randint(2, 5))
+                await asyncio.sleep(random.randint(2, 5)) # nosec
                 await ctx.send(f"<@{JESSE_ID}>, you asked for it")
 
 

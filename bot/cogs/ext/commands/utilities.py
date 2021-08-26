@@ -99,13 +99,10 @@ class UtilityCommands(commands.Cog):
                 await ctx.reply(embed=error("I could not find bitly credentials to use the API!"))
                 return
 
-            try:
-                bitly = bitly_api.Connection(config['login'], config['api key'])
-                response = bitly.shorten(url)
-                shortened_url = response["url"]
-                await ctx.reply(f"URL shortened: {shortened_url}")
-            except Exception as e:
-                await ctx.reply(embed=error(e))
+            bitly = bitly_api.Connection(config['login'], config['api key'])
+            response = bitly.shorten(url)
+            shortened_url = response["url"]
+            await ctx.reply(f"URL shortened: {shortened_url}")
 
     @commands.command(
         brief="Displays the coronavirus statistics for the specified place.",
