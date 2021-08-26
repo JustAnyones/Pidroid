@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.case import Case
 from cogs.utils.api import API
+from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
 
 __VERSION__ = discord.VersionInfo(major=4, minor=1, micro=0, releaselevel='alpha', serial=0)
@@ -238,7 +239,7 @@ class Pidroid(commands.Bot):
         """Returns a prefix for client to respond to."""
         await self.wait_guild_config_cache_ready()
 
-        if message.guild and message.guild.id in self.guild_configuration_guilds:
+        if not is_client_development(self) and message.guild and message.guild.id in self.guild_configuration_guilds:
             guild_prefixes = self.get_guild_configuration(message.guild.id).prefixes
             prefixes = guild_prefixes or self.prefixes
         else:

@@ -1,11 +1,16 @@
+from __future__ import annotations
+
 from discord import Member, User, TextChannel, Guild
 from discord.ext.commands import MissingPermissions, Context
 from discord.utils import get
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
-from client import Pidroid
 from cogs.models.exceptions import MissingUserPermissions
+
+if TYPE_CHECKING:
+    from client import Pidroid
+
 
 # Generic permission check functions
 def member_has_role(member: Member, role_id: int):
