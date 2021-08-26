@@ -6,12 +6,16 @@ import sys
 from discord import ui, ButtonStyle, Interaction
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from typing import TYPE_CHECKING
 
 from client import Pidroid
 from constants import JUSTANYONE_ID
 from cogs.models.categories import OwnerCategory
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import error
+
+if TYPE_CHECKING:
+    from cogs.ext.events.initialization import InvocationEventHandler
 
 
 class QuestionInteraction(ui.View):
@@ -111,7 +115,7 @@ class OwnerCommands(commands.Cog):
     @commands.is_owner()
     @commands.bot_has_permissions(send_messages=True)
     async def updateguildcache(self, ctx: Context):
-        cog = await self.client.get_cog("InvocationEventHandler")
+        cog: InvocationEventHandler = self.client.get_cog("InvocationEventHandler")
         await cog._fill_guild_config_cache()
         await ctx.reply("Internal guild cache updated!")
 

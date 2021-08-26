@@ -88,7 +88,7 @@ class FunCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def pingu(self, ctx: Context):
         async with ctx.typing():
-            text, file_path = random.choice(PINGU_RESPONSES)
+            text, file_path = random.choice(PINGU_RESPONSES) # nosec
             await ctx.reply(text, file=discord.File(file_path))
 
     @commands.command(
@@ -144,7 +144,7 @@ class FunCommands(commands.Cog):
                 data = await response.json()
             if 'results' in data:
                 if len(data["results"]) > 0:
-                    gif = random.choice(data['results'])
+                    gif = random.choice(data['results']) # nosec
                     await ctx.reply(gif['url'])
                     return
             await ctx.reply(embed=error("I couldn't find any GIFs for the specified query!"))
@@ -169,7 +169,7 @@ class FunCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.client_is_pidroid()
     async def fact(self, ctx: Context):
-        await ctx.reply(random.choice(FACTS))
+        await ctx.reply(random.choice(FACTS)) # nosec
 
     @commands.command(
         brief='Calls a cloaker to kickdrop your friends in a voice channel.',
@@ -185,30 +185,27 @@ class FunCommands(commands.Cog):
         async with ctx.typing():
             voice = ctx.author.voice
             if voice is None:
-                await ctx.reply(embed=error('You are not in a voice channel!'))
-                return
+                return await ctx.reply(embed=error('You are not in a voice channel!'))
 
             channel: VoiceChannel = voice.channel
             if member not in channel.members:
-                await ctx.reply(embed=error('Specified user is not in the voice channel!'))
-                return
+                return await ctx.reply(embed=error('Specified user is not in the voice channel!'))
 
             if self.client.user in channel.members:
-                await ctx.reply(embed=error('Bro, I am already in that channel. What do you want me to do?'))
-                return
+                return await ctx.reply(embed=error('Bro, I am already in that channel. What do you want me to do?'))
 
             try:
                 vc: VoiceClient = await channel.connect(reconnect=False)
             except discord.errors.ClientException:
-                await ctx.reply(embed=error('I\'m already inside a voice channel!'))
-                return
+                return await ctx.reply(embed=error('I\'m already inside a voice channel!'))
+
             audio_source = discord.FFmpegPCMAudio('./resources/cloaked.mp3')
             vc.play(audio_source)
             while vc.is_playing():
                 await asyncio.sleep(0.01)
             await member.edit(voice_channel=None)
             await ctx.reply(f'{member.name}#{member.discriminator} has been cloaked!')
-            audio_source = discord.FFmpegPCMAudio(f'./resources/{random.choice(CLOAKER_LINES)}.mp3')
+            audio_source = discord.FFmpegPCMAudio(f'./resources/{random.choice(CLOAKER_LINES)}.mp3') # nosec
             vc.play(audio_source)
             while vc.is_playing():
                 await asyncio.sleep(0.01)

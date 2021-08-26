@@ -296,5 +296,5 @@ class ModeratorCommands(commands.Cog):
             await ctx.reply(embed=error("Specified user could not be unbanned! Perhaps the user is already unbanned?"))
 
 
-def setup(client):
+def setup(client: Pidroid):
     client.add_cog(ModeratorCommands(client))
