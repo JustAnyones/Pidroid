@@ -2,14 +2,26 @@ from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands.core import Command
 from discord.ext.commands.context import Context
-from math import ceil
 from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import Category, BotCategory, UncategorizedCategory
 from cogs.utils.embeds import create_embed, error
+from cogs.utils.paginators import ListPageSource, PidroidPages
 
-COMMANDS_PER_PAGE = 6
+
+class HelpCommandPaginator(ListPageSource):
+    def __init__(self, embed: Embed, prefix: str, data: List[Command]):
+        super().__init__(data, per_page=6)
+        self.prefix = prefix
+        self.embed = embed
+
+    async def format_page(self, menu: PidroidPages, commands: List[Command]):
+        self.embed.clear_fields()
+        for command in commands:
+            name, description = get_command_documentation(self.prefix, command)
+            self.embed.add_field(name=name, value=description, inline=False)
+        return self.embed
 
 def get_full_command_name(command: Command) -> str:
     """Returns full command name including any command groups."""
@@ -47,7 +59,6 @@ class HelpCommand(commands.Cog):
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.prefix = self.client.prefix
 
     def get_visible_category_commands(self, category: Category) -> List[Command]:
         "Returns a filtered list of all visible commands belonging to the specified category."
@@ -66,41 +77,15 @@ class HelpCommand(commands.Cog):
             cmd_list.append(command)
         return cmd_list
 
-    def return_category_commands(self, category: Category, page: int) -> Embed:
-        """Returns an Embed of category commands."""
-        command_list = self.get_visible_category_commands(category)
-
-        available_page_count = ceil(len(command_list) / COMMANDS_PER_PAGE)
-        if available_page_count == 0:
-            return error('This category contains no commands!')
-
-        if page > available_page_count:
-            return error('Cannot find such page!')
-
-        embed = create_embed(
-            title=f"{category.title} category command listing",
-            description=category.description
-        )
-
-        commands_per_page = page * COMMANDS_PER_PAGE
-        for command in command_list[commands_per_page - COMMANDS_PER_PAGE:commands_per_page]:
-            name, description = get_command_documentation(self.prefix, command)
-            embed.add_field(name=name, value=description, inline=False)
-
-        embed.set_footer(text=f'Page {page}/{available_page_count}')
-        return embed
-
     @commands.command(
         brief='Returns help command.',
-        usage='[category/command] [page]',
+        usage='[category/command]',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def help(self, ctx: Context, search_string: str = None, page: int = 1):
+    async def help(self, ctx: Context, *, search_string: str = None):
+        prefix = self.client.get_prefixes(ctx.message)[0]
         async with ctx.typing():
-            if page < 1:
-                page = 1
-
             # Would ideally want to cache these
             command_object_list = [c for c in self.client.walk_commands()]
             category_object_list = self.client.command_categories
@@ -112,7 +97,7 @@ class HelpCommand(commands.Cog):
             if search_string is None:
                 embed = create_embed(
                     title=f'{self.client.user.name} command category index',
-                    description=f'This is a list of all bot commands and their categories. Use `{self.prefix}help [category/command] [page]` to find out more about them!'
+                    description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!'
                 )
                 description = ''
                 for category in category_object_list:
@@ -135,7 +120,7 @@ class HelpCommand(commands.Cog):
                     description=command.brief or "No description."
                 )
 
-                embed.add_field(name="Usage", value=get_command_usage(self.prefix, command), inline=False)
+                embed.add_field(name="Usage", value=get_command_usage(prefix, command), inline=False)
 
                 if len(command.aliases) > 0:
                     embed.add_field(name="Aliases", value=', '.join(command.aliases))
@@ -149,13 +134,17 @@ class HelpCommand(commands.Cog):
 
             # Category commands
             if query in category_name_list:
-                await ctx.reply(
-                    embed=self.return_category_commands(
-                        category_object_list[category_name_list.index(query)],
-                        page
-                    )
+                category: Category = category_object_list[category_name_list.index(query)]
+                embed = create_embed(
+                    title=f"{category.title} category command listing",
+                    description=category.description
                 )
-                return
+
+                pages = PidroidPages(
+                    source=HelpCommandPaginator(embed, prefix, self.get_visible_category_commands(category)),
+                    ctx=ctx
+                )
+                return await pages.start()
 
             await ctx.reply(embed=error("I could not find any commands by the specified query!"))
 
