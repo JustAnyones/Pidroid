@@ -6,13 +6,14 @@
 	],
 	"settings": {
 		"python.linting.enabled": true,
-		"python.linting.pylintEnabled": false,
+		"python.analysis.autoSearchPaths": true,
 		"python.linting.flake8Enabled": true,
 		"python.linting.flake8Args": [
 				"--ignore=E302,E261,E701,W503",
 				"--max-line-length=69420"
 		],
 		"python.linting.flake8CategorySeverity.W": "Information",
-		"python.analysis.autoSearchPaths": false
+		"python.linting.banditEnabled": true,
+		"python.languageServer": "Pylance"
 	}
 }
