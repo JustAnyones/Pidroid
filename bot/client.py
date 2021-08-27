@@ -38,13 +38,12 @@ class Pidroid(commands.Bot):
             case_insensitive=True
         )
 
-        # This is necessary to allow reloading of code while the bot is running
+        # This defines hot-reloadable cogs and various files
         self.extensions_to_load = [
             # Constants file
             'constants',
 
             # Models
-            'cogs.models.exceptions', # Load first so that I can use it in error_handler
             'cogs.models.case',
             'cogs.models.categories',
             'cogs.models.configuration',
@@ -110,8 +109,6 @@ class Pidroid(commands.Bot):
         # This holds cached guild configurations
         self._guild_config_ready = asyncio.Event()
         self._cached_configurations = {}
-
-        self._connected = asyncio.Event()
 
         self.client_version = __VERSION__
 
