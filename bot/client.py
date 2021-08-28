@@ -44,12 +44,14 @@ class Pidroid(commands.Bot):
             'constants',
 
             # Models
+            # TODO: deprecate hot reloading of models
             'cogs.models.case',
             'cogs.models.categories',
             'cogs.models.configuration',
             'cogs.models.plugins',
 
             # Various utility functions
+            # TODO: deprecate hot reloading of functions
             'cogs.utils.api',
             'cogs.utils.checks',
             'cogs.utils.converters',

@@ -18,6 +18,11 @@ from cogs.utils.time import humanize
 COOLDOWN_FILE_PATH = "./data/beg_cooldowns.p"
 BASE_API_URL = 'https://unbelievaboat.com/api/v1/guilds/365478391719264276/users'
 
+CURRENCY_SYMBOL = "<:theon:658301468637528095>"
+
+def get_currency(money_amount: int):
+    return f"{CURRENCY_SYMBOL}{money_amount:,}"
+
 
 class EconomyCommands(commands.Cog):
     """This class implements a cog which contains interactions with unbelievaboat bot API."""
@@ -47,15 +52,14 @@ class EconomyCommands(commands.Cog):
             token = self.client.config['authentication']['unbelievaboat']['token']
             headers = {'Authorization': token}
         except KeyError:
-            await ctx.reply(embed=error('I could not find a token for unbelievaboat!'))
-            return
+            return await ctx.reply(embed=error('I could not find an API token for unbelievaboat!'))
 
         if random.randint(1, 100) >= 75: # nosec 25 %
             cash = random.randint(9410, 78450)
             async with await http.patch(self.client, f"{BASE_API_URL}/{ctx.author.id}", json.dumps({'cash': cash}), headers=headers):
                 pass
-            await ctx.reply(random.choice(BEG_SUCCESS_RESPONSES).replace('%cash%', f'{cash:,} <:theon:658301468637528095>'))
-            return
+            return await ctx.reply(random.choice(BEG_SUCCESS_RESPONSES).replace('%cash%', get_currency(cash))) # nosec
+
         if random.randint(1, 1000) <= 12: # nosec
             async with await http.get(self.client, f"{BASE_API_URL}/{ctx.author.id}", headers=headers) as response:
                 data = await response.json()
@@ -63,8 +67,9 @@ class EconomyCommands(commands.Cog):
             if steal_amount > 0:
                 async with await http.patch(self.client, f"{BASE_API_URL}/{ctx.author.id}", json.dumps({'cash': -steal_amount}), headers=headers):
                     pass
-                await ctx.reply(f'You know what, I think I need some funding myself. Let me take a fine amount of {steal_amount:,} <:theon:658301468637528095>')
+                await ctx.reply(f'You know what, I think I need some funding myself. Let me borrow a fine amount of {get_currency(steal_amount)} from you!')
             return
+
         await ctx.reply(random.choice(BEG_FAILURE_RESPONSES)) # nosec
 
     @beg.error
