@@ -105,8 +105,8 @@ class Case(BaseModerationEntry):
         self._api = api
         self._serialize(data)
 
-    def _add_embed_field(self, embed: Embed) -> None:
-        if self.type == "warning":
+    def _add_embed_field(self, embed: Embed, show_compact: bool = False) -> None:
+        if show_compact:
             name = f"#{self.case_id} issued by {self.moderator_name}"
             value = f"\"{self.reason}\" issued on {timestamp_to_date(self.date_issued)}"
         else:
@@ -137,15 +137,16 @@ class Case(BaseModerationEntry):
 
 
 class CasePaginator(ListPageSource):
-    def __init__(self, paginator_title: str, cases: List[Case]):
+    def __init__(self, paginator_title: str, cases: List[Case], warnings: bool = False):
         super().__init__(cases, per_page=6)
+        self.warnings = warnings
         self.embed = create_embed(title=paginator_title)
 
     async def format_page(self, menu: PidroidPages, cases: List[Case]) -> Embed:
         self.embed.clear_fields()
 
         for case in cases:
-            case._add_embed_field(self.embed)
+            case._add_embed_field(self.embed, self.warnings)
 
         if self.get_max_pages() > 1:
             self.embed.set_footer(text=f'{len(self.entries)} entries')

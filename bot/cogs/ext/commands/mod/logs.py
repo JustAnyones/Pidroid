@@ -78,7 +78,7 @@ class ModeratorInfoCommands(commands.Cog):
             return
 
         pages = PidroidPages(
-            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings),
+            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, warnings=True),
             ctx=ctx
         )
         await pages.start()
