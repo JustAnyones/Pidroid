@@ -91,6 +91,8 @@ class AdminCommands(commands.Cog):
             if mute_role is not None:
                 embed.add_field(name='Mute role', value=mute_role.mention)
 
+            embed.add_field(name="Everyone can create tags?", value=data.public_tags, inline=False)
+
             embed.set_footer(text=f'To edit the configuration, view administration category with {self.client.prefix}help administration.')
         await ctx.reply(embed=embed)
 
@@ -193,6 +195,30 @@ class AdminCommands(commands.Cog):
         await config.update_prefix(prefix)
 
         await ctx.reply(embed=success(f'My prefix set to \'{prefix}\''))
+
+    @configuration.command(
+        name="toggle-tags",
+        brief='Allow or deny everyone from creating tags.\nRequires manage server permission.',
+        usage='<true/false>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
+    async def toggle_tags(self, ctx: Context, allow_public: bool = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
+        config = self.client.get_guild_configuration(ctx.guild.id)
+
+        if not allow_public:
+            allow_public = not config.public_tags
+        await config.update_public_tag_permission(allow_public)
+
+        if allow_public:
+            return await ctx.reply(embed=success('Everyone can now create tags!'))
+        await ctx.reply(embed=success('Only members with manage messages permission can create tags now!'))
 
     @commands.command(
         brief='Returns current server bot prefix.',
