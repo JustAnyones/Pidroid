@@ -343,11 +343,19 @@ class API:
         """Returns a guild tag for the appropriate name."""
         raw_tag = await self.tags.find_one({
             "guild_id": bson.Int64(guild_id),
-            "name": {"$regex": tag_name, "$options": "i"}
+            "name": {"$regex": f"^{tag_name}$", "$options": "i"}
         })
         if raw_tag is None:
             return None
         return Tag(self, raw_tag)
+
+    async def search_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
+        """Returns all guild tags matching the appropriate name."""
+        cursor = self.tags.find({
+            "guild_id": bson.Int64(guild_id),
+            "name": {"$regex": tag_name, "$options": "i"}
+        })
+        return [Tag(self, i) async for i in cursor]
 
     async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
         """Returns a list of all tags defined in the guild."""
