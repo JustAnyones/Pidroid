@@ -172,6 +172,7 @@ class TagCommands(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
+    @commands.cooldown(rate=10, per=60 * 60, type=commands.BucketType.user)
     @command_checks.can_modify_tags()
     @commands.guild_only()
     async def create(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
