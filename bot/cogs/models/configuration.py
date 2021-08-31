@@ -29,6 +29,7 @@ class GuildConfiguration:
         jail_role: int
 
         mute_role: int
+        public_tags: bool
 
     def __init__(self, api: API, data: dict) -> None:
         self.api = api
@@ -40,11 +41,16 @@ class GuildConfiguration:
         self.guild_id = c["guild_id"]
 
         self.prefixes = c.get("prefixes", [])
+        self.public_tags = c.get("public_tags", False)
 
         self.jail_channel = c.get(ConfigKeys.jail_channel.value, None)
         self.jail_role = c.get(ConfigKeys.jail_role.value, None)
 
         self.mute_role = c.get(ConfigKeys.mute_role.value, None)
+
+    async def update_public_tag_permission(self, allow_public: bool) -> None:
+        self.public_tags = allow_public
+        await self.api.set_guild_config(self._id, "public_tags", allow_public)
 
     async def update_prefix(self, prefix: str) -> None:
         """Updates the guild bot prefix."""
