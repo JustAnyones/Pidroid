@@ -10,12 +10,12 @@ from discord.utils import escape_markdown, format_dt
 from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.categories import UtilityCategory
-from cogs.utils.checks import can_modify_tags
+from cogs.utils.checks import has_moderator_permissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import create_embed, error, success
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
-RESERVED_WORDS = ["create", "edit", "remove", "list", "info"]
+RESERVED_WORDS = ["create", "edit", "remove", "claim", "list", "info"]
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -203,7 +203,7 @@ class TagCommands(commands.Cog):
     async def edit(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 
-        if not can_modify_tags(ctx):
+        if not has_moderator_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot edit a tag you don't own!")
 
@@ -228,7 +228,7 @@ class TagCommands(commands.Cog):
         if ctx.author.id == tag.author_id:
             raise BadArgument("You are the tag owner, there is no need to claim it!")
 
-        if not can_modify_tags(ctx):
+        if not has_moderator_permissions(ctx, manage_messages=True):
             member = await self.client.get_or_fetch_member(ctx.guild, ctx.author.id)
             if member is not None:
                 raise BadArgument("Tag owner is still in the server!")
@@ -249,7 +249,7 @@ class TagCommands(commands.Cog):
     async def remove(self, ctx: Context, *, tag_name: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 
-        if not can_modify_tags(ctx):
+        if not has_moderator_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot remove a tag you don't own!")
 

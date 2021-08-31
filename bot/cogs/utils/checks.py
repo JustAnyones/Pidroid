@@ -158,12 +158,20 @@ def is_guild_moderator(guild: Guild, channel: TextChannel, member: Member):
             )
     return False
 
-def has_moderator_permissions(ctx: Context, **perms):
+def has_moderator_permissions(ctx: Context, strict: bool = False, **perms):
     if is_guild_theotown(ctx.guild):
         return TheoTownChecks.is_junior_moderator(ctx.author)
-    return check_permissions(ctx, **perms)
 
-def can_modify_tags(ctx: Context, strict: bool = True) -> bool:
+    if strict:
+        return check_permissions(ctx, **perms)
+
+    # Ugly, I don't care
+    try:
+        return check_permissions(ctx, **perms)
+    except MissingPermissions:
+        return False
+
+def can_modify_tags(ctx: Context) -> bool:
     """Returns true whether user can modify guild tags.
 
     It first checks if public can edit tags, if it can't
@@ -173,14 +181,7 @@ def can_modify_tags(ctx: Context, strict: bool = True) -> bool:
     if conf:
         if conf.public_tags:
             return True
-    if strict:
-        return has_moderator_permissions(ctx, manage_messages=True)
-
-    # Ugly, I don't care
-    try:
-        return has_moderator_permissions(ctx, manage_messages=True)
-    except MissingPermissions:
-        return False
+    return has_moderator_permissions(ctx, True, manage_messages=True)
 
 def check_junior_moderator_permissions(ctx: Context, **perms):
     if is_guild_theotown(ctx.guild):
