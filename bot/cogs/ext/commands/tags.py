@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
+from discord.member import Member
 from discord.mentions import AllowedMentions
 from discord.utils import escape_markdown, format_dt
 from typing import TYPE_CHECKING, List, Optional
@@ -15,7 +16,7 @@ from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import create_embed, error, success
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
-RESERVED_WORDS = ["create", "edit", "remove", "claim", "list", "info"]
+RESERVED_WORDS = ["create", "edit", "remove", "claim", "transfer", "list", "info"]
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -238,6 +239,32 @@ class TagCommands(commands.Cog):
 
         await tag.edit()
         await ctx.reply(embed=success("Tag claimed successfully!"))
+
+    @tag.command(
+        brief="Transfer a server tag to someone else.",
+        usage="<tag name> <member>",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
+    @commands.guild_only()
+    async def transfer(self, ctx: Context, tag_name: Optional[str], *, member: Optional[Member]):
+        tag = await self.resolve_tag(ctx, tag_name)
+
+        if not has_moderator_permissions(ctx, manage_messages=True):
+            if ctx.author.id != tag.author_id:
+                raise BadArgument("You cannot transfer a tag you don't own!")
+
+        if member is None:
+            raise BadArgument("Please specify a member to whom you want to transfer the tag!")
+
+        if ctx.author.id == member.id:
+            raise BadArgument("You cannot transfer a tag to yourself!")
+
+        tag.author_id = member.id
+
+        await tag.edit()
+        await ctx.reply(embed=success(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
 
     @tag.command(
         brief="Remove a server tag.",
