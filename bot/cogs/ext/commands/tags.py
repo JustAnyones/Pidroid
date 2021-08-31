@@ -30,9 +30,12 @@ class Tag:
         _content: str
         author_id: int
         aliases: List[str]
+        locked: bool
 
     def __init__(self, api: API = None, data: dict = None) -> None:
         self.api = api
+        self.aliases = []
+        self.locked = False
         if data:
             self._deserialize(data)
 
@@ -66,7 +69,8 @@ class Tag:
             "name": self.name,
             "content": self.content,
             "author_id": Int64(self.author_id),
-            "aliases": self.aliases
+            "aliases": self.aliases,
+            "locked": self.locked
         }
 
     def _deserialize(self, data: dict) -> None:
@@ -76,6 +80,7 @@ class Tag:
         self.content = data["content"]
         self.author_id = data["author_id"]
         self.aliases = data.get("aliases", [])
+        self.locked = data.get("locked", False)
 
     async def create(self) -> None:
         """Creates a tag by inserting a document to the database."""
