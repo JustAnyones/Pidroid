@@ -7,7 +7,7 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
 from discord.mentions import AllowedMentions
 from discord.utils import escape_markdown, format_dt
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.categories import UtilityCategory
 from cogs.utils.embeds import create_embed, error, success
@@ -29,6 +29,7 @@ class Tag:
         _name: str
         _content: str
         author_id: int
+        aliases: List[str]
 
     def __init__(self, api: API = None, data: dict = None) -> None:
         self.api = api
@@ -64,15 +65,17 @@ class Tag:
             "guild_id": Int64(self.guild_id),
             "name": self.name,
             "content": self.content,
-            "author_id": Int64(self.author_id)
+            "author_id": Int64(self.author_id),
+            "aliases": self.aliases
         }
 
-    def _deserialize(self, data) -> None:
+    def _deserialize(self, data: dict) -> None:
         self._id = data["_id"]
         self.guild_id = data["guild_id"]
         self.name = data["name"]
         self.content = data["content"]
         self.author_id = data["author_id"]
+        self.aliases = data.get("aliases", [])
 
     async def create(self) -> None:
         """Creates a tag by inserting a document to the database."""
