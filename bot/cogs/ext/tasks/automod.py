@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from client import Pidroid
 from constants import AUTOMODERATOR_RESPONSES
-from cogs.utils.checks import is_guild_moderator, is_client_pidroid, is_theotown_guild
+from cogs.utils.checks import is_guild_moderator, is_client_pidroid, is_guild_theotown
 
 BANNED_WORDS = [
     "sex", "hitler", "dick", "cock",
@@ -52,7 +52,7 @@ class AutomodTask(commands.Cog):
         if not is_client_pidroid(self.client):
             return
 
-        if not is_theotown_guild(member.guild):
+        if not is_guild_theotown(member.guild):
             return
 
         # Get mod channel
@@ -75,7 +75,7 @@ class AutomodTask(commands.Cog):
         if message.author.bot:
             return
 
-        if not message.guild or not is_theotown_guild(message.guild):
+        if not is_guild_theotown(message.guild):
             return
 
         if len(message.embeds) > 0:

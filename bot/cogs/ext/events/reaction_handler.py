@@ -7,7 +7,7 @@ from discord.raw_models import RawReactionActionEvent
 
 from client import Pidroid
 from constants import JUSTANYONE_ID, SPOILERS_CHANNEL, SUGGESTIONS_CHANNEL
-from cogs.utils.checks import is_client_pidroid, is_theotown_guild
+from cogs.utils.checks import is_client_pidroid, is_guild_theotown
 
 class ReactionEventHandler(commands.Cog):
     """This class implements a cog for handling of events related to reactions."""
@@ -22,7 +22,7 @@ class ReactionEventHandler(commands.Cog):
         if message.author.bot:
             return
 
-        if not message.guild or not is_theotown_guild(message.guild):
+        if not message.guild or not is_guild_theotown(message.guild):
             return
 
         if message.channel.id == SPOILERS_CHANNEL:

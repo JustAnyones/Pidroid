@@ -7,9 +7,11 @@ import signal
 import logging
 
 from aiohttp import ClientSession
+from contextlib import suppress
 from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument
+from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, List, Optional
@@ -216,6 +218,14 @@ class Pidroid(commands.Bot):
         return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
 
     """???"""
+
+    async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
+        """Attempts to resolve member from member_id by any means. Returns None if everything failed."""
+        member = guild.get_member(member_id)
+        if member is None:
+            with suppress(discord.HTTPException):
+                return await guild.fetch_member(member_id)
+        return member
 
     async def resolve_user(self, user_id: int) -> Optional[discord.User]:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""

@@ -10,6 +10,8 @@ from discord.utils import escape_markdown, format_dt
 from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.categories import UtilityCategory
+from cogs.utils.checks import can_modify_tags
+from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import create_embed, error, success
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
@@ -119,7 +121,7 @@ class TagCommands(commands.Cog):
         category=UtilityCategory,
         invoke_without_command=True
     )
-    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     async def tag(self, ctx: Context, *, tag_name: Optional[str]):
         if ctx.invoked_subcommand is None:
@@ -151,7 +153,7 @@ class TagCommands(commands.Cog):
         usage='<tag name>',
         category=UtilityCategory
     )
-    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     async def info(self, ctx: Context, *, tag_name: str = None):
         tag = await self.resolve_tag(ctx, tag_name)
@@ -169,7 +171,8 @@ class TagCommands(commands.Cog):
         usage="<tag name> <tag content>",
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(manage_guild=True)
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
     @commands.guild_only()
     async def create(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = Tag(self.api)
@@ -194,10 +197,15 @@ class TagCommands(commands.Cog):
         usage="<tag name> <tag content>",
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(manage_guild=True)
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
     @commands.guild_only()
     async def edit(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
+
+        if not can_modify_tags(ctx):
+            if ctx.author.id != tag.author_id:
+                raise BadArgument("You cannot edit a tag you don't own!")
 
         if content is None:
             return await ctx.reply(embed=error("Please provide content for a tag!"))
@@ -207,14 +215,44 @@ class TagCommands(commands.Cog):
         await ctx.reply(embed=success("Tag edited successfully!"))
 
     @tag.command(
+        brief="Claim a server tag in the case the tag owner leaves.",
+        usage="<tag name>",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
+    @commands.guild_only()
+    async def claim(self, ctx: Context, *, tag_name: Optional[str]):
+        tag = await self.resolve_tag(ctx, tag_name)
+
+        if ctx.author.id == tag.author_id:
+            raise BadArgument("You are the tag owner, there is no need to claim it!")
+
+        if not can_modify_tags(ctx):
+            member = await self.client.get_or_fetch_member(ctx.guild, ctx.author.id)
+            if member is not None:
+                raise BadArgument("Tag owner is still in the server!")
+
+        tag.author_id = ctx.author.id
+
+        await tag.edit()
+        await ctx.reply(embed=success("Tag claimed successfully!"))
+
+    @tag.command(
         brief="Remove a server tag.",
         usage="<tag name>",
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(manage_guild=True)
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
     @commands.guild_only()
     async def remove(self, ctx: Context, *, tag_name: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
+
+        if not can_modify_tags(ctx):
+            if ctx.author.id != tag.author_id:
+                raise BadArgument("You cannot remove a tag you don't own!")
+
         await tag.remove()
         await ctx.reply(embed=success("Tag removed successfully!"))
 

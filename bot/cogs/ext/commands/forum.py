@@ -9,7 +9,6 @@ from types import SimpleNamespace
 from client import Pidroid
 from constants import THEOTOWN_FORUM_URL
 from cogs.models.categories import TheoTownCategory
-from cogs.utils.checks import is_number
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import build_embed, error
 from cogs.utils.http import Route
@@ -103,9 +102,10 @@ class ForumCommands(commands.Cog):
             # Parse the arguments for API
             item = command_args[pos[0]:pos[1]].lower()
             amount = args[0]
-            if not is_number(amount):
-                await ctx.reply(embed=error(f"{amount} is not a valid amount!"))
-                return
+            try:
+                amount = int(amount)
+            except ValueError:
+                return await ctx.reply(embed=error(f"{amount} is not a valid amount!"))
             amount = abs(int(amount))
             user = ' '.join(args[1:])
 

@@ -8,7 +8,7 @@ from time import time
 
 from client import Pidroid
 from constants import JUSTANYONE_ID
-from cogs.utils.checks import is_client_development, is_theotown_guild
+from cogs.utils.checks import is_client_development, is_guild_theotown
 
 def find_whole_word(word: str, string: str) -> bool:
     """Returns true if specified word is in the string."""
@@ -30,7 +30,7 @@ class CopypastaEventHandler(commands.Cog):
         if message.author.bot:
             return
 
-        if not message.guild or not is_theotown_guild(message.guild):
+        if not message.guild or not is_guild_theotown(message.guild):
             return
 
         current_time = int(time())
@@ -47,7 +47,7 @@ class CopypastaEventHandler(commands.Cog):
         if find_whole_word('linux', content) and not find_whole_word('gnu', content) and not find_whole_word('kernel', content):
             if (current_time - self.linux_copypasta_cooldown) > 60 * 60 * 5:
                 self.linux_copypasta_cooldown = current_time
-                if randint(1, 4) != 5:
+                if randint(1, 4) != 5: # nosec
                     return
                 async with message.channel.typing():
                     await asyncio.sleep(67)

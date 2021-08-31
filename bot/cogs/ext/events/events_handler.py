@@ -8,7 +8,7 @@ from discord.raw_models import RawReactionActionEvent
 
 from client import Pidroid
 from constants import EVENTS_CHANNEL
-from cogs.utils.checks import is_event_voter, is_event_manager, is_client_pidroid, is_guild_moderator, is_theotown_guild
+from cogs.utils.checks import TheoTownChecks as TTChecks, is_client_pidroid, is_guild_moderator, is_guild_theotown
 
 class EventChannelHandler(commands.Cog):
     """This class implements a cog for handling of events related to the event channel."""
@@ -23,12 +23,12 @@ class EventChannelHandler(commands.Cog):
         if message.author.bot:
             return
 
-        if not message.guild or is_theotown_guild(message.guild):
+        if not is_guild_theotown(message.guild):
             return
 
         if message.channel.id == EVENTS_CHANNEL:
 
-            if not is_event_manager(message.author) and not is_guild_moderator(message.guild, message.channel, message.author):
+            if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.guild, message.channel, message.author):
                 if message.attachments:
                     await message.add_reaction(emoji="👍")
                     return
@@ -51,7 +51,7 @@ class EventChannelHandler(commands.Cog):
             return
 
         # Remove votes from unauthorised users in events channel
-        if channel.id == EVENTS_CHANNEL and message.attachments and not member.bot and not is_event_voter(member) and member.id != message.author.id:
+        if channel.id == EVENTS_CHANNEL and message.attachments and not member.bot and not TTChecks.is_event_voter(member) and member.id != message.author.id:
             with suppress(discord.NotFound):
                 await message.remove_reaction("👍", member)
 

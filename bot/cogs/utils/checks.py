@@ -3,7 +3,7 @@ from __future__ import annotations
 from discord import Member, User, TextChannel, Guild
 from discord.ext.commands import MissingPermissions, Context
 from discord.utils import get
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
 from cogs.models.exceptions import MissingUserPermissions
@@ -52,83 +52,89 @@ def check_guild_permissions(ctx: Context, **perms):
         raise MissingPermissions(missing)
     return True
 
-def is_valid_duration(duration):
-    if is_number(duration):
-        return int(duration) > 0
-    return False
-
-def is_number(string: str):
-    """Checks whether specified string is a number."""
-    try:
-        int(string)
-        return True
-    except ValueError:
-        return False
-
-
-def is_justanyone(user: Union[Member, User]):
-    return user.id == JUSTANYONE_ID
-
-def is_client_development(client: Pidroid):
-    return client.user.id in DEVELOPMENT_BOTS
-
-def is_client_pidroid(client: Pidroid):
-    return client.user.id == PIDROID_ID
-
-def is_theotown_developer(user: User):
-    return user.id in THEOTOWN_DEVELOPERS
-
-def is_theotown_guild(guild: Guild):
-    if not guild:
-        return False
-    return guild.id == THEOTOWN_GUILD
-
-def is_event_voter(member: Member):
-    return member_has_role(member, 647443361627766804)
-
-def is_event_manager(member: Member):
-    return member_has_role(member, 584109249903198210)
-
-
-def can_purge(member: Member):
-    return is_normal_moderator(member) or is_event_manager(member)
-
-def guild_has_configuration(client: Pidroid, guild: Guild):
+def guild_has_configuration(client: Pidroid, guild: Guild) -> bool:
     return guild.id in client.guild_configuration_guilds
 
+def is_user_justanyone(user: Union[Member, User]) -> bool:
+    """Returns true if specified user is JustAnyone."""
+    return user.id == JUSTANYONE_ID
 
-def is_administrator(member: Member):
-    return (
-        is_justanyone(member)
-        or member_has_role(member, 415194893917356052)  # City Council
-        or member_has_role(member, 365482773206532096)  # Mayor
-        or member_has_role(member, 710914534394560544)  # Elder
-    )
+def is_client_development(client: Pidroid) -> bool:
+    """Returns true if client user is one of the development bots."""
+    return client.user.id in DEVELOPMENT_BOTS
 
-def is_senior_moderator(member: Member):
-    return (
-        member_has_role(member, 381899421992091669)
-        or is_administrator(member)
-    )
+def is_client_pidroid(client: Pidroid) -> bool:
+    """Returns true if client user is Pidroid."""
+    return client.user.id == PIDROID_ID
 
-def is_normal_moderator(member: Member):
-    return (
-        member_has_role(member, 368799288127520769)
-        or is_senior_moderator(member)
-    )
+def is_user_cheese_consumer(user: Union[Member, User]) -> bool:
+    """Returns true if specified user is part of cheese eaters."""
+    return user.id in CHEESE_EATERS
 
-def is_junior_moderator(member: Member):
-    return (
-        member_has_role(member, 410512375083565066)
-        or is_normal_moderator(member)
-    )
+def is_channel_bot_commands(channel: TextChannel) -> bool:
+    return channel.id == BOT_COMMANDS_CHANNEL
+
+def is_guild_theotown(guild: Optional[Guild]) -> bool:
+    if guild:
+        return guild.id == THEOTOWN_GUILD
+    return False
+
+
+class TheoTownChecks:
+
+    @staticmethod
+    def is_administrator(member: Member) -> bool:
+        return (
+            is_user_justanyone(member)
+            or member_has_role(member, 415194893917356052)  # City Council
+            or member_has_role(member, 365482773206532096)  # Mayor
+            or member_has_role(member, 710914534394560544)  # Elder
+        )
+
+    @staticmethod
+    def is_senior_moderator(member: Member) -> bool:
+        return (
+            member_has_role(member, 381899421992091669)
+            or TheoTownChecks.is_administrator(member)
+        )
+
+    @staticmethod
+    def is_normal_moderator(member: Member) -> bool:
+        return (
+            member_has_role(member, 368799288127520769)
+            or TheoTownChecks.is_senior_moderator(member)
+        )
+
+    @staticmethod
+    def is_junior_moderator(member: Member) -> bool:
+        return (
+            member_has_role(member, 410512375083565066)
+            or TheoTownChecks.is_normal_moderator(member)
+        )
+
+    @staticmethod
+    def is_event_voter(member: Member) -> bool:
+        return member_has_role(member, 647443361627766804)
+
+    @staticmethod
+    def is_event_manager(member: Member) -> bool:
+        return member_has_role(member, 584109249903198210)
+
+    @staticmethod
+    def can_use_purge(member: Member) -> bool:
+        return TheoTownChecks.is_normal_moderator(member) or TheoTownChecks.is_event_manager(member)
+
+    @staticmethod
+    def is_developer(user: Union[Member, User]) -> bool:
+        return user.id in THEOTOWN_DEVELOPERS
+
 
 def is_guild_administrator(guild: Guild, channel: TextChannel, member: Member):
     member = guild.get_member(member.id)
     if member is not None:
         if member in guild.members:
-            if is_theotown_guild(guild):
-                return is_administrator(member)
+            if is_guild_theotown(guild):
+                return TheoTownChecks.is_administrator(member)
             return (
                 member_has_permission(channel, member, 'administrator')
                 or member_has_permission(channel, member, 'manage_guild')
@@ -139,12 +145,12 @@ def is_guild_moderator(guild: Guild, channel: TextChannel, member: Member):
     member = guild.get_member(member.id)
     if member is not None:
         if member in guild.members:
-            if is_theotown_guild(guild):
+            if is_guild_theotown(guild):
                 return (
-                    is_administrator(member)
-                    or is_senior_moderator(member)
-                    or is_normal_moderator(member)
-                    or is_junior_moderator(member)
+                    TheoTownChecks.is_administrator(member)
+                    or TheoTownChecks.is_senior_moderator(member)
+                    or TheoTownChecks.is_normal_moderator(member)
+                    or TheoTownChecks.is_junior_moderator(member)
                 )
             return (
                 member_has_permission(channel, member, 'kick_members')
@@ -152,32 +158,55 @@ def is_guild_moderator(guild: Guild, channel: TextChannel, member: Member):
             )
     return False
 
+def has_moderator_permissions(ctx: Context, **perms):
+    if is_guild_theotown(ctx.guild):
+        return TheoTownChecks.is_junior_moderator(ctx.author)
+    return check_permissions(ctx, **perms)
 
-def is_cheese_consumer(user):
-    return user.id in CHEESE_EATERS
+def can_modify_tags(ctx: Context, strict: bool = True) -> bool:
+    """Returns true whether user can modify guild tags.
 
-def is_bot_commands(channel):
-    return channel.id == BOT_COMMANDS_CHANNEL
+    It first checks if public can edit tags, if it can't
+    it will resolve to moderators with manage_messages permission."""
+    client: Pidroid = ctx.bot
+    conf = client.get_guild_configuration(ctx.guild.id)
+    if conf:
+        if conf.public_tags:
+            return True
+    if strict:
+        return has_moderator_permissions(ctx, manage_messages=True)
 
+    # Ugly, I don't care
+    try:
+        return has_moderator_permissions(ctx, manage_messages=True)
+    except MissingPermissions:
+        return False
 
 def check_junior_moderator_permissions(ctx: Context, **perms):
-    if is_theotown_guild(ctx.guild):
-        if not is_junior_moderator(ctx.author):
+    if is_guild_theotown(ctx.guild):
+        if not TheoTownChecks.is_junior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a junior moderator to run this command!')
         return True
     return check_permissions(ctx, **perms)
 
 def check_normal_moderator_permissions(ctx: Context, **perms):
-    if is_theotown_guild(ctx.guild):
-        if not is_normal_moderator(ctx.author):
+    if is_guild_theotown(ctx.guild):
+        if not TheoTownChecks.is_normal_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a moderator to run this command!')
         return True
     return check_permissions(ctx, **perms)
 
 def check_senior_moderator_permissions(ctx: Context, **perms):
-    if is_theotown_guild(ctx.guild):
-        if not is_senior_moderator(ctx.author):
+    if is_guild_theotown(ctx.guild):
+        if not TheoTownChecks.is_senior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a senior moderator to run this command!')
+        return True
+    return check_permissions(ctx, **perms)
+
+def check_purge_permissions(ctx: Context, **perms):
+    if is_guild_theotown(ctx.guild):
+        if not TheoTownChecks.can_use_purge(ctx.author):
+            raise MissingUserPermissions('You need to be at least a moderator or event organiser to run this command!')
         return True
     return check_permissions(ctx, **perms)
 
