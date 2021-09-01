@@ -95,7 +95,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
                     inline=False
                 )
 
-            for i in range(10):
+            for i in range(9): # Only 9 results
                 top_plugin = plugins_all_time[i]
                 top_creator = creators_all_time[i]
                 top_plugins_embed.add_field(
