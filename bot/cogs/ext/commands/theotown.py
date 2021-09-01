@@ -1,8 +1,10 @@
 import os.path
 import random
 
+from contextlib import suppress
 from discord.ext import commands
 from discord.embeds import _EmptyEmbed
+from discord.errors import HTTPException
 from discord.ext.commands.context import Context
 from discord.message import Message
 from typing import List
@@ -288,7 +290,8 @@ class TheoTownCommands(commands.Cog):
             s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
             await message.edit(embed=embed)
-            await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
+            with suppress(HTTPException):
+                await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
 
     @commands.command(
         brief='Returns frequently asked questions and their indexes.',
