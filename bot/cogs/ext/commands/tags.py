@@ -107,13 +107,22 @@ class TagCommands(commands.Cog):
         self.client = client
         self.api = self.client.api
 
+    async def find_tags(self, ctx: Context, tag_name: Optional[str]) -> List[Tag]:
+        if tag_name is None:
+            raise BadArgument("Please specify a tag name!")
+
+        tag_list = await self.api.search_guild_tags(ctx.guild.id, tag_name)
+        if len(tag_list) == 0:
+            raise BadArgument("I couldn't find any tags matching that name!")
+        return tag_list
+
     async def resolve_tag(self, ctx: Context, tag_name: Optional[str]) -> Optional[Tag]:
         if tag_name is None:
             raise BadArgument("Please specify a tag name!")
 
         tag = await self.api.fetch_guild_tag(ctx.guild.id, tag_name)
         if tag is None:
-            raise BadArgument("I couldn't find any tags by that name!")
+            raise BadArgument("I couldn't find any tags matching that name!")
         return tag
 
     @commands.group(

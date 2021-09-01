@@ -349,7 +349,7 @@ class API:
             return None
         return Tag(self, raw_tag)
 
-    async def search_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
+    async def search_guild_tags(self, guild_id: int, tag_name: str) -> Optional[Tag]:
         """Returns all guild tags matching the appropriate name."""
         cursor = self.tags.find({
             "guild_id": bson.Int64(guild_id),
