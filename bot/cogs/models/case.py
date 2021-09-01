@@ -336,7 +336,7 @@ class Punishment(BaseModerationEntry):
 
     async def unmute(self, role: Role):
         """Unmutes the member."""
-        self._revoke("mute")
+        await self._revoke("mute")
         await self.user.remove_roles(
             discord.utils.get(self._ctx.guild.roles, id=role.id),
             reason=f"Unmuted by {self.moderator_name}"
