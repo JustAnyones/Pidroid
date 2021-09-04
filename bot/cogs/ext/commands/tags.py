@@ -135,12 +135,19 @@ class TagCommands(commands.Cog):
     @commands.guild_only()
     async def tag(self, ctx: Context, *, tag_name: Optional[str]):
         if ctx.invoked_subcommand is None:
-            tag = await self.resolve_tag(ctx, tag_name)
+            tag_list = await self.find_tags(ctx, tag_name)
+
+            if len(tag_list) == 1:
+                tag = tag_list[0]
+                message_content = tag.content
+            else:
+                tag_list_str = ', '.join(tag_list[:10])
+                message_content = f"I found multiple tags matching your query: {tag_list_str}"
 
             if ctx.message.reference:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-                return await message.reply(tag.content, allowed_mentions=AllowedMentions(replied_user=True))
-            return await ctx.reply(tag.content)
+                return await message.reply(message_content, allowed_mentions=AllowedMentions(replied_user=True))
+            return await ctx.reply(message_content)
 
     @tag.command(
         brief="Returns a list of available server tags.",
