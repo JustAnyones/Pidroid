@@ -152,7 +152,8 @@ class TagCommands(commands.Cog):
                 tag = tag_list[0]
                 message_content = tag.content
             else:
-                tag_list_str = ', '.join(tag_list[:10])
+                tag_name_list = [t.name for t in tag_list[:10]]
+                tag_list_str = ', '.join(tag_name_list)
                 message_content = f"I found multiple tags matching your query: {tag_list_str}"
 
             if ctx.message.reference:
