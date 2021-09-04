@@ -49,6 +49,8 @@ class Tag:
 
     @name.setter
     def name(self, value: str):
+        if len(value) < 3:
+            raise BadArgument("Tag name is too short! Please keep it above 2 characters!")
         if len(value) > 30:
             raise BadArgument("Tag name is too long! Please keep it below 30 characters!")
         if any(w in RESERVED_WORDS for w in value.split(" ")):
@@ -111,6 +113,9 @@ class TagCommands(commands.Cog):
     async def find_tags(self, ctx: Context, tag_name: Optional[str]) -> List[Tag]:
         if tag_name is None:
             raise BadArgument("Please specify a tag name!")
+
+        if len(tag_name) < 3:
+            raise BadArgument("Query term is too short! Please keep it above 2 characters!")
 
         tag_list = await self.api.search_guild_tags(ctx.guild.id, tag_name)
         if len(tag_list) == 0:
