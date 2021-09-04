@@ -61,11 +61,9 @@ class Route:
 
 def get_headers(headers: Optional[dict], require_auth: bool = False) -> dict:
     """Returns merged headers including or excluding TheoTown API auth token."""
-    if headers is None:
-        return DEFAULT_HEADERS.copy()
-
     new_headers = DEFAULT_HEADERS.copy()
-    new_headers.update(headers)
+    if headers:
+        new_headers.update(headers)
     if require_auth:
         new_headers['Authorization'] = AUTH_TOKEN
     return new_headers
