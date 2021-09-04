@@ -30,12 +30,11 @@ class BotCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=1, type=commands.BucketType.user)
     async def ping(self, ctx: Context):
-        async with ctx.typing():
-            msg: Message = await ctx.reply("**Pinging...**")
-            client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
-            api_ping = round(self.client.latency * 1000)
-            embed = build_embed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
-            await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
+        msg: Message = await ctx.reply("**Pinging...**")
+        client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
+        api_ping = round(self.client.latency * 1000)
+        embed = build_embed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
+        await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
 
     @commands.command(
         brief='Returns invite link for the bot.',

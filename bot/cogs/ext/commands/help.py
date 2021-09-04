@@ -85,68 +85,64 @@ class HelpCommand(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def help(self, ctx: Context, *, search_string: str = None):
         prefix = self.client.get_prefixes(ctx.message)[0]
-        async with ctx.typing():
-            # Would ideally want to cache these
-            command_object_list = [c for c in self.client.walk_commands()]
-            category_object_list = self.client.command_categories
+        # Would ideally want to cache these
+        command_object_list = [c for c in self.client.walk_commands()]
+        category_object_list = self.client.command_categories
 
-            command_name_list = [get_full_command_name(c) for c in command_object_list]
-            category_name_list = [c.title.lower() for c in category_object_list]
+        command_name_list = [get_full_command_name(c) for c in command_object_list]
+        category_name_list = [c.title.lower() for c in category_object_list]
 
-            # List all categories
-            if search_string is None:
-                embed = create_embed(
-                    title=f'{self.client.user.name} command category index',
-                    description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!'
-                )
-                description = ''
-                for category in category_object_list:
-                    description += f'• **{category.title}** - {category.description}' + '\n'
-                embed.add_field(name='Categories', value=description, inline=False)
-                await ctx.reply(embed=embed)
-                return
+        # List all categories
+        if search_string is None:
+            embed = create_embed(
+                title=f'{self.client.user.name} command category index',
+                description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!'
+            )
+            description = ''
+            for category in category_object_list:
+                description += f'• **{category.title}** - {category.description}' + '\n'
+            embed.add_field(name='Categories', value=description, inline=False)
+            return await ctx.reply(embed=embed)
 
-            query = search_string.lower()
+        query = search_string.lower()
 
-            # Plain command
-            if query in command_name_list:
-                command: Command = command_object_list[command_name_list.index(query)]
-                if command.hidden:
-                    await ctx.reply(embed=error("I could not find any commands by the specified query!"))
-                    return
+        # Plain command
+        if query in command_name_list:
+            command: Command = command_object_list[command_name_list.index(query)]
+            if command.hidden:
+                return await ctx.reply(embed=error("I could not find any commands by the specified query!"))
 
-                embed = create_embed(
-                    title=f"{get_full_command_name(command)}",
-                    description=command.brief or "No description."
-                )
+            embed = create_embed(
+                title=f"{get_full_command_name(command)}",
+                description=command.brief or "No description."
+            )
 
-                embed.add_field(name="Usage", value=get_command_usage(prefix, command), inline=False)
+            embed.add_field(name="Usage", value=get_command_usage(prefix, command), inline=False)
 
-                if len(command.aliases) > 0:
-                    embed.add_field(name="Aliases", value=', '.join(command.aliases))
+            if len(command.aliases) > 0:
+                embed.add_field(name="Aliases", value=', '.join(command.aliases))
 
-                permissions = command.__original_kwargs__.get("permissions", [])
-                if len(permissions) > 0:
-                    embed.add_field(name="Permissions", value=', '.join(permissions))
+            permissions = command.__original_kwargs__.get("permissions", [])
+            if len(permissions) > 0:
+                embed.add_field(name="Permissions", value=', '.join(permissions))
 
-                await ctx.reply(embed=embed)
-                return
+            return await ctx.reply(embed=embed)
 
-            # Category commands
-            if query in category_name_list:
-                category: Category = category_object_list[category_name_list.index(query)]
-                embed = create_embed(
-                    title=f"{category.title} category command listing",
-                    description=category.description
-                )
+        # Category commands
+        if query in category_name_list:
+            category: Category = category_object_list[category_name_list.index(query)]
+            embed = create_embed(
+                title=f"{category.title} category command listing",
+                description=category.description
+            )
 
-                pages = PidroidPages(
-                    source=HelpCommandPaginator(embed, prefix, self.get_visible_category_commands(category)),
-                    ctx=ctx
-                )
-                return await pages.start()
+            pages = PidroidPages(
+                source=HelpCommandPaginator(embed, prefix, self.get_visible_category_commands(category)),
+                ctx=ctx
+            )
+            return await pages.start()
 
-            await ctx.reply(embed=error("I could not find any commands by the specified query!"))
+        await ctx.reply(embed=error("I could not find any commands by the specified query!"))
 
 
 def setup(client: Pidroid) -> None:
