@@ -10,7 +10,9 @@ from cogs.utils.checks import is_client_pidroid
 
 
 class HTTPServerTask(commands.Cog):
-    """This class implements a cog for handling an asynchronous HTTP server."""
+    """This class implements a cog for handling an asynchronous HTTP server.
+
+    This only does internal IPC communications between the public facing PHP API and discord."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
@@ -27,9 +29,9 @@ class HTTPServerTask(commands.Cog):
     async def handle_unlock_final_type(self, query: MultiDictProxy) -> Response:
         """Handles the final unlock action."""
         # If hunt is already complete
-        if self.client.scavenger_hunt_complete:
+        if self.client.scavenger_hunt["complete"]:
             return web.json_response({"success": False, "code": 3, "details": "Scavenger hunt is already completed!"})
-        self.client.scavenger_hunt_complete = True
+        self.client.scavenger_hunt["complete"] = True
 
         if self.client.http_server_testing:
             return web.json_response({"success": True, "code": 4, "details": "Your unlock_final operation has been understood, however the server is currently in testing mode"})
@@ -47,11 +49,13 @@ class HTTPServerTask(commands.Cog):
 
     async def handle_status_type(self) -> Response:
         """Handles the status request action."""
-        return web.json_response({"success": True, "code": 5, "hunt_complete": self.client.scavenger_hunt_complete})
+        return web.json_response({"success": True, "code": 5, "hunt_complete": self.client.scavenger_hunt["complete"]})
 
     async def web_server(self) -> None:
         """Implements a simple HTTP server using aiohttp."""
         await self.client.wait_until_ready()
+        # Lazy approach to ensure the scavenger data is loaded by fetching it before caching configs
+        await self.client.wait_guild_config_cache_ready()
         if not is_client_pidroid(self.client):
             return
 

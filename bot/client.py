@@ -14,7 +14,7 @@ from discord.ext.commands.errors import BadArgument
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cogs.models.case import Case
 from cogs.utils.api import API
@@ -25,6 +25,17 @@ __VERSION__ = discord.VersionInfo(major=4, minor=1, micro=0, releaselevel='alpha
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
+
+
+class ScavengerHunt(TypedDict):
+    # Full message revealing the result
+    full_message: str
+    # Secret code trigger for Pidroid
+    secret_code: str
+    # Whether the scavenger hunt is active
+    active: bool
+    # Whether the scavenger hunt was completed
+    complete: bool
 
 
 class Pidroid(commands.Bot):
@@ -93,6 +104,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.events.initialization',
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
+            'cogs.ext.events.scavenger_hunt',
 
             # Tasks
             'cogs.ext.tasks.automod',
@@ -120,8 +132,15 @@ class Pidroid(commands.Bot):
 
         self.version_cache = {}
 
+        # Filled by initialization cog
         self.http_server_testing = True
-        self.scavenger_hunt_complete = False
+        self.scavenger_hunt: ScavengerHunt = {
+            "_loaded": False,
+            "full_message": "",
+            "secret_code": "",
+            "active": False,
+            "complete": False
+        }
 
         self.config = config
         self.prefixes = self.config['prefixes']
