@@ -7,6 +7,7 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
 from discord.member import Member
 from discord.mentions import AllowedMentions
+from discord.message import Message
 from discord.utils import escape_markdown, format_dt
 from typing import TYPE_CHECKING, List, Optional
 
@@ -125,6 +126,16 @@ class TagCommands(commands.Cog):
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag
 
+    async def resolve_attachments(self, message: Message) -> Optional[str]:
+        if len(message.attachments) == 0:
+            return None
+
+        if len(message.attachments) > 1:
+            raise BadArgument("Tags can only support a single attachment!")
+
+        attachment = message.attachments[0]
+        return attachment.url
+
     @commands.group(
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
@@ -200,9 +211,10 @@ class TagCommands(commands.Cog):
             return await ctx.reply(embed=error("Please specify a tag name!"))
         tag.name = tag_name
 
-        if content is None:
+        attachment_url = await self.resolve_attachments(ctx.message)
+        if content is None and attachment_url is None:
             return await ctx.reply(embed=error("Please provide content for the tag!"))
-        tag.content = content
+        tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
             return await ctx.reply(embed=error("There's already a tag by the specified name!"))
@@ -225,9 +237,10 @@ class TagCommands(commands.Cog):
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot edit a tag you don't own!")
 
-        if content is None:
+        attachment_url = await self.resolve_attachments(ctx.message)
+        if content is None and attachment_url is None:
             return await ctx.reply(embed=error("Please provide content for a tag!"))
-        tag.content = content
+        tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         await tag.edit()
         await ctx.reply(embed=success("Tag edited successfully!"))
