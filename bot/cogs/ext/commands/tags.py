@@ -149,12 +149,13 @@ class TagCommands(commands.Cog):
             tag_list = await self.find_tags(ctx, tag_name)
 
             if len(tag_list) == 1:
-                tag = tag_list[0]
-                message_content = tag.content
+                message_content = tag_list[0].content
+            elif tag_list[0].name.lower() == tag_name.lower():
+                message_content = tag_list[0].content
             else:
                 tag_name_list = [t.name for t in tag_list[:10]]
                 tag_list_str = ', '.join(tag_name_list)
-                message_content = f"I found multiple tags matching your query: {tag_list_str}"
+                message_content = f"I found multiple tags matching your query: {tag_list_str}\n..."
 
             if ctx.message.reference:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -173,7 +174,7 @@ class TagCommands(commands.Cog):
             raise BadArgument("This server has no defined tags!")
 
         embed = create_embed()
-        embed.title = f"{escape_markdown(ctx.guild.name)}'s tags"
+        embed.title = f"{escape_markdown(ctx.guild.name)} server tags"
         embed.description = f'({len(guild_tags)}) **' + '**, **'.join([t.name for t in guild_tags]) + '**'
         await ctx.reply(embed=embed)
 
