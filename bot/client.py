@@ -21,7 +21,7 @@ from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
 
-__VERSION__ = discord.VersionInfo(major=4, minor=1, micro=0, releaselevel='alpha', serial=0)
+__VERSION__ = discord.VersionInfo(major=4, minor=1, micro=0, releaselevel='beta', serial=0)
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
