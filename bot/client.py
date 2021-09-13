@@ -304,6 +304,7 @@ class Pidroid(commands.Bot):
         self.load_all_extensions()
 
     # Borrowed method from the client
+    # https://github.com/Rapptz/discord.py/blob/f485f1b61269c4e846e4e8b9232d8ec10b173c21/discord/client.py#L608-L666
     def run(self): # noqa: C901
         """Runs the client."""
         loop = self.loop
