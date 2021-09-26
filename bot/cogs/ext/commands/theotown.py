@@ -294,37 +294,23 @@ class TheoTownCommands(commands.Cog):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
 
     @commands.command(
-        brief='Returns frequently asked questions and their indexes.',
-        usage='<entry>/[list]',
-        category=TheoTownCategory
+        brief='DEPRECATED IN FAVOUR OF TAG COMMAND.\nReturns frequently asked questions and their indexes.',
+        category=TheoTownCategory,
+        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def faq(self, ctx: Context, *, entry: str = 'list'):
-        async with ctx.typing():
-            if entry == "list":
-                entry_list = await self.api.get_faq_entries()
-                entries = parse_faq_entries(entry_list)
-                embed = create_embed(title="Frequently asked questions list", description=entries + ".")
-                await ctx.reply(embed=embed)
-                return
+    async def faq(self, ctx: Context):
+        description = (
+            "The FAQ command is deprecated. "
+            "Most frequently asked questions have been migrated to the new tag system.\n"
+            "You can view available server tags by running ``Ptag list`` command."
+        )
 
-            entries = await self.api.get_faq_entry(entry)
-            if entry.lower() == 'cum' or entries is None:  # Using FAQ command fuzziness to show cucumber description is not funny
-                await ctx.reply(embed=error('I could not find such FAQ entry!'))
-                return
-
-            # No clue how to handle that Pidroid and Pidroid DSA are colliding and won't return
-            if len(entries) > 1:
-                parsed_entries = parse_faq_entries(entries)
-                if not entries[0]['question'].lower() == entry.lower():
-                    await ctx.reply(f'Multiple entries matching your term have been found: {parsed_entries}.')
-                    return
-                await ctx.reply(f"Multiple entries matching your term have been found: {parsed_entries}.\nReturning first entry that matched.")
-
-            entry = entries[0]
-            embed = create_embed(title=entry['question'], description=entry['answer'])
-            embed.set_footer(text=f"#{entry['id']}")
-            await ctx.reply(embed=embed)
+        embed = create_embed(
+            title="Where did everything go?",
+            description=description
+        )
+        await ctx.reply(embed=embed)
 
 
 def setup(client: Pidroid) -> None:

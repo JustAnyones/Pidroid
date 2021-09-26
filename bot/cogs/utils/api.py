@@ -52,11 +52,6 @@ class API:
         return self.db["Guild_configurations"]
 
     @property
-    def faq(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for frequently asked TheoTown questions."""
-        return self.db["FAQ"]
-
-    @property
     def tags(self) -> AgnosticCollection:
         """Returns a MongoDB collection for tags."""
         return self.db["Tags"]
@@ -314,23 +309,6 @@ class API:
             {'_id': object_id},
             {"$unset": {key: 1}}
         )
-
-    """FAQ related methods"""
-
-    async def get_faq_entry(self, term: str) -> Union[list, None]:
-        """Returns a dictionary list of frequently asked questions based on the query."""
-        cursor = self.faq.find(
-            {"$or": [
-                {"question": {"$regex": term, "$options": "i"}},
-                {"tags": term}
-            ]}
-        ).sort("question", 1)
-        return [i async for i in cursor] or None
-
-    async def get_faq_entries(self) -> list:
-        """Returns a dictionary list of all frequently asked questions."""
-        cursor = self.faq.find({}).sort("question", 1)
-        return [i async for i in cursor]
 
     """Tag related methods"""
 
