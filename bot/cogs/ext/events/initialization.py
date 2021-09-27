@@ -2,6 +2,7 @@ from discord import Game
 from discord.ext import commands
 
 from client import Pidroid
+from cogs.utils.checks import is_client_pidroid
 from cogs.utils.http import Route
 
 
@@ -15,7 +16,8 @@ class InvocationEventHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """This notifies the host of the bot that the client is ready to use."""
-        await self._fill_scavenger_hunt_data()
+        if is_client_pidroid(self.client):
+            await self._fill_scavenger_hunt_data()
         await self._fill_guild_config_cache()
         print(f'{self.client.user.name} bot (build {self.client.full_version}) has started with the ID of {self.client.user.id}')
         await self.client.change_presence(activity=Game("TheoTown"))
