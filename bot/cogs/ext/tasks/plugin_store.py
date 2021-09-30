@@ -4,6 +4,7 @@ import sys
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
+from discord.errors import NotFound
 from discord.ext import tasks, commands
 from discord.threads import Thread
 from typing import Optional
@@ -47,7 +48,13 @@ class PluginStoreTasks(commands.Cog):
             try:
                 thread: Thread = await self.client.fetch_channel(thread_id)
             except Exception as e:
-                self.client.logger.critical(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
+                self.client.logger.exception(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
+
+                if isinstance(e, NotFound):
+                    # If thread channel was deleted completely
+                    if e.code == 10003:
+                        self.client.logger.info("Thread channel does not exist, deleting from the database")
+                        await self.api.remove_plugin_thread_record(thread_item["_id"])
                 continue
 
             await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
