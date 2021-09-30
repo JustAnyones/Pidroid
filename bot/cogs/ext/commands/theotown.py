@@ -56,7 +56,7 @@ class TheoTownCommands(commands.Cog):
                 if version not in cache or cache[version] is None:
                     print(f'URL for version {version} not found in internal cache, querying the API')
 
-                    data = await self.api.get(Route("/private/lookup_version", {"query": version}))
+                    data = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
 
                     if data["success"]:
                         url = data["url"]
@@ -83,7 +83,7 @@ class TheoTownCommands(commands.Cog):
     @commands.max_concurrency(number=3, per=commands.BucketType.guild)
     async def online(self, ctx: Context):
         async with ctx.typing():
-            data = await self.api.get(Route("/private/get_online_statistics"))
+            data = await self.api.get(Route("/private/game/get_online_statistics"))
 
             r_data = data["data"]
             total_plots = r_data["plots"]["total"]
@@ -214,7 +214,7 @@ class TheoTownCommands(commands.Cog):
                 return
 
             plugin = plugins[0]
-            data = await self.api.get(Route("/private/get_plugin_download", {"id": plugin.id}))
+            data = await self.api.get(Route("/private/plugin/get_download", {"id": plugin.id}))
 
             if data['status'] == "error":
                 await ctx.reply(embed=error(f"I am unable to retrieve the download link for '{plugin.clean_title}' plugin!"))

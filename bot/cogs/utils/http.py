@@ -12,7 +12,7 @@ from typing import Optional, Union, TYPE_CHECKING
 if TYPE_CHECKING:
     from client import Pidroid
 
-BASE_API_URL = "https://ja.theotown.com/api"
+BASE_API_URL = "https://ja.theotown.com/api/v2"
 
 with open('./config.json') as data:
     AUTH_TOKEN = json.load(data)['authentication']['theotown api token']

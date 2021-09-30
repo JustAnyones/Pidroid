@@ -113,7 +113,7 @@ class API:
 
     async def get_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.get(Route("/private/get_new_plugins", {"last_approval_time": last_approval_time}))
+        response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
         return [NewPlugin(np) for np in response["data"]]
 
     async def find_plugin(self, query: str, show_hidden: bool = False, narrow_search: bool = False) -> List[Plugin]:
