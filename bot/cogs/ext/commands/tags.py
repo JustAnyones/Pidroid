@@ -18,6 +18,7 @@ from cogs.utils.embeds import create_embed, error, success
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = ["create", "edit", "remove", "claim", "transfer", "list", "info"]
+ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -164,8 +165,11 @@ class TagCommands(commands.Cog):
 
             if ctx.message.reference:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
-                return await message.reply(message_content, allowed_mentions=AllowedMentions(replied_user=True))
-            return await ctx.reply(message_content)
+                return await message.reply(
+                    message_content,
+                    allowed_mentions=ALLOWED_MENTIONS.merge(AllowedMentions(replied_user=True))
+                )
+            return await ctx.reply(message_content, allowed_mentions=ALLOWED_MENTIONS)
 
     @tag.command(
         brief="Returns a list of available server tags.",
