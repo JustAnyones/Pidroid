@@ -24,6 +24,8 @@ from ..utils.time import humanize, time_since, timedelta_to_datetime, timestamp_
 
 if TYPE_CHECKING:
     from cogs.utils.api import API
+    PunishmentChannel = Union[TextChannel, Thread]
+    DiscordUser = Union[Member, User]
 
 
 class BaseModerationEntry:
@@ -161,22 +163,29 @@ class Punishment(BaseModerationEntry):
     if TYPE_CHECKING:
         _api: API
         guild: Guild
-        channel: Union[TextChannel, Thread]
+        channel: Optional[PunishmentChannel]
         silent: bool
 
-        user: Union[Member, User]
+        user: DiscordUser
+        moderator: DiscordUser
 
-    def __init__(self, ctx: Context, user: Union[Member, User]) -> None:
+    def __init__(self, ctx: Context = None, user: DiscordUser = None) -> None:
         super().__init__()
-        self._api = ctx.bot.api
         self.silent = False
+        if ctx:
+            self._fill(ctx.bot.api, ctx.guild, user, ctx.author, ctx.channel)
 
-        self.guild = ctx.guild
-        self.guild_id = ctx.guild.id
-        self.channel = ctx.channel
+    def _fill(self, api: API, guild: Guild, user: DiscordUser, moderator: DiscordUser, channel: Optional[PunishmentChannel] = None):
+        self._api = api
+
+        self.guild = guild
+        self.guild_id = guild.id
+        self.channel = channel
+        if self.channel is None:
+            self.silent = True
 
         self.user = user
-        self.moderator = ctx.author
+        self.moderator = moderator
 
         self._user_name = str(self.user)
         self._moderator_name = str(self.moderator)
