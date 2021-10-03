@@ -5,11 +5,12 @@ from discord import Member
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.message import Message
-from typing import List, Optional, Union
+from typing import List, Union
 from urllib.parse import urlparse
 
 from client import Pidroid
 from constants import AUTOMODERATOR_RESPONSES
+from cogs.models.case import Punishment
 from cogs.models.configuration import GuildConfiguration
 from cogs.utils.logger import BannedWordLog, PhisingLog, SuspiciousUserLog
 from cogs.utils.time import utcnow
@@ -39,31 +40,27 @@ class AutomodTask(commands.Cog):
         self.client = client
         self.automod_violations = {}
 
-    def count_violation(self, guild_id: int, member_id: int):
+    async def count_violation(self, message: Message):
+        guild_id = message.guild.id
+        member_id = message.author.id
+        # Set default values if data doesn't exist
         self.automod_violations.setdefault(guild_id, {})
         self.automod_violations[guild_id].setdefault(
             member_id,
             {"last_violation": utcnow().timestamp(), "count": 0}
         )
-        self.automod_violations[guild_id][member_id]["count"] += 1
 
-    async def check_violations(self, message: Message):
-        guild_data: Optional[dict] = self.automod_violations.get(message.guild.id)
-        if guild_data is None:
-            return False
+        member_data = self.automod_violations[guild_id][member_id]
+        if member_data["count"] > 3:
+            if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
+                w = Punishment()
+                w._fill(self.client.api, message.guild, message.author, self.client.user)
+                await w.kick("Phising automod violation limit exceeded")
+            del self.automod_violations[guild_id][member_id]
+            return
 
-        member_data = guild_data.get(message.author.id)
-        if member_data is None:
-            return False
-
-        if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
-            if member_data["count"] > 3:
-                # TODO: refactor Punishment class to support such punishments
-                await message.guild.kick(message.author, reason="Phising automod violation")
-                return True
-            return False
-        del member_data
-        return False
+        member_data["last_violation"] = utcnow().timestamp()
+        member_data["count"] += 1
 
     async def punish_phising(self, message: Message, trigger_url: str = None):
         await self.client.dispatch_log(message.guild, PhisingLog(message, trigger_url))
@@ -71,7 +68,7 @@ class AutomodTask(commands.Cog):
         config = self.client.get_guild_configuration(message.guild.id)
         if config is not None:
             if config.strict_anti_phising:
-                self.count_violation(message.guild.id, message.author.id)
+                await self.count_violation(message)
 
     async def handle_banned_words(self, config: GuildConfiguration, message: Message) -> None:
         """Handles the detection and removal of banned words."""
@@ -142,11 +139,7 @@ class AutomodTask(commands.Cog):
         if is_guild_moderator(message.guild, message.channel, message.author):
             return
 
-        punished = await self.check_violations(message)
-        if punished:
-            await message.delete(delay=0)
-        elif not punished:
-            punished = await self.handle_phising(message)
+        punished = await self.handle_phising(message)
         if not punished:
             await self.handle_banned_words(config, message)
 
