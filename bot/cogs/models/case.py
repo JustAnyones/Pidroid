@@ -5,12 +5,15 @@ import discord
 
 from bson.objectid import ObjectId
 from datetime import timedelta
+from discord.channel import TextChannel
 from discord.embeds import Embed
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
 from discord.file import File
+from discord.guild import Guild
 from discord.member import Member
 from discord.role import Role
+from discord.threads import Thread
 from discord.user import User
 from pymongo.results import InsertOneResult
 from typing import TYPE_CHECKING, List, Optional, Union
@@ -157,17 +160,20 @@ class Punishment(BaseModerationEntry):
 
     if TYPE_CHECKING:
         _api: API
+        guild: Guild
+        channel: Union[TextChannel, Thread]
         silent: bool
 
         user: Union[Member, User]
 
     def __init__(self, ctx: Context, user: Union[Member, User]) -> None:
         super().__init__()
-        self._ctx = ctx
         self._api = ctx.bot.api
         self.silent = False
 
+        self.guild = ctx.guild
         self.guild_id = ctx.guild.id
+        self.channel = ctx.channel
 
         self.user = user
         self.moderator = ctx.author
@@ -212,7 +218,7 @@ class Punishment(BaseModerationEntry):
             if image_file is not None:
                 embed.set_image(url=f"attachment://{image_file.filename}")
         try:
-            await self._ctx.send(embed=embed, file=image_file)
+            await self.channel.send(embed=embed, file=image_file)
         except Exception: # nosec
             pass
 
@@ -243,7 +249,7 @@ class Punishment(BaseModerationEntry):
         """Revokes all punishments of specified type for the user."""
         self.type = type
         await self._api.punishments.update_many(
-            {'type': self.type, 'guild_id': self._ctx.guild.id, 'user_id': self.user.id},
+            {'type': self.type, 'guild_id': self.guild.id, 'user_id': self.user.id},
             {'$set': {'date_expires': 0}}
         )
 
@@ -251,7 +257,7 @@ class Punishment(BaseModerationEntry):
         """Warns the member."""
         await self.issue("warning", timedelta(days=120), reason)
         await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
-        await self._notify_user(f"You have been warned in {self._ctx.guild.name} server: {self.reason}")
+        await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
 
     async def ban(self, length: Union[int, timedelta] = None, reason: str = None):
         """Bans the user."""
@@ -259,16 +265,14 @@ class Punishment(BaseModerationEntry):
         await self._revoke("mute")
         await self.issue("ban", length, reason)
 
-        guild = self._ctx.guild
-
         if self.reason is None:
             await self._notify_chat(f"{self.user_name} was banned!")
-            await self._notify_user(f"You have been banned from {guild.name} server!")
+            await self._notify_user(f"You have been banned from {self.guild.name} server!")
         else:
             await self._notify_chat(f'{self.user_name} was banned for the following reason: {self.reason}')
-            await self._notify_user(f"You have been banned from {guild.name} server for the following reason: {self.reason}")
+            await self._notify_user(f"You have been banned from {self.guild.name} server for the following reason: {self.reason}")
 
-        await guild.ban(user=self.user, reason=self.reason)
+        await self.guild.ban(user=self.user, reason=self.reason)
 
     async def kick(self, reason: str = None):
         """Kicks the member."""
@@ -278,72 +282,70 @@ class Punishment(BaseModerationEntry):
 
         if self.reason is None:
             await self._notify_chat(f"{self.user_name} was kicked!")
-            await self._notify_user(f"You have been kicked from {self._ctx.guild.name} server!")
+            await self._notify_user(f"You have been kicked from {self.guild.name} server!")
         else:
             await self._notify_chat(f'{self.user_name} was kicked for the following reason: {self.reason}')
-            await self._notify_user(f"You have been kicked from {self._ctx.guild.name} server for the following reason: {self.reason}")
+            await self._notify_user(f"You have been kicked from {self.guild.name} server for the following reason: {self.reason}")
 
         await self.user.kick(reason=self.reason)
 
     async def jail(self, role: Role, reason: str = None, kidnap: bool = False):
         """Jails the member."""
         await self.issue("jail", reason=reason)
-        guild = self._ctx.guild
         await self.user.add_roles(
-            discord.utils.get(guild.roles, id=role.id),
+            discord.utils.get(self.guild.roles, id=role.id),
             reason=f"Jailed by {self.moderator_name}"
         )
 
         if kidnap:
             await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File('./resources/bus.png'))
             if self.reason is None:
-                return await self._notify_user(f"You have been kidnapped in {self._ctx.guild.name} server!")
-            return await self._notify_user(f"You have been kidnapped in {self._ctx.guild.name} server for the following reason: {self.reason}")
+                return await self._notify_user(f"You have been kidnapped in {self.guild.name} server!")
+            return await self._notify_user(f"You have been kidnapped in {self.guild.name} server for the following reason: {self.reason}")
 
         if self.reason is None:
             await self._notify_chat(f"{self.user_name} was jailed!")
-            await self._notify_user(f"You have been jailed in {guild.name} server!")
+            await self._notify_user(f"You have been jailed in {self.guild.name} server!")
         else:
             await self._notify_chat(f"{self.user_name} was jailed for the following reason: {self.reason}")
-            await self._notify_user(f"You have been jailed in {guild.name} server for the following reason: {self.reason}")
+            await self._notify_user(f"You have been jailed in {self.guild.name} server for the following reason: {self.reason}")
 
     async def unjail(self, role: Role):
         """Unjails the member."""
         await self._revoke("jail")
         await self.user.remove_roles(
-            discord.utils.get(self._ctx.guild.roles, id=role.id),
+            discord.utils.get(self.guild.roles, id=role.id),
             reason=f"Released by {self.moderator_name}"
         )
 
         await self._notify_chat(f"{self.user_name} was unjailed!")
-        await self._notify_user(f"You have been unjailed in {self._ctx.guild.name} server!")
+        await self._notify_user(f"You have been unjailed in {self.guild.name} server!")
 
     async def mute(self, role: Role, length: Union[int, timedelta] = None, reason: str = None):
         """Mutes the member."""
         await self.issue("mute", length, reason)
-        guild = self._ctx.guild
         await self.user.add_roles(
-            discord.utils.get(guild.roles, id=role.id),
+            discord.utils.get(self.guild.roles, id=role.id),
             reason=f"Muted by {self.moderator_name}"
         )
 
         if self.reason is None:
             await self._notify_chat(f"{self.user_name} was muted!")
-            await self._notify_user(f"You have been muted in {guild.name} server!")
+            await self._notify_user(f"You have been muted in {self.guild.name} server!")
         else:
             await self._notify_chat(f"{self.user_name} was muted for the following reason: {self.reason}")
-            await self._notify_user(f"You have been muted in {guild.name} server for the following reason: {self.reason}")
+            await self._notify_user(f"You have been muted in {self.guild.name} server for the following reason: {self.reason}")
 
     async def unmute(self, role: Role):
         """Unmutes the member."""
         await self._revoke("mute")
         await self.user.remove_roles(
-            discord.utils.get(self._ctx.guild.roles, id=role.id),
+            discord.utils.get(self.guild.roles, id=role.id),
             reason=f"Unmuted by {self.moderator_name}"
         )
 
         await self._notify_chat(f"{self.user_name} was unmuted!")
-        await self._notify_user(f"You have been unmuted in {self._ctx.guild.name} server!")
+        await self._notify_user(f"You have been unmuted in {self.guild.name} server!")
 
 
 def setup(client) -> None:
