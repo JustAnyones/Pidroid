@@ -197,7 +197,7 @@ class TagCommands(commands.Cog):
     async def info(self, ctx: Context, *, tag_name: str = None):
         tag = await self.resolve_tag(ctx, tag_name)
 
-        user = await self.client.resolve_user(tag.author_id)
+        user = await self.client.get_or_fetch_user(tag.author_id)
 
         embed = create_embed(title=tag.name, description=tag.content)
         if user:

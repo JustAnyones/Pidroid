@@ -56,7 +56,7 @@ class PunishmentHandlerTask(commands.Cog):
                 punishments = await self.api.get_active_guild_punishments(guild.id)
                 for p in punishments:
                     if current_time >= p['date_expires']:
-                        user = await self.client.resolve_user(p["user_id"])
+                        user = await self.client.get_or_fetch_user(p["user_id"])
                         if user is None:
                             continue
 

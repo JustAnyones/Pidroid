@@ -11,7 +11,7 @@ from contextlib import suppress
 from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument
-from discord.guild import Guild
+from discord.guild import Guild, GuildChannel
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, List, Optional, TypedDict
@@ -213,8 +213,8 @@ class Pidroid(commands.Bot):
     """???"""
 
     async def _resolve_case_users(self, d: dict) -> dict:
-        d["user"] = await self.resolve_user(d["user_id"])
-        d["moderator"] = await self.resolve_user(d["moderator_id"])
+        d["user"] = await self.get_or_fetch_user(d["user_id"])
+        d["moderator"] = await self.get_or_fetch_user(d["moderator_id"])
         return d
 
     async def fetch_case(self, guild_id: int, case_id: str) -> Case:
@@ -246,15 +246,21 @@ class Pidroid(commands.Bot):
                 return await guild.fetch_member(member_id)
         return member
 
-    async def resolve_user(self, user_id: int) -> Optional[discord.User]:
+    async def get_or_fetch_user(self, user_id: int) -> Optional[discord.User]:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
-        result = self.get_user(user_id)
-        if result is None:
-            try:
-                result = await self.fetch_user(user_id)
-            except discord.HTTPException:
-                return None
-        return result
+        user = self.get_user(user_id)
+        if user is None:
+            with suppress(discord.HTTPException):
+                return await self.fetch_user(user_id)
+        return user
+
+    async def get_or_fetch_channel(self, guild: Guild, channel_id: int) -> Optional[GuildChannel]:
+        """Attempts to resolve guild channel from channel_id by any means. Returns None if everything failed."""
+        channel = guild.get_channel(channel_id)
+        if channel is None:
+            with suppress(discord.HTTPException):
+                return await guild.fetch_channel(channel_id)
+        return channel
 
     def setup_logging(self, logging_level: int = logging.WARNING):
         """Sets up client logging module."""
