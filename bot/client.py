@@ -55,29 +55,6 @@ class Pidroid(commands.Bot):
 
         # This defines hot-reloadable cogs and various files
         self.extensions_to_load = [
-            # Constants file
-            'constants',
-
-            # Models
-            # TODO: deprecate hot reloading of models
-            'cogs.models.case',
-            'cogs.models.categories',
-            'cogs.models.configuration',
-            'cogs.models.plugins',
-
-            # Various utility functions
-            # TODO: deprecate hot reloading of functions
-            'cogs.utils.api',
-            'cogs.utils.checks',
-            'cogs.utils.converters',
-            'cogs.utils.decorators',
-            'cogs.utils.embeds',
-            'cogs.utils.getters',
-            'cogs.utils.http',
-            'cogs.utils.paginators',
-            'cogs.utils.parsers',
-            'cogs.utils.time',
-
             # Commands
             'cogs.ext.commands.admin',
             'cogs.ext.commands.anime',
