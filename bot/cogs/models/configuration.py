@@ -49,6 +49,7 @@ class GuildConfiguration:
         self.mute_role = c.get(ConfigKeys.mute_role.value, None)
 
     async def update_public_tag_permission(self, allow_public: bool) -> None:
+        """Updates public tag permission."""
         self.public_tags = allow_public
         await self.api.set_guild_config(self._id, "public_tags", allow_public)
 
