@@ -21,6 +21,7 @@ from cogs.models.case import Case
 from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
+from cogs.utils.logger import BaseLog
 
 __VERSION__ = discord.VersionInfo(major=4, minor=1, micro=3, releaselevel='beta', serial=0)
 
@@ -212,6 +213,18 @@ class Pidroid(commands.Bot):
         self.guild_configurations.pop(guild_id)
 
     """???"""
+
+    async def dispatch_log(self, guild: Guild, log: BaseLog):
+        config = self.get_guild_configuration(guild.id)
+        if config is None:
+            return
+
+        if not config.log_channel:
+            return
+
+        channel = await self.get_or_fetch_channel(guild, config.log_channel)
+        if channel is not None:
+            await channel.send(embed=log.as_embed())
 
     async def _resolve_case_users(self, d: dict) -> dict:
         d["user"] = await self.get_or_fetch_user(d["user_id"])
