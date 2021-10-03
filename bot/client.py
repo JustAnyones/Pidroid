@@ -11,9 +11,10 @@ from contextlib import suppress
 from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument
-from discord.guild import Guild, GuildChannel
+from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
+from discord.types.channel import GuildChannel
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cogs.models.case import Case
