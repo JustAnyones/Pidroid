@@ -29,6 +29,9 @@ def clean_html(dirty_str: str) -> str:
     dirty_str = re.sub(REPLACE_I_TAG, r"*\1*", dirty_str)
     dirty_str = re.sub(REPLACE_U_TAG, r"__\1__", dirty_str)
 
+    # Remove unsupported BBCODE
+    dirty_str.replace("[IMG]", "").replace("[/IMG]", "")
+
     return dirty_str
 
 
