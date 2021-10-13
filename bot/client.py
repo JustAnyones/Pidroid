@@ -189,9 +189,8 @@ class Pidroid(commands.Bot):
     def _remove_guild_configuration(self, guild_id: int) -> None:
         self.guild_configurations.pop(guild_id)
 
-    """???"""
-
     async def dispatch_log(self, guild: Guild, log: BaseLog):
+        """Dispatches a Pidroid log to a guild channel, if applicable."""
         config = self.get_guild_configuration(guild.id)
         if config is None:
             return
@@ -209,6 +208,7 @@ class Pidroid(commands.Bot):
         return d
 
     async def fetch_case(self, guild_id: int, case_id: str) -> Case:
+        """Returns a case for specified guild and user."""
         c = await self.api.get_guild_case(guild_id, case_id)
         if c is None:
             raise BadArgument("Specified case could not be found!")
@@ -216,18 +216,19 @@ class Pidroid(commands.Bot):
         return Case(self.api, c)
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
-        warnings = await self.api.get_moderation_logs(guild_id, user_id)
-        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+        """Returns a list of cases for specified guild and user."""
+        cases = await self.api.get_moderation_logs(guild_id, user_id)
+        return [Case(self.api, await self._resolve_case_users(c)) for c in cases]
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of warning cases for specified guild and user."""
         warnings = await self.api.get_all_warnings(guild_id, user_id)
         return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of active warning cases for specified guild and user."""
         warnings = await self.api.get_active_warnings(guild_id, user_id)
         return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
-
-    """???"""
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""
@@ -261,6 +262,7 @@ class Pidroid(commands.Bot):
             self.logger.setLevel(logging.DEBUG)
 
     def get_prefixes(self, message: Message) -> List[str]:
+        """Returns a string list of prefixes for a message using message's context."""
         if is_client_development(self):
             return self.prefixes
 
