@@ -16,6 +16,7 @@ from cogs.utils.embeds import error
 
 if TYPE_CHECKING:
     from cogs.ext.events.initialization import InvocationEventHandler
+    from cogs.ext.tasks.automod import AutomodTask
 
 
 class QuestionInteraction(ui.View):
@@ -118,6 +119,18 @@ class OwnerCommands(commands.Cog):
         cog: InvocationEventHandler = self.client.get_cog("InvocationEventHandler")
         await cog._fill_guild_config_cache()
         await ctx.reply("Internal guild cache updated!")
+
+    @commands.command(
+        name="update-phising-urls",
+        brief="Updates the internal phising url list.",
+        category=OwnerCategory
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def updatephisingurls(self, ctx: Context):
+        cog: AutomodTask = self.client.get_cog("AutomodTask")
+        await cog._update_phising_urls()
+        await ctx.reply("Phising urls updated!")
 
     @commands.command(
         brief="Experiment with new discord interactions interface.",

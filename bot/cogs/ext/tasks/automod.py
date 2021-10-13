@@ -16,10 +16,6 @@ from cogs.utils.logger import BannedWordLog, PhisingLog, SuspiciousUserLog
 from cogs.utils.time import utcnow
 from cogs.utils.checks import is_guild_moderator
 
-PHISING_URLS = [
-    "dicsord-give.com", "discocrd.gift"
-]
-
 
 def find_swearing(string: str, banned_words: List[str]) -> Union[str, None]:
     """Returns a word which was found to be a swear in a string."""
@@ -39,6 +35,13 @@ class AutomodTask(commands.Cog):
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.automod_violations = {}
+        self.phising_urls = []
+
+    async def _update_phising_urls(self):
+        """Updates internal phising url list."""
+        urls = await self.client.api.fetch_phising_url_list()
+        self.client.logger.info("Updated phising url list")
+        self.phising_urls = urls
 
     async def count_violation(self, message: Message):
         guild_id = message.guild.id
@@ -84,7 +87,7 @@ class AutomodTask(commands.Cog):
     async def handle_phising(self, message: Message) -> bool:
         """Handles the detection and filtering of phising messages."""
         # URL based phising in plain message
-        for url in PHISING_URLS:
+        for url in self.phising_urls:
             if url in message.content:
                 await self.punish_phising(message, url)
                 return True

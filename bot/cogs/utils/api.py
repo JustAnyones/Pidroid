@@ -32,6 +32,11 @@ class API:
         self.db = self.db_client["Pidroid"]
 
     @property
+    def internal(self) -> AgnosticCollection:
+        """Returns a MongoDB collection for internal related data."""
+        return self.db["Internal"]
+
+    @property
     def suggestions(self) -> AgnosticCollection:
         """Returns a MongoDB collection for TheoTown suggestions."""
         return self.db["Suggestions"]
@@ -62,7 +67,7 @@ class API:
         return self.db["Shitposts"]
 
     async def get(self, route: Route) -> dict:
-        "Sends a GET request to TheoTown API."
+        """Sends a GET request to the TheoTown API."""
         async with await get(self.client, route.url, route.headers) as r:
             return await r.json()
 
@@ -91,6 +96,16 @@ class API:
                 raise BadArgument("Mongo was unable to generate a unique ID after trying 15 times")
             g_id = API.generate_id()
         return g_id
+
+    """Phising protection related methods"""
+
+    async def fetch_phising_url_list(self) -> List[str]:
+        """Returns a list of phising URLs."""
+        data = await self.internal.find_one({"phising.urls": {"$exists": True}}, {"phising": 1, "_id": 0})
+        if data is None:
+            self.client.logger.critical("Phising URLs returned an empty list!")
+            return []
+        return data["phising"]["urls"]
 
     """Suggestion related methods"""
 
@@ -125,6 +140,7 @@ class API:
         return [Plugin(p) for p in response["data"]]
 
     async def create_new_plugin_thread(self, thread_id: int, expires: int) -> None:
+        """Creates a new plugin thread entry inside the database."""
         await self.plugin_threads.insert_one({
             "thread_id": thread_id,
             "expires": expires
@@ -138,6 +154,7 @@ class API:
         return [i async for i in cursor]
 
     async def remove_plugin_thread_record(self, _id: ObjectId) -> None:
+        """Removes a plugin thread entry from the database."""
         await self.plugin_threads.delete_many({"_id": _id})
 
     """Moderation related methods"""
