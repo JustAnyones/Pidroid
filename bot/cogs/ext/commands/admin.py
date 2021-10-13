@@ -178,6 +178,22 @@ class AdminCommands(commands.Cog):
         await ctx.reply(f'Mute role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
 
     @configuration.command(
+        brief='Sets server log channel.\nRequires manage server permissions.',
+        usage='<log channel>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
+    async def setlogchannel(self, ctx: Context, channel: discord.TextChannel):
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_log_channel(channel)
+        await ctx.reply(f'Log channel set to {channel.mention}')
+
+    @configuration.command(
         brief='Sets server bot prefix.\nRequires manage server permission.',
         usage='<prefix>',
         category=AdministrationCategory
