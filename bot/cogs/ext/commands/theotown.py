@@ -7,7 +7,7 @@ from discord.embeds import _EmptyEmbed
 from discord.errors import HTTPException
 from discord.ext.commands.context import Context
 from discord.message import Message
-from typing import List
+from typing import Optional
 
 from client import Pidroid
 from cogs.models.categories import TheoTownCategory
@@ -20,12 +20,14 @@ from cogs.utils.parsers import format_version_code
 
 ALLOWED_GALLERY_QUERIES = ['recent', 'trends', 'rating']
 
-def parse_faq_entries(entry_list: List[str]) -> str:
-    """Returns a list of FAQ queries in a readable string format."""
-    entries = []
-    for entry in entry_list:
-        entries.append(entry['question'].lower())
-    return '``' + '``, ``'.join(entries) + '``'
+def handle_wrong_gallery_queries(query: str) -> Optional[str]:
+    if query in ["trending", "hot", "trends"]:
+        return "trends"
+    if query in ["new", "recent", "latest"]:
+        return "recent"
+    if query in ["rating", "top", "best"]:
+        return "rating"
+    return None
 
 class TheoTownCommands(commands.Cog):
     """This class implements a cog for TheoTown API related commands."""
@@ -109,7 +111,7 @@ class TheoTownCommands(commands.Cog):
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     async def gallery(self, ctx: Context, query: str = 'recent', number: int = None):
         async with ctx.typing():
-            query = query.lower()
+            query = handle_wrong_gallery_queries(query.lower())
 
             if query not in ALLOWED_GALLERY_QUERIES:
                 await ctx.reply(embed=error(
