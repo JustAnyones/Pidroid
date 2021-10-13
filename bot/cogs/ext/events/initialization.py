@@ -1,9 +1,13 @@
 from discord import Game
 from discord.ext import commands
+from typing import TYPE_CHECKING
 
 from client import Pidroid
 from cogs.utils.checks import is_client_pidroid
 from cogs.utils.http import Route
+
+if TYPE_CHECKING:
+    from cogs.ext.tasks.automod import AutomodTask
 
 
 class InvocationEventHandler(commands.Cog):
@@ -44,6 +48,11 @@ class InvocationEventHandler(commands.Cog):
         raw_configs = await self.client.api.get_all_guild_configurations()
         for config in raw_configs:
             self.client._update_guild_configuration(config.guild_id, config)
+
+        # Also update phising URLS
+        cog: AutomodTask = self.client.get_cog("AutomodTask")
+        await cog._update_phising_urls()
+
         self.client._guild_config_ready.set()
         self.log.debug("Guild configuration cache filled")
 

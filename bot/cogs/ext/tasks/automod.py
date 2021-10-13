@@ -2,35 +2,25 @@ import random
 import re
 
 from discord import Member
+from discord.embeds import Embed
 from discord.ext import commands
-from discord.channel import TextChannel
 from discord.message import Message
-from typing import Union
+from typing import List, Union
 from urllib.parse import urlparse
 
 from client import Pidroid
 from constants import AUTOMODERATOR_RESPONSES
-from cogs.utils.checks import is_guild_moderator, is_client_pidroid, is_guild_theotown
-
-BANNED_WORDS = [
-    "sex", "hitler", "dick", "cock",
-    "porn", "fuck", "fucker", "tits",
-    "vagina", "orgasm", "squirt",
-    "shit", "scheis", "clit", "cunt",
-    "bitch", "anal", "nazi", "nsdap",
-    "penis", "fucking"
-]
-
-SUSPICIOUS_USERS = [
-    'hitler', 'porn', 'nazi',
-    'sairam'
-]
+from cogs.models.case import Punishment
+from cogs.models.configuration import GuildConfiguration
+from cogs.utils.logger import BannedWordLog, PhisingLog, SuspiciousUserLog
+from cogs.utils.time import utcnow
+from cogs.utils.checks import is_guild_moderator
 
 
-def find_swearing(string: str) -> Union[str, None]:
+def find_swearing(string: str, banned_words: List[str]) -> Union[str, None]:
     """Returns a word which was found to be a swear in a string."""
     for word in string.split():
-        if word in BANNED_WORDS:
+        if word in banned_words:
             return word
     return None
 
@@ -44,57 +34,117 @@ class AutomodTask(commands.Cog):
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.mod_channel: TextChannel = None
+        self.automod_violations = {}
+        self.phising_urls = []
 
-    @commands.Cog.listener()
-    async def on_member_join(self, member: Member) -> None:
-        """Checks whether new member is in suspicious user list."""
-        if not is_client_pidroid(self.client):
+    async def _update_phising_urls(self):
+        """Updates internal phising url list."""
+        urls = await self.client.api.fetch_phising_url_list()
+        self.client.logger.info("Updated phising url list")
+        self.phising_urls = urls
+
+    async def count_violation(self, message: Message):
+        guild_id = message.guild.id
+        member_id = message.author.id
+        # Set default values if data doesn't exist
+        self.automod_violations.setdefault(guild_id, {})
+        self.automod_violations[guild_id].setdefault(
+            member_id,
+            {"last_violation": utcnow().timestamp(), "count": 0}
+        )
+
+        member_data = self.automod_violations[guild_id][member_id]
+        if member_data["count"] > 3:
+            if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
+                w = Punishment()
+                w._fill(self.client.api, message.guild, message.author, self.client.user)
+                await w.kick("Phising automod violation limit exceeded")
+            del self.automod_violations[guild_id][member_id]
             return
 
-        if not is_guild_theotown(member.guild):
-            return
+        member_data["last_violation"] = utcnow().timestamp()
+        member_data["count"] += 1
 
-        # Get mod channel
-        if self.mod_channel is None:
-            self.mod_channel = self.client.get_channel(367318260724531200)
+    async def punish_phising(self, message: Message, trigger_url: str = None):
+        await self.client.dispatch_log(message.guild, PhisingLog(message, trigger_url))
+        await message.delete(delay=0)
+        config = self.client.get_guild_configuration(message.guild.id)
+        if config is not None:
+            if config.strict_anti_phising:
+                await self.count_violation(message)
 
-        if any(ext in member.name.lower() for ext in SUSPICIOUS_USERS):
-            await self.mod_channel.send((
-                '**Warning**\n'
-                f'A potentially suspicious user by the name of {member.mention} (ID: {member.id}) has joined the server.\n'
-                'Due to a possibility of accidentally punishing an innocent user, you must decide the applicable action yourself.'
-            ))
+    async def handle_banned_words(self, config: GuildConfiguration, message: Message) -> None:
+        """Handles the detection and removal of banned words."""
+        content = clean_markdown(message.clean_content.lower())
+        word = find_swearing(content, config.banned_exact_words)
+        if word is not None:
+            await self.client.dispatch_log(message.guild, BannedWordLog(message, word))
+            await message.delete(delay=0)
+            await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
+            return True
+        return False
 
-    @commands.Cog.listener()
-    async def on_message(self, message: Message) -> None:
-        """Checks every new message if it contains a swear word."""
-        if not is_client_pidroid(self.client):
-            return
+    async def handle_phising(self, message: Message) -> bool:
+        """Handles the detection and filtering of phising messages."""
+        # URL based phising in plain message
+        for url in self.phising_urls:
+            if url in message.content:
+                await self.punish_phising(message, url)
+                return True
 
-        if message.author.bot:
-            return
-
-        if not is_guild_theotown(message.guild):
-            return
-
+        # Phising related to embedded content
         if len(message.embeds) > 0:
-            link_type_embeds = [e for e in message.embeds if e.type == "link"]
-
+            # Only scan link embeds which attempt to fake discord gift embed
+            link_type_embeds: List[Embed] = [e for e in message.embeds if e.type == "link"]
             for link_embed in link_type_embeds:
                 if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
                     url = urlparse(link_embed.url.lower())
                     if url.netloc != "discord.gift":
-                        await message.reply("That nitro URL seems sussy!")
-                        break
+                        await self.punish_phising(message)
+                        return True
+        return False
 
-        # Bad word detector
-        content = clean_markdown(message.clean_content.lower())
-        word = find_swearing(content)
-        if word is not None and not is_guild_moderator(message.guild, message.channel, message.author):
-            self.client.logger.debug(f'"{word}" has been detected as a bad word in "{content}"')
-            await message.delete(delay=0)
-            await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
+    async def handle_suspicious_member(self, config: GuildConfiguration, member: Member) -> bool:
+        """Handles the detection of members which are deemed suspicious."""
+        for trigger_word in config.suspicious_users:
+            if trigger_word in member.name.lower():
+                await self.client.dispatch_log(member.guild, SuspiciousUserLog(member, trigger_word))
+                return True
+        return False
+
+    @commands.Cog.listener()
+    async def on_member_join(self, member: Member) -> None:
+        """Checks whether new member is suspicious."""
+        if member.bot:
+            return
+
+        await self.client.wait_guild_config_cache_ready()
+        config = self.client.get_guild_configuration(member.guild.id)
+        if config is None:
+            return
+
+        await self.handle_suspicious_member(config, member)
+
+    @commands.Cog.listener()
+    async def on_message(self, message: Message) -> None:
+        """Checks every new message if it contains phising or swearing."""
+        if message.author.bot:
+            return
+
+        if message.guild is None:
+            return
+
+        await self.client.wait_guild_config_cache_ready()
+        config = self.client.get_guild_configuration(message.guild.id)
+        if config is None:
+            return
+
+        if is_guild_moderator(message.guild, message.channel, message.author):
+            return
+
+        punished = await self.handle_phising(message)
+        if not punished:
+            await self.handle_banned_words(config, message)
 
 
 def setup(client: Pidroid) -> None:

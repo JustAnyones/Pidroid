@@ -14,14 +14,16 @@ from discord.ext.commands.errors import BadArgument
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
+from discord.types.channel import GuildChannel
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cogs.models.case import Case
 from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
+from cogs.utils.logger import BaseLog
 
-__VERSION__ = discord.VersionInfo(major=4, minor=1, micro=2, releaselevel='beta', serial=0)
+__VERSION__ = discord.VersionInfo(major=4, minor=2, micro=0, releaselevel='alpha', serial=0)
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
@@ -53,29 +55,6 @@ class Pidroid(commands.Bot):
 
         # This defines hot-reloadable cogs and various files
         self.extensions_to_load = [
-            # Constants file
-            'constants',
-
-            # Models
-            # TODO: deprecate hot reloading of models
-            'cogs.models.case',
-            'cogs.models.categories',
-            'cogs.models.configuration',
-            'cogs.models.plugins',
-
-            # Various utility functions
-            # TODO: deprecate hot reloading of functions
-            'cogs.utils.api',
-            'cogs.utils.checks',
-            'cogs.utils.converters',
-            'cogs.utils.decorators',
-            'cogs.utils.embeds',
-            'cogs.utils.getters',
-            'cogs.utils.http',
-            'cogs.utils.paginators',
-            'cogs.utils.parsers',
-            'cogs.utils.time',
-
             # Commands
             'cogs.ext.commands.admin',
             'cogs.ext.commands.anime',
@@ -210,14 +189,26 @@ class Pidroid(commands.Bot):
     def _remove_guild_configuration(self, guild_id: int) -> None:
         self.guild_configurations.pop(guild_id)
 
-    """???"""
+    async def dispatch_log(self, guild: Guild, log: BaseLog):
+        """Dispatches a Pidroid log to a guild channel, if applicable."""
+        config = self.get_guild_configuration(guild.id)
+        if config is None:
+            return
+
+        if not config.log_channel:
+            return
+
+        channel = await self.get_or_fetch_channel(guild, config.log_channel)
+        if channel is not None:
+            await channel.send(embed=log.as_embed())
 
     async def _resolve_case_users(self, d: dict) -> dict:
-        d["user"] = await self.resolve_user(d["user_id"])
-        d["moderator"] = await self.resolve_user(d["moderator_id"])
+        d["user"] = await self.get_or_fetch_user(d["user_id"])
+        d["moderator"] = await self.get_or_fetch_user(d["moderator_id"])
         return d
 
     async def fetch_case(self, guild_id: int, case_id: str) -> Case:
+        """Returns a case for specified guild and user."""
         c = await self.api.get_guild_case(guild_id, case_id)
         if c is None:
             raise BadArgument("Specified case could not be found!")
@@ -225,18 +216,19 @@ class Pidroid(commands.Bot):
         return Case(self.api, c)
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
-        warnings = await self.api.get_moderation_logs(guild_id, user_id)
-        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+        """Returns a list of cases for specified guild and user."""
+        cases = await self.api.get_moderation_logs(guild_id, user_id)
+        return [Case(self.api, await self._resolve_case_users(c)) for c in cases]
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of warning cases for specified guild and user."""
         warnings = await self.api.get_all_warnings(guild_id, user_id)
         return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of active warning cases for specified guild and user."""
         warnings = await self.api.get_active_warnings(guild_id, user_id)
         return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
-
-    """???"""
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""
@@ -246,15 +238,21 @@ class Pidroid(commands.Bot):
                 return await guild.fetch_member(member_id)
         return member
 
-    async def resolve_user(self, user_id: int) -> Optional[discord.User]:
+    async def get_or_fetch_user(self, user_id: int) -> Optional[discord.User]:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
-        result = self.get_user(user_id)
-        if result is None:
-            try:
-                result = await self.fetch_user(user_id)
-            except discord.HTTPException:
-                return None
-        return result
+        user = self.get_user(user_id)
+        if user is None:
+            with suppress(discord.HTTPException):
+                return await self.fetch_user(user_id)
+        return user
+
+    async def get_or_fetch_channel(self, guild: Guild, channel_id: int) -> Optional[GuildChannel]:
+        """Attempts to resolve guild channel from channel_id by any means. Returns None if everything failed."""
+        channel = guild.get_channel(channel_id)
+        if channel is None:
+            with suppress(discord.HTTPException):
+                return await guild.fetch_channel(channel_id)
+        return channel
 
     def setup_logging(self, logging_level: int = logging.WARNING):
         """Sets up client logging module."""
@@ -264,6 +262,7 @@ class Pidroid(commands.Bot):
             self.logger.setLevel(logging.DEBUG)
 
     def get_prefixes(self, message: Message) -> List[str]:
+        """Returns a string list of prefixes for a message using message's context."""
         if is_client_development(self):
             return self.prefixes
 

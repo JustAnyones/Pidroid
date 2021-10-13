@@ -91,7 +91,12 @@ class AdminCommands(commands.Cog):
             if mute_role is not None:
                 embed.add_field(name='Mute role', value=mute_role.mention)
 
-            embed.add_field(name="Everyone can create tags?", value=data.public_tags, inline=False)
+            log_channel = guild.get_channel(data.log_channel)
+            if log_channel is not None:
+                embed.add_field(name='Log channel', value=log_channel.mention)
+
+            embed.add_field(name="Everyone can create tags?", value=data.public_tags)
+            embed.add_field(name="Strict phising protection?", value=data.strict_anti_phising)
 
             embed.set_footer(text=f'To edit the configuration, view administration category with {self.client.prefix}help administration.')
         await ctx.reply(embed=embed)
@@ -173,6 +178,22 @@ class AdminCommands(commands.Cog):
         await ctx.reply(f'Mute role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
 
     @configuration.command(
+        brief='Sets server log channel.\nRequires manage server permissions.',
+        usage='<log channel>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
+    async def setlogchannel(self, ctx: Context, channel: discord.TextChannel):
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_log_channel(channel)
+        await ctx.reply(f'Log channel set to {channel.mention}')
+
+    @configuration.command(
         brief='Sets server bot prefix.\nRequires manage server permission.',
         usage='<prefix>',
         category=AdministrationCategory
@@ -219,6 +240,33 @@ class AdminCommands(commands.Cog):
         if allow_public:
             return await ctx.reply(embed=success('Everyone can now create tags!'))
         await ctx.reply(embed=success('Only members with manage messages permission can create tags now!'))
+
+    @configuration.command(
+        name="toggle-strict-protection",
+        brief=(
+            "Enable or disable strict anti-phising protection.\n"
+            "Strict means that exceeding a certain amount of anti-phising violations will result in a mute or a kick, if mute role is not available."
+        ),
+        usage='<true/false>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
+    async def toggle_strict_protection(self, ctx: Context, strict: bool = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
+        config = self.client.get_guild_configuration(ctx.guild.id)
+
+        if not strict:
+            strict = not config.strict_anti_phising
+        await config.update_anti_phising_permission(strict)
+
+        if strict:
+            return await ctx.reply(embed=success("Strict anti-phising protection enabled!"))
+        await ctx.reply(embed=success("Strict anti-phising protection disabled!"))
 
     @commands.command(
         brief='Returns current server bot prefix.',
