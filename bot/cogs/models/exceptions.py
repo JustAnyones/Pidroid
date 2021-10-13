@@ -27,6 +27,13 @@ class ClientIsNotPidroid(CheckFailure):
     def __init__(self, message: str = None):
         super().__init__(message or "Client user is not Pidroid!")
 
+class APIException(BadArgument):
+    """Called when TheoTown API error is encountered"""
+    def __init__(self, status: int, message: str = None):
+        if message is None:
+            return super().__init__(f"An error has been encountered inside TheoTown API, status code: {status}")
+        return super().__init__(message)
+
 
 def setup(client: Pidroid) -> None:
     pass

@@ -1,37 +1,63 @@
 from __future__ import annotations
 
-import aiofiles
-import json
 import re
-import os
 
 from aiohttp.client import ClientTimeout
-from urllib.parse import urlparse, urlencode
+from urllib.parse import urlencode
 from typing import Optional, Union, TYPE_CHECKING
+
+from cogs.models.exceptions import APIException
 
 if TYPE_CHECKING:
     from client import Pidroid
 
-BASE_API_URL = "https://ja.theotown.com/api/v2"
-
-with open('./config.json') as data:
-    AUTH_TOKEN = json.load(data)['authentication']['theotown api token']
-
 DEFAULT_HEADERS = {'User-Agent': 'Pidroid bot by JustAnyone'}
-DEFAULT_TIMEOUT = 30
 
+class HTTP:
+    """This class implements a basic TheoTown API HTTP request handling system."""
+
+    def __init__(self, client: Pidroid) -> None:
+        self.client = client
+
+    async def request(self, method: str, route: Route, headers: dict = None, data: dict = None):
+
+        # Deal with headers
+        new_headers = DEFAULT_HEADERS.copy()
+        if headers:
+            new_headers.update(headers)
+        if route.private:
+            new_headers['Authorization'] = self.client.config["authentication"]["theotown api token"]
+
+        # Do actual request
+        async with self.client.session.request(
+            method, route.url,
+            headers=new_headers, data=data
+        ) as r:
+
+            # Handle errors
+            if r.status >= 500:
+                raise APIException(r.status, "Internal backend API error detected. Please try again later!")
+
+            if r.status == 401:
+                raise APIException(r.status, "Client is not authorized to make calls to the specified API endpoint!")
+
+            if r.status == 404:
+                raise APIException(r.status, "Requested API resource not found!")
+
+            if r.status == 200:
+                return await r.json()
+
+            raise APIException(r.status)
 
 class Route:
     """This class represents a TheoTown API route."""
 
-    def __init__(self, path: str, query: dict = {}, headers: dict = None, private: bool = False) -> None:
+    BASE_URL = "https://ja.theotown.com/api/v2"
+
+    def __init__(self, path: str, query: dict = {}) -> None:
         self.path = path
         self._query = query
-        self._headers = headers
-
-        self.private = private
-        if self.path.startswith("/private/"):
-            self.private = True
+        self.private = self.path.startswith("/private/")
 
     def __repr__(self) -> str:
         return self.url
@@ -51,62 +77,12 @@ class Route:
     def url(self) -> str:
         """Returns route request URL."""
         if self.query:
-            return BASE_API_URL + self.path + self.query
-        return BASE_API_URL + self.path
-
-    @property
-    def headers(self) -> dict:
-        """Returns route request headers."""
-        return get_headers(self._headers, self.private)
-
-def get_headers(headers: Optional[dict], require_auth: bool = False) -> dict:
-    """Returns merged headers including or excluding TheoTown API auth token."""
-    new_headers = DEFAULT_HEADERS.copy()
-    if headers:
-        new_headers.update(headers)
-    if require_auth:
-        new_headers['Authorization'] = AUTH_TOKEN
-    return new_headers
+            return self.BASE_URL + self.path + self.query
+        return self.BASE_URL + self.path
 
 def get_filename(cd: str) -> str:
     """Returns filename from content disposition header."""
     return re.findall(r'filename\*?=[\'"]?(?:UTF-\d[\'"]*)?([^;\r\n"\']*)[\'"]?;?', cd)[0]
-
-def get_unique_filename(path: str, filename: str) -> str:
-    """Returns unique filename for specified filename and path."""
-    name, extension = os.path.splitext(filename)
-    i = 0
-    while os.path.exists(path + filename):
-        i += 1
-        filename = name + '_' + str(i) + extension
-    return filename
-
-
-async def download_file(client: Pidroid, url: str, file_path, filename=None, headers=None, override=True, require_auth=False):
-    """Downloads a file from url to specified path."""
-    headers = get_headers(headers, require_auth)
-
-    async with await get(client, url, headers) as r:
-        status = r.status
-        response_headers = r.headers
-        payload = await r.read()
-
-    if status != 200:
-        return None
-
-    if filename is None:
-        if 'Content-Disposition' in response_headers:
-            filename = get_filename(response_headers['Content-Disposition'])
-        else:
-            filename = os.path.basename(urlparse(url).path)
-
-    if not override:
-        filename = get_unique_filename(file_path, filename)
-    file_path = file_path + filename
-    f = await aiofiles.open(file_path, mode='wb')
-    await f.write(payload)
-    await f.close()
-    return filename
 
 async def get(client: Pidroid, url: str, headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a GET request to the specified URL."""

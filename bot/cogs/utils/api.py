@@ -16,7 +16,7 @@ from typing import Any, List, Optional, Union, TYPE_CHECKING
 from cogs.ext.commands.tags import Tag
 from cogs.models.configuration import GuildConfiguration
 from cogs.models.plugins import NewPlugin, Plugin
-from cogs.utils.http import get, Route
+from cogs.utils.http import HTTP, Route
 from cogs.utils.time import utcnow
 
 if TYPE_CHECKING:
@@ -30,6 +30,7 @@ class API:
         self.client = client
         self.db_client = motor.motor_asyncio.AsyncIOMotorClient(connection_string, serverSelectionTimeoutMS=5000)
         self.db = self.db_client["Pidroid"]
+        self.http = HTTP(client)
 
     @property
     def internal(self) -> AgnosticCollection:
@@ -68,8 +69,11 @@ class API:
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""
-        async with await get(self.client, route.url, route.headers) as r:
-            return await r.json()
+        return await self.http.request("GET", route)
+
+    async def post(self, route: Route, data: dict = None) -> dict:
+        """Sends a POST request to the TheoTown API."""
+        return await self.http.request("GET", route, data=data)
 
     @staticmethod
     def generate_id(characters: str = string.ascii_lowercase + string.ascii_uppercase + string.digits, size: int = 6) -> str:
