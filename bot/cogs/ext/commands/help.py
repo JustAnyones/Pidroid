@@ -84,7 +84,7 @@ class HelpCommand(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def help(self, ctx: Context, *, search_string: str = None):
-        prefix = self.client.get_prefixes(ctx.message)[0]
+        prefix = self.client.get_prefixes(ctx.message)[-1]
         # Would ideally want to cache these
         command_object_list = [c for c in self.client.walk_commands()]
         category_object_list = self.client.command_categories

@@ -55,6 +55,9 @@ class Pidroid(commands.Bot):
 
         # This defines hot-reloadable cogs and various files
         self.extensions_to_load = [
+            # Loads categories
+            'cogs.models.categories',
+
             # Commands
             'cogs.ext.commands.admin',
             'cogs.ext.commands.anime',
