@@ -6,9 +6,8 @@ import sys
 from discord import ui, ButtonStyle, Interaction
 from discord.ext import commands
 from discord.ext.commands.context import Context
-from typing import TYPE_CHECKING
-
 from discord.ext.commands.errors import BadArgument
+from typing import TYPE_CHECKING
 
 from client import Pidroid
 from constants import JUSTANYONE_ID
