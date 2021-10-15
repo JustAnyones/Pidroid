@@ -99,6 +99,10 @@ class API:
 
     """Phising protection related methods"""
 
+    async def insert_new_phising_url(self, url: str) -> None:
+        """Inserts a new phising URL to the database."""
+        await self.internal.update_one({}, {"$push": {"phising.urls": url}})
+
     async def fetch_phising_url_list(self) -> List[str]:
         """Returns a list of phising URLs."""
         data = await self.internal.find_one({"phising.urls": {"$exists": True}}, {"phising": 1, "_id": 0})
