@@ -7,24 +7,20 @@ if TYPE_CHECKING:
 
 
 class Category:
-    def __init__(self, title, description, hidden=False):
+    def __init__(self, title: str, description: str, emote: str = None):
         self.title = title
         self.description = description
-        self.hidden = hidden
+        self.emote = emote or ""
 
 
 class AdministrationCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Administration', 'Tools for server administrators.'
-        )
+        super().__init__("Administration", "Commands for server administration.", "🔐")
 
 
 class BotCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Bot', 'Generic Discord bot commands and tools.'
-        )
+        super().__init__("Bot", "Commands for interacting the bot itself.", "🤖")
 
 class InformationCategory(Category):
     def __init__(self):
@@ -34,16 +30,12 @@ class InformationCategory(Category):
 
 class ModerationCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Moderation', 'Tools for server moderators.'
-        )
+        super().__init__("Moderation", "Tools for server moderation.", "🛠️")
 
 
 class RandomCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Random', 'Random and unexpected commands.'
-        )
+        super().__init__("Random", "Random, fun and unexpected commands.", "🎲")
 
 
 class TheoTownCategory(Category):
@@ -55,9 +47,7 @@ class TheoTownCategory(Category):
 
 class OwnerCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Owner', 'Bot owner specific commands.'
-        )
+        super().__init__("Owner", "Commands for the my owner.", "⚙️")
 
 
 class UtilityCategory(Category):
