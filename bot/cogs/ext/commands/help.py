@@ -96,12 +96,10 @@ class HelpCommand(commands.Cog):
         if search_string is None:
             embed = create_embed(
                 title=f'{self.client.user.name} command category index',
-                description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!'
+                description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!\n\n**Select a category:**'
             )
-            description = ''
             for category in category_object_list:
-                description += f'• **{category.title}** - {category.description}' + '\n'
-            embed.add_field(name='Categories', value=description, inline=False)
+                embed.add_field(name=f"**{category.emote} {category.title}**", value=category.description, inline=False)
             return await ctx.reply(embed=embed)
 
         query = search_string.lower()
