@@ -24,9 +24,7 @@ class BotCategory(Category):
 
 class InformationCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Information', 'Commands for retrieving various discord related information.'
-        )
+        super().__init__("Information", "Commands for retrieving all sorts of Discord related information.", "📙")
 
 class ModerationCategory(Category):
     def __init__(self):
@@ -40,9 +38,7 @@ class RandomCategory(Category):
 
 class TheoTownCategory(Category):
     def __init__(self):
-        super().__init__(
-            'TheoTown', 'Commands for TheoTown specific information.'
-        )
+        super().__init__("TheoTown", "Commands for TheoTown specific information.", "🏙️")
 
 
 class OwnerCategory(Category):
@@ -52,16 +48,12 @@ class OwnerCategory(Category):
 
 class UtilityCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Utility', 'Various useful utilities and tools.'
-        )
+        super().__init__("Utility", "Various useful utilities and tools.", "🧰")
 
 
 class UncategorizedCategory(Category):
     def __init__(self):
-        super().__init__(
-            'Uncategorized', 'Commands which do not fit in either of the above categories.'
-        )
+        super().__init__("Uncategorized", "Commands which do not fit in either of the above categories.", "🗑️")
 
 
 def get_command_categories() -> list:
