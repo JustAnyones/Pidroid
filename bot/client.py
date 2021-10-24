@@ -134,8 +134,6 @@ class Pidroid(commands.Bot):
 
         self.api = API(self, self.config['authentication']['database']["connection string"])
 
-        self.prefix = self.prefixes[0]
-
         self.persistent_data = PersistentDataManager()
 
         self.setup_logging()
