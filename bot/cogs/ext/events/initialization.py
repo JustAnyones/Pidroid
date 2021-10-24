@@ -33,11 +33,12 @@ class InvocationEventHandler(commands.Cog):
 
         self.log.debug("Filling scavenger hunt data")
         data = await self.client.api.get(Route(
-            "/private/20k/get_secrets"
+            "/private/20k/get_secrets" # Don't hack pls
         ))
 
+        self.client.scavenger_hunt["pattern"] = data["pattern"]
+        self.client.scavenger_hunt["next_code"] = data["next_code"]
         self.client.scavenger_hunt["full_message"] = data["message"]
-        self.client.scavenger_hunt["secret_code"] = data["code"]
 
         self.client.scavenger_hunt["active"] = False # should be enabled manually
         self.client.scavenger_hunt["_loaded"] = True

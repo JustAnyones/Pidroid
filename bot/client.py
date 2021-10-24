@@ -30,13 +30,16 @@ if TYPE_CHECKING:
 
 
 class ScavengerHunt(TypedDict):
+    # Regex pattern
+    pattern: str
+    # Next hunt code
+    next_code: str
     # Full message revealing the result
     full_message: str
-    # Secret code trigger for Pidroid
-    secret_code: str
-    # Whether the scavenger hunt is active
+
+    # Whether the hunt is active
     active: bool
-    # Whether the scavenger hunt was completed
+    # Whether the hunt was completed
     complete: bool
 
 
@@ -118,8 +121,10 @@ class Pidroid(commands.Bot):
         self.http_server_testing = True
         self.scavenger_hunt: ScavengerHunt = {
             "_loaded": False,
+            "pattern": "",
+            "next_code": "",
             "full_message": "",
-            "secret_code": "",
+
             "active": False,
             "complete": False
         }
