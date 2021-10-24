@@ -18,6 +18,7 @@ from discord.types.channel import GuildChannel
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cogs.models.case import Case
+from cogs.models.categories import get_command_categories
 from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
@@ -58,9 +59,6 @@ class Pidroid(commands.Bot):
 
         # This defines hot-reloadable cogs and various files
         self.extensions_to_load = [
-            # Loads categories
-            'cogs.models.categories',
-
             # Commands
             'cogs.ext.commands.admin',
             'cogs.ext.commands.anime',
@@ -113,7 +111,7 @@ class Pidroid(commands.Bot):
 
         self.client_version = __VERSION__
 
-        self.command_categories = []
+        self.command_categories = get_command_categories()
 
         self.version_cache = {}
 

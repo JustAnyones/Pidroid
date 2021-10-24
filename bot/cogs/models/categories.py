@@ -56,7 +56,7 @@ class UncategorizedCategory(Category):
         super().__init__("Uncategorized", "Commands which do not fit in either of the above categories.", "🗑️")
 
 
-def get_command_categories() -> list:
+def get_command_categories() -> list[Category]:
     """Returns a list of new command category objects."""
     return [
         AdministrationCategory(),
@@ -72,7 +72,7 @@ def get_command_categories() -> list:
 
 
 def setup(client: Pidroid) -> None:
-    client.command_categories = get_command_categories()
+    pass
 
 def teardown(client: Pidroid) -> None:
     pass
