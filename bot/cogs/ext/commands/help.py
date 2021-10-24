@@ -38,20 +38,16 @@ def get_command_usage(prefix: str, command: Command) -> str:
     return usage
 
 def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
-    command_name = get_full_command_name(c)
-    description = 'Not documented.'
-    if c.brief is not None:
-        usage = '**Usage:** `' + prefix + command_name + '`'
-        if c.usage is not None:
-            usage += ' `' + c.usage + '`'
-        description = c.brief + '\n' + usage
+    usage = c.usage or ""
+    name = prefix + get_full_command_name(c) + " " + usage
+    value = c.brief or 'Not documented.'
 
     # Fetch command aliases
     aliases = c.aliases
     if len(aliases) > 0:
-        description += '\n'
-        description += '**Aliases:** `' + '`, `'.join(aliases) + '`.'
-    return command_name, description
+        value += '\n'
+        value += '**Aliases:** `' + '`, `'.join(aliases) + '`.'
+    return name, value
 
 
 class HelpCommand(commands.Cog):
