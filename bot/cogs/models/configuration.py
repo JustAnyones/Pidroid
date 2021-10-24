@@ -38,7 +38,7 @@ class GuildConfiguration:
 
         self.prefixes = c.get("prefixes", [])
 
-        self.jail_channel = c.get("jail_role", None)
+        self.jail_channel = c.get("jail_channel", None)
         self.jail_role = c.get("jail_role", None)
         self.mute_role = c.get("mute_role", None)
         self.log_channel = c.get("log_channel", None)
