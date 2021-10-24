@@ -146,14 +146,15 @@ class OwnerCommands(commands.Cog):
         await ctx.reply("Phising URL list has been updated!")
 
     @phising.command(
-        name="insert-new",
+        name="insert-url",
         brief="Updates internal and database phising URL list by adding a new URL.",
         permissions=["Bot owner"],
+        aliases=["add-url"],
         category=OwnerCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.is_owner()
-    async def insertnew(self, ctx: Context, url: str):
+    async def inserturl(self, ctx: Context, url: str):
         url = url.lower()
         cog: AutomodTask = self.client.get_cog("AutomodTask")
         if url in cog.phising_urls:
