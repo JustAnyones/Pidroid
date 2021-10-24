@@ -6,6 +6,7 @@ import sys
 from discord import ui, ButtonStyle, Interaction
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from discord.ext.commands.errors import BadArgument
 from typing import TYPE_CHECKING
 
 from client import Pidroid
@@ -120,17 +121,47 @@ class OwnerCommands(commands.Cog):
         await cog._fill_guild_config_cache()
         await ctx.reply("Internal guild cache updated!")
 
-    @commands.command(
-        name="update-phising-urls",
-        brief="Updates the internal phising url list.",
+    @commands.group(
+        brief="Command group used to interact with phising protection related system.",
+        permissions=["Bot owner"],
+        category=OwnerCategory,
+        invoke_without_command=True
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.is_owner()
+    async def phising(self, ctx: Context):
+        return
+
+    @phising.command(
+        name="update-urls",
+        brief="Updates internal phising URL list by calling the database.",
+        permissions=["Bot owner"],
         category=OwnerCategory
     )
-    @commands.is_owner()
     @commands.bot_has_permissions(send_messages=True)
-    async def updatephisingurls(self, ctx: Context):
+    @commands.is_owner()
+    async def updateurls(self, ctx: Context):
         cog: AutomodTask = self.client.get_cog("AutomodTask")
         await cog._update_phising_urls()
-        await ctx.reply("Phising urls updated!")
+        await ctx.reply("Phising URL list has been updated!")
+
+    @phising.command(
+        name="insert-url",
+        brief="Updates internal and database phising URL list by adding a new URL.",
+        permissions=["Bot owner"],
+        aliases=["add-url"],
+        category=OwnerCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.is_owner()
+    async def inserturl(self, ctx: Context, url: str):
+        url = url.lower()
+        cog: AutomodTask = self.client.get_cog("AutomodTask")
+        if url in cog.phising_urls:
+            raise BadArgument("Phising URL is already in the list!")
+        await self.client.api.insert_new_phising_url(url)
+        cog.phising_urls.append(url)
+        await ctx.reply("New phising URL has been added!")
 
     @commands.command(
         brief="Experiment with new discord interactions interface.",

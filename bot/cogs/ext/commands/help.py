@@ -38,20 +38,16 @@ def get_command_usage(prefix: str, command: Command) -> str:
     return usage
 
 def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
-    command_name = get_full_command_name(c)
-    description = 'Not documented.'
-    if c.brief is not None:
-        usage = '**Usage:** `' + prefix + command_name + '`'
-        if c.usage is not None:
-            usage += ' `' + c.usage + '`'
-        description = c.brief + '\n' + usage
+    usage = c.usage or ""
+    name = prefix + get_full_command_name(c) + " " + usage
+    value = c.brief or 'Not documented.'
 
     # Fetch command aliases
     aliases = c.aliases
     if len(aliases) > 0:
-        description += '\n'
-        description += '**Aliases:** `' + '`, `'.join(aliases) + '`.'
-    return command_name, description
+        value += '\n'
+        value += '**Aliases:** `' + '`, `'.join(aliases) + '`.'
+    return name, value
 
 
 class HelpCommand(commands.Cog):
@@ -84,7 +80,7 @@ class HelpCommand(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     async def help(self, ctx: Context, *, search_string: str = None):
-        prefix = self.client.get_prefixes(ctx.message)[0]
+        prefix = self.client.get_prefixes(ctx.message)[-1]
         # Would ideally want to cache these
         command_object_list = [c for c in self.client.walk_commands()]
         category_object_list = self.client.command_categories
@@ -96,12 +92,10 @@ class HelpCommand(commands.Cog):
         if search_string is None:
             embed = create_embed(
                 title=f'{self.client.user.name} command category index',
-                description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!'
+                description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!\n\n**Select a category:**'
             )
-            description = ''
             for category in category_object_list:
-                description += f'• **{category.title}** - {category.description}' + '\n'
-            embed.add_field(name='Categories', value=description, inline=False)
+                embed.add_field(name=f"**{category.emote} {category.title}**", value=category.description, inline=False)
             return await ctx.reply(embed=embed)
 
         query = search_string.lower()

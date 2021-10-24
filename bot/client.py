@@ -18,6 +18,7 @@ from discord.types.channel import GuildChannel
 from typing import TYPE_CHECKING, List, Optional, TypedDict
 
 from cogs.models.case import Case
+from cogs.models.categories import get_command_categories
 from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
@@ -30,13 +31,16 @@ if TYPE_CHECKING:
 
 
 class ScavengerHunt(TypedDict):
+    # Regex pattern
+    pattern: str
+    # Next hunt code
+    next_code: str
     # Full message revealing the result
     full_message: str
-    # Secret code trigger for Pidroid
-    secret_code: str
-    # Whether the scavenger hunt is active
+
+    # Whether the hunt is active
     active: bool
-    # Whether the scavenger hunt was completed
+    # Whether the hunt was completed
     complete: bool
 
 
@@ -107,7 +111,7 @@ class Pidroid(commands.Bot):
 
         self.client_version = __VERSION__
 
-        self.command_categories = []
+        self.command_categories = get_command_categories()
 
         self.version_cache = {}
 
@@ -115,8 +119,10 @@ class Pidroid(commands.Bot):
         self.http_server_testing = True
         self.scavenger_hunt: ScavengerHunt = {
             "_loaded": False,
+            "pattern": "",
+            "next_code": "",
             "full_message": "",
-            "secret_code": "",
+
             "active": False,
             "complete": False
         }

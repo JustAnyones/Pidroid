@@ -41,6 +41,12 @@ class HTTPServerTask(commands.Cog):
 
         # If Lobby's API manages to grab the city author name
         mayor_name = query.get("mayor", None)
+        if mayor_name:
+            # Log it internally
+            self.client.logger.critical(f"{mayor_name} finished the scavenger hunt!")
+
+        # Send a message
+        await channel.send(self.client.scavenger_hunt["full_message"])
 
         # Unlock channel for everyone else to see
         await channel.set_permissions(channel.guild.default_role, read_messages=True, reason="Scavenger hunt solved!")
