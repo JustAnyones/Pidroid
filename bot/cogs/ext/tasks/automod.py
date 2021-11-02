@@ -97,11 +97,14 @@ class AutomodTask(commands.Cog):
             # Only scan link embeds which attempt to fake discord gift embed
             link_type_embeds: List[Embed] = [e for e in message.embeds if e.type == "link"]
             for link_embed in link_type_embeds:
-                if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
-                    url = urlparse(link_embed.url.lower())
-                    if url.netloc != "discord.gift":
-                        await self.punish_phising(message)
-                        return True
+                try:
+                    if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
+                        url = urlparse(link_embed.url.lower())
+                        if url.netloc != "discord.gift":
+                            await self.punish_phising(message)
+                            return True
+                except AttributeError:
+                    pass
         return False
 
     async def handle_suspicious_member(self, config: GuildConfiguration, member: Member) -> bool:
