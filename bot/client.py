@@ -15,7 +15,7 @@ from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.types.channel import GuildChannel
-from typing import TYPE_CHECKING, List, Optional, TypedDict
+from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
@@ -24,24 +24,10 @@ from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
 from cogs.utils.logger import BaseLog
 
-__VERSION__ = discord.VersionInfo(major=4, minor=2, micro=0, releaselevel='alpha', serial=0)
+__VERSION__ = discord.VersionInfo(major=4, minor=2, micro=1, releaselevel='alpha', serial=0)
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
-
-
-class ScavengerHunt(TypedDict):
-    # Regex pattern
-    pattern: str
-    # Next hunt code
-    next_code: str
-    # Full message revealing the result
-    full_message: str
-
-    # Whether the hunt is active
-    active: bool
-    # Whether the hunt was completed
-    complete: bool
 
 
 class Pidroid(commands.Bot):
@@ -87,14 +73,12 @@ class Pidroid(commands.Bot):
             'cogs.ext.events.initialization',
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
-            'cogs.ext.events.scavenger_hunt',
 
             # Tasks
             'cogs.ext.tasks.automod',
             'cogs.ext.tasks.cronjobs',
             'cogs.ext.tasks.forum_messages',
             'cogs.ext.tasks.guild_statistics',
-            'cogs.ext.tasks.http_server',
             'cogs.ext.tasks.plugin_store',
             'cogs.ext.tasks.punishment_handler',
 
@@ -115,26 +99,12 @@ class Pidroid(commands.Bot):
 
         self.version_cache = {}
 
-        # Filled by initialization cog
-        self.http_server_testing = True
-        self.scavenger_hunt: ScavengerHunt = {
-            "_loaded": False,
-            "pattern": "",
-            "next_code": "",
-            "full_message": "",
-
-            "active": False,
-            "complete": False
-        }
-
         self.config = config
         self.prefixes = self.config['prefixes']
 
         self.session = ClientSession(loop=self.loop)
 
         self.api = API(self, self.config['authentication']['database']["connection string"])
-
-        self.prefix = self.prefixes[0]
 
         self.persistent_data = PersistentDataManager()
 

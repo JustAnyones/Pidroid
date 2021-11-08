@@ -8,4 +8,4 @@ mcrcon==0.6.0
 dill==0.3.3
 lxml==4.6.3
 motor==2.5.0
-git+git://github.com/JustAnyones/bitly-api-python#egg=bitly-api
+git+https://github.com/JustAnyones/bitly-api-python#egg=bitly-api

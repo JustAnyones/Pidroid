@@ -66,17 +66,17 @@ class AdminCommands(commands.Cog):
         if ctx.invoked_subcommand is None:
             guild = ctx.guild
             data = self.client.get_guild_configuration(guild.id)
+            prefixes = data.prefixes or self.client.prefixes
 
             if data is None:
                 return await ctx.reply(
                     embed=error(
                         'No configuration was found for the server. '
-                        f'You can create one by running ``{self.client.prefix}configuration setup`` command.'
+                        f'You can create one by running ``{prefixes[0]}configuration setup`` command.'
                     ))
 
             embed = build_embed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
 
-            prefixes = data.prefixes or self.client.prefixes
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
             jail_role = guild.get_role(data.jail_role)
@@ -98,7 +98,7 @@ class AdminCommands(commands.Cog):
             embed.add_field(name="Everyone can create tags?", value=data.public_tags)
             embed.add_field(name="Strict phising protection?", value=data.strict_anti_phising)
 
-            embed.set_footer(text=f'To edit the configuration, view administration category with {self.client.prefix}help administration.')
+            embed.set_footer(text=f'To edit the configuration, view the available administration commands with {prefixes[0]}help administration.')
         await ctx.reply(embed=embed)
 
     @configuration.command(
