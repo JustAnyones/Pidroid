@@ -109,7 +109,8 @@ class FunCommands(commands.Cog):
     @command_checks.is_theotown_developer()
     @commands.bot_has_permissions(send_messages=True)
     async def happiness(self, ctx: Context):
-        data = await self.api.get(Route("/private/review/get"))
+        res = await self.api.get(Route("/private/review/get"))
+        data = res["data"]
         embed = build_embed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
         embed.set_author(name=data['author'])
         embed.set_footer(text=f"{data['rating']} ⭐")

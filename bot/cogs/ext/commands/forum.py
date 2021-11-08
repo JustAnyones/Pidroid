@@ -31,11 +31,12 @@ class ForumCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def forum_user(self, ctx: Context, *, username: str):
         async with ctx.typing():
-            data = await self.api.get(Route(
-                "/private/forum/forum_deprecated",
+            res = await self.api.get(Route(
+                "/private/forum/deprecated",
                 {"type": "find", "user": username}
             ))
-            try:
+            if res["success"]:
+                data = res["data"]
                 data = data[0]
                 registered = format_dt(timestamp_to_datetime(int(data["user_regdate"])))
                 last_online = int(data["user_lastvisit"])
@@ -60,9 +61,9 @@ class ForumCommands(commands.Cog):
                 embed.add_field(name='Last online', value=last_online, inline=True)
                 embed.add_field(name='Registered', value=registered, inline=True)
                 embed.set_thumbnail(url=avatar)
-                await ctx.reply(embed=embed)
-            except (KeyError, IndexError):
-                await ctx.reply(embed=error("Cannot find the specified user"))
+                return await ctx.reply(embed=embed)
+
+            await ctx.reply(embed=error(res["details"]))
 
     @commands.command(
         name='forum-gift',
@@ -112,16 +113,14 @@ class ForumCommands(commands.Cog):
             encoded_item = item.replace(' ', '')
 
             # Send the request to API
-            data = await self.api.get(Route(
+            res = await self.api.get(Route(
                 "/private/game/gift",
                 {"username": user, encoded_item: amount}
             ))
-            try:
-                await ctx.reply(
-                    f'{amount:,} {item} have been gifted to {data["name"]}!'
-                )
-            except KeyError:
-                await ctx.reply(embed=error(f"An unknown error has occured while trying to gift {item} to {user}!"))
+            if res["success"]:
+                data = res["data"]
+                return await ctx.reply(f'{amount:,} {item} have been gifted to {data["name"]}!')
+            await ctx.reply(embed=error(res["details"]))
 
     @commands.command(
         name='forum-pm',
@@ -135,7 +134,7 @@ class ForumCommands(commands.Cog):
     async def forum_pm(self, ctx: Context, target: int, subject: str, *, text: str):
         async with ctx.typing():
             data = await self.api.get(Route(
-                "/private/forum/forum_deprecated",
+                "/private/forum/deprecated",
                 {"type": "pm", "author": 10911, "target": target, "subject": subject, "text": text}
             ))
             await ctx.message.delete(delay=0)
@@ -152,11 +151,11 @@ class ForumCommands(commands.Cog):
     @command_checks.is_theotown_developer()
     async def forum_authorise(self, ctx: Context, *, user: str):
         async with ctx.typing():
-            data = await self.api.get(Route(
-                "/private/forum/forum_deprecated",
+            res = await self.api.get(Route(
+                "/private/forum/deprecated",
                 {"type": "authorise", "user": user}
             ))
-            await ctx.reply(data["details"])
+            await ctx.reply(res["details"])
 
 
 def setup(client: Pidroid) -> None:

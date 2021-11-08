@@ -48,20 +48,20 @@ class TheoTownCommands(commands.Cog):
             embed = create_embed(title="Most recent versions of TheoTown")
             async with await http.get(self.client, "https://bd.theotown.com/get_version") as response:
                 version_data = await response.json()
-            for versionName in version_data:
+            for version_name in version_data:
                 # Ignore Amazon since it's not updated
-                if versionName == 'Amazon':
+                if version_name == 'Amazon':
                     continue
 
-                version = format_version_code(version_data[versionName]['version'])
+                version = format_version_code(version_data[version_name]['version'])
                 url = None
                 if version not in cache or cache[version] is None:
                     print(f'URL for version {version} not found in internal cache, querying the API')
 
-                    data = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
+                    res = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
 
-                    if data["success"]:
-                        url = data["url"]
+                    if res["success"]:
+                        url = res["data"]["url"]
                         print(f'Version URL found, internal cache updated with {url}')
 
                     cache[version] = url
@@ -69,7 +69,7 @@ class TheoTownCommands(commands.Cog):
                 value = f'[{version}]({url})'
                 if url is None:
                     value = version
-                embed.add_field(name=versionName, value=value)
+                embed.add_field(name=version_name, value=value)
             self.client.version_cache = cache
             embed.set_footer(text='Note: this will also include versions which are not yet available to regular users.')
             await ctx.reply(embed=embed)
@@ -85,13 +85,13 @@ class TheoTownCommands(commands.Cog):
     @commands.max_concurrency(number=3, per=commands.BucketType.guild)
     async def online(self, ctx: Context):
         async with ctx.typing():
-            data = await self.api.get(Route("/private/game/get_online_statistics"))
+            res = await self.api.get(Route("/private/game/get_online_statistics"))
 
-            r_data = data["data"]
-            total_plots = r_data["plots"]["total"]
-            free_plots = r_data["plots"]["free"]
-            region_count = r_data["region_count"]
-            population = r_data["population"]
+            data = res["data"]
+            total_plots = data["plots"]["total"]
+            free_plots = data["plots"]["free"]
+            region_count = data["region_count"]
+            population = data["population"]
 
             # Build and send the embed
             embed = create_embed(title='Online mode statistics')
@@ -156,7 +156,6 @@ class TheoTownCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
-    @command_checks.client_is_pidroid()
     async def findplugin(self, ctx: Context, *, query: str = None):
         async with ctx.typing():
             if query is None:
@@ -216,13 +215,13 @@ class TheoTownCommands(commands.Cog):
                 return
 
             plugin = plugins[0]
-            data = await self.api.get(Route("/private/plugin/get_download", {"id": plugin.id}))
+            res = await self.api.get(Route("/private/plugin/get_download", {"id": plugin.id}))
 
-            if data['status'] == "error":
-                await ctx.reply(embed=error(f"I am unable to retrieve the download link for '{plugin.clean_title}' plugin!"))
-            else:
-                await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
-                await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {data['url']}")
+            if not res['success']:
+                return await ctx.reply(embed=error(f"I am unable to retrieve the download link for '{plugin.clean_title}' plugin!"))
+
+            await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
+            await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {res['data']['url']}")
 
     @commands.command(
         brief='Send a feature suggestion to the suggestions channel.',

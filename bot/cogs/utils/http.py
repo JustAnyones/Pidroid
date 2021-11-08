@@ -20,7 +20,6 @@ class HTTP:
         self.client = client
 
     async def request(self, method: str, route: Route, headers: dict = None, data: dict = None):
-
         # Deal with headers
         new_headers = DEFAULT_HEADERS.copy()
         if headers:
@@ -33,10 +32,13 @@ class HTTP:
             method, route.url,
             headers=new_headers, data=data
         ) as r:
-
             # Handle errors
             if r.status >= 500:
-                raise APIException(r.status, "Internal backend API error detected. Please try again later!")
+                raise APIException(r.status, "Internal backend error detected. Please try again later!")
+
+            if r.status == 400:
+                res = await r.json()
+                raise APIException(r.status, f"Bad request: {res['details']}")
 
             if r.status == 401:
                 raise APIException(r.status, "Client is not authorized to make calls to the specified API endpoint!")
