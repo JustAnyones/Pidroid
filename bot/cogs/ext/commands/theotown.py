@@ -18,9 +18,9 @@ from cogs.utils.http import Route
 from cogs.utils.paginators import PidroidPages, PluginListPaginator
 from cogs.utils.parsers import format_version_code
 
-ALLOWED_GALLERY_QUERIES = ['recent', 'trends', 'rating']
+SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
-def handle_wrong_gallery_queries(query: str) -> Optional[str]:
+def handle_wrong_gallery_modes(query: str) -> Optional[str]:
     if query in ["trending", "hot", "trends"]:
         return "trends"
     if query in ["new", "recent", "latest"]:
@@ -109,16 +109,15 @@ class TheoTownCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def gallery(self, ctx: Context, query: str = 'recent', number: int = None):
+    async def gallery(self, ctx: Context, mode: str = 'recent', number: int = None):
         async with ctx.typing():
-            query = handle_wrong_gallery_queries(query.lower())
+            mode = handle_wrong_gallery_modes(mode.lower())
 
-            if query not in ALLOWED_GALLERY_QUERIES:
-                await ctx.reply(embed=error(
-                    'Wrong query type specified. Allowed types are `' + '`, `'.join(ALLOWED_GALLERY_QUERIES) + '`.'
-                ))
+            if mode not in SUPPORTED_GALLERY_MODES:
                 self.gallery.reset_cooldown(ctx)
-                return
+                return await ctx.reply(embed=error(
+                    'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
+                ))
 
             if number is None:
                 number = random.randint(1, 200) # nosec
@@ -126,23 +125,22 @@ class TheoTownCommands(commands.Cog):
             try:
                 number = int(number)
             except Exception:
-                await ctx.reply(embed=error('Your specified position is incorrect.'))
                 self.gallery.reset_cooldown(ctx)
-                return
+                return await ctx.reply(embed=error('Your specified position is incorrect.'))
 
             if number not in range(1, 201):
-                await ctx.reply(embed=error('Number must be between 1 and 200!'))
                 self.gallery.reset_cooldown(ctx)
-                return
+                return await ctx.reply(embed=error('Number must be between 1 and 200!'))
 
-            async with await http.get(self.client, f"https://bck0.theotown.com/list_screenshots?mode={query}&limit={number}") as response:
-                data = await response.json()
+            res = await self.client.api.get(Route("/public/game/gallery", {"mode": mode, "limit": number}))
+            if not res["success"]:
+                return await ctx.reply(embed=error("Unable to retrieve gallery data!"))
 
-            number -= 1
-            screenshot = data['content']['screenshots'][number]
+            data = res["data"]
+            screenshot = data[number - 1]
 
             embed = create_embed(title=screenshot['name'])
-            embed.set_image(url=f"https://bck0.theotown.com/get_gallery_file?name={screenshot['real_file']}_a")
+            embed.set_image(url=screenshot['image'])
             embed.set_footer(text=f'#{screenshot["id"]}')
             await ctx.reply(embed=embed)
 
