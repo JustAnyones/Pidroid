@@ -33,6 +33,9 @@ class HTTP:
             headers=new_headers, data=data
         ) as r:
             # Handle errors
+            if r.status == 501:
+                raise APIException(r.status, "Requested API resource is not yet implemented!")
+
             if r.status >= 500:
                 raise APIException(r.status, "Internal backend error detected. Please try again later!")
 

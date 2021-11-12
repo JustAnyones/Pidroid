@@ -40,6 +40,9 @@ use_default = (
     exceptions.InvalidDuration,
     InvalidArgument,
 
+    # API errors
+    exceptions.APIException,
+
     # Quoted argument parser errors
     commands.UnexpectedQuoteError,
     commands.InvalidEndOfQuotedStringError,
