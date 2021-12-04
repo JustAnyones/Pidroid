@@ -12,7 +12,6 @@ from io import BytesIO
 
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
-from cogs.utils import http
 from cogs.utils.embeds import create_embed, error
 
 
@@ -31,7 +30,6 @@ class StickerCommands(commands.Cog):
         self.client = client
 
     @commands.command(
-        hidden=True,
         name='clone-sticker',
         brief='Retrieves the sticker from a referenced message and adds it to server sticker list.',
         aliases=['steal-sticker', 'stealsticker', 'clonesticker'],
@@ -41,8 +39,6 @@ class StickerCommands(commands.Cog):
     @commands.has_permissions(manage_emojis_and_stickers=True)
     @commands.guild_only()
     async def steal_sticker(self, ctx: Context, message: typing.Optional[Message]):
-        raise BadArgument("This command is not yet supported.")
-
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
@@ -56,20 +52,17 @@ class StickerCommands(commands.Cog):
         if isinstance(sticker, StandardSticker):
             raise BadArgument("Specified sticker is already in-built. It'd be dumb to add it again.")
 
-        async with await http.get(self.client, str(sticker.url)) as r:
-            with BytesIO(await r.read()) as f:
-                discord_file = discord.File(f)
-
+        b = BytesIO(await sticker.read())
         try:
             # Returns bad request, possible problem with the library, henceforth, the command is disabled
             added_sticker: GuildSticker = await ctx.guild.create_sticker(
-                name=sticker.name, emoji=sticker.emoji, file=discord_file,
+                name=sticker.name, description=sticker.description, emoji=sticker.emoji, file=discord.File(b),
                 reason=f"Stolen by {ctx.author.name}#{ctx.author.discriminator}"
             )
+            b.close()
         except HTTPException as exc:
             if exc.code == 30039:
-                await ctx.reply(embed=error("The server sticker list is full. I can't add more!"))
-                return
+                return await ctx.reply(embed=error("The server sticker list is full. I can't add more!"))
             raise exc
         else:
             await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])
