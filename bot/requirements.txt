@@ -1,7 +1,7 @@
 git+git://github.com/JustAnyones/discord.py@2a1deb76a8b237d7bf227a5955ea7db3148ee16c#egg=discord.py[voice]
 aiocron==1.3
 jishaku==2.2.0
-asyncpraw==7.4.0
+asyncpraw==7.5.0
 psutil==5.8.0
 pillow==8.1.0
 mcrcon==0.6.0
