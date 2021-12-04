@@ -1,4 +1,4 @@
-git+git://github.com/Rapptz/discord.py@2e52059555141e796ca0d179323db0f2af7d0da6#egg=discord.py[voice]
+git+git://github.com/JustAnyones/discord.py@2a1deb76a8b237d7bf227a5955ea7db3148ee16c#egg=discord.py[voice]
 aiocron==1.3
 jishaku==2.2.0
 asyncpraw==7.4.0
