@@ -8,6 +8,7 @@ from discord.errors import HTTPException, InvalidArgument
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
+from typing import TYPE_CHECKING
 
 from constants import REFUSE_COMMAND_RESPONSES
 from cogs.models import exceptions
@@ -50,10 +51,13 @@ use_default = (
 )
 
 
+if TYPE_CHECKING:
+    from client import Pidroid
+
 class Error(commands.Cog):
     """This class implements a cog for handling of unhandled bot command errors and exceptions."""
 
-    def __init__(self, client):
+    def __init__(self, client: Pidroid):
         self.client = client
 
     async def notify(self, ctx: Context, message: str, delete_after: int = None):
@@ -81,8 +85,7 @@ class Error(commands.Cog):
 
         # Do not modify specified errors
         if isinstance(error, use_default):
-            await self.notify(ctx, error)
-            return
+            return await self.notify(ctx, error)
 
         # Extensive logging for NotFound and Forbidden errors
         if isinstance(error, discord.errors.NotFound):
@@ -155,5 +158,5 @@ class Error(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
-def setup(client):
+def setup(client: Pidroid):
     client.add_cog(Error(client))
