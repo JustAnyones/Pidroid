@@ -50,8 +50,12 @@ class EventChannelHandler(commands.Cog):
         if not message:
             return
 
+        # Ignore if outside of events channel
+        if channel.id != EVENTS_CHANNEL:
+            return
+
         # Remove votes from unauthorised users in events channel
-        if channel.id == EVENTS_CHANNEL and message.attachments and not member.bot and not TTChecks.is_event_voter(member) and member.id != message.author.id:
+        if message.attachments and not member.bot and (not TTChecks.is_event_voter(member) or member.id == message.author.id):
             with suppress(discord.NotFound):
                 await message.remove_reaction("👍", member)
 
