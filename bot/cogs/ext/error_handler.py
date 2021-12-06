@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import discord
 import sys
 import traceback
@@ -116,9 +118,8 @@ class Error(commands.Cog):
             await self.notify(ctx, "The command can not be used in Private Messages")
 
         elif isinstance(error, commands.CommandOnCooldown):
-            if error.cooldown.per < 10:
-                await self.notify(ctx, "Woah, slow down!", delete_after=3)
-                return
+            if error.cooldown.per <= 5:
+                return await self.notify(ctx, "Woah, slow down!", delete_after=3)
             await self.notify(ctx, f"You're on cooldown, try again in {humanize(error.retry_after, False, max_units=2)}.", delete_after=3)
 
         elif isinstance(error, exceptions.InvalidChannel):
