@@ -20,7 +20,7 @@ class AdministrationCategory(Category):
 
 class BotCategory(Category):
     def __init__(self):
-        super().__init__("Bot", "Commands for interacting the bot itself.", "🤖")
+        super().__init__("Bot", "Commands for interacting with the bot itself.", "🤖")
 
 class InformationCategory(Category):
     def __init__(self):
@@ -43,7 +43,7 @@ class TheoTownCategory(Category):
 
 class OwnerCategory(Category):
     def __init__(self):
-        super().__init__("Owner", "Commands for the my owner.", "⚙️")
+        super().__init__("Owner", "Commands for my owner.", "⚙️")
 
 
 class UtilityCategory(Category):
