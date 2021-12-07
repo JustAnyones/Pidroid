@@ -47,7 +47,7 @@ class BaseLog:
 
     def put_author(self, user: Union[Member, User]) -> None:
         """Sets embed author and specifies the user ID in the footer."""
-        self.set_author(str(user), user.avatar.url)
+        self.set_author(str(user), user.display_avatar.url)
         self.embed.set_footer(text=f"User ID: {user.id}")
 
     def as_embed(self) -> Embed:

@@ -232,7 +232,7 @@ class FunCommands(commands.Cog):
 
             channel = self.client.get_channel(826456482262024242)
             embed = build_embed(description=text)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar.url)
+            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
 
             attachments = ctx.message.attachments
             shitpost_file = None

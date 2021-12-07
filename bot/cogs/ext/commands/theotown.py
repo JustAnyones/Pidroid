@@ -254,7 +254,7 @@ class TheoTownCommands(commands.Cog):
             file = None
 
             embed = create_embed(description=suggestion)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.avatar.url)
+            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
             attachments = ctx.message.attachments
             if attachments:
 

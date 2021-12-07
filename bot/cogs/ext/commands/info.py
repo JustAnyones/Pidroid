@@ -28,7 +28,10 @@ class InfoCommands(commands.Cog):
     async def profile_avatar(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
         embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
-        embed.set_image(url=member.avatar.with_size(4096).url)
+        if isinstance(member, discord.User):
+            embed.set_image(url=member.display_avatar.with_size(4096).url)
+        else:
+            embed.set_image(url=member._user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
     @commands.command(
@@ -60,7 +63,7 @@ class InfoCommands(commands.Cog):
         is_user = isinstance(member, discord.User)
 
         embed = build_embed(description=member.mention)
-        embed.set_author(name=f'{member.name}#{member.discriminator}', icon_url=member.avatar.url)
+        embed.set_author(name=f'{member.name}#{member.discriminator}', icon_url=member.display_avatar.url)
         embed.add_field(name='Username', value=f'{escape_markdown(member.name)}#{member.discriminator}')
         embed.add_field(name='ID', value=member.id)
         embed.add_field(name='Registered', value=format_dt(member.created_at), inline=False)
@@ -100,7 +103,7 @@ class InfoCommands(commands.Cog):
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
             embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
 
-        embed.set_thumbnail(url=member.avatar.with_size(4096).url)
+        embed.set_thumbnail(url=member.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
     @commands.command(
