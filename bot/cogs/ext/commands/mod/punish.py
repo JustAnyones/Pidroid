@@ -53,7 +53,7 @@ class ModeratorCommands(commands.Cog):
     async def deletethis(self, ctx: Context):
         await ctx.message.delete(delay=0)
         await ctx.channel.purge(limit=1)
-        await ctx.reply(file=discord.File('./resources/delete_this.png'))
+        await ctx.send(file=discord.File('./resources/delete_this.png'))
 
     @commands.command(
         brief='Issues a warning to specified member.',
