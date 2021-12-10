@@ -183,34 +183,33 @@ class FunCommands(commands.Cog):
     @commands.guild_only()
     @command_checks.is_cheese_consumer()
     async def cloaker(self, ctx: Context, member: discord.Member):
-        async with ctx.typing():
-            voice = ctx.author.voice
-            if voice is None:
-                return await ctx.reply(embed=error('You are not in a voice channel!'))
+        voice = ctx.author.voice
+        if voice is None:
+            return await ctx.reply(embed=error('You are not in a voice channel!'))
 
-            channel: VoiceChannel = voice.channel
-            if member not in channel.members:
-                return await ctx.reply(embed=error('Specified user is not in the voice channel!'))
+        channel: VoiceChannel = voice.channel
+        if member not in channel.members:
+            return await ctx.reply(embed=error('Specified user is not in the voice channel!'))
 
-            if self.client.user in channel.members:
-                return await ctx.reply(embed=error('Bro, I am already in that channel. What do you want me to do?'))
+        if self.client.user in channel.members:
+            return await ctx.reply(embed=error('Bro, I am already in that channel. What do you want me to do?'))
 
-            try:
-                vc: VoiceClient = await channel.connect(reconnect=False)
-            except discord.errors.ClientException:
-                return await ctx.reply(embed=error('I\'m already inside a voice channel!'))
+        try:
+            vc: VoiceClient = await channel.connect(reconnect=False)
+        except discord.errors.ClientException:
+            return await ctx.reply(embed=error('I\'m already inside a voice channel!'))
 
-            audio_source = discord.FFmpegPCMAudio('./resources/cloaked.mp3')
-            vc.play(audio_source)
-            while vc.is_playing():
-                await asyncio.sleep(0.01)
-            await member.edit(voice_channel=None)
-            await ctx.reply(f'{member.name}#{member.discriminator} has been cloaked!')
-            audio_source = discord.FFmpegPCMAudio(f'./resources/{random.choice(CLOAKER_LINES)}.mp3') # nosec
-            vc.play(audio_source)
-            while vc.is_playing():
-                await asyncio.sleep(0.01)
-            await vc.disconnect()
+        audio_source = discord.FFmpegPCMAudio('./resources/cloaked.mp3')
+        vc.play(audio_source)
+        while vc.is_playing():
+            await asyncio.sleep(0.01)
+        await member.edit(voice_channel=None)
+        await ctx.reply(f'{member.name}#{member.discriminator} has been cloaked!')
+        audio_source = discord.FFmpegPCMAudio(f'./resources/{random.choice(CLOAKER_LINES)}.mp3') # nosec
+        vc.play(audio_source)
+        while vc.is_playing():
+            await asyncio.sleep(0.01)
+        await vc.disconnect()
 
     @commands.command(
         brief='Submits a shitpost idea for ocassional Pidroid shitposts.',
