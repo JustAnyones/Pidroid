@@ -1,27 +1,24 @@
-import re
 import pytz
 
-from discord import Member
+from discord import Member, User
 from datetime import datetime
 from discord.ext import commands
 from discord.message import Message
+from typing import Union
 
 from client import Pidroid
 from constants import MINECRAFT_LISTENER_CHANNEL, MINECRAFT_LISTENER_GUILD, MINECRAFT_LISTENER_USER
-
-
-REMOVE_IP_PATTERN = re.compile(r'\b(?!(10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168))(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b')  # noqa: E501
 
 
 def is_command(text: str) -> bool:
     """Returns true if specified message is a command."""
     return text.startswith("pp")
 
-def is_chatbot(member: Member) -> bool:
+def is_chatbot(user: Union[Member, User]) -> bool:
     """Returns true if specified member is minecraft bot."""
-    return member.id == MINECRAFT_LISTENER_USER
+    return user.id == MINECRAFT_LISTENER_USER
 
-async def handle_command(message: str, command: str, **args) -> str:
+async def handle_command(message: Message, command: str, **args) -> str:
     """Handles passed command and returns the result as string."""
     if command == "time":
         # Lithuanian time which also supports DST, god I hate timezones and such sh*t
