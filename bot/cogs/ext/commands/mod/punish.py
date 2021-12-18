@@ -43,6 +43,11 @@ class ModeratorCommands(commands.Cog):
             return await ctx.reply(embed=error(
                 "Please specify an amount of messages to delete!"
             ))
+
+        # Evan proof
+        if amount > 1000:
+            amount = 1000
+
         await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
 
