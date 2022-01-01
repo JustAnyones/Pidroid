@@ -4,7 +4,7 @@ from bson.int64 import Int64
 from bson.objectid import ObjectId
 from discord.channel import TextChannel
 from discord.role import Role
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -16,10 +16,13 @@ class GuildConfiguration:
     if TYPE_CHECKING:
         _id: ObjectId
         guild_id: int
-        jail_channel: int
-        jail_role: int
-        mute_role: int
-        log_channel: int
+
+        prefixes: List[str]
+
+        jail_channel: Optional[int]
+        jail_role: Optional[int]
+        mute_role: Optional[int]
+        log_channel: Optional[int]
 
         strict_anti_phising: bool
         public_tags: bool
