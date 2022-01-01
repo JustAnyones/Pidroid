@@ -80,9 +80,10 @@ class API:
         """Generates a cryptographically secure string of random digits and letters."""
         return ''.join(secrets.choice(characters) for _ in range(size))
 
-    async def is_id_unique(self, collection_name: str, g_id: str) -> bool:
-        """Returns True if current ID is not used."""
-        return await self.db[collection_name].find_one({"id": g_id}) is None
+    async def is_id_unique(self, collection_name: str, d_id: str) -> bool:
+        """Returns True if specified ID is not used in the specified collection."""
+        res = await self.db[collection_name].find_one({"id": d_id})
+        return res is None
 
     async def get_unique_id(self, collection: Union[AgnosticCollection, str]) -> str:
         """Returns a unique ID for the specified collection."""
@@ -92,14 +93,14 @@ class API:
             collection_name = collection.name
 
         failed_count = 0
-        g_id = API.generate_id()
-        while not await self.is_id_unique(collection_name, g_id):
+        d_id = API.generate_id()
+        while not await self.is_id_unique(collection_name, d_id):
             failed_count += 1
-            if failed_count > 15:
+            if failed_count > 5:
                 # This is when you are really screwed
-                raise BadArgument("Mongo was unable to generate a unique ID after trying 15 times")
-            g_id = API.generate_id()
-        return g_id
+                raise BadArgument("Mongo was unable to generate a unique ID after trying 5 times")
+            d_id = API.generate_id()
+        return d_id
 
     """Phising protection related methods"""
 
@@ -303,7 +304,7 @@ class API:
         self, guild_id: int,
         jail_id: int = None, jail_role_id: int = None,
         mute_role_id: int = None
-    ) -> GuildConfiguration:
+    ) -> Optional[GuildConfiguration]:
         """Creates a new guild configuration entry."""
         d = {
             "guild_id": bson.Int64(guild_id),
@@ -352,7 +353,7 @@ class API:
             return None
         return Tag(self, raw_tag)
 
-    async def search_guild_tags(self, guild_id: int, tag_name: str) -> Optional[Tag]:
+    async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
         """Returns all guild tags matching the appropriate name."""
         cursor = self.tags.find({
             "guild_id": bson.Int64(guild_id),
