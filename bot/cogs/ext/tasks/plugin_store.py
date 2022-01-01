@@ -54,12 +54,12 @@ class PluginStoreTasks(commands.Cog):
                     # If thread channel was deleted completely
                     if e.code == 10003:
                         self.client.logger.info("Thread channel does not exist, deleting from the database")
-                        await self.api.remove_plugin_thread_record(thread_item["_id"])
+                        await self.api.remove_plugin_thread(thread_item["_id"])
                 continue
 
             await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
             await thread.edit(archived=True, locked=True)
-            await self.api.remove_plugin_thread_record(thread_item["_id"])
+            await self.api.remove_plugin_thread(thread_item["_id"])
 
     @archive_threads.before_loop
     async def before_archive_threads(self) -> None:

@@ -119,10 +119,12 @@ class API:
     """Suggestion related methods"""
 
     async def submit_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_url: str = None) -> str:
-        """Submits suggestion to the database. Returns suggestion ID."""
-        g_id = await self.get_unique_id(self.suggestions)
+        """Submits a suggestion to the database.
+
+        Returns submitted suggestion ID."""
+        d_id = await self.get_unique_id(self.suggestions)
         d = {
-            "id": g_id,
+            "id": d_id,
             "author": bson.Int64(author_id),
             "message_id": bson.Int64(message_id),
             "suggestion": suggestion,
@@ -131,7 +133,7 @@ class API:
         if attachment_url:
             d["attachment_url"] = attachment_url
         await self.suggestions.insert_one(d)
-        return g_id
+        return d_id
 
     """Plugin API related methods"""
 
@@ -148,21 +150,21 @@ class API:
         ))
         return [Plugin(p) for p in response["data"]]
 
-    async def create_new_plugin_thread(self, thread_id: int, expires: int) -> None:
+    async def create_new_plugin_thread(self, thread_id: int, expire_timestamp: int) -> None:
         """Creates a new plugin thread entry inside the database."""
         await self.plugin_threads.insert_one({
             "thread_id": thread_id,
-            "expires": expires
+            "expires": expire_timestamp
         })
 
-    async def get_archived_plugin_threads(self, time: float) -> list:
-        """Returns a list of active plugin threads which require to be archived."""
+    async def get_archived_plugin_threads(self, timestamp: float) -> List[dict]:
+        """Returns a list of active plugin threads which require archiving."""
         cursor = self.plugin_threads.find(
-            {"expires": {"$lte": time}}
+            {"expires": {"$lte": timestamp}}
         )
         return [i async for i in cursor]
 
-    async def remove_plugin_thread_record(self, _id: ObjectId) -> None:
+    async def remove_plugin_thread(self, _id: ObjectId) -> None:
         """Removes a plugin thread entry from the database."""
         await self.plugin_threads.delete_many({"_id": _id})
 
