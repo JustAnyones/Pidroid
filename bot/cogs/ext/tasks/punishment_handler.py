@@ -78,19 +78,18 @@ class PunishmentHandlerTask(commands.Cog):
     async def on_member_join(self, member: discord.Member) -> None:
         """Handles role-based punishment revocation for new members."""
         await self.client.wait_guild_config_cache_ready()
-        member_guild_id = member.guild.id
-        c = self.client.get_guild_configuration(member_guild_id)
+        c = self.client.get_guild_configuration(member.guild.id)
         if c is None:
             return
 
         jail_role = c.jail_role
         if get_role(member.guild, jail_role) is not None:
-            if not await self.api.has_punishment_expired('jail', member_guild_id, member.id):
+            if await self.api.is_currently_jailed(member.guild.id, member.id):
                 await member.add_roles(get(member.guild.roles, id=jail_role), reason="Jailed automatically as punishment evasion was detected.")
 
         mute_role = c.mute_role
         if get_role(member.guild, mute_role) is not None:
-            if not await self.api.has_punishment_expired('mute', member_guild_id, member.id):
+            if await self.api.is_currently_muted(member.guild.id, member.id):
                 await member.add_roles(get(member.guild.roles, id=mute_role), reason="Muted automatically as punishment evasion was detected.")
 
     @commands.Cog.listener()

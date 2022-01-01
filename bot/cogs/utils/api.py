@@ -246,33 +246,26 @@ class API:
         )
         return moderator_data, guild_total
 
-    async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
-        """Returns true if member is currently jailed."""
-        count = await self.punishments.count_documents(
-            {"type": "jail", "guild_id": guild_id, "user_id": user_id, "date_expires": {"$ne": 0}, "visible": True}
-        )
+    async def is_currently_punished(self, punishment: str, guild_id: int, user_id: int) -> bool:
+        count = await self.punishments.count_documents({
+            "type": punishment,
+            "guild_id": guild_id,
+            "user_id": user_id,
+            "$or": [
+                {"date_expires": {"$gte": utcnow().timestamp()}},
+                {"date_expires": -1}
+            ],
+            "visible": True
+        })
         return count > 0
+
+    async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
+        """Returns true if user is currently jailed."""
+        return await self.is_currently_punished("jail", guild_id, user_id)
 
     async def is_currently_muted(self, guild_id: int, user_id: int) -> bool:
-        """Returns true if member is currently muted."""
-        count = await self.punishments.count_documents(
-            {"type": "mute", "guild_id": guild_id, "user_id": user_id, "date_expires": {"$ne": 0}, "visible": True}
-        )
-        return count > 0
-
-    async def has_punishment_expired(self, punishment_type: str, guild_id: int, user_id: int) -> bool:
-        """Returns true if the specified punishment should be carried over for the specified user according to the current time."""
-
-        r = await self.punishments.find_one(
-            {"type": punishment_type, "guild_id": guild_id, "user_id": user_id, "date_expires": {"$ne": 0}, "visible": True},
-            {"date_expires": -1}
-        )
-
-        if r is None:
-            return True
-
-        expire = r["date_expires"]
-        return expire < int(utcnow().timestamp()) and expire != 1
+        """Returns true if user is currently muted."""
+        return await self.is_currently_punished("mute", guild_id, user_id)
 
     async def get_active_guild_punishments(self, guild_id: int) -> list:
         """Returns a list of active punishments. NOTE that this excludes as they are not considered active."""
