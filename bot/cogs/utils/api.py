@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import bson
-import motor.motor_asyncio
+import bson # type: ignore
+import motor.motor_asyncio # type: ignore
 import random
 import secrets
 import string
 
-from bson.objectid import ObjectId
-from discord.ext.commands.errors import BadArgument
-from motor.core import AgnosticCollection
-from pymongo.results import InsertOneResult
+from bson.objectid import ObjectId # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
+from motor.core import AgnosticCollection # type: ignore
+from pymongo.results import InsertOneResult # type: ignore
 from urllib.parse import quote_plus
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
@@ -169,30 +169,6 @@ class API:
         await self.plugin_threads.delete_many({"_id": _id})
 
     """Moderation related methods"""
-
-    async def create_punishment(
-        self, punishment_type: str, guild_id: int,
-        user_id: int, user_name: str,
-        moderator_id: int, moderator_name: str,
-        issued: int, reason: str, expiration: int = -1
-    ) -> str:
-        """Creates a punishment entry in the database. Retuns case ID."""
-        g_id = await self.get_unique_id(self.punishments)
-        d = {
-            "id": g_id,
-            "type": punishment_type,
-            "guild_id": bson.Int64(guild_id),
-            "user_id": bson.Int64(user_id),
-            "user_name": user_name,
-            "moderator_id": bson.Int64(moderator_id),
-            "moderator_name": moderator_name,
-            "reason": reason,
-            "date_issued": issued,
-            "date_expires": expiration,
-            "visible": True
-        }
-        await self.punishments.insert_one(d)
-        return g_id
 
     async def get_case(self, case_id: str) -> Union[dict, None]:
         """Returns specified case information."""

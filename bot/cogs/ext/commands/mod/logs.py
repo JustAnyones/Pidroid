@@ -1,7 +1,7 @@
-import discord
+import discord # type: ignore
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from typing import Optional, Union
 
 from client import Pidroid
@@ -74,11 +74,10 @@ class ModeratorInfoCommands(commands.Cog):
             warnings = await self.client.fetch_active_warnings(ctx.guild.id, user.id)
 
         if len(warnings) == 0:
-            await ctx.reply(embed=error(error_msg))
-            return
+            return await ctx.reply(embed=error(error_msg))
 
         pages = PidroidPages(
-            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, warnings=True),
+            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, True),
             ctx=ctx
         )
         await pages.start()

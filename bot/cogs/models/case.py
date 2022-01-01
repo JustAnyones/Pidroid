@@ -23,7 +23,7 @@ from ..utils.paginators import ListPageSource, PidroidPages
 from ..utils.time import humanize, time_since, timedelta_to_datetime, timestamp_to_date, timestamp_to_datetime, utcnow
 
 if TYPE_CHECKING:
-    from cogs.utils.api import API
+    from ..utils.api import API
     PunishmentChannel = Union[TextChannel, Thread]
     DiscordUser = Union[Member, User]
 

@@ -35,7 +35,7 @@ class AutomodTask(commands.Cog):
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.automod_violations = {}
-        self.phising_urls = []
+        self.phising_urls: List[str] = []
 
     async def _update_phising_urls(self):
         """Updates internal phising url list."""
@@ -81,8 +81,6 @@ class AutomodTask(commands.Cog):
             await self.client.dispatch_log(message.guild, BannedWordLog(message, word))
             await message.delete(delay=0)
             await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
-            return True
-        return False
 
     async def handle_phising(self, message: Message) -> bool:
         """Handles the detection and filtering of phising messages."""

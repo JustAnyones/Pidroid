@@ -8,9 +8,10 @@ import logging
 
 from aiohttp import ClientSession
 from contextlib import suppress
+from discord.channel import TextChannel
 from discord.client import _cleanup_loop
 from discord.ext import commands
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
@@ -176,6 +177,7 @@ class Pidroid(commands.Bot):
 
         channel = await self.get_or_fetch_channel(guild, config.log_channel)
         if channel is not None:
+            channel: TextChannel
             await channel.send(embed=log.as_embed())
 
     async def _resolve_case_users(self, d: dict) -> dict:
