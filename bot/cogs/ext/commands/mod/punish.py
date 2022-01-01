@@ -89,12 +89,10 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.mute_role)
         if role is None:
-            await ctx.reply(embed=error("Mute role not found!"))
-            return
+            return await ctx.reply(embed=error("Mute role not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            await ctx.reply(embed=error("The user is already muted!"))
-            return
+            return await ctx.reply(embed=error("The user is already muted!"))
 
         m = Punishment(ctx, member)
         if duration_datetime is None:
@@ -211,12 +209,10 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            await ctx.reply(embed=error("Jail role not found, cannot remove!"))
-            return
+            return await ctx.reply(embed=error("Jail role not found, cannot remove!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            await ctx.reply(embed=error("The user is not in jail!"))
-            return
+            return await ctx.reply(embed=error("The user is not in jail!"))
 
         p = Punishment(ctx, member)
         await p.unjail(role)
@@ -245,7 +241,7 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def ban(self, ctx: Context, user: UserOffender, duration_datetime: Optional[Duration] = None, *, reason: str = None):
         if await is_banned(ctx, user):
-            await ctx.reply(embed=error("Specified user is already banned!"))
+            return await ctx.reply(embed=error("Specified user is already banned!"))
 
         b = Punishment(ctx, user)
         if duration_datetime is None:
