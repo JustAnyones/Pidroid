@@ -14,6 +14,7 @@ from urllib.parse import quote_plus
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 from cogs.ext.commands.tags import Tag
+from cogs.models.case import Case
 from cogs.models.configuration import GuildConfiguration
 from cogs.models.plugins import NewPlugin, Plugin
 from cogs.utils.http import HTTP, Route
@@ -170,38 +171,39 @@ class API:
 
     """Moderation related methods"""
 
-    async def get_case(self, case_id: str) -> Union[dict, None]:
-        """Returns specified case information."""
-        return await self.punishments.find_one({"id": str(case_id), "visible": True})
+    async def _fetch_case_users(self, d: dict) -> dict:
+        d["user"] = await self.client.get_or_fetch_user(d["user_id"])
+        d["moderator"] = await self.client.get_or_fetch_user(d["moderator_id"])
+        return d
 
-    async def get_guild_case(self, guild_id: int, case_id: str):
-        """Returns specified guild case information."""
-        return await self.punishments.find_one({"id": str(case_id), "guild_id": guild_id, "visible": True})
+    async def fetch_case(self, guild_id: int, case_id: str) -> Optional[Case]:
+        """Returns a case for the specified guild and user."""
+        case = await self.punishments.find_one({"id": str(case_id), "guild_id": guild_id, "visible": True})
+        if case is None:
+            return None
+        return Case(self, await self._fetch_case_users(case))
 
-    async def get_active_warnings(self, guild_id: int, user_id: int) -> list:
-        """Returns all active warnings for the specified user."""
-        cursor = self.punishments.find({
-            "type": "warning",
-            "guild_id": guild_id,
-            "user_id": user_id,
-            "date_expires": {"$gte": int(utcnow().timestamp())},
-            "visible": True
-        }).sort("date_issued", -1)
-        return [i async for i in cursor]
+    async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of cases for the specified guild and user."""
 
-    async def get_all_warnings(self, guild_id: int, user_id: int) -> list:
-        """Returns all warnings for the specified user."""
-        cursor = self.punishments.find(
-            {"type": "warning", "guild_id": guild_id, "user_id": user_id, "visible": True},
-        ).sort("date_issued", -1)
-        return [i async for i in cursor]
-
-    async def get_moderation_logs(self, guild_id: int, user_id: int) -> list:
-        """Returns all moderation logs for the specified user."""
+        # Visible parameter refers to invalidated warnings
         cursor = self.punishments.find(
             {"guild_id": guild_id, "user_id": user_id, "visible": True},
         ).sort("date_issued", -1)
-        return [i async for i in cursor]
+
+        return [Case(self, await self._fetch_case_users(c)) async for c in cursor]
+
+    async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of warnings for the specified guild and user."""
+        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == "warning"]
+
+    async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of active warnings for the specified guild and user."""
+        return [
+            c
+            for c in await self.fetch_cases(guild_id, user_id)
+            if c.type == "warning" and c.date_expires >= int(utcnow().timestamp())
+        ]
 
     async def revoke_punishment(self, punishment_type: str, guild_id: int, user_id: int) -> None:
         """Revokes specified punishment by making it expired."""

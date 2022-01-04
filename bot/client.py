@@ -180,33 +180,24 @@ class Pidroid(commands.Bot):
             channel: TextChannel
             await channel.send(embed=log.as_embed())
 
-    async def _resolve_case_users(self, d: dict) -> dict:
-        d["user"] = await self.get_or_fetch_user(d["user_id"])
-        d["moderator"] = await self.get_or_fetch_user(d["moderator_id"])
-        return d
-
     async def fetch_case(self, guild_id: int, case_id: str) -> Case:
         """Returns a case for specified guild and user."""
-        c = await self.api.get_guild_case(guild_id, case_id)
-        if c is None:
+        case = await self.api.fetch_case(guild_id, case_id)
+        if case is None:
             raise BadArgument("Specified case could not be found!")
-        c = await self._resolve_case_users(c)
-        return Case(self.api, c)
+        return case
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of cases for specified guild and user."""
-        cases = await self.api.get_moderation_logs(guild_id, user_id)
-        return [Case(self.api, await self._resolve_case_users(c)) for c in cases]
+        return await self.api.fetch_cases(guild_id, user_id)
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of warning cases for specified guild and user."""
-        warnings = await self.api.get_all_warnings(guild_id, user_id)
-        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+        return await self.api.fetch_warnings(guild_id, user_id)
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of active warning cases for specified guild and user."""
-        warnings = await self.api.get_active_warnings(guild_id, user_id)
-        return [Case(self.api, await self._resolve_case_users(w)) for w in warnings]
+        return await self.api.fetch_active_warnings(guild_id, user_id)
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""
