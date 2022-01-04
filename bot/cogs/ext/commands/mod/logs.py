@@ -32,7 +32,7 @@ class ModeratorInfoCommands(commands.Cog):
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
         if reason is not None:
-            await case.update(reason)
+            await case.update_reason(reason)
             return await ctx.reply("Case details updated successfully!")
 
         await ctx.reply(embed=case.to_embed())

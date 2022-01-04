@@ -1,8 +1,8 @@
 import re
 
 from discord.ext import commands
-from discord.ext.commands import MissingRequiredArgument
-from discord.ext.commands.context import Context
+from discord.ext.commands import MissingRequiredArgument # type: ignore
+from discord.ext.commands.context import Context # type: ignore
 from discord.utils import format_dt
 from types import SimpleNamespace
 
@@ -39,9 +39,9 @@ class ForumCommands(commands.Cog):
                 data = res["data"]
                 data = data[0]
                 registered = format_dt(timestamp_to_datetime(int(data["user_regdate"])))
-                last_online = int(data["user_lastvisit"])
-                if last_online > 0:
-                    last_online = format_dt(timestamp_to_datetime(last_online))
+                last_online_time = int(data["user_lastvisit"])
+                if last_online_time > 0:
+                    last_online = format_dt(timestamp_to_datetime(last_online_time))
                 else:
                     last_online = 'Never'
                 username = data["username"]

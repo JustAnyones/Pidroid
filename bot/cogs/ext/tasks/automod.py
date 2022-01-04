@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from client import Pidroid
 from constants import AUTOMODERATOR_RESPONSES
-from cogs.models.case import Punishment
+from cogs.models.case import Kick
 from cogs.models.configuration import GuildConfiguration
 from cogs.utils.logger import BannedWordLog, PhisingLog, SuspiciousUserLog
 from cogs.utils.time import utcnow
@@ -56,9 +56,9 @@ class AutomodTask(commands.Cog):
         member_data = self.automod_violations[guild_id][member_id]
         if member_data["count"] > 3:
             if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
-                w = Punishment()
-                w._fill(self.client.api, message.guild, message.author, self.client.user)
-                await w.kick("Phising automod violation limit exceeded")
+                k = Kick()
+                k._fill(self.client.api, None, message.guild, message.author, self.client.user) # type: ignore
+                await k.issue("Phising automod violation limit exceeded")
             del self.automod_violations[guild_id][member_id]
             return
 

@@ -3,11 +3,11 @@ import typing
 
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from typing import Optional
 
 from client import Pidroid
-from cogs.models.case import Punishment
+from cogs.models.case import Ban, Kick, Mute, Jail, Warning
 from cogs.models.categories import ModerationCategory
 from cogs.utils.converters import Duration, MemberOffender, UserOffender
 from cogs.utils.decorators import command_checks
@@ -69,8 +69,8 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
     async def warn(self, ctx: Context, member: MemberOffender, *, warning: str):
-        w = Punishment(ctx, member)
-        await w.warn(warning)
+        w = Warning(ctx, member)
+        await w.issue(warning)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -94,9 +94,9 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
             return await ctx.reply(embed=error("The user is already muted!"))
 
-        m = Punishment(ctx, member)
+        m = Mute(ctx, member)
         if duration_datetime is None:
-            await m.mute(role, reason=reason)
+            await m.issue(role, reason=reason)
             return await ctx.message.delete(delay=0)
 
         if datetime_to_duration(duration_datetime) < 30:
@@ -104,7 +104,7 @@ class ModeratorCommands(commands.Cog):
                 'The duration for the mute is too short! Make sure it\'s at least 30 seconds long.'
             ))
         m.length = int(duration_datetime.timestamp())
-        await m.mute(role, reason=reason)
+        await m.issue(role, reason=reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -128,8 +128,8 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
             return await ctx.reply(embed=error("The user is not muted!"))
 
-        p = Punishment(ctx, member)
-        await p.unmute(role)
+        m = Mute(ctx, member)
+        await m.revoke(role)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -157,8 +157,8 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
             return await ctx.reply(embed=error("The user is already jailed!"))
 
-        p = Punishment(ctx, member)
-        await p.jail(role, reason)
+        j = Jail()
+        await j.issue(role, reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -188,8 +188,8 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
             return await ctx.reply(embed=error("The user is already kidnapped, don't you remember?"))
 
-        p = Punishment(ctx, member)
-        await p.jail(role, reason, True)
+        j = Jail(ctx, member)
+        await j.issue(role, reason, True)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -214,8 +214,8 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
             return await ctx.reply(embed=error("The user is not in jail!"))
 
-        p = Punishment(ctx, member)
-        await p.unjail(role)
+        j = Jail(ctx, member)
+        await j.revoke(role)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -227,8 +227,8 @@ class ModeratorCommands(commands.Cog):
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
     async def kick(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        k = Punishment(ctx, member)
-        await k.kick(reason=reason)
+        k = Kick(ctx, member)
+        await k.issue(reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(
@@ -243,14 +243,14 @@ class ModeratorCommands(commands.Cog):
         if await is_banned(ctx, user):
             return await ctx.reply(embed=error("Specified user is already banned!"))
 
-        b = Punishment(ctx, user)
+        b = Ban(ctx, user)
         if duration_datetime is None:
-            await b.ban(reason=reason)
+            await b.issue(reason=reason)
         else:
             if datetime_to_duration(duration_datetime) < 60:
                 return await ctx.reply(embed=error('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
             b.length = int(duration_datetime.timestamp())
-            await b.ban(reason=reason)
+            await b.issue(reason=reason)
         await ctx.message.delete(delay=0)
 
     @commands.command(

@@ -1,5 +1,5 @@
 from discord.channel import TextChannel
-from discord.ext import tasks, commands
+from discord.ext import tasks, commands # type: ignore
 from discord.utils import format_dt
 
 from client import Pidroid

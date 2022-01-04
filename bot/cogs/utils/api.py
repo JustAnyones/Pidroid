@@ -202,7 +202,7 @@ class API:
         return [
             c
             for c in await self.fetch_cases(guild_id, user_id)
-            if c.type == "warning" and c.date_expires >= int(utcnow().timestamp())
+            if c.type == "warning" and not c.has_expired
         ]
 
     async def revoke_punishment(self, punishment_type: str, guild_id: int, user_id: int) -> None:
