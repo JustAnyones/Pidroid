@@ -1,5 +1,3 @@
-import re
-
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
 from discord.utils import format_dt
@@ -11,29 +9,6 @@ from cogs.utils.embeds import build_embed
 from cogs.utils.http import Route
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timestamp_to_datetime
-
-STRIP_HTML_PATTERN = re.compile(r"<[^<]+?>")
-REPLACE_B_TAG = re.compile(r"\[b]([^`]*)\[/b]")
-REPLACE_I_TAG = re.compile(r"\[i]([^`]*)\[/i]")
-REPLACE_U_TAG = re.compile(r"\[u]([^`]*)\[/u]")
-
-def clean_html(dirty_str: str) -> str:
-    """Minimally cleans up a HTML string."""
-    dirty_str.replace("<br>", "\n")
-
-    # Remove HTML tags
-    dirty_str = re.sub(STRIP_HTML_PATTERN, "", dirty_str)
-
-    # Convert some BBCODE to markdown
-    dirty_str = re.sub(REPLACE_B_TAG, r"**\1**", dirty_str)
-    dirty_str = re.sub(REPLACE_I_TAG, r"*\1*", dirty_str)
-    dirty_str = re.sub(REPLACE_U_TAG, r"__\1__", dirty_str)
-
-    # Remove unsupported BBCODE
-    dirty_str.replace("[IMG]", "").replace("[/IMG]", "")
-
-    return dirty_str
-
 
 class ForumMessageTask(commands.Cog):
     """This class implements a cog for handling forum PMs to Pidroid user."""
@@ -60,7 +35,7 @@ class ForumMessageTask(commands.Cog):
 
             message_id = message["msg_id"]
             subject = truncate_string(message["message_subject"], 256)
-            text = truncate_string(clean_html(message["message_text"]), 4096)
+            text = truncate_string(message["message_text"], 4096)
             time_sent = message["message_time"]
             message_url = f"{THEOTOWN_FORUM_URL}/ucp.php?i=pm&f=-2&p={message_id}"
 
