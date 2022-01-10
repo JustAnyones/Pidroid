@@ -15,7 +15,6 @@ from discord.member import Member
 from discord.role import Role
 from discord.threads import Thread
 from discord.user import User
-from pymongo.results import InsertOneResult
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..utils.embeds import create_embed, success

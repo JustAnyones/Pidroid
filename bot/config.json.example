@@ -3,6 +3,7 @@
    "prefixes": ["P", "p", "TT"],
    "authentication": {
       "bot token": "",
+      "github token": "", // OAuth token used to access GitHub API for TT devs
 
       "database": {
          "connection string": "" // Your MongoDB connection string
