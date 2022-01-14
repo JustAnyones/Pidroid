@@ -333,6 +333,9 @@ class Warning(BasePunishment):
         if ctx is not None:
             self.set_member(member)
 
+    def __str__(self) -> str:
+        return "warning"
+
     async def issue(self, reason: str) -> Case:
         """Warns the member."""
         case = await self._create_punishment("warning", timedelta(days=120), reason)
@@ -344,6 +347,9 @@ class Ban(BasePunishment):
 
     def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
         super().__init__(ctx, user)
+
+    def __str__(self) -> str:
+        return "ban"
 
     async def issue(self, length: Union[int, timedelta] = None, reason: str = None) -> Case:
         """Bans the user."""
@@ -371,6 +377,9 @@ class Kick(BasePunishment):
         if ctx is not None:
             self.set_member(member)
 
+    def __str__(self) -> str:
+        return "kick"
+
     async def issue(self, reason: str = None) -> Case:
         await self._remove_punishment('jail')
         await self._remove_punishment('mute')
@@ -395,6 +404,9 @@ class Jail(BasePunishment):
         super().__init__(ctx, member)
         if ctx is not None:
             self.set_member(member)
+
+    def __str__(self) -> str:
+        return "jail"
 
     async def issue(self, role: Role, reason: str = None, kidnap: bool = False) -> Case:
         """Jails the member."""
@@ -438,6 +450,9 @@ class Mute(BasePunishment):
         super().__init__(ctx, member)
         if ctx is not None:
             self.set_member(member)
+
+    def __str__(self) -> str:
+        return "mute"
 
     async def issue(self, role: Role, length: Union[int, timedelta] = None, reason: str = None) -> Case:
         case = await self._create_punishment("mute", length, reason)
