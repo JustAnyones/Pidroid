@@ -193,6 +193,14 @@ class API:
 
         return [Case(self, await self._fetch_case_users(c)) async for c in cursor]
 
+    async def fetch_active_cases(self, guild_id: int, user_id: int) -> List[Case]:
+        """Returns a list of active cases for the specified guild and user."""
+        return [
+            c
+            for c in await self.fetch_cases(guild_id, user_id)
+            if not c.has_expired
+        ]
+
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of warnings for the specified guild and user."""
         return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == "warning"]
