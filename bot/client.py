@@ -54,6 +54,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.commands.emoji',
             'cogs.ext.commands.forum',
             'cogs.ext.commands.fun',
+            'cogs.ext.commands.github',
             'cogs.ext.commands.giveaway',
             'cogs.ext.commands.help',
             'cogs.ext.commands.image',
