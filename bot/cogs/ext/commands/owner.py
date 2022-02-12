@@ -471,6 +471,7 @@ class OwnerCommands(commands.Cog):
 
     @commands.command(
         brief="Experiment with new discord interactions interface in regards of the punishment system.",
+        enabled=False
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()

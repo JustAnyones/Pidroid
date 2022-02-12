@@ -41,7 +41,8 @@ class GitHubCommands(commands.Cog):
         name='create-issue',
         brief='Creates an issue on GitHub with a bug label.',
         usage='<title> <body>',
-        hidden=True
+        hidden=True,
+        enabled=False
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
