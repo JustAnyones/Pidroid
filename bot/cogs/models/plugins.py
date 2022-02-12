@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from discord.embeds import Embed
 from discord.utils import escape_markdown
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from cogs.utils.embeds import create_embed
 from cogs.utils.parsers import clean_inline_translations, format_version_code, truncate_string
@@ -11,6 +11,12 @@ if TYPE_CHECKING:
     from client import Pidroid
 
 URL_TO_USER = 'https://forum.theotown.com/memberlist.php?mode=viewprofile&u='
+
+
+class Platforms:
+    ANDROID = 1 << 0
+    IOS     = 1 << 1 # noqa
+    DESKTOP = 1 << 2
 
 
 class TheoTownUser:
@@ -52,6 +58,26 @@ class Plugin:
         """Returns a plugin URL for the plugin store."""
         return f"https://forum.theotown.com/plugins/list?term=%3A{self.id}"
 
+    @property
+    def is_ubiquitous(self) -> bool:
+        """Returns true if plugin is available on every platform."""
+        return self._platforms == 7
+
+    @property
+    def is_on_android(self) -> bool:
+        """Returns true if plugin is available on Android."""
+        return self._platforms & Platforms.ANDROID != 0
+
+    @property
+    def is_on_ios(self) -> bool:
+        """Returns true if plugin is available on iOS."""
+        return self._platforms & Platforms.IOS != 0
+
+    @property
+    def is_on_desktop(self) -> bool:
+        """Returns true if plugin is available on desktop."""
+        return self._platforms & Platforms.DESKTOP != 0
+
     def _deserialize(self, p: dict) -> Plugin:
         """Deserializes a plugin dictionary to a Plugin object."""
         self.id = p['plugin_id']
@@ -63,6 +89,7 @@ class Plugin:
         self.revision_id = p['revision_id']
         self._preview_file = p['preview_file']
         self.min_version = p['min_version']
+        self._platforms = p['platforms']
         return self
 
     def to_embed(self) -> Embed:
@@ -70,16 +97,32 @@ class Plugin:
         name = truncate_string(self.clean_title)
         description = truncate_string(self.clean_description, 1024)
         author = f'[{escape_markdown(self.author.username)}]({self.author.url})'
-        price = f'{self.price:,} <:diamond:423898110293704724>'
+        if self.price == 0:
+            price = "🎁 Free"
+        else:
+            price = f'{self.price:,} <:diamond:423898110293704724>'
         footer = f'#{self.id}:{self.version} [{self.revision_id}]'
 
         embed = create_embed(title=name, url=self.url)
         embed.add_field(name='**Description**', value=description, inline=False)
         embed.add_field(name='**Price**', value=price, inline=False)
         embed.add_field(name='**Author**', value=author, inline=False)
+
+        availability = "???"
+        if self.is_ubiquitous:
+            availability = "All platforms"
+        else:
+            platforms = [self.is_on_android, self.is_on_ios, self.is_on_desktop]
+            names = ["Android", "iOS", "Desktop"]
+            availability = ', '.join(
+                [names[i] for i, p in enumerate(platforms) if p]
+            )
+        embed.add_field(name="**Availability**", value=availability)
+
         if self.min_version is not None and self.min_version != 0:
-            min_version = format_version_code(self.min_version)
-            embed.add_field(name='**Minimal version required**', value=min_version, inline=False)
+            if self.min_version > 400:
+                min_version = format_version_code(self.min_version)
+                embed.add_field(name='**Minimal version required**', value=min_version)
         embed.set_footer(text=footer)
         embed.set_image(url=self.preview)
         return embed
