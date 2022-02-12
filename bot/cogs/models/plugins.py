@@ -36,6 +36,7 @@ class Plugin:
     """This class represents a TheoTown plugin."""
 
     def __init__(self, data: dict):
+        self._download_url = None
         self._deserialize(data)
 
     @property
@@ -57,6 +58,14 @@ class Plugin:
     def url(self) -> str:
         """Returns a plugin URL for the plugin store."""
         return f"https://forum.theotown.com/plugins/list?term=%3A{self.id}"
+
+    @property
+    def download_url(self) -> Optional[str]:
+        """Returns plugin download url.
+
+        Note that this property is only available if plugin has been acquired
+        by fetching it with an ID."""
+        return self._download_url
 
     @property
     def is_ubiquitous(self) -> bool:
@@ -90,6 +99,9 @@ class Plugin:
         self._preview_file = p['preview_file']
         self.min_version = p['min_version']
         self._platforms = p['platforms']
+        # Only available when fetched with API.fetch_plugin_by_id
+        if "download_url" in p:
+            self._download_url = p["download_url"]
         return self
 
     def to_embed(self) -> Embed:

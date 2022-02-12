@@ -154,20 +154,38 @@ class TheoTownCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
-    async def findplugin(self, ctx: Context, *, query: str = None):
+    async def findplugin(self, ctx: Context, *, query: str = None): # noqa
         async with ctx.typing():
             if query is None:
                 await ctx.reply(embed=error('I could not find a query to find a plugin.'))
                 self.findplugin.reset_cooldown(ctx)
                 return
 
-            if len(query) > 30:
+            is_id = query.startswith("#")
+            if is_id:
+                try:
+                    pl_id = int(query.replace("#", ""))
+                except ValueError:
+                    await ctx.reply(embed=error('You specified an invalid plugin ID!'))
+                    self.findplugin.reset_cooldown(ctx)
+                    return
+
+            if not is_id and len(query) <= 2:
+                await ctx.reply(embed=error('Your query is too short! Please keep it at least 3 characters long.'))
+                self.findplugin.reset_cooldown(ctx)
+                return
+
+            if not is_id and len(query) > 30:
                 await ctx.reply(embed=error('Your query is too long, please keep it below 30 characters!'))
                 self.findplugin.reset_cooldown(ctx)
                 return
 
             async with ctx.channel.typing():
-                plugin_list = await self.api.find_plugin(query)
+                if is_id:
+                    assert pl_id is not None
+                    plugin_list = await self.api.fetch_plugin_by_id(pl_id)
+                else:
+                    plugin_list = await self.api.search_plugins(query)
 
             plugin_count = len(plugin_list)
             if plugin_count == 0:
@@ -206,20 +224,18 @@ class TheoTownCommands(commands.Cog):
                 self.downloadplugin.reset_cooldown(ctx)
                 return
 
-            plugins = await self.api.find_plugin(plugin_id, show_hidden=True, narrow_search=True)
-
+            plugins = await self.api.fetch_plugin_by_id(plugin_id, True)
             if len(plugins) == 0:
-                await ctx.reply(embed=error("I could not find any plugins to download by the specified ID!"))
-                return
+                return await ctx.reply(embed=error("I could not find any plugins to download by the specified ID!"))
 
             plugin = plugins[0]
-            res = await self.api.get(Route("/private/plugin/get_download", {"id": plugin.id}))
-
-            if not res['success']:
-                return await ctx.reply(embed=error(f"I am unable to retrieve the download link for '{plugin.clean_title}' plugin!"))
+            if plugin.download_url is None:
+                return await ctx.reply(embed=error(
+                    f"Failure encountered while trying to retrieve the plugin file for '{plugin.clean_title}'!"
+                ))
 
             await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
-            await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {res['data']['url']}")
+            await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
 
     @commands.command(
         brief='Send a feature suggestion to the suggestions channel.',

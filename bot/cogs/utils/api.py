@@ -10,7 +10,6 @@ from bson.objectid import ObjectId # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from motor.core import AgnosticCollection # type: ignore
 from pymongo.results import InsertOneResult # type: ignore
-from urllib.parse import quote_plus
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 from cogs.ext.commands.tags import Tag
@@ -143,11 +142,19 @@ class API:
         response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
         return [NewPlugin(np) for np in response["data"]]
 
-    async def find_plugin(self, query: str, show_hidden: bool = False, narrow_search: bool = False) -> List[Plugin]:
+    async def search_plugins(self, query: str, show_hidden: bool = False) -> List[Plugin]:
         """Queries the TheoTown API for plugins matching the query string."""
         response = await self.get(Route(
-            "/private/plugin/find",
-            {"query": quote_plus(query.replace('#', '')), "show_hidden": show_hidden, "narrow": narrow_search}
+            "/private/plugin/find2",
+            {"query": query, "show_hidden": show_hidden}
+        ))
+        return [Plugin(p) for p in response["data"]]
+
+    async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> List[Plugin]:
+        """Queries the TheoTown API for a plugin of the specified ID."""
+        response = await self.get(Route(
+            "/private/plugin/find2",
+            {"id": plugin_id, "show_hidden": show_hidden}
         ))
         return [Plugin(p) for p in response["data"]]
 
