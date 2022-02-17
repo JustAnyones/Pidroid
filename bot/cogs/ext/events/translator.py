@@ -203,7 +203,7 @@ class TranslationEventHandler(commands.Cog):
 
             # If it wasn't translated, notify the moderator
             if embed.footer.text == Embed.Empty:
-                embed.set_footer("Translation layer bypassed")
+                embed.set_footer(text="Translation layer bypassed as nothing translatable was found")
 
         await self.channel.send(embeds=embeds)
 
