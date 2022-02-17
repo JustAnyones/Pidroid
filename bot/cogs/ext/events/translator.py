@@ -14,6 +14,7 @@ from typing import List
 
 from client import Pidroid
 from cogs.utils.checks import is_client_pidroid
+from cogs.utils.embeds import create_embed
 from cogs.utils.http import post
 from cogs.utils.time import utcnow
 
@@ -142,7 +143,7 @@ class TranslationEventHandler(commands.Cog):
         for translation in translations:
             text: str = translation["text"]
             detected_lang: str = translation["detected_source_language"]
-            embed = Embed(description=text)
+            embed = create_embed(description=text)
             embed.set_footer(text=f"Detected source language: {LANGUAGE_MAPPING.get(detected_lang, detected_lang)}")
             embeds.append(embed)
         return embeds
@@ -168,7 +169,7 @@ class TranslationEventHandler(commands.Cog):
         if len(remove_emojis(raw_text)) != 0:
             embeds = await self.translate_message(message, raw_text)
         else:
-            embeds = [Embed(description=raw_text)]
+            embeds = [create_embed(description=raw_text)]
 
         # If message contains a reply, track down the reference author
         action = None
@@ -196,6 +197,7 @@ class TranslationEventHandler(commands.Cog):
             if len(rich_description) > 0:
                 embed.description += "\n--\n" + rich_description
 
+            # Add attachments if they exist
             if len(attachments) > 0:
                 embed.add_field(name="Attachments", value='\n'.join(attachments), inline=False)
 
