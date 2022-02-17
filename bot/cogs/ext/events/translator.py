@@ -4,6 +4,7 @@ import os
 
 from typing import List
 from discord.ext import commands
+from discord.channel import TextChannel
 from discord.utils import remove_markdown
 from discord.message import Message
 
@@ -56,13 +57,13 @@ class TranslationEventHandler(commands.Cog):
         self.translation_cache = {}
 
         self._translating = asyncio.Event()
-        self._translating.clear()
+        self._translating.set()
 
         self.daily_char_limit = 50000
         self.used_chars = 0
         self.last_reset = utcnow()
 
-        self.channel = None
+        self.channel: TextChannel = None
 
         if os.path.exists(CACHE_FILE_PATH):
             self.client.logger.info("Loading translation into cache")
@@ -75,7 +76,7 @@ class TranslationEventHandler(commands.Cog):
             json.dump(self.translation_cache, f)
 
     async def translate(self, text: str) -> List[dict]:
-        self._translating.set()
+        self._translating.clear()
         try:
             async with await post(self.client, self.endpoint + "/translate", {
                 "auth_key": self.auth_key,
@@ -85,9 +86,9 @@ class TranslationEventHandler(commands.Cog):
                 data = await r.json()
         except Exception as e:
             self.client.logger.critical("Failure while translating:", e)
-            self._translating.clear()
+            self._translating.set()
             return []
-        self._translating.clear()
+        self._translating.set()
         return data["translations"]
 
     async def get_usage(self) -> dict:
@@ -102,6 +103,7 @@ class TranslationEventHandler(commands.Cog):
             is_client_pidroid(self.client)
             and self.auth_key is not None
             and message.guild
+            and not message.author.bot
             and message.channel.id == SOURCE_CHANNEL
         )
 
