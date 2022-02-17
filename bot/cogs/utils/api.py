@@ -66,6 +66,11 @@ class API:
     def shitposts(self) -> AgnosticCollection:
         """Returns a MongoDB collection for Pidroid shitposts."""
         return self.db["Shitposts"]
+    
+    @property
+    def translations(self) -> AgnosticCollection:
+        """Returns a MongoDB collection for translations."""
+        return self.db["Translations"]
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""
@@ -115,6 +120,22 @@ class API:
             self.client.logger.critical("Phising URLs returned an empty list!")
             return []
         return data["phising"]["urls"]
+
+    """Translation related methods"""
+
+    async def insert_new_translation(self, original: str, translation: List[dict]) -> None:
+        """Inserts a new translation entry to the database."""
+        await self.translations.update_one({
+            "original_string": original,
+            "translation": translation
+        })
+
+    async def fetch_translation(self, original: str) -> List[dict]:
+        """Returns a list of translations for specified string."""
+        data = await self.punishments.find_one({"original_string": original})
+        if data is None:
+            return []
+        return data["translation"]
 
     """Suggestion related methods"""
 
