@@ -10,6 +10,7 @@
       },
 
       "theotown api token": "Token used for communicating with secure TheoTown API. Ask JustAnyone to get one.",
+      "deepl key": "", // DeepL API key
 
       "unbelievaboat" : {"token": ""},
       "tenor": {"token": ""},

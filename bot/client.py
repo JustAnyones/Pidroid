@@ -75,6 +75,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.events.initialization',
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
+            'cogs.ext.events.translator',
 
             # Tasks
             'cogs.ext.tasks.automod',
