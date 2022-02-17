@@ -157,7 +157,7 @@ class ModeratorCommands(commands.Cog):
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
             return await ctx.reply(embed=error("The user is already jailed!"))
 
-        j = Jail()
+        j = Jail(ctx, member)
         await j.issue(role, reason)
         await ctx.message.delete(delay=0)
 
