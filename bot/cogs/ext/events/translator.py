@@ -202,7 +202,7 @@ class TranslationEventHandler(commands.Cog):
                 embed.add_field(name="Attachments", value='\n'.join(attachments), inline=False)
 
             # If it wasn't translated, notify the moderator
-            if embed.footer == Embed.Empty:
+            if embed.footer.text == Embed.Empty:
                 embed.set_footer("Translation layer bypassed")
 
         await self.channel.send(embeds=embeds)
