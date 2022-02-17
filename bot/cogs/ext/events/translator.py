@@ -54,7 +54,9 @@ class TranslationEventHandler(commands.Cog):
         self.auth_key = self.client.config["authentication"].get("deepl key", None)
 
         self.translation_cache = {}
+
         self._translating = asyncio.Event()
+        self._translating.clear()
 
         self.daily_char_limit = 50000
         self.used_chars = 0
