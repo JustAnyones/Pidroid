@@ -163,7 +163,8 @@ class AnimeCommands(commands.Cog):
     @commands.command(
         brief='Gets a random waifu from mywaifulist.',
         category=RandomCategory,
-        hidden=True
+        hidden=True,
+        enabled=False
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
