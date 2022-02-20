@@ -1,7 +1,5 @@
 import asyncio
 import emoji # I am not updating the emoji regex myself every time there's a new one
-import json
-import os
 import re
 
 from contextlib import suppress
@@ -46,7 +44,6 @@ LANGUAGE_MAPPING = {
     "ZH": "Chinese"
 }
 
-CACHE_FILE_PATH = "./data/translation_cache.json"
 FEED_CHANNEL = 943920969637040140
 SOURCE_CHANNEL = 692830641728782336
 
