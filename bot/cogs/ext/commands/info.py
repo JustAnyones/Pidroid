@@ -2,14 +2,16 @@ import discord
 
 from discord.ext import commands
 from discord.ext.commands import Context
+from discord.embeds import Embed
 from discord.guild import Guild
+from discord.role import Role
 from discord.utils import escape_markdown, format_dt
 from typing import Optional, Union
 
 from client import Pidroid
 from cogs.models.categories import InformationCategory
 from cogs.utils.checks import is_guild_moderator, is_guild_administrator
-from cogs.utils.embeds import build_embed
+from cogs.utils.embeds import build_embed, error
 
 
 class InfoCommands(commands.Cog):
@@ -131,6 +133,26 @@ class InfoCommands(commands.Cog):
         embed.set_footer(text='Server created')
         await ctx.reply(embed=embed)
 
+    @commands.command(
+        name='role-info',
+        brief='Displays the role information.',
+        aliases=['ri', 'roleinfo'],
+        category=InformationCategory
+    )
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
+    async def role_info(self, ctx: Context, role: Role = None):
+        if role is None:
+            return await ctx.reply(embed=error("Please specify the role to view the information for"))
+
+        embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
+        embed.add_field(name="Name", value=role.name)
+        embed.add_field(name="ID", value=role.id)
+        embed.add_field(name="Position", value=role.position)
+        embed.add_field(name="Colour", value=str(role.colour))
+        embed.add_field(name="Is mentionable", value=role.mentionable)
+        embed.set_footer(text="Role created")
+        await ctx.reply(embed=embed)
 
 def setup(client: Pidroid) -> None:
     client.add_cog(InfoCommands(client))
