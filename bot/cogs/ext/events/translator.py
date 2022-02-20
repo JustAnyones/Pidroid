@@ -65,8 +65,6 @@ class TranslationEventHandler(commands.Cog):
         self.endpoint = "https://api.deepl.com/v2"
         self.auth_key = self.client.config["authentication"].get("deepl key", None)
 
-        self.translation_cache = {}
-
         self._translating = asyncio.Event()
         self._translating.set()
 
@@ -75,16 +73,6 @@ class TranslationEventHandler(commands.Cog):
         self.last_reset = utcnow()
 
         self.channel: TextChannel = None
-
-        if os.path.exists(CACHE_FILE_PATH):
-            self.client.logger.info("Loading translation into cache")
-            with open(CACHE_FILE_PATH, "r") as f:
-                self.translation_cache = json.load(f)
-
-    def cog_unload(self):
-        self.client.logger.info("Saving translation cache")
-        with open(CACHE_FILE_PATH, "w") as f:
-            json.dump(self.translation_cache, f)
 
     async def translate(self, text: str) -> List[dict]:
         self._translating.clear()
@@ -130,9 +118,10 @@ class TranslationEventHandler(commands.Cog):
 
         # Check if text was already translated
         c_key = clean_text.lower()
-        if self.translation_cache.get(c_key, None) is None:
-            self.translation_cache[c_key] = await self.translate(clean_text)
-        translations = self.translation_cache[c_key]
+        translations = await self.client.api.fetch_translation(c_key)
+        if translations is None:
+            translations = await self.translate(clean_text)
+            await self.client.api.insert_new_translation(c_key, translations)
 
         # If message could not be translated, log it as a warning
         if len(translations) == 0:
