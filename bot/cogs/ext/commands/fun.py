@@ -163,6 +163,15 @@ class FunCommands(commands.Cog):
             await ctx.reply(content=f"I am sincerely sorry for {reason}!", file=discord.File('./resources/sorry.png'))
 
     @commands.command(
+        brief='Rolls a dice.',
+        category=RandomCategory
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def dice(self, ctx: Context,):
+        await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!")
+
+    @commands.command(
         brief='Asks Pidroid to tell one of his own facts.',
         category=RandomCategory
     )
