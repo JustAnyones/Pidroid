@@ -123,7 +123,6 @@ class InfoCommands(commands.Cog):
         else:
             embed.set_author(name=guild.name)
         embed.add_field(name='Owner', value=guild.owner)
-        embed.add_field(name='Region', value=str(guild.region).capitalize())
         embed.add_field(name='Channel Categories', value=f'{len(guild.categories):,}')
         embed.add_field(name='Text Channels', value=f'{len(guild.text_channels):,}')
         embed.add_field(name='Voice Channels', value=f'{len(guild.voice_channels):,}')
