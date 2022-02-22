@@ -132,7 +132,7 @@ class API:
 
     async def fetch_translation(self, original: str) -> List[dict]:
         """Returns a list of translations for specified string."""
-        data = await self.punishments.find_one({"original_string": original})
+        data = await self.translations.find_one({"original_string": original})
         if data is None:
             return []
         return data["translation"]
