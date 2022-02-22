@@ -38,9 +38,9 @@ class AutomodTask(commands.Cog):
         self.phising_urls: List[str] = []
 
     async def _update_phising_urls(self):
-        """Updates internal phising url list."""
+        """Updates internal phishing url list."""
         urls = await self.client.api.fetch_phising_url_list()
-        self.client.logger.info("Updated phising url list")
+        self.client.logger.info("Updated phishing url list")
         self.phising_urls = urls
 
     async def count_violation(self, message: Message):
@@ -58,7 +58,7 @@ class AutomodTask(commands.Cog):
             if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
                 k = Kick()
                 k._fill(self.client.api, None, message.guild, message.author, self.client.user) # type: ignore
-                await k.issue("Phising automod violation limit exceeded")
+                await k.issue("Phishing automod violation limit exceeded")
             del self.automod_violations[guild_id][member_id]
             return
 
