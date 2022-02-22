@@ -166,10 +166,19 @@ class FunCommands(commands.Cog):
         brief='Rolls a dice.',
         category=RandomCategory
     )
-    @commands.is_owner()
     @commands.bot_has_permissions(send_messages=True)
-    async def dice(self, ctx: Context,):
-        await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!")
+    async def dice(self, ctx: Context):
+        await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!") # nosec
+
+    @commands.command(
+        brief='Rolls a random number between 1 and the specified value.\nThe default value is 6.',
+        category=RandomCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    async def roll(self, ctx: Context, limit: int = 6):
+        if limit <= 1:
+            raise BadArgument("Limit cannot be 1 or less. It'd be stupid")
+        await ctx.reply(f"You rolled a {random.randint(1, limit)}!") # nosec
 
     @commands.command(
         brief='Asks Pidroid to tell one of his own facts.',
