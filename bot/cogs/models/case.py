@@ -338,7 +338,7 @@ class Warning(BasePunishment):
 
     async def issue(self, reason: str) -> Case:
         """Warns the member."""
-        case = await self._create_punishment("warning", timedelta(days=120), reason)
+        case = await self._create_punishment("warning", timedelta(days=90), reason)
         await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
         await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
         return case
