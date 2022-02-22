@@ -116,7 +116,7 @@ class TranslationEventHandler(commands.Cog):
         # Check if text was already translated
         c_key = clean_text.lower()
         translations = await self.client.api.fetch_translation(c_key)
-        if translations is None:
+        if len(translations) == 0:
             translations = await self.translate(clean_text)
             await self.client.api.insert_new_translation(c_key, translations)
 
