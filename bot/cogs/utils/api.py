@@ -66,7 +66,7 @@ class API:
     def shitposts(self) -> AgnosticCollection:
         """Returns a MongoDB collection for Pidroid shitposts."""
         return self.db["Shitposts"]
-    
+
     @property
     def translations(self) -> AgnosticCollection:
         """Returns a MongoDB collection for translations."""
@@ -125,7 +125,7 @@ class API:
 
     async def insert_new_translation(self, original: str, translation: List[dict]) -> None:
         """Inserts a new translation entry to the database."""
-        await self.translations.update_one({
+        await self.translations.insert_one({
             "original_string": original,
             "translation": translation
         })
