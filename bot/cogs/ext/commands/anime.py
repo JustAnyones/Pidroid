@@ -13,6 +13,7 @@ from io import StringIO
 
 from constants import JESSE_ID, THEOTOWN_GUILD
 from cogs.models.categories import RandomCategory
+from cogs.models.waifuListApi import MyWaifuListAPI
 from cogs.utils import http
 from cogs.utils.embeds import build_embed, error
 from cogs.utils.parsers import truncate_string
@@ -26,7 +27,6 @@ NEKO_ENDPOINTS = [
     'woof', 'baka'
 ]
 
-MYWAIFULIST_API = "https://mywaifulist.moe"
 # It's lazy, but I don't care
 MYWAIFULIST_DATA = {
     'rem': 41,
@@ -171,22 +171,16 @@ class AnimeCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
         async with ctx.typing():
-            waifu_id = None
+            api = MyWaifuListAPI()
+            api.reauthorize()
+            waifu_data = None
+
             if selection is not None:
                 waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
+                waifu_data = api.fetch_waifu(waifu_id)
 
             if waifu_id is None:
-                parser = etree.HTMLParser()
-
-                async with await http.get(self.client, f"{MYWAIFULIST_API}/random") as response:
-                    initial_data = await response.text()
-                tree = etree.parse(StringIO(initial_data), parser)
-                waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
-
-            async with await http.get(self.client, f"{MYWAIFULIST_API}/api/waifu/{waifu_id}",
-                                      headers={"x-requested-with": "XMLHttpRequest"}) as response:
-                waifu_data = await response.json()
-            waifu_data = waifu_data["data"]
+                waifu_data = api.fetch_random_waifu()
 
             if waifu_data['nsfw']:
                 await ctx.reply(embed=error("Found waifu was NSFW!"))
