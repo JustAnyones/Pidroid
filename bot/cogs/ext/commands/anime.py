@@ -59,7 +59,7 @@ class WaifuCommandPaginator(ListPageSource):
         self.embed.title = waifu.name
         if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
             self.embed.set_image(url="")
-            self.embed.description = 'this waifu is nsfw'
+            self.embed.description = 'This waifu is tagged as NSFW. In order to view the waifu, please use the command in an age-restricted channel.'
             self.embed.url = None
             return self.embed
         self.embed.description = truncate_string(waifu.description, max_length=600)
