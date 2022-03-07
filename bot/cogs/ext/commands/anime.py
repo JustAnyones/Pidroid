@@ -5,18 +5,18 @@ import discord
 import random
 import re
 
-from typing import List, Union
-
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
+from typing import List, Union
+
+from constants import JESSE_ID, THEOTOWN_GUILD
 from cogs.utils import http
 from cogs.utils.embeds import create_embed, build_embed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
 from cogs.models.waifuListApi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from cogs.models.categories import RandomCategory
-from constants import JESSE_ID, THEOTOWN_GUILD
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
