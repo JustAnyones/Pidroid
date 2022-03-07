@@ -8,14 +8,15 @@ import re
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
-from lxml import etree
-from io import StringIO
+from typing import List, Union
 
 from constants import JESSE_ID, THEOTOWN_GUILD
-from cogs.models.categories import RandomCategory
 from cogs.utils import http
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import create_embed, build_embed, error
+from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
+from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
+from cogs.models.categories import RandomCategory
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
@@ -26,7 +27,6 @@ NEKO_ENDPOINTS = [
     'woof', 'baka'
 ]
 
-MYWAIFULIST_API = "https://mywaifulist.moe"
 # It's lazy, but I don't care
 MYWAIFULIST_DATA = {
     'rem': 41,
@@ -47,6 +47,26 @@ WAIFU_PICS_ENDPOINTS = [
     "happy", "wink", "poke", "dance", "cringe"
 ]
 
+class WaifuCommandPaginator(ListPageSource):
+    def __init__(self, data: List[Union[WaifuSearchResult, Waifu]]):
+        super().__init__(data, per_page=1)
+        self.embed = create_embed()
+
+    async def format_page(self, menu: PidroidPages, waifu: Union[Waifu, WaifuSearchResult]):
+        self.embed.clear_fields()
+        if isinstance(waifu, WaifuSearchResult):
+            waifu = await waifu.fetch_waifu()
+        self.embed.title = waifu.name
+        if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
+            self.embed.set_image(url="")
+            self.embed.description = 'This waifu is tagged as NSFW. In order to view the waifu, please use the command in an age-restricted channel.'
+            self.embed.url = None
+            return self.embed
+        self.embed.description = truncate_string(waifu.description, max_length=600)
+        self.embed.url = waifu.url
+        self.embed.set_image(url=waifu.display_picture)
+        return self.embed
+
 def get_owo(text: str) -> str:
     """Returns the input text in owo format."""
 
@@ -65,6 +85,7 @@ class AnimeCommands(commands.Cog):
 
     def __init__(self, client):
         self.client = client
+        self.waifu_list_api = MyWaifuListAPI()
 
     @commands.command(
         brief='Don\'t ask.',
@@ -163,38 +184,33 @@ class AnimeCommands(commands.Cog):
     @commands.command(
         brief='Gets a random waifu from mywaifulist.',
         category=RandomCategory,
-        hidden=True,
-        enabled=False
+        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
         async with ctx.typing():
-            waifu_id = None
+            api = self.waifu_list_api
+            waifus = []
+
             if selection is not None:
                 waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
+                if waifu_id:
+                    waifus.append(await api.fetch_waifu_by_id(waifu_id))
+                else:
+                    search_data = await api.search(selection)
+                    for search in search_data:
+                        if isinstance(search, WaifuSearchResult):
+                            waifus.append(search)
+                    if len(waifus) == 0:
+                        return await ctx.reply(embed=error("Search did not find any waifus!"))
+                    waifus.sort(key=lambda w: w.likes, reverse=True)
+            else:
+                waifus.append(await api.fetch_random_waifu())
 
-            if waifu_id is None:
-                parser = etree.HTMLParser()
-
-                async with await http.get(self.client, f"{MYWAIFULIST_API}/random") as response:
-                    initial_data = await response.text()
-                tree = etree.parse(StringIO(initial_data), parser)
-                waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
-
-            async with await http.get(self.client, f"{MYWAIFULIST_API}/api/waifu/{waifu_id}",
-                                      headers={"x-requested-with": "XMLHttpRequest"}) as response:
-                waifu_data = await response.json()
-            waifu_data = waifu_data["data"]
-
-            if waifu_data['nsfw']:
-                await ctx.reply(embed=error("Found waifu was NSFW!"))
-                return
-
-            embed = build_embed(title=waifu_data['name'], description=truncate_string(waifu_data['description']), url=waifu_data['url'])
-            embed.set_image(url=waifu_data['display_picture'])
-            await ctx.reply(embed=embed)
+            pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
+            return await pages.start()
 
     @commands.command(
         name="animedia",
