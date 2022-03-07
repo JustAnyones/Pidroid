@@ -1,6 +1,7 @@
 """Father, forgive me for these sins."""
 
 import asyncio
+from typing import List, Union
 import discord
 import random
 import re
@@ -8,9 +9,10 @@ import re
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
-from lxml import etree
-from io import StringIO
-
+from cogs.utils.embeds import create_embed
+from cogs.utils.paginators import ListPageSource, PidroidPages
+from cogs.models.waifuListApi import Waifu
+from cogs.models.waifuListApi import WaifuSearchResult
 from constants import JESSE_ID, THEOTOWN_GUILD
 from cogs.models.categories import RandomCategory
 from cogs.models.waifuListApi import MyWaifuListAPI
@@ -46,6 +48,26 @@ WAIFU_PICS_ENDPOINTS = [
     "bite", "glomp", "slap", "kill", "kick",
     "happy", "wink", "poke", "dance", "cringe"
 ]
+
+class WaifuCommandPaginator(ListPageSource):
+    def __init__(self, data: List[Union[WaifuSearchResult, Waifu]]):
+        super().__init__(data, per_page=1)
+        self.embed = create_embed()
+
+    async def format_page(self, menu: PidroidPages, waifu: Union[Waifu, WaifuSearchResult]):
+        self.embed.clear_fields()
+        if isinstance(waifu, WaifuSearchResult):
+            waifu = waifu.fetch_waifu()
+        self.embed.title = waifu.name
+        if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
+            self.embed.set_image(url="")
+            self.embed.description = 'this waifu is nsfw'
+            self.embed.url = None
+            return self.embed
+        self.embed.description = truncate_string(waifu.description)
+        self.embed.url = waifu.url
+        self.embed.set_image(url=waifu.display_picture)
+        return self.embed
 
 def get_owo(text: str) -> str:
     """Returns the input text in owo format."""
@@ -163,8 +185,7 @@ class AnimeCommands(commands.Cog):
     @commands.command(
         brief='Gets a random waifu from mywaifulist.',
         category=RandomCategory,
-        hidden=True,
-        enabled=False
+        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
@@ -172,23 +193,26 @@ class AnimeCommands(commands.Cog):
     async def waifu(self, ctx: Context, *, selection: str = None):
         async with ctx.typing():
             api = MyWaifuListAPI()
-            api.reauthorize()
-            waifu_data = None
+            waifus = []
 
             if selection is not None:
                 waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
-                waifu_data = api.fetch_waifu(waifu_id)
+                if waifu_id:
+                    waifus.append(api.fetch_waifu_by_id(waifu_id))
+                else:
+                    search_data = api.search(selection)
+                    for search in search_data:
+                        if isinstance(search, WaifuSearchResult):
+                            waifus.append(search)
+                    if len(waifus) == 0:
+                        await ctx.reply(embed=error("Search did not find any waifus!"))
+                        return
+                    waifus.sort(key=lambda w: w.likes, reverse=True)
+            else:
+                waifus.append(api.fetch_random_waifu())
 
-            if waifu_id is None:
-                waifu_data = api.fetch_random_waifu()
-
-            if waifu_data['nsfw']:
-                await ctx.reply(embed=error("Found waifu was NSFW!"))
-                return
-
-            embed = build_embed(title=waifu_data['name'], description=truncate_string(waifu_data['description']), url=waifu_data['url'])
-            embed.set_image(url=waifu_data['display_picture'])
-            await ctx.reply(embed=embed)
+            pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
+            return await pages.start()
 
     @commands.command(
         name="animedia",
