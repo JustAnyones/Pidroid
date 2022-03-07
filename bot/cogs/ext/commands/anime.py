@@ -1,10 +1,11 @@
 """Father, forgive me for these sins."""
 
 import asyncio
-from typing import List, Union
 import discord
 import random
 import re
+
+from typing import List, Union
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
@@ -203,8 +204,7 @@ class AnimeCommands(commands.Cog):
                         if isinstance(search, WaifuSearchResult):
                             waifus.append(search)
                     if len(waifus) == 0:
-                        await ctx.reply(embed=error("Search did not find any waifus!"))
-                        return
+                        return await ctx.reply(embed=error("Search did not find any waifus!"))
                     waifus.sort(key=lambda w: w.likes, reverse=True)
             else:
                 waifus.append(await api.fetch_random_waifu())

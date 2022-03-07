@@ -1,4 +1,5 @@
-from __future__ import annotations
+from __future__ import annotation
+
 import httpx
 import urllib.parse
 
@@ -190,13 +191,14 @@ class MyWaifuListAPI:
 
     async def _acquire_tokens_for_forgery(self) -> None:
         """Sends a GET request to dash page to acquire tokens for forgery."""
-        r = await self.client.get(BASE_URL + "/dash") # Because fuck you, that's why
+        r = await self.client.get(BASE_URL + "/dash")
         tree = etree.parse(StringIO(r.text), PARSER)
         self._xsrf_token = r.cookies["XSRF-TOKEN"]
         self._forever_alone_session = r.cookies["forever_alone_session"]
         self._csrf_token = tree.xpath("//meta[@name='csrf-token']")[0].attrib['content']
 
     async def reauthorize(self) -> None:
+        """Sends a GET request to dash page to acquire tokens for forgery."""
         await self._acquire_tokens_for_forgery()
 
     @property
@@ -238,14 +240,6 @@ class MyWaifuListAPI:
             "x-xsrf-token": urllib.parse.unquote(await self.xsrf_token)
         }
 
-    async def get_headers(self, json_as_string: bool = False) -> dict:
-        """Returns a modified copy of forged headers.
-        Mostly just an abstraction for dealing with crap POST request parameters."""
-        headers = (await self.forged_headers).copy()
-        if json_as_string:
-            headers.setdefault("Content-Type", "application/json")
-        return headers
-
     async def get(self, endpoint: str) -> Response:
         """Sends a GET request to Mywaifulist API endpoint."""
         r = await self.client.get(
@@ -275,11 +269,10 @@ class MyWaifuListAPI:
         """Returns a waifu by the specified ID."""
         if self.cache.get(id):
             return self.cache.get(id)
-        else:
-            r = await self.get(f"/waifu/{id}")
-            waifu = Waifu(r.json()["data"])
-            self.cache[id] = waifu
-            return waifu
+        r = await self.get(f"/waifu/{id}")
+        waifu = Waifu(r.json()["data"])
+        self.cache[id] = waifu
+        return waifu
 
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
