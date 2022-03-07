@@ -5,7 +5,7 @@ import urllib.parse
 from io import StringIO
 from lxml import etree
 from httpx._models import Response
-from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
+from typing import Any, TYPE_CHECKING, Optional, List, Union
 from enum import Enum
 
 def reformat_value(value) -> Optional[Any]:
@@ -14,6 +14,7 @@ def reformat_value(value) -> Optional[Any]:
     if value == 0 or value == "":
         return None
     return value
+
 
 PARSER = etree.HTMLParser()
 BASE_URL = "https://mywaifulist.moe"
@@ -49,6 +50,67 @@ class Birthday:
         self.year = reformat_value(year)
         self.month = reformat_value(month)
         self.day = reformat_value(day)
+
+class SearchResult:
+
+    if TYPE_CHECKING:
+        id: int
+        slug: str
+        type: ResultType
+        url: str
+
+        name: str
+        original_name: Optional[str]
+        romaji_name: Optional[str]
+        description: Optional[str]
+        display_picture: str
+
+        relevance: int
+        base: str
+        entity_type: EntityType
+
+    def __init__(self, data: dict) -> None:
+        self.id = data["id"]
+        self.slug = data["slug"]
+        self.type = ResultType(data["type"])
+        self.url = data["url"]
+
+        self.name = data["name"]
+        self.original_name = reformat_value(data["original_name"])
+        self.romaji_name = reformat_value(data["romaji_name"])
+        self.description = reformat_value(data["description"])
+        self.display_picture = data["display_picture"]
+
+        self.relevance = data["relevance"]
+        self.base = data["base"]
+        self.entity_type = EntityType(data["entity_type"])
+
+class SeriesSearchResult(SearchResult):
+
+    def __init__(self, data: dict) -> None:
+        super().__init__(data)
+
+class WaifuSearchResult(SearchResult):
+
+    if TYPE_CHECKING:
+        romaji: Optional[str]
+        likes: int
+        trash: int
+        series: Optional[list]
+        appearances: Optional[list]
+
+    def __init__(self, api: MyWaifuListAPI, data: dict) -> None:
+        super().__init__(data)
+        self._api = api
+        self.romaji = data["romaji"]
+        self.likes = data["likes"]
+        self.trash = data["trash"]
+        self.series = data["series"] # TODO: add specific class
+        self.appearances = data["appearances"] # TODO: add specific class
+
+    async def fetch_waifu(self) -> Waifu:
+        """Returns a full Waifu object by fetching the API."""
+        return await self._api.fetch_waifu_by_id(self.id)
 
 
 class Waifu:
@@ -231,64 +293,3 @@ class MyWaifuListAPI:
             else:
                 results.append(SearchResult(i))
         return results
-
-class SearchResult:
-
-    if TYPE_CHECKING:
-        id: int
-        slug: str
-        type: ResultType
-        url: str
-
-        name: str
-        original_name: Optional[str]
-        romaji_name: Optional[str]
-        description: Optional[str]
-        display_picture: str
-
-        relevance: int
-        base: str
-        entity_type: EntityType
-
-    def __init__(self, data: dict) -> None:
-        self.id = data["id"]
-        self.slug = data["slug"]
-        self.type = ResultType(data["type"])
-        self.url = data["url"]
-
-        self.name = data["name"]
-        self.original_name = reformat_value(data["original_name"])
-        self.romaji_name = reformat_value(data["romaji_name"])
-        self.description = reformat_value(data["description"])
-        self.display_picture = data["display_picture"]
-
-        self.relevance = data["relevance"]
-        self.base = data["base"]
-        self.entity_type = EntityType(data["entity_type"])
-
-class SeriesSearchResult(SearchResult):
-
-    def __init__(self, data: dict) -> None:
-        super().__init__(data)
-
-class WaifuSearchResult(SearchResult):
-
-    if TYPE_CHECKING:
-        romaji: Optional[str]
-        likes: int
-        trash: int
-        series: Optional[list]
-        appearances: Optional[list]
-
-    def __init__(self, api: MyWaifuListAPI, data: dict) -> None:
-        super().__init__(data)
-        self._api = api
-        self.romaji = data["romaji"]
-        self.likes = data["likes"]
-        self.trash = data["trash"]
-        self.series = data["series"] # TODO: add specific class
-        self.appearances = data["appearances"] # TODO: add specific class
-
-    async def fetch_waifu(self) -> Waifu:
-        """Returns a full Waifu object by fetching the API."""
-        return await self._api.fetch_waifu_by_id(self.id)

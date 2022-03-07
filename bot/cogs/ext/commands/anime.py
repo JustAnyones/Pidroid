@@ -1,8 +1,7 @@
 """Father, forgive me for these sins."""
 
 import asyncio
-from types import coroutine
-from typing import Coroutine, List, Union
+from typing import List, Union
 import discord
 import random
 import re
