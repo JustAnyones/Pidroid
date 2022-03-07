@@ -56,7 +56,6 @@ class WaifuCommandPaginator(ListPageSource):
         self.embed.clear_fields()
         if isinstance(waifu, WaifuSearchResult):
             waifu = await waifu.fetch_waifu()
-            print(waifu)
         self.embed.title = waifu.name
         if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
             self.embed.set_image(url="")
@@ -86,6 +85,7 @@ class AnimeCommands(commands.Cog):
 
     def __init__(self, client):
         self.client = client
+        self.waifu_list_api = MyWaifuListAPI()
 
     @commands.command(
         brief='Don\'t ask.',
@@ -191,7 +191,7 @@ class AnimeCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
         async with ctx.typing():
-            api = MyWaifuListAPI()
+            api = self.waifu_list_api
             waifus = []
 
             if selection is not None:

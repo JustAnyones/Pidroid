@@ -5,7 +5,7 @@ import urllib.parse
 from io import StringIO
 from lxml import etree
 from httpx._models import Response
-from typing import Any, TYPE_CHECKING, Optional, List, Union
+from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
 from enum import Enum
 
 def reformat_value(value) -> Optional[Any]:
@@ -124,6 +124,7 @@ class MyWaifuListAPI:
         self._csrf_token = None
         self._forever_alone_session = None
         self.client = httpx.AsyncClient(http2=True)
+        self.cache = {}
 
     async def _acquire_tokens_for_forgery(self) -> None:
         """Sends a GET request to dash page to acquire tokens for forgery."""
@@ -204,12 +205,19 @@ class MyWaifuListAPI:
         r = await self.client.get(f"{BASE_URL}/random", headers=await self.forged_headers, follow_redirects=True)
         tree = etree.parse(StringIO(r.text), PARSER)
         waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
-        return await self.fetch_waifu_by_id(waifu_id)
+        waifu = await self.fetch_waifu_by_id(waifu_id)
+        self.cache[waifu_id] = waifu
+        return waifu
 
     async def fetch_waifu_by_id(self, id: int) -> Waifu:
         """Returns a waifu by the specified ID."""
-        r = await self.get(f"/waifu/{id}")
-        return Waifu(r.json()["data"])
+        if self.cache.get(id):
+            return self.cache.get(id)
+        else:
+            r = await self.get(f"/waifu/{id}")
+            waifu = Waifu(r.json()["data"])
+            self.cache[id] = waifu
+            return waifu
 
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
