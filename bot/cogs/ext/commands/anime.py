@@ -9,16 +9,13 @@ import re
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
-from cogs.utils.embeds import create_embed
-from cogs.utils.paginators import ListPageSource, PidroidPages
-from cogs.models.waifuListApi import Waifu
-from cogs.models.waifuListApi import WaifuSearchResult
-from constants import JESSE_ID, THEOTOWN_GUILD
-from cogs.models.categories import RandomCategory
-from cogs.models.waifuListApi import MyWaifuListAPI
 from cogs.utils import http
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import create_embed, build_embed, error
+from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
+from cogs.models.waifuListApi import MyWaifuListAPI, Waifu, WaifuSearchResult
+from cogs.models.categories import RandomCategory
+from constants import JESSE_ID, THEOTOWN_GUILD
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
