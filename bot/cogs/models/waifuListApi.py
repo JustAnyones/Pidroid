@@ -15,6 +15,27 @@ def reformat_value(value) -> Optional[Any]:
         return None
     return value
 
+PARSER = etree.HTMLParser()
+BASE_URL = "https://mywaifulist.moe"
+API_URL = BASE_URL + "/api"
+
+class EntityType(Enum):
+    WAIFU = "waifu"
+    SERIES = "series"
+
+class ResultType(Enum):
+    WAIFU = "Waifu"
+    TV = "TV"
+    GAME = "Game"
+    MANGA = "Manga"
+    NOVEL = "Novel"
+    HUSTBANDO = "Husbando"
+    OVA = "OVA"
+    HENTAI = "Hentai"
+    MOVIE = "Movie"
+    ONA = "ONA"
+    SPECIAL = "Special"
+    UNKNOWN = None
 
 class Birthday:
     """This class represents birthday of a waifu."""
@@ -95,12 +116,6 @@ class Waifu:
         return f'<Waifu id={self.id} name="{self.name}">'
 
 
-PARSER = etree.HTMLParser()
-
-BASE_URL = "https://mywaifulist.moe"
-API_URL = BASE_URL + "/api"
-
-
 class MyWaifuListAPI:
 
     def __init__(self) -> None:
@@ -108,97 +123,97 @@ class MyWaifuListAPI:
         self._xsrf_token = None
         self._csrf_token = None
         self._forever_alone_session = None
-        self.client = httpx.Client(http2=True)
+        self.client = httpx.AsyncClient(http2=True)
 
-    def _acquire_tokens_for_forgery(self) -> None:
+    async def _acquire_tokens_for_forgery(self) -> None:
         """Sends a GET request to dash page to acquire tokens for forgery."""
-        r = self.client.get(BASE_URL + "/dash") # Because fuck you, that's why
+        r = await self.client.get(BASE_URL + "/dash") # Because fuck you, that's why
         tree = etree.parse(StringIO(r.text), PARSER)
         self._xsrf_token = r.cookies["XSRF-TOKEN"]
         self._forever_alone_session = r.cookies["forever_alone_session"]
         self._csrf_token = tree.xpath("//meta[@name='csrf-token']")[0].attrib['content']
 
-    def reauthorize(self) -> None:
-        self._acquire_tokens_for_forgery()
+    async def reauthorize(self) -> None:
+        await self._acquire_tokens_for_forgery()
 
     @property
-    def xsrf_token(self) -> str:
+    async def xsrf_token(self) -> str:
         """Returns XSRF token."""
         if self._xsrf_token is None:
-            self._acquire_tokens_for_forgery()
+            await self._acquire_tokens_for_forgery()
         return self._xsrf_token
 
     @property
-    def csrf_token(self) -> str:
+    async def csrf_token(self) -> str:
         """Returns CSRF token."""
         if self._csrf_token is None:
-            self._acquire_tokens_for_forgery()
+            await self._acquire_tokens_for_forgery()
         return self._csrf_token
 
     @property
-    def forever_alone_session(self) -> str:
+    async def forever_alone_session(self) -> str:
         """Returns some sort of token related to CSRF, no idea myself."""
         if self._forever_alone_session is None:
-            self._acquire_tokens_for_forgery()
+            await self._acquire_tokens_for_forgery()
         return self._forever_alone_session
 
     @property
-    def forged_cookies(self) -> dict:
+    async def forged_cookies(self) -> dict:
         """Forged cookies for making API calls."""
         return {
-            "XSRF-TOKEN": self.xsrf_token,
-            "forever_alone_session": self.forever_alone_session
+            "XSRF-TOKEN": await self.xsrf_token,
+            "forever_alone_session": await self.forever_alone_session
         }
 
     @property
-    def forged_headers(self) -> dict:
+    async def forged_headers(self) -> dict:
         """Forged headers for making API calls."""
         return {
             "x-requested-with": "XMLHttpRequest",
             "Referer": "https://mywaifulist.moe/dash",
-            "x-csrf-token": self.csrf_token,
-            "x-xsrf-token": urllib.parse.unquote(self.xsrf_token)
+            "x-csrf-token": await self.csrf_token,
+            "x-xsrf-token": urllib.parse.unquote(await self.xsrf_token)
         }
 
-    def get_headers(self, json_as_string: bool = False) -> dict:
+    async def get_headers(self, json_as_string: bool = False) -> dict:
         """Returns a modified copy of forged headers.
         Mostly just an abstraction for dealing with crap POST request parameters."""
-        headers = self.forged_headers.copy()
+        headers = (await self.forged_headers).copy()
         if json_as_string:
             headers.setdefault("Content-Type", "application/json")
         return headers
 
-    def get(self, endpoint: str) -> Response:
+    async def get(self, endpoint: str) -> Response:
         """Sends a GET request to Mywaifulist API endpoint."""
-        r = self.client.get(
+        r = await self.client.get(
             API_URL + endpoint,
-            headers=self.forged_headers, cookies=self.forged_cookies
+            headers=await self.forged_headers, cookies=await self.forged_cookies
         )
         return r
 
-    def post(self, endpoint: str, json: dict) -> Response:
+    async def post(self, endpoint: str, json: dict) -> Response:
         """Sends a POST request to Mywaifulist API endpoint."""
-        r = self.client.post(
+        r = await self.client.post(
             API_URL + endpoint, json=json,
-            headers=self.forged_headers, cookies=self.forged_cookies
+            headers=await self.forged_headers, cookies=await self.forged_cookies
         )
         return r
 
-    def fetch_random_waifu(self) -> Waifu:
+    async def fetch_random_waifu(self) -> Waifu:
         """Returns a random waifu."""
-        r = self.client.get(f"{BASE_URL}/random", headers=self.forged_headers, follow_redirects=True)
+        r = await self.client.get(f"{BASE_URL}/random", headers=await self.forged_headers, follow_redirects=True)
         tree = etree.parse(StringIO(r.text), PARSER)
         waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
-        return self.fetch_waifu_by_id(waifu_id)
+        return await self.fetch_waifu_by_id(waifu_id)
 
-    def fetch_waifu_by_id(self, id: int) -> Waifu:
+    async def fetch_waifu_by_id(self, id: int) -> Waifu:
         """Returns a waifu by the specified ID."""
-        r = self.get(f"/waifu/{id}")
+        r = await self.get(f"/waifu/{id}")
         return Waifu(r.json()["data"])
 
-    def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
+    async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
-        r = self.post("/waifu/search", {"query": query})
+        r = await self.post("/waifu/search", {"query": query})
         results = []
         for i in r.json():
             if i["entity_type"] == "waifu":
@@ -208,23 +223,6 @@ class MyWaifuListAPI:
             else:
                 results.append(SearchResult(i))
         return results
-
-class EntityType(Enum):
-    WAIFU = "waifu"
-    SERIES = "series"
-
-class ResultType(Enum):
-    WAIFU = "Waifu"
-    TV = "TV"
-    GAME = "Game"
-    MANGA = "Manga"
-    NOVEL = "Novel"
-    HUSTBANDO = "Husbando"
-    OVA = "OVA"
-    HENTAI = "Hentai"
-    MOVIE = "Movie"
-    ONA = "ONA"
-    UNKNOWN = None
 
 class SearchResult:
 
@@ -283,6 +281,6 @@ class WaifuSearchResult(SearchResult):
         self.series = data["series"] # TODO: add specific class
         self.appearances = data["appearances"] # TODO: add specific class
 
-    def fetch_waifu(self) -> Waifu:
+    async def fetch_waifu(self) -> Waifu:
         """Returns a full Waifu object by fetching the API."""
-        return self._api.fetch_waifu_by_id(self.id)
+        return await self._api.fetch_waifu_by_id(self.id)

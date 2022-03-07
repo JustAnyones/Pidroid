@@ -1,7 +1,8 @@
 """Father, forgive me for these sins."""
 
 import asyncio
-from typing import List, Union
+from types import coroutine
+from typing import Coroutine, List, Union
 import discord
 import random
 import re
@@ -54,14 +55,15 @@ class WaifuCommandPaginator(ListPageSource):
     async def format_page(self, menu: PidroidPages, waifu: Union[Waifu, WaifuSearchResult]):
         self.embed.clear_fields()
         if isinstance(waifu, WaifuSearchResult):
-            waifu = waifu.fetch_waifu()
+            waifu = await waifu.fetch_waifu()
+            print(waifu)
         self.embed.title = waifu.name
         if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
             self.embed.set_image(url="")
             self.embed.description = 'this waifu is nsfw'
             self.embed.url = None
             return self.embed
-        self.embed.description = truncate_string(waifu.description)
+        self.embed.description = truncate_string(waifu.description, max_length=600)
         self.embed.url = waifu.url
         self.embed.set_image(url=waifu.display_picture)
         return self.embed
@@ -195,9 +197,9 @@ class AnimeCommands(commands.Cog):
             if selection is not None:
                 waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
                 if waifu_id:
-                    waifus.append(api.fetch_waifu_by_id(waifu_id))
+                    waifus.append(await api.fetch_waifu_by_id(waifu_id))
                 else:
-                    search_data = api.search(selection)
+                    search_data = await api.search(selection)
                     for search in search_data:
                         if isinstance(search, WaifuSearchResult):
                             waifus.append(search)
@@ -206,7 +208,7 @@ class AnimeCommands(commands.Cog):
                         return
                     waifus.sort(key=lambda w: w.likes, reverse=True)
             else:
-                waifus.append(api.fetch_random_waifu())
+                waifus.append(await api.fetch_random_waifu())
 
             pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
             return await pages.start()
