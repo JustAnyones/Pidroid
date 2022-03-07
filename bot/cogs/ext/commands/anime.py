@@ -15,7 +15,7 @@ from cogs.utils import http
 from cogs.utils.embeds import create_embed, build_embed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
-from cogs.models.waifuListApi import MyWaifuListAPI, Waifu, WaifuSearchResult
+from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from cogs.models.categories import RandomCategory
 
 NEKO_API = "https://nekos.life/api/v2"
