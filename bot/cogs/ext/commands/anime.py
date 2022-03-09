@@ -56,12 +56,13 @@ class WaifuCommandPaginator(ListPageSource):
         self.embed.clear_fields()
         if isinstance(waifu, WaifuSearchResult):
             waifu = await waifu.fetch_waifu()
-        self.embed.title = waifu.name
         if waifu.is_nsfw and not menu.ctx.channel.is_nsfw():
+            self.embed.title = waifu.name + " [NSFW]"
             self.embed.set_image(url="")
             self.embed.description = 'This waifu is tagged as NSFW. In order to view the waifu, please use the command in an age-restricted channel.'
             self.embed.url = None
             return self.embed
+        self.embed.title = waifu.name
         self.embed.description = truncate_string(waifu.description, max_length=600)
         self.embed.url = waifu.url
         self.embed.set_image(url=waifu.display_picture)
