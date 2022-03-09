@@ -277,6 +277,7 @@ class MyWaifuListAPI:
 
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
+        query = query.lower()
         if self.search_cache.get(query):
             return self.search_cache.get(query)
         r = await self.post("/waifu/search", {"query": query})
