@@ -187,7 +187,8 @@ class MyWaifuListAPI:
         self._csrf_token = None
         self._forever_alone_session = None
         self.client = httpx.AsyncClient(http2=True)
-        self.cache = {}
+        self.search_cache = {}
+        self.waifu_cache = {}
 
     async def _acquire_tokens_for_forgery(self) -> None:
         """Sends a GET request to dash page to acquire tokens for forgery."""
@@ -262,18 +263,22 @@ class MyWaifuListAPI:
         tree = etree.parse(StringIO(r.text), PARSER)
         waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
         waifu = await self.fetch_waifu_by_id(waifu_id)
-        self.cache[waifu_id] = waifu
         return waifu
 
     async def fetch_waifu_by_id(self, id: int) -> Waifu:
         """Returns a waifu by the specified ID."""
+        if self.waifu_cache.get(id):
+            return self.waifu_cache.get(id)
+
         r = await self.get(f"/waifu/{id}")
-        return Waifu(r.json()["data"])
+        waifu = Waifu(r.json()["data"])
+        self.waifu_cache[id] = waifu
+        return waifu
 
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
-        if self.cache.get(query):
-            return self.cache.get(query)
+        if self.search_cache.get(query):
+            return self.search_cache.get(query)
         r = await self.post("/waifu/search", {"query": query})
         results = []
         for i in r.json():
@@ -283,5 +288,5 @@ class MyWaifuListAPI:
                 results.append(SeriesSearchResult(i))
             else:
                 results.append(SearchResult(i))
-        self.cache[query] = results
+        self.search_cache[query] = results
         return results
