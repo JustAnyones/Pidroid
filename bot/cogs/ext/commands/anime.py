@@ -191,6 +191,9 @@ class AnimeCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
         async with ctx.typing():
+            if len(selection) < 2:
+                return await ctx.reply(embed=error("Your selection must be at least 2 characters long!"))
+
             api = self.waifu_list_api
             waifus = []
 
