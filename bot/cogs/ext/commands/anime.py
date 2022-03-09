@@ -190,30 +190,34 @@ class AnimeCommands(commands.Cog):
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
-        async with ctx.typing():
+        api = self.waifu_list_api
+        waifus = []
 
-            api = self.waifu_list_api
-            waifus = []
+        if selection is not None:
+            if len(selection) < 2:
+                return await ctx.reply(embed=error("Your selection must be at least 2 characters long!"))
+            waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
+            if waifu_id:
+                waifus.append(await api.fetch_waifu_by_id(waifu_id))
 
-            if selection is not None:
-                if len(selection) < 2:
-                    return await ctx.reply(embed=error("Your selection must be at least 2 characters long!"))
-                waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
-                if waifu_id:
-                    waifus.append(await api.fetch_waifu_by_id(waifu_id))
-                else:
-                    search_data = await api.search(selection)
-                    for search in search_data:
-                        if isinstance(search, WaifuSearchResult):
-                            waifus.append(search)
-                    if len(waifus) == 0:
-                        return await ctx.reply(embed=error("Search did not find any waifus!"))
-                    waifus.sort(key=lambda w: w.likes, reverse=True)
             else:
-                waifus.append(await api.fetch_random_waifu())
+                search_data = api.search_cache.get(selection)
+                if search_data is None:
+                    async with ctx.typing():
+                        search_data = await api.search(selection)
 
-            pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
-            return await pages.start()
+                for search in search_data:
+                    if isinstance(search, WaifuSearchResult):
+                        waifus.append(search)
+
+                if len(waifus) == 0:
+                    return await ctx.reply(embed=error("Search did not find any waifus!"))
+                waifus.sort(key=lambda w: w.likes, reverse=True)
+        else:
+            waifus.append(await api.fetch_random_waifu())
+
+        pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
+        return await pages.start()
 
     @commands.command(
         name="animedia",
