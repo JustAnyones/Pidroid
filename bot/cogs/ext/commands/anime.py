@@ -62,12 +62,15 @@ class WaifuCommandPaginator(ListPageSource):
                 self.embed.set_image(url="")
                 self.embed.description = 'This waifu is tagged as NSFW. In order to view the waifu, please use the command in an age-restricted channel.'
                 self.embed.url = None
+                self.embed.set_footer(text=None)
                 return self.embed
         else:
             self.embed.title = waifu.name
         self.embed.description = truncate_string(waifu.description, max_length=600)
         self.embed.url = waifu.url
         self.embed.set_image(url=waifu.display_picture)
+        if waifu.series:
+            self.embed.set_footer(text='Appears in: ' + waifu.series['name'])
         return self.embed
 
 def get_owo(text: str) -> str:
