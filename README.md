@@ -1,4 +1,4 @@
-# Pidroid [![CodeFactor](https://www.codefactor.io/repository/github/justanyones/pidroid/badge)](https://www.codefactor.io/repository/github/justanyones/pidroid)
+# Pidroid
 
 Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [discord.py](https://github.com/Rapptz/discord.py) wrapper.
 
