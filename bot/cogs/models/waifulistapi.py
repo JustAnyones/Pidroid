@@ -267,15 +267,13 @@ class MyWaifuListAPI:
 
     async def fetch_waifu_by_id(self, id: int) -> Waifu:
         """Returns a waifu by the specified ID."""
-        if self.cache.get(id):
-            return self.cache.get(id)
         r = await self.get(f"/waifu/{id}")
-        waifu = Waifu(r.json()["data"])
-        self.cache[id] = waifu
-        return waifu
+        return Waifu(r.json()["data"])
 
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
+        if self.cache.get(query):
+            return self.cache.get(query)
         r = await self.post("/waifu/search", {"query": query})
         results = []
         for i in r.json():
@@ -285,4 +283,5 @@ class MyWaifuListAPI:
                 results.append(SeriesSearchResult(i))
             else:
                 results.append(SearchResult(i))
+        self.cache[query] = results
         return results
