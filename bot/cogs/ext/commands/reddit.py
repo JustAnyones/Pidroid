@@ -25,7 +25,7 @@ def assure_content_rating(ctx: Context, content: typing.Union[Submission, Subred
         return
 
     if isinstance(content, Subreddit):
-        if content.over18:
+        if content.over18 or content.display_name == 'Keqing':
             raise BadArgument('Specified subreddit is NSFW. Please browse such subreddits in NSFW channels!')
 
     if isinstance(content, Submission):
