@@ -14,6 +14,9 @@ from cogs.utils.embeds import build_embed, error
 from cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
+UNMARKED_NSFW_SUBREDDITS = [
+    'keqing'
+]
 
 async def get_random_submission(subreddit: Subreddit, limit: int = 50) -> Submission:
     """Returns a random submission from hot subreddit submissions."""
@@ -25,7 +28,7 @@ def assure_content_rating(ctx: Context, content: typing.Union[Submission, Subred
         return
 
     if isinstance(content, Subreddit):
-        if content.over18 or content.display_name == 'Keqing':
+        if content.over18 or content.display_name.lower() in UNMARKED_NSFW_SUBREDDITS:
             raise BadArgument('Specified subreddit is NSFW. Please browse such subreddits in NSFW channels!')
 
     if isinstance(content, Submission):
