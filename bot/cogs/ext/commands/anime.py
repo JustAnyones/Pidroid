@@ -27,16 +27,6 @@ NEKO_ENDPOINTS = [
     'woof', 'baka'
 ]
 
-# It's lazy, but I don't care
-MYWAIFULIST_DATA = {
-    'rem': 41,
-    'best girl': 41,
-    'astolfo': 2022,
-    'monika': 8142,
-    'ganyu': 33593,
-    'miku': 11896
-}
-
 WAIFU_PICS_API = "https://api.waifu.pics/sfw"
 WAIFU_PICS_ENDPOINTS = [
     "bully", "cuddle", "cry", "hug", "awoo",
@@ -197,14 +187,14 @@ class AnimeCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: str = None):
         api = self.waifu_list_api
-        waifus = []
 
+        waifus = []
         if selection is not None:
             if len(selection) < 2:
                 return await ctx.reply(embed=error("Your selection must be at least 2 characters long!"))
-            waifu_id = MYWAIFULIST_DATA.get(selection.lower(), None)
-            if waifu_id:
-                waifus.append(await api.fetch_waifu_by_id(waifu_id))
+
+            if selection.lower() == "best girl":
+                waifus.append(await api.fetch_waifu_by_id(41))
 
             else:
                 search_data = api.search_cache.get(selection)
