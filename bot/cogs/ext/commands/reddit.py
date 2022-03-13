@@ -29,11 +29,11 @@ def assure_content_rating(ctx: Context, content: typing.Union[Submission, Subred
 
     if isinstance(content, Subreddit):
         if content.over18 or content.display_name.lower() in UNMARKED_NSFW_SUBREDDITS:
-            raise BadArgument('Specified subreddit is NSFW. Please browse such subreddits in NSFW channels!')
+            raise BadArgument('Specified subreddit is age-restricted. Please browse such subreddits in age-restricted channels!')
 
     if isinstance(content, Submission):
         if content.over_18:
-            raise BadArgument('Found submission was NSFW. Please try again or browse similiar content in NSFW channels!')
+            raise BadArgument('Found submission was age-restricted. Please try again or browse similiar content in age-restricted channels!')
 
 def get_author_name(sub: Submission) -> str:
     """Returns the name of the author."""
