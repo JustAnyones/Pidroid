@@ -18,9 +18,14 @@ class InvocationEventHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """This notifies the host of the bot that the client is ready to use."""
+        self.annoy_erk = self.client.loop.create_task(self.client.annoy_erksmit())
         await self._fill_guild_config_cache()
         print(f'{self.client.user.name} bot (build {self.client.full_version}) has started with the ID of {self.client.user.id}')
         await self.client.change_presence(activity=Game("TheoTown"))
+
+    def cog_unload(self) -> None:
+        """Ensure that tasks are cancelled on cog unload."""
+        self.annoy_erk.cancel()
 
     async def _fill_guild_config_cache(self):
         self.log.debug("Filling guild configuration cache")

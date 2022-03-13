@@ -25,32 +25,7 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
-def troll_erk():
-    import subprocess
-    import random
-
-    urls = [
-        "https://nekobot.xyz/imagegen/a/a/c/857b16eddc3c22a65b78e8d431a22.mp4",
-        "https://www.youtube.com/watch?v=veaKOM1HYAw",
-        "https://www.youtube.com/watch?v=UIp6_0kct_U",
-        "https://www.youtube.com/watch?v=h_JJm5ETNSA"
-    ]
-
-    if sys.platform == "win32":
-        r = subprocess.run('powershell [Environment]::UserName', capture_output=True)
-
-        user_name = r.stdout.decode("utf-8").strip()
-        has_tt_folder = os.path.exists(os.path.join(os.environ["userprofile"], "TheoTown"))
-
-        # We do a miniscule amount of trolling
-        if user_name == "eriks" and has_tt_folder:
-            subprocess.run([
-                'powershell',
-                f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")'
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
 def main():  # noqa: C901
-    troll_erk()
 
     # Create directories in case they don't exist
     if not os.path.exists(DATA_FILE_PATH):

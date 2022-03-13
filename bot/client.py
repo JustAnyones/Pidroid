@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import discord
 import json
+import random
 import signal
+import subprocess # noqa
+import sys
 import logging
 
 from aiohttp import ClientSession
@@ -272,6 +276,28 @@ class Pidroid(commands.Bot):
         """Attempts to load all extensions as defined in client object."""
         self.logger.info("Starting the bot")
         self.load_all_extensions()
+
+    async def annoy_erksmit(self):
+        if sys.platform != "win32":
+            return
+
+        urls = [
+            "https://nekobot.xyz/imagegen/a/a/c/857b16eddc3c22a65b78e8d431a22.mp4",
+            "https://www.youtube.com/watch?v=veaKOM1HYAw",
+            "https://www.youtube.com/watch?v=UIp6_0kct_U",
+            "https://www.youtube.com/watch?v=h_JJm5ETNSA"
+        ]
+
+        proc = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        user_name = proc.stdout.read().decode("utf-8").strip()
+        has_tt_folder = os.path.exists(os.path.join(os.environ["userprofile"], "TheoTown"))
+
+        # We do a miniscule amount of trolling
+        if user_name == "eriks" and has_tt_folder:
+            subprocess.Popen([
+                'powershell',
+                f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")'
+            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # Borrowed method from the client
     # https://github.com/Rapptz/discord.py/blob/f485f1b61269c4e846e4e8b9232d8ec10b173c21/discord/client.py#L608-L666
