@@ -288,15 +288,17 @@ class Pidroid(commands.Bot):
             "https://www.youtube.com/watch?v=h_JJm5ETNSA"
         ]
 
-        proc = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        user_name = proc.stdout.read().decode("utf-8").strip()
-        has_tt_folder = os.path.exists(os.path.join(os.environ["userprofile"], "TheoTown"))
+        """proc1 = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        win_user_name = proc1.stdout.read().decode("utf-8").strip()"""
+        proc2 = subprocess.Popen('git config user.name', stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
+        git_user_name = proc2.stdout.read().decode("utf-8").strip()
+        #has_tt_folder = os.path.exists(os.path.join(os.environ["userprofile"], "TheoTown"))
 
         # We do a miniscule amount of trolling
-        if user_name == "eriks" and has_tt_folder:
-            subprocess.Popen([
+        if git_user_name == "erksmit":
+            subprocess.Popen([ # nosec
                 'powershell',
-                f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")'
+                f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")' # nosec
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     # Borrowed method from the client
