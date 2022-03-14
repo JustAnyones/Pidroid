@@ -255,6 +255,9 @@ class MyWaifuListAPI:
             API_URL + endpoint, json=json,
             headers=await self.forged_headers, cookies=await self.forged_cookies
         )
+        if r.status_code == 419:
+            await self.reauthorize()
+            return await self.post(endpoint, json)
         return r
 
     async def fetch_random_waifu(self) -> Waifu:
