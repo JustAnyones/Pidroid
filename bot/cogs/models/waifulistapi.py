@@ -9,6 +9,8 @@ from httpx._models import Response
 from typing import Any, TYPE_CHECKING, Optional, List, Union
 from enum import Enum
 
+from cogs.models.exceptions import APIException
+
 def reformat_value(value) -> Optional[Any]:
     """Fixes any API response values which are empty strings or an integer of 0 to None.
     Otherwise, returns the original value."""
@@ -249,16 +251,15 @@ class MyWaifuListAPI:
         )
         return r
 
-    async def post(self, endpoint: str, json: dict, attempts=0) -> Response:
+    async def post(self, endpoint: str, json: dict, attempts: int = 0) -> Response:
         """Sends a POST request to Mywaifulist API endpoint."""
         r = await self.client.post(
             API_URL + endpoint, json=json,
             headers=await self.forged_headers, cookies=await self.forged_cookies
         )
-        r.status_code = 419
         if r.status_code == 419:
             if attempts > 2:
-                raise Exception('Re-authorization attempts failed too many times')
+                raise APIException('Re-authorization attempts failed too many times')
             await self.reauthorize()
             return await self.post(endpoint, json, attempts + 1)
         return r

@@ -15,8 +15,9 @@ from cogs.utils import http
 from cogs.utils.embeds import create_embed, build_embed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
-from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from cogs.models.categories import RandomCategory
+from cogs.models.exceptions import APIException
+from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
@@ -202,7 +203,7 @@ class AnimeCommands(commands.Cog):
                     async with ctx.typing():
                         try:
                             search_data = await api.search(selection)
-                        except Exception:
+                        except APIException:
                             return await ctx.reply(embed=error("Re-authorization attempts failed too many times!"))
 
                 for search in search_data:
