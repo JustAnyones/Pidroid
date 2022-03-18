@@ -203,8 +203,8 @@ class AnimeCommands(commands.Cog):
                     async with ctx.typing():
                         try:
                             search_data = await api.search(selection)
-                        except APIException:
-                            return await ctx.reply(embed=error("Re-authorization attempts failed too many times!"))
+                        except APIException as e:
+                            return await ctx.reply(embed=error(str(e)))
 
                 for search in search_data:
                     if isinstance(search, WaifuSearchResult):
