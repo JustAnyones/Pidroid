@@ -259,7 +259,7 @@ class MyWaifuListAPI:
         )
         if r.status_code == 419:
             if attempts > 2:
-                raise APIException('Re-authorization attempts failed too many times')
+                raise APIException('Re-authorization attempts have failed. Try again later.')
             await self.reauthorize()
             return await self.post(endpoint, json, attempts + 1)
         return r
