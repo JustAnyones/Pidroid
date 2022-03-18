@@ -249,15 +249,18 @@ class MyWaifuListAPI:
         )
         return r
 
-    async def post(self, endpoint: str, json: dict) -> Response:
+    async def post(self, endpoint: str, json: dict, attempts=0) -> Response:
         """Sends a POST request to Mywaifulist API endpoint."""
         r = await self.client.post(
             API_URL + endpoint, json=json,
             headers=await self.forged_headers, cookies=await self.forged_cookies
         )
+        r.status_code = 419
         if r.status_code == 419:
+            if attempts > 2:
+                raise Exception('Re-authorization attempts failed too many times')
             await self.reauthorize()
-            return await self.post(endpoint, json)
+            return await self.post(endpoint, json, attempts + 1)
         return r
 
     async def fetch_random_waifu(self) -> Waifu:
