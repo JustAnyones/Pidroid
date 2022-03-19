@@ -15,8 +15,9 @@ from cogs.utils import http
 from cogs.utils.embeds import create_embed, build_embed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
-from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from cogs.models.categories import RandomCategory
+from cogs.models.exceptions import APIException
+from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
@@ -200,7 +201,10 @@ class AnimeCommands(commands.Cog):
                 search_data = api.search_cache.get(selection)
                 if search_data is None:
                     async with ctx.typing():
-                        search_data = await api.search(selection)
+                        try:
+                            search_data = await api.search(selection)
+                        except APIException as e:
+                            return await ctx.reply(embed=error(str(e)))
 
                 for search in search_data:
                     if isinstance(search, WaifuSearchResult):
