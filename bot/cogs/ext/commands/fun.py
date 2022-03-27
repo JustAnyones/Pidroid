@@ -1,6 +1,5 @@
 import asyncio
 import discord
-import os
 import random
 
 from datetime import datetime
@@ -229,58 +228,6 @@ class FunCommands(commands.Cog):
         while vc.is_playing():
             await asyncio.sleep(0.01)
         await vc.disconnect()
-
-    @commands.command(
-        brief='Submits a shitpost idea for ocassional Pidroid shitposts.',
-        usage='[shitpost message]',
-        category=RandomCategory,
-        hidden=True
-    )
-    @commands.bot_has_permissions(send_messages=True)  # kind of obsolete too
-    @commands.cooldown(rate=1, per=25, type=commands.BucketType.user)
-    async def suggestshit(self, ctx: Context, *, text: str = None):
-        async with ctx.typing():
-            if text is None:
-                text = '*Suggestor provided no description!*'
-
-            if len(text) > 2048:
-                await ctx.reply(embed=error('Man, your shitpost is longer than my copypastas, let\'s trim it down next time, eh?'))
-                self.suggestshit.reset_cooldown(ctx)
-                return
-
-            channel = self.client.get_channel(826456482262024242)
-            embed = PidroidEmbed(description=text)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
-
-            attachments = ctx.message.attachments
-            shitpost_file = None
-            if attachments:
-
-                if len(attachments) > 1:
-                    await ctx.reply(embed=error("I will only accept one file attached at a time!"))
-                    self.suggestshit.reset_cooldown(ctx)
-                    return
-
-                attachment = attachments[0]
-                if attachment.size >= 7000000:
-                    await ctx.reply(embed=error('Your attachment is over 7 MB big! I can\'t use that!'))
-                    self.suggestshit.reset_cooldown(ctx)
-                    return
-
-                filename = attachment.filename
-                extension = os.path.splitext(filename)[1]
-                if extension.lower() not in ['.png', '.jpg', '.jpeg', '.gif', '.mp4', '.mov', '.webp', '.webm']:
-                    await ctx.reply(
-                        embed=error('Could not submit a your shitpost, because provided shitpost was in an unsupported file extension.')
-                    )
-                    self.suggestshit.reset_cooldown(ctx)
-                    return
-
-                shitpost_file = await attachment.to_file() or None
-
-            await channel.send(embed=embed, file=shitpost_file)
-            await ctx.reply('Your shitpost idea has been successfully submitted!')
-
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(FunCommands(client))

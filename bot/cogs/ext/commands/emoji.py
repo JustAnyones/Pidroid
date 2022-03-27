@@ -1,6 +1,5 @@
 import discord
 import re
-import typing
 
 from discord.emoji import Emoji
 from discord.errors import HTTPException
@@ -9,6 +8,7 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
+from typing import Optional, Union, List
 
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
@@ -18,14 +18,14 @@ from cogs.utils.embeds import PidroidEmbed, error
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 
 
-def get_message_emojis(message: Message) -> typing.List[PartialEmoji]:
+def get_message_emojis(message: Message) -> List[PartialEmoji]:
     """Returns a list of PartialEmoji found in a message."""
     emojis = get_custom_emojis(message.clean_content)
     if len(emojis) == 0:
         raise BadArgument("I was not able to find any custom emojis in the referenced message!")
     return emojis
 
-def get_custom_emojis(string: str) -> typing.List[PartialEmoji]:
+def get_custom_emojis(string: str) -> List[PartialEmoji]:
     """Returns a list of PartialEmoji found in a string."""
     emoji_list = re.findall(EMOJI_FIND_PATTERN, string)
     if len(emoji_list) == 0:
@@ -40,11 +40,11 @@ def create_partial_emoji(name: str, animated: bool, emoji_id: int) -> PartialEmo
     """Creates a PartialEmoji object from passed parameters."""
     return PartialEmoji(name=name, animated=animated, id=emoji_id)
 
-def mention_emoji(emoji: typing.Union[Emoji, PartialEmoji]) -> str:
+def mention_emoji(emoji: Union[Emoji, PartialEmoji]) -> str:
     """Returns a string which can be used to mention an emoji."""
     return f"<{'a' if emoji.animated else ''}:{emoji.name}:{emoji.id}>"
 
-def get_emoji_name(emoji: typing.Union[Emoji, PartialEmoji]) -> str:
+def get_emoji_name(emoji: Union[Emoji, PartialEmoji]) -> str:
     """Returns a string which can be used to display emoji name with colons."""
     return f":\N{zero width space}{emoji.name}\N{zero width space}:"
 
@@ -79,7 +79,7 @@ class EmojiCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, manage_emojis=True)
     @commands.has_permissions(manage_emojis=True)
     @commands.guild_only()
-    async def steal_emoji(self, ctx: Context, message: typing.Optional[Message], emoji_index: int = -1):
+    async def steal_emoji(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
@@ -118,7 +118,7 @@ class EmojiCommands(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def get_emojis(self, ctx: Context, message: typing.Optional[Message], emoji_index: int = -1):
+    async def get_emojis(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 

@@ -60,7 +60,7 @@ class ModeratorInfoCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def warnings(self, ctx: Context, user: Optional[Union[discord.Member, discord.User]], amount: str = 'none'):
+    async def warnings(self, ctx: Context, user: Union[discord.Member, discord.User] = None, amount: str = 'none'):
         user = user or ctx.author
 
         error_msg = "I could not find any warnings for you!"
@@ -89,7 +89,7 @@ class ModeratorInfoCommands(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def modlogs(self, ctx: Context, *, user: Optional[Union[discord.Member, discord.User]]):
+    async def modlogs(self, ctx: Context, *, user: Union[discord.Member, discord.User] = None):
         user = user or ctx.author
 
         error_msg = "I could not find any modlogs related to you!"
@@ -117,7 +117,7 @@ class ModeratorInfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def modstats(self, ctx: Context, *, member: Optional[discord.Member]):
+    async def modstats(self, ctx: Context, *, member: discord.Member = None):
         member = member or ctx.author
         bans = kicks = jails = warnings = 0
         user_data, guild_total = await self.api.get_moderation_statistics(ctx.guild.id, member.id)
