@@ -11,7 +11,7 @@ from discord.ext.commands.errors import BadArgument
 from typing import List, Union
 
 from client import Pidroid
-from constants import JESSE_ID, PIDROID_ID, THEOTOWN_GUILD
+from constants import JESSE_ID, THEOTOWN_GUILD
 from cogs.utils import http
 from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
@@ -237,7 +237,7 @@ class AnimeCommands(commands.Cog):
         async with await http.get(self.client, f"{WAIFU_PICS_API}/{endpoint}") as r:
             data = await r.json()
 
-        embed = PIDROID_ID()
+        embed = PidroidEmbed()
         embed.title = f"Endpoint: {endpoint}"
         embed.set_image(url=data["url"])
         await ctx.reply(embed=embed)
