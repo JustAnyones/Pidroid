@@ -134,5 +134,5 @@ class CopypastaEventHandler(commands.Cog):
                     )
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(CopypastaEventHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(CopypastaEventHandler(client))

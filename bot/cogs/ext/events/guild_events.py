@@ -80,5 +80,5 @@ class GuildEventHandler(commands.Cog):
             await config.update_jail_channel(None)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(GuildEventHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(GuildEventHandler(client))

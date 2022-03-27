@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord.errors import InvalidArgument
+from discord.ext.commands import BadArgument
 from discord.ext.commands.context import Context
 
 from constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN
@@ -46,7 +46,7 @@ class command_checks:
         """Checks whether the command is invoked in a guild with Pidroid configuration."""
         async def predicate(ctx: Context):
             if not guild_has_configuration(ctx.bot, ctx.guild):
-                raise InvalidArgument('Server does not have a moderation system set up!')
+                raise BadArgument('Server does not have a moderation system set up!')
             return True
         return commands.check(predicate)
 
@@ -115,10 +115,3 @@ class command_checks:
                 raise ClientIsNotPidroid
             return True
         return commands.check(predicate)
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

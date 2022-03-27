@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List, Optional
 from cogs.models.categories import UtilityCategory
 from cogs.utils.checks import has_moderator_permissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import create_embed, error, success
+from cogs.utils.embeds import PidroidEmbed, error, success
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = ["create", "edit", "remove", "claim", "transfer", "list", "info"]
@@ -182,7 +182,7 @@ class TagCommands(commands.Cog):
         if len(guild_tags) == 0:
             raise BadArgument("This server has no defined tags!")
 
-        embed = create_embed()
+        embed = PidroidEmbed()
         embed.title = f"{escape_markdown(ctx.guild.name)} server tags"
         embed.description = f'({len(guild_tags)}) **' + '**, **'.join([t.name for t in guild_tags]) + '**'
         await ctx.reply(embed=embed)
@@ -199,7 +199,7 @@ class TagCommands(commands.Cog):
 
         user = await self.client.get_or_fetch_user(tag.author_id)
 
-        embed = create_embed(title=tag.name, description=tag.content)
+        embed = PidroidEmbed(title=tag.name, description=tag.content)
         if user:
             embed.add_field(name="Tag owner", value=user.mention)
         embed.add_field(name="Date created", value=format_dt(tag._id.generation_time))
@@ -324,5 +324,5 @@ class TagCommands(commands.Cog):
         await tag.remove()
         await ctx.reply(embed=success("Tag removed successfully!"))
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(TagCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(TagCommands(client))

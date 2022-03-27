@@ -11,7 +11,7 @@ from typing import Optional, Union
 from client import Pidroid
 from cogs.models.categories import InformationCategory
 from cogs.utils.checks import is_guild_moderator, is_guild_administrator
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 
 
 class InfoCommands(commands.Cog):
@@ -29,7 +29,7 @@ class InfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def profile_avatar(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
-        embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
+        embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         if isinstance(member, discord.User):
             embed.set_image(url=member.display_avatar.with_size(4096).url)
         else:
@@ -47,7 +47,7 @@ class InfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def server_avatar(self, ctx: Context, *, member: Optional[Union[discord.Member, discord.User]]):
         member = member or ctx.author
-        embed = build_embed(title=f'{escape_markdown(member.name)}\'s avatar')
+        embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
@@ -64,7 +64,7 @@ class InfoCommands(commands.Cog):
         member = member or ctx.author
         is_user = isinstance(member, discord.User)
 
-        embed = build_embed(description=member.mention)
+        embed = PidroidEmbed(description=member.mention)
         embed.set_author(name=f'{member.name}#{member.discriminator}', icon_url=member.display_avatar.url)
         embed.add_field(name='Username', value=f'{escape_markdown(member.name)}#{member.discriminator}')
         embed.add_field(name='ID', value=member.id)
@@ -118,7 +118,7 @@ class InfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def server_info(self, ctx: Context):
         guild: Guild = ctx.guild
-        embed = build_embed(timestamp=guild.created_at)
+        embed = PidroidEmbed(timestamp=guild.created_at)
         if guild.icon:
             embed.set_author(name=guild.name, icon_url=guild.icon.url)
             embed.set_thumbnail(url=guild.icon.with_size(4096).url)
@@ -154,5 +154,5 @@ class InfoCommands(commands.Cog):
         embed.set_footer(text="Role created")
         await ctx.reply(embed=embed)
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(InfoCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(InfoCommands(client))

@@ -72,5 +72,5 @@ class MinecraftEventHandler(commands.Cog):
                 await channel.send("PP not worthy enough")
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(MinecraftEventHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(MinecraftEventHandler(client))

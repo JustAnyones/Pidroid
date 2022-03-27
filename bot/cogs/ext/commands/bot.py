@@ -11,7 +11,7 @@ from discord.message import Message
 from client import Pidroid
 from constants import ALLOWED_MENTIONS
 from cogs.models.categories import BotCategory
-from cogs.utils.embeds import build_embed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.time import humanize, timestamp_to_date, utcnow
 
 COMMANDS_PER_PAGE = 6
@@ -33,7 +33,7 @@ class BotCommands(commands.Cog):
         msg: Message = await ctx.reply("**Pinging...**")
         client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
         api_ping = round(self.client.latency * 1000)
-        embed = build_embed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
+        embed = PidroidEmbed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
         await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
 
     @commands.command(
@@ -89,7 +89,7 @@ class BotCommands(commands.Cog):
                 await ctx.reply(extended_message)
                 return
 
-            embed = build_embed(title=f'{self.client.user.name} status', description=f'{self.client.user.name} is a custom made discord bot by JustAnyone, designed to be used inside the official TheoTown discord.')
+            embed = PidroidEmbed(title=f'{self.client.user.name} status', description=f'{self.client.user.name} is a custom made discord bot by JustAnyone, designed to be used inside the official TheoTown discord.')
             embed.add_field(name='Uptime', value=uptime, inline=True)
             embed.add_field(name='Version', value=version, inline=True)
             if app_info.team is None:
@@ -102,5 +102,5 @@ class BotCommands(commands.Cog):
             await ctx.reply(embed=embed)
 
 
-def setup(client):
-    client.add_cog(BotCommands(client))
+async def setup(client: Pidroid):
+    await client.add_cog(BotCommands(client))

@@ -114,5 +114,5 @@ class PluginStoreTasks(commands.Cog):
         if not is_client_pidroid(self.client):
             self.retrieve_new_plugins.cancel()
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(PluginStoreTasks(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(PluginStoreTasks(client))

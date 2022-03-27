@@ -123,5 +123,5 @@ class PunishmentHandlerTask(commands.Cog):
                 return
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(PunishmentHandlerTask(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(PunishmentHandlerTask(client))

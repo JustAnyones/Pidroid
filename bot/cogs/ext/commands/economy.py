@@ -83,5 +83,5 @@ class EconomyCommands(commands.Cog):
             await ctx.reply(embed=error(e))
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(EconomyCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(EconomyCommands(client))

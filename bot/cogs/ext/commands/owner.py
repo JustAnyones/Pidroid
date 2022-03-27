@@ -37,7 +37,7 @@ from cogs.utils.checks import is_guild_moderator
 from cogs.utils.time import humanize, timedelta_to_datetime, timestamp_to_datetime
 from cogs.models.categories import OwnerCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import error, get_default_color
+from cogs.utils.embeds import PidroidEmbed, error
 
 if TYPE_CHECKING:
     from cogs.ext.events.initialization import InvocationEventHandler
@@ -489,7 +489,7 @@ class OwnerCommands(commands.Cog):
             raise BadArgument("You cannot punish a moderator!")
 
         # Create an embed overview
-        embed = Embed(color=get_default_color())
+        embed = PidroidEmbed()
         embed.title = f"Punish {escape_markdown(str(user))}"
 
         # Use these to assign correct punishments
@@ -500,5 +500,5 @@ class OwnerCommands(commands.Cog):
 
         await ctx.reply(embed=embed, view=view)
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(OwnerCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(OwnerCommands(client))

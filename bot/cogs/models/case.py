@@ -17,7 +17,7 @@ from discord.threads import Thread
 from discord.user import User
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from ..utils.embeds import create_embed, success
+from ..utils.embeds import PidroidEmbed, success
 from ..utils.paginators import ListPageSource, PidroidPages
 from ..utils.time import humanize, time_since, timedelta_to_datetime, timestamp_to_date, timestamp_to_datetime, utcnow
 
@@ -88,7 +88,7 @@ class BaseCase:
 
     def to_embed(self) -> Embed:
         """Returns an Embed representation of the class."""
-        embed = create_embed(title=f"[{self.type.capitalize()} #{self.case_id}] {self.user_name}")
+        embed = PidroidEmbed(title=f"[{self.type.capitalize()} #{self.case_id}] {self.user_name}")
         embed.add_field(name="User", value=self.user_name)
         embed.add_field(name="Moderator", value=self.moderator_name)
         embed.add_field(name="Reason", value=self.clean_reason)
@@ -153,7 +153,7 @@ class CasePaginator(ListPageSource):
     def __init__(self, paginator_title: str, cases: List[Case], compact: bool = False):
         super().__init__(cases, per_page=6)
         self.compact = compact
-        self.embed = create_embed(title=paginator_title)
+        self.embed = PidroidEmbed(title=paginator_title)
 
     async def format_page(self, menu: PidroidPages, cases: List[Case]) -> Embed:
         self.embed.clear_fields()

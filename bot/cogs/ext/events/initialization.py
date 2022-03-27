@@ -41,5 +41,5 @@ class InvocationEventHandler(commands.Cog):
         self.log.debug("Guild configuration cache filled")
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(InvocationEventHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(InvocationEventHandler(client))

@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import discord
 import json
 import random
-import signal
 import subprocess # noqa
 import sys
 import logging
@@ -13,14 +11,13 @@ import logging
 from aiohttp import ClientSession
 from contextlib import suppress
 from discord.channel import TextChannel
-from discord.client import _cleanup_loop
 from discord.ext import commands
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.types.channel import GuildChannel
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional
 
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
@@ -29,7 +26,15 @@ from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
 from cogs.utils.logger import BaseLog
 
-__VERSION__ = discord.VersionInfo(major=4, minor=5, micro=5, releaselevel='alpha', serial=0)
+class VersionInfo(NamedTuple):
+    major: int
+    minor: int
+    micro: int
+    releaselevel: Literal["alpha", "beta", "candidate", "final"]
+    serial: int
+
+
+__VERSION__ = VersionInfo(major=4, minor=5, micro=5, releaselevel='alpha', serial=1)
 
 if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
@@ -37,6 +42,9 @@ if TYPE_CHECKING:
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
+
+    if TYPE_CHECKING:
+        session: ClientSession
 
     def __init__(self, config):
         intents = discord.Intents.all()
@@ -109,7 +117,7 @@ class Pidroid(commands.Bot):
         self.config = config
         self.prefixes = self.config['prefixes']
 
-        self.session = ClientSession(loop=self.loop)
+        self.session = None
 
         self.api = API(self, self.config['authentication']['database']["connection string"])
 
@@ -117,7 +125,8 @@ class Pidroid(commands.Bot):
 
         self.setup_logging()
 
-        self.load_cogs()
+    async def setup_hook(self):
+        await self.load_cogs()
 
     @property
     def token(self) -> str:
@@ -251,31 +260,31 @@ class Pidroid(commands.Bot):
         await self.wait_guild_config_cache_ready()
         return commands.when_mentioned_or(*self.get_prefixes(message))(self, message)
 
-    def handle_reload(self):
+    async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
         self.logger.critical("Reloading bot configuration data and all cogs")
         for ext in self.extensions_to_load:
-            self.unload_extension(ext)
+            await self.unload_extension(ext)
         with open('./config.json') as data:
             self.config = json.load(data)
         for ext in self.extensions_to_load:
-            self.load_extension(ext)
+            await self.load_extension(ext)
 
-    def load_all_extensions(self):
+    async def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
         for ext in self.extensions_to_load:
             self.logger.debug(f"Loading {ext}.")
             try:
-                self.load_extension(ext)
+                await self.load_extension(ext)
                 self.logger.debug(f"Successfully loaded {ext}.")
             except Exception:
                 self.logger.exception(f"Failed to load {ext}.")
 
-    def load_cogs(self):
+    async def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
         self.logger.info("Starting the bot")
-        self.load_all_extensions()
+        await self.load_all_extensions()
 
     async def annoy_erksmit(self):
         if sys.platform != "win32":
@@ -300,44 +309,3 @@ class Pidroid(commands.Bot):
                 'powershell',
                 f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")' # nosec
             ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    # Borrowed method from the client
-    # https://github.com/Rapptz/discord.py/blob/f485f1b61269c4e846e4e8b9232d8ec10b173c21/discord/client.py#L608-L666
-    def run(self): # noqa: C901
-        """Runs the client."""
-        loop = self.loop
-
-        try:
-            loop.add_signal_handler(signal.SIGINT, lambda: loop.stop())
-            loop.add_signal_handler(signal.SIGTERM, lambda: loop.stop())
-        except NotImplementedError:
-            pass
-
-        async def runner():
-            try:
-                await self.start(self.token)
-            finally:
-                if not self.is_closed():
-                    await self.close()
-                    await self.session.close() # All this chonkers method borrowing, just for this single call
-
-        def stop_loop_on_completion(f):
-            loop.stop()
-
-        future = asyncio.ensure_future(runner(), loop=loop)
-        future.add_done_callback(stop_loop_on_completion)
-        try:
-            loop.run_forever()
-        except KeyboardInterrupt:
-            self.logger.info('Received signal to terminate bot and event loop.')
-        finally:
-            future.remove_done_callback(stop_loop_on_completion)
-            self.logger.info('Cleaning up tasks.')
-            _cleanup_loop(loop)
-
-        if not future.cancelled():
-            try:
-                return future.result()
-            except KeyboardInterrupt:
-                # I am unsure why this gets raised here but suppress it anyway
-                return None

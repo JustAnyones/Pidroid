@@ -4,11 +4,8 @@ from discord.embeds import Embed
 from discord.utils import escape_markdown
 from typing import TYPE_CHECKING, Optional
 
-from cogs.utils.embeds import create_embed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.parsers import clean_inline_translations, format_version_code, truncate_string
-
-if TYPE_CHECKING:
-    from client import Pidroid
 
 URL_TO_USER = 'https://forum.theotown.com/memberlist.php?mode=viewprofile&u='
 
@@ -115,7 +112,7 @@ class Plugin:
             price = f'{self.price:,} <:diamond:423898110293704724>'
         footer = f'#{self.id}:{self.version} [{self.revision_id}]'
 
-        embed = create_embed(title=name, url=self.url)
+        embed = PidroidEmbed(title=name, url=self.url)
         embed.add_field(name='**Description**', value=description, inline=False)
         embed.add_field(name='**Price**', value=price, inline=False)
         embed.add_field(name='**Author**', value=author, inline=False)
@@ -154,10 +151,3 @@ class NewPlugin(Plugin):
     def time(self) -> int:
         """Returns plugin approval time."""
         return self._time
-
-
-def setup(client: Pidroid) -> None:
-    pass
-
-def teardown(client: Pidroid) -> None:
-    pass

@@ -9,7 +9,7 @@ from cogs.models.case import CasePaginator
 from cogs.models.categories import ModerationCategory
 from cogs.utils.checks import check_junior_moderator_permissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.paginators import PidroidPages
 
 
@@ -129,7 +129,7 @@ class ModeratorInfoCommands(commands.Cog):
             if punishment == 'jail': jails += 1       # noqa: E701
             if punishment == 'warning': warnings += 1 # noqa: E701
 
-        embed = build_embed(title=f'Displaying moderation statistics for {str(member)}')
+        embed = PidroidEmbed(title=f'Displaying moderation statistics for {str(member)}')
         embed.add_field(name='Bans', value=bans)
         embed.add_field(name='Kicks', value=kicks)
         embed.add_field(name='Jails', value=jails)
@@ -139,5 +139,5 @@ class ModeratorInfoCommands(commands.Cog):
         await ctx.reply(embed=embed)
 
 
-def setup(client: Pidroid):
-    client.add_cog(ModeratorInfoCommands(client))
+async def setup(client: Pidroid):
+    await client.add_cog(ModeratorInfoCommands(client))

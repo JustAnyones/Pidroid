@@ -12,7 +12,7 @@ from discord.message import Message
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
 from cogs.utils.converters import Duration
-from cogs.utils.embeds import create_embed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.time import datetime_to_duration
 
 GIVEAWAY_TIMEOUT = 180
@@ -113,7 +113,7 @@ class GiveawayCommand(commands.Cog):
             description += 'React with :tada: to enter!\n'
             description += f'Ends in: {utils.format_dt(datetime, "R")}\n'
             description += f'Hosted by: {ctx.author.mention}'
-            embed = create_embed(title=prize, description=description, timestamp=datetime)
+            embed = PidroidEmbed(title=prize, description=description, timestamp=datetime)
             await ctx.reply(f'Beginning the giveaway in {channel.mention}')
             msg = await channel.send(content=':tada: **GIVEAWAY** :tada:', embed=embed)
             await msg.add_reaction(emoji="🎉")
@@ -121,5 +121,5 @@ class GiveawayCommand(commands.Cog):
             await ctx.reply('Giveaway creation failed: timeout!')
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(GiveawayCommand(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(GiveawayCommand(client))

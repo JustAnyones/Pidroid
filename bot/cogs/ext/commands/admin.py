@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import AdministrationCategory, UtilityCategory
-from cogs.utils.embeds import build_embed, error, success
+from cogs.utils.embeds import PidroidEmbed, error, success
 
 SETUP_REASON = "Guild configuration setup"
 
@@ -75,7 +75,7 @@ class AdminCommands(commands.Cog):
                         f'You can create one by running ``{prefixes[0]}configuration setup`` command.'
                     ))
 
-            embed = build_embed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
+            embed = PidroidEmbed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
 
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
@@ -286,5 +286,5 @@ class AdminCommands(commands.Cog):
         await ctx.reply(f"My prefixes are: **{prefix_str}**")
 
 
-def setup(client: Pidroid):
-    client.add_cog(AdminCommands(client))
+async def setup(client: Pidroid):
+    await client.add_cog(AdminCommands(client))

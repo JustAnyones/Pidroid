@@ -1,5 +1,4 @@
 {
-   "embed color": 5928495,
    "prefixes": ["P", "p", "TT"],
    "authentication": {
       "bot token": "",

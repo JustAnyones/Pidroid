@@ -3,14 +3,14 @@ import os
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
+from discord.ext.commands.errors import BadArgument
 from io import BytesIO
 from PIL import Image
 from PIL import ImageFont
 from PIL import ImageDraw
 from typing import Tuple
 
-from discord.ext.commands.errors import BadArgument
-
+from client import Pidroid
 from cogs.models.categories import RandomCategory
 from cogs.utils import http
 from cogs.utils.embeds import error
@@ -151,5 +151,5 @@ class ImageManipCommands(commands.Cog):
         b.close()
 
 
-def setup(client):
-    client.add_cog(ImageManipCommands(client))
+async def setup(client: Pidroid):
+    await client.add_cog(ImageManipCommands(client))

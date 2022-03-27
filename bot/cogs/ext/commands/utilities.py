@@ -8,7 +8,7 @@ from urllib.parse import quote_plus as urlencode
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
 from cogs.utils import http
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timestamp_to_date
 
@@ -72,7 +72,7 @@ class UtilityCommands(commands.Cog):
             # Convert [some words xd] -> [some words xd](https://www.urbandictionary.com/define.php?term=some+words+xd)
             describe = parse_urban_text(definition['definition'])
             example = parse_urban_text(definition['example'])
-            embed = build_embed(title=definition['word'], description=describe, url=definition['permalink'])
+            embed = PidroidEmbed(title=definition['word'], description=describe, url=definition['permalink'])
             if example:
                 embed.add_field(name='Example', value=example, inline=False)
             embed.add_field(name='Rating', value=f"{definition['thumbs_up']:,} 👍 | {definition['thumbs_down']:,} 👎", inline=False)
@@ -147,7 +147,7 @@ class UtilityCommands(commands.Cog):
                 death_proc = round((death_count * 100) / confirmed_cases, 1)
                 recov_proc = round((recovery_count * 100) / confirmed_cases, 1)
 
-                embed = build_embed(title=title)
+                embed = PidroidEmbed(title=title)
                 embed.add_field(name='Confirmed', value=f'{confirmed_cases:,}', inline=True)
                 if recovery_count == 0:
                     embed.add_field(name='Active cases', value='No accurate data available', inline=True)
@@ -170,5 +170,5 @@ class UtilityCommands(commands.Cog):
                 await ctx.reply(embed=error(data["message"]))
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(UtilityCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(UtilityCommands(client))

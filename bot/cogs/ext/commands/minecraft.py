@@ -64,5 +64,5 @@ class MinecraftCommands(commands.Cog):
                 await ctx.reply(embed=error('Connection has been refused by the server. Perhaps it is offline?'))
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(MinecraftCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(MinecraftCommands(client))

@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import Category, BotCategory, UncategorizedCategory
-from cogs.utils.embeds import create_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.paginators import ListPageSource, PidroidPages
 
 
@@ -90,7 +90,7 @@ class HelpCommand(commands.Cog):
 
         # List all categories
         if search_string is None:
-            embed = create_embed(
+            embed = PidroidEmbed(
                 title=f'{self.client.user.name} command category index',
                 description=f'This is a list of all bot commands and their categories. Use `{prefix}help [category/command]` to find out more about them!\n\n**Select a category:**'
             )
@@ -106,7 +106,7 @@ class HelpCommand(commands.Cog):
             if command.hidden:
                 return await ctx.reply(embed=error("I could not find any commands by the specified query!"))
 
-            embed = create_embed(
+            embed = PidroidEmbed(
                 title=f"{get_full_command_name(command)}",
                 description=command.brief or "No description."
             )
@@ -125,7 +125,7 @@ class HelpCommand(commands.Cog):
         # Category commands
         if query in category_name_list:
             category: Category = category_object_list[category_name_list.index(query)]
-            embed = create_embed(
+            embed = PidroidEmbed(
                 title=f"{category.title} category command listing",
                 description=category.description
             )
@@ -139,5 +139,5 @@ class HelpCommand(commands.Cog):
         await ctx.reply(embed=error("I could not find any commands by the specified query!"))
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(HelpCommand(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(HelpCommand(client))

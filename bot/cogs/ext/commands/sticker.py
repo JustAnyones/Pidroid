@@ -12,7 +12,7 @@ from io import BytesIO
 
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
-from cogs.utils.embeds import create_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 
 
 def get_message_stickers(message: Message) -> typing.List[StickerItem]:
@@ -83,7 +83,7 @@ class StickerCommands(commands.Cog):
         stickers = get_message_stickers(message)
         sticker = stickers[0]
 
-        embed = create_embed(title=sticker.name)
+        embed = PidroidEmbed(title=sticker.name)
         if sticker.format == StickerFormatType.lottie:
             embed.description = f"Sticker is a [Lottie](https://lottiefiles.com/what-is-lottie).\n{sticker.url}"
         else:
@@ -93,5 +93,5 @@ class StickerCommands(commands.Cog):
         await ctx.reply(embed=embed)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(StickerCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(StickerCommands(client))

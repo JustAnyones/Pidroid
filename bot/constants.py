@@ -30,6 +30,8 @@ EMERGENCY_SHUTDOWN = [
     ERKSMIT_ID
 ]
 
+EMBED_COLOUR = 5928495
+
 THEOTOWN_FORUM_URL = "https://forum.theotown.com"
 
 # Constants used for command checking whether they are guild specific

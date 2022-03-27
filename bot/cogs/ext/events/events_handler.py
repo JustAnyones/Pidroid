@@ -60,5 +60,5 @@ class EventChannelHandler(commands.Cog):
                 await message.remove_reaction("👍", member)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(EventChannelHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(EventChannelHandler(client))

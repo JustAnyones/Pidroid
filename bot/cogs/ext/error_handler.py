@@ -6,7 +6,7 @@ import traceback
 import random
 
 from contextlib import suppress
-from discord.errors import HTTPException, InvalidArgument
+from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
@@ -41,7 +41,6 @@ use_default = (
     commands.TooManyArguments,
     commands.MissingRequiredArgument,
     exceptions.InvalidDuration,
-    InvalidArgument,
 
     # API errors
     exceptions.APIException,
@@ -159,5 +158,5 @@ class Error(commands.Cog):
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
 
-def setup(client: Pidroid):
-    client.add_cog(Error(client))
+async def setup(client: Pidroid):
+    await client.add_cog(Error(client))

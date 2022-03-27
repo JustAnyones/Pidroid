@@ -3,7 +3,6 @@ import random
 
 from contextlib import suppress
 from discord.ext import commands
-from discord.embeds import _EmptyEmbed
 from discord.errors import HTTPException
 from discord.ext.commands.context import Context
 from discord.message import Message
@@ -13,7 +12,7 @@ from client import Pidroid
 from cogs.models.categories import TheoTownCategory
 from cogs.utils import http
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import create_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.http import Route
 from cogs.utils.paginators import PidroidPages, PluginListPaginator
 from cogs.utils.parsers import format_version_code
@@ -45,7 +44,7 @@ class TheoTownCommands(commands.Cog):
     async def version(self, ctx: Context):
         async with ctx.typing():
             cache = self.client.version_cache
-            embed = create_embed(title="Most recent versions of TheoTown")
+            embed = PidroidEmbed(title="Most recent versions of TheoTown")
             async with await http.get(self.client, "https://bd.theotown.com/get_version") as response:
                 version_data = await response.json()
             for version_name in version_data:
@@ -94,7 +93,7 @@ class TheoTownCommands(commands.Cog):
             population = data["population"]
 
             # Build and send the embed
-            embed = create_embed(title='Online mode statistics')
+            embed = PidroidEmbed(title='Online mode statistics')
             embed.add_field(name='Active regions', value=f'{region_count:,}')
             embed.add_field(name='Total plots', value=f'{total_plots:,}')
             embed.add_field(name='Free plots', value=f'{free_plots:,}')
@@ -139,7 +138,7 @@ class TheoTownCommands(commands.Cog):
             data = res["data"]
             screenshot = data[number - 1]
 
-            embed = create_embed(title=screenshot['name'])
+            embed = PidroidEmbed(title=screenshot['name'])
             embed.set_image(url=screenshot['image'])
             embed.set_footer(text=f'#{screenshot["id"]}')
             await ctx.reply(embed=embed)
@@ -269,7 +268,7 @@ class TheoTownCommands(commands.Cog):
             channel = self.client.get_channel(409800607466258445)
             file = None
 
-            embed = create_embed(description=suggestion)
+            embed = PidroidEmbed(description=suggestion)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
             attachments = ctx.message.attachments
             if attachments:
@@ -300,7 +299,7 @@ class TheoTownCommands(commands.Cog):
             await message.add_reaction(emoji="❌")
             await message.add_reaction(emoji="❗")
             await message.add_reaction(emoji="⛔")
-            if not isinstance(message.embeds[0].image.url, _EmptyEmbed):
+            if message.embeds[0].image.url is not None:
                 attachment_url = message.embeds[0].image.url
             s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
@@ -321,12 +320,12 @@ class TheoTownCommands(commands.Cog):
             "You can view available server tags by running ``Ptag list`` command."
         )
 
-        embed = create_embed(
+        embed = PidroidEmbed(
             title="Where did everything go?",
             description=description
         )
         await ctx.reply(embed=embed)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(TheoTownCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(TheoTownCommands(client))

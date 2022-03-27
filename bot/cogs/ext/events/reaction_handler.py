@@ -48,5 +48,5 @@ class ReactionEventHandler(commands.Cog):
             await message.delete(delay=0)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(ReactionEventHandler(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(ReactionEventHandler(client))

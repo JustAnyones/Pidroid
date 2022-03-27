@@ -10,7 +10,7 @@ from client import Pidroid
 from constants import THEOTOWN_FORUM_URL
 from cogs.models.categories import TheoTownCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.http import Route
 from cogs.utils.time import timestamp_to_datetime
 
@@ -50,7 +50,7 @@ class ForumCommands(commands.Cog):
                 if user_group.isupper():
                     user_group = user_group.replace("_", " ").capitalize()
                 avatar = f'{THEOTOWN_FORUM_URL}/download/file.php?avatar={data["user_avatar"]}'
-                embed = build_embed(title=f'{username}\'s information')
+                embed = PidroidEmbed(title=f'{username}\'s information')
                 embed.add_field(name='Username', value=username, inline=True)
                 embed.add_field(name='ID', value=f'[{user_id}]({THEOTOWN_FORUM_URL}/memberlist.php?mode=viewprofile&u={user_id})', inline=True)
                 embed.add_field(name='Group', value=user_group, inline=True)
@@ -158,5 +158,5 @@ class ForumCommands(commands.Cog):
             await ctx.reply(res["details"])
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(ForumCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(ForumCommands(client))

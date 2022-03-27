@@ -1,7 +1,7 @@
 import discord
 
 from discord.abc import User
-from discord.embeds import Embed, EmptyEmbed
+from discord.embeds import Embed
 from discord.member import Member
 from typing import Union
 
@@ -33,7 +33,7 @@ class BaseLog:
         """Adds an embed field."""
         self.embed.add_field(name=name, value=value, inline=inline)
 
-    def set_footer(self, text: str = EmptyEmbed, icon_url: str = EmptyEmbed) -> None:
+    def set_footer(self, text: str = None, icon_url: str = None) -> None:
         """Sets embed footer."""
         self.embed.set_footer(text=text, icon_url=icon_url)
 
@@ -41,7 +41,7 @@ class BaseLog:
         """Sets log type. An alias for set_title."""
         self.set_title(log_type)
 
-    def set_author(self, name: str, icon_url: str = EmptyEmbed) -> None:
+    def set_author(self, name: str, icon_url: str = None) -> None:
         """Sets embed author."""
         self.embed.set_author(name=name, icon_url=icon_url)
 

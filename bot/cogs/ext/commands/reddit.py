@@ -10,7 +10,7 @@ from discord.ext.commands.errors import BadArgument
 
 from client import Pidroid
 from cogs.models.categories import RandomCategory
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
@@ -124,7 +124,7 @@ class RedditCommands(commands.Cog):
                 if not is_gallery and post_url != submission.url:
                     text = submission.url + '\n' + submission.selftext
 
-            embed = build_embed(
+            embed = PidroidEmbed(
                 title=truncate_string(submission.title, 256),
                 description=truncate_string(text.replace('&#x200B;', '')),
                 url=post_url
@@ -137,5 +137,5 @@ class RedditCommands(commands.Cog):
             await ctx.reply(embed=embed)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(RedditCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(RedditCommands(client))

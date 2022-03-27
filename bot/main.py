@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import sys
+import aiohttp
 
 from discord.ext import commands
 from discord.ext.commands.context import Context
@@ -25,7 +26,7 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
-def main():  # noqa: C901
+async def main():  # noqa: C901
 
     # Create directories in case they don't exist
     if not os.path.exists(DATA_FILE_PATH):
@@ -44,13 +45,15 @@ def main():  # noqa: C901
     @commands.bot_has_permissions(send_messages=True)
     async def reload(ctx: Context):
         try:
-            bot.handle_reload()
+            await bot.handle_reload()
             await ctx.reply('The entirety of the bot has been reloaded!')
         except Exception as e:
             await ctx.reply(f'The following exception occurred while trying to reload the bot:\n```{e}```')
 
-    bot.run()
-
+    async with aiohttp.ClientSession() as session:
+        async with bot:
+            bot.session = session
+            await bot.start(bot.token)
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

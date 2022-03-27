@@ -1,45 +1,27 @@
-import json
+import datetime
 
-from discord import Embed
 from discord import Colour
+from discord.embeds import Embed
+from discord.types.embed import EmbedType
+from typing import Any, Optional
 
-with open('./config.json') as data:
-    EMBED_COLOUR = json.load(data)["embed color"]
+from constants import EMBED_COLOUR
 
-def get_default_color():
-    return EMBED_COLOUR
+class PidroidEmbed(Embed):
 
-def create_embed(**kwargs) -> Embed:
-    """Creates a discord embed object."""
-    embed_type = kwargs.get('type', Embed.Empty)
-    title = kwargs.get('title', Embed.Empty)
-    description = kwargs.get('description', Embed.Empty)
-    color = kwargs.get('color', get_default_color())
-    timestamp = kwargs.get('timestamp', Embed.Empty)
-    url = kwargs.get('url', Embed.Empty)
-
-    return Embed(
-        type=embed_type,
-        title=title,
-        description=description,
-        url=url,
-        color=color,
-        timestamp=timestamp
-    )
+    def __init__(
+        self,
+        *,
+        title: Optional[Any] = None,
+        type: EmbedType = 'rich',
+        url: Optional[Any] = None,
+        description: Optional[Any] = None,
+        timestamp: Optional[datetime.datetime] = None
+    ):
+        super().__init__(colour=EMBED_COLOUR, title=title, type=type, url=url, description=description, timestamp=timestamp)
 
 def success(description: str) -> Embed:
     return Embed(description=description, color=Colour.green())
 
 def error(content: str) -> Embed:
     return Embed(description=content, color=Colour.red())
-
-def build_embed(**kwargs):
-    """Creates a discord embed object."""
-    return create_embed(**kwargs)
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

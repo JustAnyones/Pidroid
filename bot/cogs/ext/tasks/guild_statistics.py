@@ -41,5 +41,5 @@ class GuildStatisticsTask(commands.Cog):
             self.update_statistics.cancel()
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(GuildStatisticsTask(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(GuildStatisticsTask(client))

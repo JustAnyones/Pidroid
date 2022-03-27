@@ -7,6 +7,7 @@ from datetime import datetime
 from discord import AllowedMentions
 from discord.channel import VoiceChannel
 from discord.colour import Color, Colour
+from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
@@ -16,7 +17,7 @@ from client import Pidroid
 from constants import FACTS
 from cogs.models.categories import RandomCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import build_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 from cogs.utils.http import get, Route
 
 CLOAKER_LINES = [
@@ -78,7 +79,7 @@ class FunCommands(commands.Cog):
                 raise BadArgument("Specified string is not hex!")
         else:
             color = Color.random()
-        embed = build_embed(title=color.__str__(), color=color)
+        embed = Embed(title=color.__str__(), color=color)
         await ctx.reply(embed=embed)
 
     @commands.command(
@@ -111,7 +112,7 @@ class FunCommands(commands.Cog):
     async def happiness(self, ctx: Context):
         res = await self.api.get(Route("/private/review/get"))
         data = res["data"]
-        embed = build_embed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
+        embed = PidroidEmbed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
         embed.set_author(name=data['author'])
         embed.set_footer(text=f"{data['rating']} ⭐")
         await ctx.reply(embed=embed)
@@ -248,7 +249,7 @@ class FunCommands(commands.Cog):
                 return
 
             channel = self.client.get_channel(826456482262024242)
-            embed = build_embed(description=text)
+            embed = PidroidEmbed(description=text)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
 
             attachments = ctx.message.attachments
@@ -281,5 +282,5 @@ class FunCommands(commands.Cog):
             await ctx.reply('Your shitpost idea has been successfully submitted!')
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(FunCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(FunCommands(client))

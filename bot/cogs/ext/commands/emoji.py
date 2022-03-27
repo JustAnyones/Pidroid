@@ -13,7 +13,7 @@ from discord.partial_emoji import PartialEmoji
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
 from cogs.utils import http
-from cogs.utils.embeds import create_embed, error
+from cogs.utils.embeds import PidroidEmbed, error
 
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 
@@ -66,7 +66,7 @@ class EmojiCommands(commands.Cog):
             await ctx.reply(embed=error("Please specify a custom emoji you want to view!"))
             return
 
-        embed = create_embed(title=get_emoji_name(emoji))
+        embed = PidroidEmbed(title=get_emoji_name(emoji))
         embed.set_image(url=emoji.url)
         await ctx.reply(embed=embed)
 
@@ -135,7 +135,7 @@ class EmojiCommands(commands.Cog):
             return
 
         # TODO: look into pagination
-        embed = create_embed(title="Extracted custom emojis")
+        embed = PidroidEmbed(title="Extracted custom emojis")
 
         for emoji in emojis:
             embed.add_field(name=get_emoji_name(emoji), value=f"[View]({emoji.url})")
@@ -143,5 +143,5 @@ class EmojiCommands(commands.Cog):
         await ctx.reply(embed=embed)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(EmojiCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(EmojiCommands(client))

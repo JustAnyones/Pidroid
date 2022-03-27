@@ -15,7 +15,7 @@ from client import Pidroid
 from cogs.utils import http
 from cogs.utils.checks import is_client_pidroid
 from cogs.utils.http import get_filename
-from cogs.utils.embeds import create_embed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.parsers import clean_inline_translations
 
 
@@ -80,12 +80,12 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             plugins_all_time = data['plugins all time']
             creators_all_time = data['plugin creators all time by downloads']
 
-            initial_embed = create_embed(
+            initial_embed = PidroidEmbed(
                 title=f"Plugin store statistics for {month_name}",
                 description=f"In total **{data['plugin count last month']}** new plugins have been submitted in **{month_name} of {year_of_data}**.\nMost of them were contributed by:"
             )
-            top_plugins_embed = create_embed(title="Most popular plugins of all time")
-            top_creators_embed = create_embed(title="Most popular plugin creators of all time")
+            top_plugins_embed = PidroidEmbed(title="Most popular plugins of all time")
+            top_creators_embed = PidroidEmbed(title="Most popular plugin creators of all time")
             top_creators_embed.set_footer(text="This message is automated. More information, as always, can be found on our forums.")
 
             for creator in top_creators_last:
@@ -145,5 +145,5 @@ async def post_shitpost(client: Pidroid) -> None:
     last_posts.append(choice['_id'])
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(CronjobTask(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(CronjobTask(client))

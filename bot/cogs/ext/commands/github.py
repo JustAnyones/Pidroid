@@ -55,5 +55,5 @@ class GitHubCommands(commands.Cog):
         await ctx.send(f"New issue created at {data['html_url']}")
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(GitHubCommands(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(GitHubCommands(client))

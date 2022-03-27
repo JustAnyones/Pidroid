@@ -148,5 +148,5 @@ class AutomodTask(commands.Cog):
             await self.handle_banned_words(config, message)
 
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(AutomodTask(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(AutomodTask(client))

@@ -5,7 +5,7 @@ from discord.utils import format_dt
 from client import Pidroid
 from constants import THEOTOWN_FORUM_URL
 from cogs.utils.checks import is_client_pidroid
-from cogs.utils.embeds import build_embed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.http import Route
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timestamp_to_datetime
@@ -44,7 +44,7 @@ class ForumMessageTask(commands.Cog):
             author_url = f"{THEOTOWN_FORUM_URL}/memberlist.php?mode=viewprofile&u={author_id}"
             author_avatar_url = f"{THEOTOWN_FORUM_URL}/download/file.php?avatar={message['author_avatar']}"
 
-            embed = build_embed(title=subject, description=text, url=message_url)
+            embed = PidroidEmbed(title=subject, description=text, url=message_url)
             embed.add_field(name="Time sent", value=format_dt(timestamp_to_datetime(time_sent)))
             embed.set_author(name=author_name, icon_url=author_avatar_url, url=author_url)
             embed.set_footer(text=f"Message ID: {message_id}")
@@ -57,5 +57,5 @@ class ForumMessageTask(commands.Cog):
         if not is_client_pidroid(self.client):
             self.fetch_messages.cancel()
 
-def setup(client: Pidroid) -> None:
-    client.add_cog(ForumMessageTask(client))
+async def setup(client: Pidroid) -> None:
+    await client.add_cog(ForumMessageTask(client))
