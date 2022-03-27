@@ -5,6 +5,8 @@ from bson.objectid import ObjectId
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
+from discord.guild import Guild
+from discord.user import User
 from discord.member import Member
 from discord.mentions import AllowedMentions
 from discord.message import Message
@@ -14,10 +16,14 @@ from typing import TYPE_CHECKING, List, Optional
 from cogs.models.categories import UtilityCategory
 from cogs.utils.checks import has_moderator_permissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
+from cogs.utils.embeds import PidroidEmbed, SuccessEmbed
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
-RESERVED_WORDS = ["create", "edit", "remove", "claim", "transfer", "list", "info"]
+RESERVED_WORDS = [
+    "create", "edit", "remove", "claim", "transfer", "list", "info",
+    "add-author", "add_author",
+    "remove-author", "remove_author"
+]
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
 
 if TYPE_CHECKING:
@@ -33,12 +39,13 @@ class Tag:
         guild_id: int
         _name: str
         _content: str
-        author_id: int
+        _author_ids: List[int]
         aliases: List[str]
         locked: bool
 
     def __init__(self, api: API = None, data: dict = None) -> None:
         self.api = api
+        self._author_ids = []
         self.aliases = []
         self.locked = False
         if data:
@@ -70,12 +77,44 @@ class Tag:
             raise BadArgument("Tag content is too long! Please keep it below 2000 characters!")
         self._content = value
 
+    @property
+    def author_id(self) -> int:
+        return self._author_ids[0]
+
+    @author_id.setter
+    def author_id(self, value: int) -> None:
+        # If it was in list before hand, like a co-author
+        if value in self.co_author_ids:
+            self._author_ids.remove(value)
+
+        if len(self._author_ids) == 0:
+            return self._author_ids.append(value)
+        self._author_ids[0] = value
+
+    @property
+    def co_author_ids(self) -> List[int]:
+        return self._author_ids[1:]
+
+    def add_co_author(self, author_id: int) -> None:
+        if self.author_id == author_id:
+            raise BadArgument("You cannot add yourself as a co-author!")
+        if len(self._author_ids) > 4:
+            raise BadArgument("A tag can only have up to 4 co-authors!")
+        if author_id in self.co_author_ids:
+            raise BadArgument("Specifed member is already a co-author!")
+        self._author_ids.append(author_id)
+
+    def remove_co_author(self, author_id: int) -> None:
+        if author_id not in self.co_author_ids:
+            raise BadArgument("Specified member is not a co-author!")    
+        self._author_ids.remove(author_id)
+
     def _serialize(self) -> dict:
         return {
             "guild_id": Int64(self.guild_id),
             "name": self.name,
             "content": self.content,
-            "author_id": Int64(self.author_id),
+            "author_ids": [Int64(auth_id) for auth_id in self._author_ids],
             "aliases": self.aliases,
             "locked": self.locked
         }
@@ -85,7 +124,7 @@ class Tag:
         self.guild_id = data["guild_id"]
         self.name = data["name"]
         self.content = data["content"]
-        self.author_id = data["author_id"]
+        self._author_ids = data.get("author_ids", [data.get("author_id", [])])
         self.aliases = data.get("aliases", [])
         self.locked = data.get("locked", False)
 
@@ -110,6 +149,12 @@ class TagCommands(commands.Cog):
     def __init__(self, client: Pidroid):
         self.client = client
         self.api = self.client.api
+
+    async def fetch_tag_author_users(self, tag: Tag) -> List[Optional[User]]:
+        return [await self.client.get_or_fetch_user(auth_id) for auth_id in tag._author_ids]
+
+    async def fetch_tag_author_members(self, guild: Guild, tag: Tag) -> List[Optional[Member]]:
+        return [await self.client.get_or_fetch_member(guild, auth_id) for auth_id in tag._author_ids]
 
     async def find_tags(self, ctx: Context, tag_name: Optional[str]) -> List[Tag]:
         if tag_name is None:
@@ -160,8 +205,8 @@ class TagCommands(commands.Cog):
                 message_content = tag_list[0].content
             else:
                 tag_name_list = [t.name for t in tag_list[:10]]
-                tag_list_str = ', '.join(tag_name_list)
-                message_content = f"I found multiple tags matching your query: {tag_list_str}\n..."
+                tag_list_str = '``, ``'.join(tag_name_list)
+                message_content = f"I found multiple tags matching your query: ``{tag_list_str}``"
 
             if ctx.message.reference:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -188,7 +233,7 @@ class TagCommands(commands.Cog):
         await ctx.reply(embed=embed)
 
     @tag.command(
-        brief='Returns information about the server tag.',
+        brief='Returns information about a server tag.',
         usage='<tag name>',
         category=UtilityCategory
     )
@@ -197,11 +242,13 @@ class TagCommands(commands.Cog):
     async def info(self, ctx: Context, *, tag_name: str = None):
         tag = await self.resolve_tag(ctx, tag_name)
 
-        user = await self.client.get_or_fetch_user(tag.author_id)
+        authors = await self.fetch_tag_author_users(tag)
 
         embed = PidroidEmbed(title=tag.name, description=tag.content)
-        if user:
-            embed.add_field(name="Tag owner", value=user.mention)
+        if authors[0]:
+            embed.add_field(name="Tag owner", value=authors[0].mention)
+        if len(authors[1:]) > 0:
+            embed.add_field(name="Co-authors", value=' '.join([user.mention for user in authors[1:]]))
         embed.add_field(name="Date created", value=format_dt(tag._id.generation_time))
         await ctx.reply(embed=embed)
 
@@ -219,16 +266,16 @@ class TagCommands(commands.Cog):
         tag.guild_id = ctx.guild.id
         tag.author_id = ctx.author.id
         if tag_name is None:
-            return await ctx.reply(embed=ErrorEmbed("Please specify a tag name!"))
+            raise BadArgument("Please specify a tag name!")
         tag.name = tag_name
 
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
-            return await ctx.reply(embed=ErrorEmbed("Please provide content for the tag!"))
+            raise BadArgument("Please provide content for the tag!")
         tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
-            return await ctx.reply(embed=ErrorEmbed("There's already a tag by the specified name!"))
+            raise BadArgument("There's already a tag by the specified name!")
 
         await tag.create()
         await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
@@ -244,17 +291,71 @@ class TagCommands(commands.Cog):
     async def edit(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 
+        if tag.locked:
+            raise BadArgument("Tag cannot be modified as it is locked!")
+
         if not has_moderator_permissions(ctx, manage_messages=True):
-            if ctx.author.id != tag.author_id:
-                raise BadArgument("You cannot edit a tag you don't own!")
+            if ctx.author.id not in tag._author_ids:
+                raise BadArgument("You cannot edit a tag you don't own or co-author!")
 
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
-            return await ctx.reply(embed=ErrorEmbed("Please provide content for a tag!"))
+            raise BadArgument("Please provide content for a tag!")
         tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
+
+    @tag.command(
+        name="add-author",
+        brief="Add a new tag co-author.",
+        usage="<tag name> <member>",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
+    @commands.guild_only()
+    async def add_author(self, ctx: Context, tag_name: Optional[str], member: Optional[Member]):
+        tag = await self.resolve_tag(ctx, tag_name)
+
+        if not has_moderator_permissions(ctx, manage_messages=True):
+            if ctx.author.id != tag.author_id:
+                raise BadArgument("You cannot add a co-author to a tag you don't own!")
+
+        if member is None:
+            raise BadArgument("Please specify the member you want to add a co-author!")
+
+        if member.bot:
+            raise BadArgument("You cannot add a bot as co-author, that'd be stupid!")
+
+        tag.add_co_author(member.id)
+
+        await tag.edit()
+        await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully!"))
+
+    @tag.command(
+        name="remove-author",
+        brief="Remove a tag co-author.",
+        usage="<tag name> <member>",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.can_modify_tags()
+    @commands.guild_only()
+    async def remove_author(self, ctx: Context, tag_name: Optional[str], member: Optional[Member]):
+        tag = await self.resolve_tag(ctx, tag_name)
+
+        if not has_moderator_permissions(ctx, manage_messages=True):
+            if ctx.author.id != tag.author_id:
+                raise BadArgument("You cannot remove a co-author from a tag you don't own!")
+
+        if member is None:
+            raise BadArgument("Please specify the member you want to remove from co-authors!")
+
+        tag.remove_co_author(member.id)
+
+        await tag.edit()
+        await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully!"))
 
     @tag.command(
         brief="Claim a server tag in the case the tag owner leaves.",
@@ -271,9 +372,12 @@ class TagCommands(commands.Cog):
             raise BadArgument("You are the tag owner, there is no need to claim it!")
 
         if not has_moderator_permissions(ctx, manage_messages=True):
-            member = await self.client.get_or_fetch_member(ctx.guild, ctx.author.id)
-            if member is not None:
+            authors = await self.fetch_tag_author_members(ctx.guild, tag)
+            if authors[0] is not None:
                 raise BadArgument("Tag owner is still in the server!")
+
+            if ctx.author.id not in tag.co_author_ids and any(member for member in authors[1:] if member is not None):
+                raise BadArgument("There are still tag co-authors in the server! They can claim the tag too!")
 
         tag.author_id = ctx.author.id
 
@@ -301,6 +405,9 @@ class TagCommands(commands.Cog):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot transfer a tag to yourself!")
 
+        if member.bot:
+            raise BadArgument("You cannot transfer a tag to a bot, that'd be stupid!")
+
         tag.author_id = member.id
 
         await tag.edit()
@@ -316,6 +423,9 @@ class TagCommands(commands.Cog):
     @commands.guild_only()
     async def remove(self, ctx: Context, *, tag_name: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
+
+        if tag.locked:
+            raise BadArgument("Tag cannot be modified as it is locked!")
 
         if not has_moderator_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
