@@ -13,7 +13,7 @@ from typing import Tuple
 from client import Pidroid
 from cogs.models.categories import RandomCategory
 from cogs.utils import http
-from cogs.utils.embeds import error
+from cogs.utils.embeds import ErrorEmbed
 
 COMIC_FONT_PATH = './resources/COMIC.TTF'
 
@@ -63,7 +63,7 @@ class ImageManipCommands(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def bonk(self, ctx: Context, member: discord.Member = None):
         if member is None:
-            await ctx.reply(embed=error('Please specify a member which you want to bonk!'))
+            await ctx.reply(embed=ErrorEmbed('Please specify a member which you want to bonk!'))
             self.bonk.reset_cooldown(ctx)
             return
 
@@ -129,11 +129,11 @@ class ImageManipCommands(commands.Cog):
             attachment, _ = await handle_attachment(ctx)
 
             if quality < 1:
-                await ctx.reply(embed=error('Quality must be a positive number!'))
+                await ctx.reply(embed=ErrorEmbed('Quality must be a positive number!'))
                 return
 
             if quality > 10:
-                await ctx.reply(embed=error('Quality must be 10 or less!'))
+                await ctx.reply(embed=ErrorEmbed('Quality must be 10 or less!'))
                 return
 
             async with await http.get(self.client, attachment.url) as r:

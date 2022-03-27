@@ -6,7 +6,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import Category, BotCategory, UncategorizedCategory
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.paginators import ListPageSource, PidroidPages
 
 
@@ -104,7 +104,7 @@ class HelpCommand(commands.Cog):
         if query in command_name_list:
             command: Command = command_object_list[command_name_list.index(query)]
             if command.hidden:
-                return await ctx.reply(embed=error("I could not find any commands by the specified query!"))
+                return await ctx.reply(embed=ErrorEmbed("I could not find any commands by the specified query!"))
 
             embed = PidroidEmbed(
                 title=f"{get_full_command_name(command)}",
@@ -136,7 +136,7 @@ class HelpCommand(commands.Cog):
             )
             return await pages.start()
 
-        await ctx.reply(embed=error("I could not find any commands by the specified query!"))
+        await ctx.reply(embed=ErrorEmbed("I could not find any commands by the specified query!"))
 
 
 async def setup(client: Pidroid) -> None:

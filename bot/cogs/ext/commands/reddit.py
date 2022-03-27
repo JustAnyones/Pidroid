@@ -10,7 +10,7 @@ from discord.ext.commands.errors import BadArgument
 
 from client import Pidroid
 from cogs.models.categories import RandomCategory
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
@@ -89,13 +89,13 @@ class RedditCommands(commands.Cog):
     async def reddit(self, ctx: Context, subreddit_name: str = None):
         async with ctx.typing():
             if subreddit_name is None:
-                await ctx.reply(embed=error('Please specify a subreddit from which you want to fetch a random post!'))
+                await ctx.reply(embed=ErrorEmbed('Please specify a subreddit from which you want to fetch a random post!'))
                 return
 
             try:
                 subreddit = await self.reddit_instance.subreddit(subreddit_name, fetch=True)
             except Exception:
-                await ctx.reply(embed=error("I could not find the specified subreddit!"))
+                await ctx.reply(embed=ErrorEmbed("I could not find the specified subreddit!"))
                 return
 
             # Check subreddit for nsfw

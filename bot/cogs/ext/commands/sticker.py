@@ -12,7 +12,7 @@ from io import BytesIO
 
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
 def get_message_stickers(message: Message) -> typing.List[StickerItem]:
@@ -62,7 +62,7 @@ class StickerCommands(commands.Cog):
             b.close()
         except HTTPException as exc:
             if exc.code == 30039:
-                return await ctx.reply(embed=error("The server sticker list is full. I can't add more!"))
+                return await ctx.reply(embed=ErrorEmbed("The server sticker list is full. I can't add more!"))
             raise exc
         else:
             await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])

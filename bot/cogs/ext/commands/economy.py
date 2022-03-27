@@ -12,7 +12,7 @@ from cogs.models import exceptions
 from cogs.models.categories import RandomCategory
 from cogs.utils import http
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import error
+from cogs.utils.embeds import ErrorEmbed
 from cogs.utils.time import humanize
 
 COOLDOWN_FILE_PATH = "./data/beg_cooldowns.p"
@@ -52,7 +52,7 @@ class EconomyCommands(commands.Cog):
             token = self.client.config['authentication']['unbelievaboat']['token']
             headers = {'Authorization': token}
         except KeyError:
-            return await ctx.reply(embed=error('I could not find an API token for unbelievaboat!'))
+            return await ctx.reply(embed=ErrorEmbed('I could not find an API token for unbelievaboat!'))
 
         if random.randint(1, 100) >= 75: # nosec 25 %
             cash = random.randint(9410, 78450)
@@ -80,7 +80,7 @@ class EconomyCommands(commands.Cog):
             self.beg.reset_cooldown(ctx)
             return
         else:
-            await ctx.reply(embed=error(e))
+            await ctx.reply(embed=ErrorEmbed(e))
 
 
 async def setup(client: Pidroid) -> None:

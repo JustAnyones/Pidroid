@@ -6,7 +6,7 @@ from discord.utils import escape_markdown
 from mcrcon import MCRcon
 
 from client import Pidroid
-from cogs.utils.embeds import error
+from cogs.utils.embeds import ErrorEmbed
 
 class MinecraftCommands(commands.Cog):
     """This class implements a cog for interacting with Minecraft servers over RCON using commands."""
@@ -26,24 +26,24 @@ class MinecraftCommands(commands.Cog):
             try:
                 servers = self.client.config['authentication']['minecraft rcon']
             except KeyError:
-                await ctx.reply(embed=error('Minecraft RCON configuration not found!'))
+                await ctx.reply(embed=ErrorEmbed('Minecraft RCON configuration not found!'))
                 return
 
             server_names = servers.keys()
 
             if len(server_names) == 0:
-                await ctx.reply(embed=error('No servers found!'))
+                await ctx.reply(embed=ErrorEmbed('No servers found!'))
                 return
 
             if server_type not in server_names:
-                await ctx.reply(embed=error(
+                await ctx.reply(embed=ErrorEmbed(
                     f'Specified server could not found.\nAvailable servers are ``{"``, ``".join(servers)}``.'
                 ))
                 return
 
             s = servers[server_type]
             if ctx.author.id not in s['managers']:
-                await ctx.reply(embed=error('You are not an authorized manager for the specified server!'))
+                await ctx.reply(embed=ErrorEmbed('You are not an authorized manager for the specified server!'))
                 return
 
             address = s['address'].split(':')
@@ -61,7 +61,7 @@ class MinecraftCommands(commands.Cog):
                 await ctx.reply(escape_markdown(response))
                 rcon.disconnect()
             except ConnectionRefusedError:
-                await ctx.reply(embed=error('Connection has been refused by the server. Perhaps it is offline?'))
+                await ctx.reply(embed=ErrorEmbed('Connection has been refused by the server. Perhaps it is offline?'))
 
 
 async def setup(client: Pidroid) -> None:

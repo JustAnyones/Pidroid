@@ -11,7 +11,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import AdministrationCategory, UtilityCategory
-from cogs.utils.embeds import PidroidEmbed, error, success
+from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 
 SETUP_REASON = "Guild configuration setup"
 
@@ -70,7 +70,7 @@ class AdminCommands(commands.Cog):
 
             if data is None:
                 return await ctx.reply(
-                    embed=error(
+                    embed=ErrorEmbed(
                         'No configuration was found for the server. '
                         f'You can create one by running ``{prefixes[0]}configuration setup`` command.'
                     ))
@@ -117,7 +117,7 @@ class AdminCommands(commands.Cog):
         guild_channels = guild.channels
 
         if guild.id in self.client.guild_configuration_guilds:
-            return await ctx.reply(embed=error(
+            return await ctx.reply(embed=ErrorEmbed(
                 'Configuration already exists! If you want to edit the configuration, use other subcommands.'
             ))
 
@@ -207,15 +207,15 @@ class AdminCommands(commands.Cog):
             return
 
         if len(prefix) > 1:
-            return await ctx.reply(embed=error("Prefix cannot be longer than a single character!"))
+            return await ctx.reply(embed=ErrorEmbed("Prefix cannot be longer than a single character!"))
 
         if prefix == "\\":
-            return await ctx.reply(embed=error("Prefix cannot be a forbidden character!"))
+            return await ctx.reply(embed=ErrorEmbed("Prefix cannot be a forbidden character!"))
 
         config = self.client.get_guild_configuration(ctx.guild.id)
         await config.update_prefix(prefix)
 
-        await ctx.reply(embed=success(f'My prefix set to \'{prefix}\''))
+        await ctx.reply(embed=SuccessEmbed(f'My prefix set to \'{prefix}\''))
 
     @configuration.command(
         name="toggle-tags",
@@ -238,8 +238,8 @@ class AdminCommands(commands.Cog):
         await config.update_public_tag_permission(allow_public)
 
         if allow_public:
-            return await ctx.reply(embed=success('Everyone can now create tags!'))
-        await ctx.reply(embed=success('Only members with manage messages permission can create tags now!'))
+            return await ctx.reply(embed=SuccessEmbed('Everyone can now create tags!'))
+        await ctx.reply(embed=SuccessEmbed('Only members with manage messages permission can create tags now!'))
 
     @configuration.command(
         name="toggle-strict-protection",
@@ -265,8 +265,8 @@ class AdminCommands(commands.Cog):
         await config.update_anti_phising_permission(strict)
 
         if strict:
-            return await ctx.reply(embed=success("Strict anti-phising protection enabled!"))
-        await ctx.reply(embed=success("Strict anti-phising protection disabled!"))
+            return await ctx.reply(embed=SuccessEmbed("Strict anti-phising protection enabled!"))
+        await ctx.reply(embed=SuccessEmbed("Strict anti-phising protection disabled!"))
 
     @commands.command(
         brief='Returns current server bot prefix.',

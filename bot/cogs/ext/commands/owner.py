@@ -37,7 +37,7 @@ from cogs.utils.checks import is_guild_moderator
 from cogs.utils.time import humanize, timedelta_to_datetime, timestamp_to_datetime
 from cogs.models.categories import OwnerCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 if TYPE_CHECKING:
     from cogs.ext.events.initialization import InvocationEventHandler
@@ -364,7 +364,7 @@ class OwnerCommands(commands.Cog):
             await ctx.message.delete(delay=0)
             await channel.send(message)
         except Exception as e:
-            await ctx.reply(embed=error(e))
+            await ctx.reply(embed=ErrorEmbed(e))
 
     @commands.command(
         brief="Set the bot's playing game status to the specified game.",
@@ -413,7 +413,7 @@ class OwnerCommands(commands.Cog):
             await user.send(message)
             await ctx.reply(f"Message to {user.name}#{user.discriminator} was sent succesfully")
         except Exception as e:
-            await ctx.reply(embed=error(f"Message was not sent\n```{e}```"))
+            await ctx.reply(embed=ErrorEmbed(f"Message was not sent\n```{e}```"))
 
     @commands.command(
         name="update-guild-cache",

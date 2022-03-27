@@ -16,7 +16,7 @@ from client import Pidroid
 from constants import FACTS
 from cogs.models.categories import RandomCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import get, Route
 
 CLOAKER_LINES = [
@@ -146,9 +146,8 @@ class FunCommands(commands.Cog):
             if 'results' in data:
                 if len(data["results"]) > 0:
                     gif = random.choice(data['results']) # nosec
-                    await ctx.reply(gif['url'])
-                    return
-            await ctx.reply(embed=error("I couldn't find any GIFs for the specified query!"))
+                    return await ctx.reply(gif['url'])
+            await ctx.reply(embed=ErrorEmbed("I couldn't find any GIFs for the specified query!"))
 
     @commands.command(
         brief='Summon putin to apologize for something.',
@@ -203,19 +202,19 @@ class FunCommands(commands.Cog):
     async def cloaker(self, ctx: Context, member: discord.Member):
         voice = ctx.author.voice
         if voice is None:
-            return await ctx.reply(embed=error('You are not in a voice channel!'))
+            return await ctx.reply(embed=ErrorEmbed('You are not in a voice channel!'))
 
         channel: VoiceChannel = voice.channel
         if member not in channel.members:
-            return await ctx.reply(embed=error('Specified user is not in the voice channel!'))
+            return await ctx.reply(embed=ErrorEmbed('Specified user is not in the voice channel!'))
 
         if self.client.user in channel.members:
-            return await ctx.reply(embed=error('Bro, I am already in that channel. What do you want me to do?'))
+            return await ctx.reply(embed=ErrorEmbed('Bro, I am already in that channel. What do you want me to do?'))
 
         try:
             vc: VoiceClient = await channel.connect(reconnect=False)
         except discord.errors.ClientException:
-            return await ctx.reply(embed=error('I\'m already inside a voice channel!'))
+            return await ctx.reply(embed=ErrorEmbed('I\'m already inside a voice channel!'))
 
         audio_source = discord.FFmpegPCMAudio('./resources/cloaked.mp3')
         vc.play(audio_source)

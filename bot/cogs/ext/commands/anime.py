@@ -13,7 +13,7 @@ from typing import List, Union
 from client import Pidroid
 from constants import JESSE_ID, THEOTOWN_GUILD
 from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 from cogs.utils.paginators import ListPageSource, PidroidPages
 from cogs.utils.parsers import truncate_string
 from cogs.models.categories import RandomCategory
@@ -162,7 +162,7 @@ class AnimeCommands(commands.Cog):
                     data = await r.json()
                 await ctx.reply(data["url"])
             else:
-                await ctx.reply(embed=error(
+                await ctx.reply(embed=ErrorEmbed(
                     'Wrong type specified. The allowed types are: `' + ', '.join(NEKO_ENDPOINTS) + '`.'
                 ))
 
@@ -176,8 +176,8 @@ class AnimeCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def cancer_owo(self, ctx: Context, *, text: str = None):
         if text is None:
-            return await ctx.reply(embed=error("UwU, what do you want to owoify?")) # I apologize
-        await ctx.reply(get_owo(text))
+            return await ctx.reply(embed=ErrorEmbed("UwU, what do you want to owoify?")) # I apologize
+        await ctx.reply(embed=SuccessEmbed(get_owo(text)))
 
     @commands.command(
         brief='Gets a random waifu from mywaifulist.',
@@ -193,7 +193,7 @@ class AnimeCommands(commands.Cog):
         waifus = []
         if selection is not None:
             if len(selection) < 2:
-                return await ctx.reply(embed=error("Your selection must be at least 2 characters long!"))
+                return await ctx.reply(embed=ErrorEmbed("Your selection must be at least 2 characters long!"))
 
             if selection.lower() == "best girl":
                 waifus.append(await api.fetch_waifu_by_id(41))
@@ -205,14 +205,14 @@ class AnimeCommands(commands.Cog):
                         try:
                             search_data = await api.search(selection)
                         except APIException as e:
-                            return await ctx.reply(embed=error(str(e)))
+                            return await ctx.reply(embed=ErrorEmbed(str(e)))
 
                 for search in search_data:
                     if isinstance(search, WaifuSearchResult):
                         waifus.append(search)
 
                 if len(waifus) == 0:
-                    return await ctx.reply(embed=error("Search did not find any waifus!"))
+                    return await ctx.reply(embed=ErrorEmbed("Search did not find any waifus!"))
                 waifus.sort(key=lambda w: w.likes, reverse=True)
         else:
             waifus.append(await api.fetch_random_waifu())

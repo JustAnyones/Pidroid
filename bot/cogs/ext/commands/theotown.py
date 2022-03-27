@@ -12,7 +12,7 @@ from client import Pidroid
 from cogs.models.categories import TheoTownCategory
 from cogs.utils import http
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
 from cogs.utils.paginators import PidroidPages, PluginListPaginator
 from cogs.utils.parsers import format_version_code
@@ -114,7 +114,7 @@ class TheoTownCommands(commands.Cog):
 
             if mode not in SUPPORTED_GALLERY_MODES:
                 self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=error(
+                return await ctx.reply(embed=ErrorEmbed(
                     'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
                 ))
 
@@ -125,15 +125,15 @@ class TheoTownCommands(commands.Cog):
                 number = int(number)
             except Exception:
                 self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=error('Your specified position is incorrect.'))
+                return await ctx.reply(embed=ErrorEmbed('Your specified position is incorrect.'))
 
             if number not in range(1, 201):
                 self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=error('Number must be between 1 and 200!'))
+                return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
 
             res = await self.client.api.get(Route("/public/game/gallery", {"mode": mode, "limit": number}))
             if not res["success"]:
-                return await ctx.reply(embed=error("Unable to retrieve gallery data!"))
+                return await ctx.reply(embed=ErrorEmbed("Unable to retrieve gallery data!"))
 
             data = res["data"]
             screenshot = data[number - 1]
@@ -156,7 +156,7 @@ class TheoTownCommands(commands.Cog):
     async def findplugin(self, ctx: Context, *, query: str = None): # noqa
         async with ctx.typing():
             if query is None:
-                await ctx.reply(embed=error('I could not find a query to find a plugin.'))
+                await ctx.reply(embed=ErrorEmbed('I could not find a query to find a plugin.'))
                 self.findplugin.reset_cooldown(ctx)
                 return
 
@@ -165,17 +165,17 @@ class TheoTownCommands(commands.Cog):
                 try:
                     pl_id = int(query.replace("#", ""))
                 except ValueError:
-                    await ctx.reply(embed=error('You specified an invalid plugin ID!'))
+                    await ctx.reply(embed=ErrorEmbed('You specified an invalid plugin ID!'))
                     self.findplugin.reset_cooldown(ctx)
                     return
 
             if not is_id and len(query) <= 2:
-                await ctx.reply(embed=error('Your query is too short! Please keep it at least 3 characters long.'))
+                await ctx.reply(embed=ErrorEmbed('Your query is too short! Please keep it at least 3 characters long.'))
                 self.findplugin.reset_cooldown(ctx)
                 return
 
             if not is_id and len(query) > 30:
-                await ctx.reply(embed=error('Your query is too long, please keep it below 30 characters!'))
+                await ctx.reply(embed=ErrorEmbed('Your query is too long, please keep it below 30 characters!'))
                 self.findplugin.reset_cooldown(ctx)
                 return
 
@@ -188,8 +188,7 @@ class TheoTownCommands(commands.Cog):
 
             plugin_count = len(plugin_list)
             if plugin_count == 0:
-                await ctx.reply(embed=error('No plugin could be found by your query.'))
-                return
+                return await ctx.reply(embed=ErrorEmbed('No plugin could be found by your query.'))
 
             index = 0
             if plugin_count > 1:
@@ -219,17 +218,17 @@ class TheoTownCommands(commands.Cog):
     async def downloadplugin(self, ctx: Context, *, plugin_id: str = None):
         async with ctx.typing():
             if plugin_id is None:
-                await ctx.reply(embed=error('I could not find an ID of the plugin to download!'))
+                await ctx.reply(embed=ErrorEmbed('I could not find an ID of the plugin to download!'))
                 self.downloadplugin.reset_cooldown(ctx)
                 return
 
             plugins = await self.api.fetch_plugin_by_id(plugin_id, True)
             if len(plugins) == 0:
-                return await ctx.reply(embed=error("I could not find any plugins to download by the specified ID!"))
+                return await ctx.reply(embed=ErrorEmbed("I could not find any plugins to download by the specified ID!"))
 
             plugin = plugins[0]
             if plugin.download_url is None:
-                return await ctx.reply(embed=error(
+                return await ctx.reply(embed=ErrorEmbed(
                     f"Failure encountered while trying to retrieve the plugin file for '{plugin.clean_title}'!"
                 ))
 
@@ -249,18 +248,18 @@ class TheoTownCommands(commands.Cog):
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
         async with ctx.typing():
             if suggestion is None:
-                await ctx.reply(embed=error('Your suggestion cannot be empty!'))
+                await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
                 self.suggest.reset_cooldown(ctx)
                 return
 
             if len(suggestion) < 4:
-                await ctx.reply(embed=error('Your suggestion is too short!'))
+                await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
                 self.suggest.reset_cooldown(ctx)
                 return
 
             # If suggestion text is above discord embed description limit
             if len(suggestion) > 2048:
-                await ctx.reply(embed=error('The suggestion is too long!'))
+                await ctx.reply(embed=ErrorEmbed('The suggestion is too long!'))
                 self.suggest.reset_cooldown(ctx)
                 return
 
@@ -274,20 +273,20 @@ class TheoTownCommands(commands.Cog):
             if attachments:
 
                 if len(attachments) > 1:
-                    await ctx.reply(embed=error('Only one picture can be submitted for a suggestion!'))
+                    await ctx.reply(embed=ErrorEmbed('Only one picture can be submitted for a suggestion!'))
                     self.suggest.reset_cooldown(ctx)
                     return
 
                 attachment = attachments[0]
                 if attachment.size >= 7000000:
-                    await ctx.reply(embed=error('Your image is too big to be uploaded!'))
+                    await ctx.reply(embed=ErrorEmbed('Your image is too big to be uploaded!'))
                     self.suggest.reset_cooldown(ctx)
                     return
 
                 filename = attachment.filename
                 extension = os.path.splitext(filename)[1]
                 if extension.lower() not in ['.png', '.jpg', '.jpeg']:
-                    await ctx.reply(embed=error('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
+                    await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
                     self.suggest.reset_cooldown(ctx)
                     return
 

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, List, Optional
 from cogs.models.categories import UtilityCategory
 from cogs.utils.checks import has_moderator_permissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error, success
+from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = ["create", "edit", "remove", "claim", "transfer", "list", "info"]
@@ -219,19 +219,19 @@ class TagCommands(commands.Cog):
         tag.guild_id = ctx.guild.id
         tag.author_id = ctx.author.id
         if tag_name is None:
-            return await ctx.reply(embed=error("Please specify a tag name!"))
+            return await ctx.reply(embed=ErrorEmbed("Please specify a tag name!"))
         tag.name = tag_name
 
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
-            return await ctx.reply(embed=error("Please provide content for the tag!"))
+            return await ctx.reply(embed=ErrorEmbed("Please provide content for the tag!"))
         tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
-            return await ctx.reply(embed=error("There's already a tag by the specified name!"))
+            return await ctx.reply(embed=ErrorEmbed("There's already a tag by the specified name!"))
 
         await tag.create()
-        await ctx.reply(embed=success("Tag created successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
 
     @tag.command(
         brief="Edit a server tag.",
@@ -250,11 +250,11 @@ class TagCommands(commands.Cog):
 
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
-            return await ctx.reply(embed=error("Please provide content for a tag!"))
+            return await ctx.reply(embed=ErrorEmbed("Please provide content for a tag!"))
         tag.content = (content or "" + "\n" + attachment_url or "").strip()
 
         await tag.edit()
-        await ctx.reply(embed=success("Tag edited successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
 
     @tag.command(
         brief="Claim a server tag in the case the tag owner leaves.",
@@ -278,7 +278,7 @@ class TagCommands(commands.Cog):
         tag.author_id = ctx.author.id
 
         await tag.edit()
-        await ctx.reply(embed=success("Tag claimed successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag claimed successfully!"))
 
     @tag.command(
         brief="Transfer a server tag to someone else.",
@@ -304,7 +304,7 @@ class TagCommands(commands.Cog):
         tag.author_id = member.id
 
         await tag.edit()
-        await ctx.reply(embed=success(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
+        await ctx.reply(embed=SuccessEmbed(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
 
     @tag.command(
         brief="Remove a server tag.",
@@ -322,7 +322,7 @@ class TagCommands(commands.Cog):
                 raise BadArgument("You cannot remove a tag you don't own!")
 
         await tag.remove()
-        await ctx.reply(embed=success("Tag removed successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag removed successfully!"))
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TagCommands(client))

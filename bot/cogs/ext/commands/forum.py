@@ -10,7 +10,7 @@ from client import Pidroid
 from constants import THEOTOWN_FORUM_URL
 from cogs.models.categories import TheoTownCategory
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
 from cogs.utils.time import timestamp_to_datetime
 
@@ -63,7 +63,7 @@ class ForumCommands(commands.Cog):
                 embed.set_thumbnail(url=avatar)
                 return await ctx.reply(embed=embed)
 
-            await ctx.reply(embed=error(res["details"]))
+            await ctx.reply(embed=ErrorEmbed(res["details"]))
 
     @commands.command(
         name='forum-gift',
@@ -85,7 +85,7 @@ class ForumCommands(commands.Cog):
             # Regex to find if valid gift is specified
             gift_type = re.match('(?i)(?:diamonds)|(?:region coins)', command_args)
             if not gift_type:
-                await ctx.reply(embed=error("Invalid gift type specified!"))
+                await ctx.reply(embed=ErrorEmbed("Invalid gift type specified!"))
                 return
 
             # Get regex'ed string position in a string as tuple (start, finish)
@@ -106,7 +106,7 @@ class ForumCommands(commands.Cog):
             try:
                 amount = int(amount)
             except ValueError:
-                return await ctx.reply(embed=error(f"{amount} is not a valid amount!"))
+                return await ctx.reply(embed=ErrorEmbed(f"{amount} is not a valid amount!"))
             amount = abs(int(amount))
             user = ' '.join(args[1:])
 
@@ -120,7 +120,7 @@ class ForumCommands(commands.Cog):
             if res["success"]:
                 data = res["data"]
                 return await ctx.reply(f'{amount:,} {item} have been gifted to {data["name"]}!')
-            await ctx.reply(embed=error(res["details"]))
+            await ctx.reply(embed=ErrorEmbed(res["details"]))
 
     @commands.command(
         name='forum-pm',

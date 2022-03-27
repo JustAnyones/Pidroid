@@ -9,7 +9,7 @@ from cogs.models.case import CasePaginator
 from cogs.models.categories import ModerationCategory
 from cogs.utils.checks import check_junior_moderator_permissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.paginators import PidroidPages
 
 
@@ -74,7 +74,7 @@ class ModeratorInfoCommands(commands.Cog):
             warnings = await self.client.fetch_active_warnings(ctx.guild.id, user.id)
 
         if len(warnings) == 0:
-            return await ctx.reply(embed=error(error_msg))
+            return await ctx.reply(embed=ErrorEmbed(error_msg))
 
         pages = PidroidPages(
             source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, True),
@@ -100,7 +100,7 @@ class ModeratorInfoCommands(commands.Cog):
         cases = await self.client.fetch_cases(ctx.guild.id, user.id)
 
         if len(cases) == 0:
-            await ctx.reply(embed=error(error_msg))
+            await ctx.reply(embed=ErrorEmbed(error_msg))
             return
 
         pages = PidroidPages(

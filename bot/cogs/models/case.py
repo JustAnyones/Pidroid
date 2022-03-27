@@ -17,7 +17,7 @@ from discord.threads import Thread
 from discord.user import User
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from ..utils.embeds import PidroidEmbed, success
+from ..utils.embeds import PidroidEmbed, SuccessEmbed
 from ..utils.paginators import ListPageSource, PidroidPages
 from ..utils.time import humanize, time_since, timedelta_to_datetime, timestamp_to_date, timestamp_to_datetime, utcnow
 
@@ -291,7 +291,7 @@ class BasePunishment:
         if self.silent:
             return
 
-        embed = success(message)
+        embed = SuccessEmbed(message)
         if self._case_id:
             embed.title = f"Case #{self._case_id}"
             if image_file is not None:

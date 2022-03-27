@@ -11,7 +11,7 @@ from typing import Union
 from client import Pidroid
 from cogs.models.categories import InformationCategory
 from cogs.utils.checks import is_guild_moderator, is_guild_administrator
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
 class InfoCommands(commands.Cog):
@@ -143,7 +143,7 @@ class InfoCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def role_info(self, ctx: Context, role: Role = None):
         if role is None:
-            return await ctx.reply(embed=error("Please specify the role to view the information for"))
+            return await ctx.reply(embed=ErrorEmbed("Please specify the role to view the information for"))
 
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         embed.add_field(name="Name", value=role.name)

@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 from constants import REFUSE_COMMAND_RESPONSES
 from cogs.models import exceptions
-from cogs.utils.embeds import error as error_embed
+from cogs.utils.embeds import ErrorEmbed as ErrorEmbed
 from cogs.utils.time import humanize
 
 # Errors which command error handler will ignore
@@ -63,7 +63,7 @@ class Error(commands.Cog):
 
     async def notify(self, ctx: Context, message: str, delete_after: int = None):
         with suppress(discord.errors.Forbidden):
-            await ctx.reply(embed=error_embed(message), delete_after=delete_after)
+            await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error):  # noqa: C901
@@ -150,7 +150,7 @@ class Error(commands.Cog):
                 await interface.send_to(ctx)
                 return
             with suppress(HTTPException):
-                await ctx.reply(embed=error_embed(
+                await ctx.reply(embed=ErrorEmbed(
                     f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
                     'If you\'ve encountered this multiple times, please notify my owner.'
                 ))

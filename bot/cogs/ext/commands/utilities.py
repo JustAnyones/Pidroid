@@ -8,7 +8,7 @@ from urllib.parse import quote_plus as urlencode
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
 from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timestamp_to_date
 
@@ -54,7 +54,7 @@ class UtilityCommands(commands.Cog):
     async def urban(self, ctx: Context, *, query: str = None):
         async with ctx.typing():
             if query is None:
-                await ctx.reply(embed=error("You didn't mention a term to look up!"))
+                await ctx.reply(embed=ErrorEmbed("You didn't mention a term to look up!"))
                 return
 
             url = "https://api.urbandictionary.com/v0/define?term=" + urlencode(query)
@@ -64,7 +64,7 @@ class UtilityCommands(commands.Cog):
 
             # Checks if definition exists
             if not definitions:
-                await ctx.reply(embed=error("I couldn't find any definitions for the specified term!"))
+                await ctx.reply(embed=ErrorEmbed("I couldn't find any definitions for the specified term!"))
                 return
 
             definition = definitions[0]
@@ -90,13 +90,13 @@ class UtilityCommands(commands.Cog):
     async def bitly(self, ctx: Context, url: str = None):
         async with ctx.typing():
             if url is None:
-                await ctx.reply(embed=error("Please specify the URL you want to shorten!"))
+                await ctx.reply(embed=ErrorEmbed("Please specify the URL you want to shorten!"))
                 return
 
             try:
                 config = self.client.config['authentication']['bitly']
             except KeyError:
-                await ctx.reply(embed=error("I could not find bitly credentials to use the API!"))
+                await ctx.reply(embed=ErrorEmbed("I could not find bitly credentials to use the API!"))
                 return
 
             bitly = bitly_api.Connection(config['login'], config['api key'])
@@ -167,7 +167,7 @@ class UtilityCommands(commands.Cog):
                 await ctx.reply(embed=embed)
 
             except KeyError:
-                await ctx.reply(embed=error(data["message"]))
+                await ctx.reply(embed=ErrorEmbed(data["message"]))
 
 
 async def setup(client: Pidroid) -> None:

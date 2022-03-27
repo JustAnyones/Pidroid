@@ -13,7 +13,7 @@ from typing import Optional, Union, List
 from client import Pidroid
 from cogs.models.categories import UtilityCategory
 from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, error
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 
@@ -63,8 +63,7 @@ class EmojiCommands(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def emoji(self, ctx: Context, *, emoji: discord.PartialEmoji = None):
         if emoji is None:
-            await ctx.reply(embed=error("Please specify a custom emoji you want to view!"))
-            return
+            return await ctx.reply(embed=ErrorEmbed("Please specify a custom emoji you want to view!"))
 
         embed = PidroidEmbed(title=get_emoji_name(emoji))
         embed.set_image(url=emoji.url)
@@ -105,8 +104,7 @@ class EmojiCommands(commands.Cog):
             )
         except HTTPException as e:
             if e.code == 30008:
-                await ctx.reply(embed=error("The server emote list is full. I can't add more!"))
-                return
+                return await ctx.reply(embed=ErrorEmbed("The server emote list is full. I can't add more!"))
             raise e
         else:
             await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")

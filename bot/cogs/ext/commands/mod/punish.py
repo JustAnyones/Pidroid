@@ -11,7 +11,7 @@ from cogs.models.case import Ban, Kick, Mute, Jail, Warning
 from cogs.models.categories import ModerationCategory
 from cogs.utils.converters import Duration, MemberOffender, UserOffender
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import error, success
+from cogs.utils.embeds import SuccessEmbed, ErrorEmbed
 from cogs.utils.getters import get_role, get_channel
 from cogs.utils.time import datetime_to_duration
 
@@ -40,7 +40,7 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def purge(self, ctx: Context, amount: int = 0):
         if amount <= 0:
-            return await ctx.reply(embed=error(
+            return await ctx.reply(embed=ErrorEmbed(
                 "Please specify an amount of messages to delete!"
             ))
 
@@ -89,10 +89,10 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.mute_role)
         if role is None:
-            return await ctx.reply(embed=error("Mute role not found!"))
+            return await ctx.reply(embed=ErrorEmbed("Mute role not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=error("The user is already muted!"))
+            return await ctx.reply(embed=ErrorEmbed("The user is already muted!"))
 
         m = Mute(ctx, member)
         if duration_datetime is None:
@@ -100,7 +100,7 @@ class ModeratorCommands(commands.Cog):
             return await ctx.message.delete(delay=0)
 
         if datetime_to_duration(duration_datetime) < 30:
-            return await ctx.reply(embed=error(
+            return await ctx.reply(embed=ErrorEmbed(
                 'The duration for the mute is too short! Make sure it\'s at least 30 seconds long.'
             ))
         m.length = int(duration_datetime.timestamp())
@@ -123,10 +123,10 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.mute_role)
         if role is None:
-            return await ctx.reply(embed=error("Mute role not found, cannot remove!"))
+            return await ctx.reply(embed=ErrorEmbed("Mute role not found, cannot remove!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            return await ctx.reply(embed=error("The user is not muted!"))
+            return await ctx.reply(embed=ErrorEmbed("The user is not muted!"))
 
         m = Mute(ctx, member)
         await m.revoke(role)
@@ -148,14 +148,14 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            return await ctx.reply(embed=error("Jail role not found!"))
+            return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
 
         channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
-            return await ctx.reply(embed=error("Jail channel not found!"))
+            return await ctx.reply(embed=ErrorEmbed("Jail channel not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=error("The user is already jailed!"))
+            return await ctx.reply(embed=ErrorEmbed("The user is already jailed!"))
 
         j = Jail(ctx, member)
         await j.issue(role, reason)
@@ -179,14 +179,14 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            return await ctx.reply(embed=error("Jail role not found!"))
+            return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
 
         channel = get_channel(ctx.guild, c.jail_channel)
         if channel is None:
-            return await ctx.reply(embed=error("Jail channel not found!"))
+            return await ctx.reply(embed=ErrorEmbed("Jail channel not found!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=error("The user is already kidnapped, don't you remember?"))
+            return await ctx.reply(embed=ErrorEmbed("The user is already kidnapped, don't you remember?"))
 
         j = Jail(ctx, member)
         await j.issue(role, reason, True)
@@ -209,10 +209,10 @@ class ModeratorCommands(commands.Cog):
         c = self.client.get_guild_configuration(ctx.guild.id)
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
-            return await ctx.reply(embed=error("Jail role not found, cannot remove!"))
+            return await ctx.reply(embed=ErrorEmbed("Jail role not found, cannot remove!"))
 
         if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            return await ctx.reply(embed=error("The user is not in jail!"))
+            return await ctx.reply(embed=ErrorEmbed("The user is not in jail!"))
 
         j = Jail(ctx, member)
         await j.revoke(role)
@@ -241,14 +241,14 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def ban(self, ctx: Context, user: UserOffender, duration_datetime: Optional[Duration] = None, *, reason: str = None):
         if await is_banned(ctx, user):
-            return await ctx.reply(embed=error("Specified user is already banned!"))
+            return await ctx.reply(embed=ErrorEmbed("Specified user is already banned!"))
 
         b = Ban(ctx, user)
         if duration_datetime is None:
             await b.issue(reason=reason)
         else:
             if datetime_to_duration(duration_datetime) < 60:
-                return await ctx.reply(embed=error('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
+                return await ctx.reply(embed=ErrorEmbed('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
             b.length = int(duration_datetime.timestamp())
             await b.issue(reason=reason)
         await ctx.message.delete(delay=0)
@@ -263,13 +263,13 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def unban(self, ctx: Context, *, user: Optional[discord.User]):
         if user is None:
-            return await ctx.reply(embed=error("Please specify someone you are trying to unban!"))
+            return await ctx.reply(embed=ErrorEmbed("Please specify someone you are trying to unban!"))
 
         try:
             await ctx.guild.unban(user)
-            await ctx.reply(embed=success(f"{str(user)} has been unbanned!"))
+            await ctx.reply(embed=SuccessEmbed(f"{str(user)} has been unbanned!"))
         except HTTPException:
-            await ctx.reply(embed=error("Specified user could not be unbanned! Perhaps the user is already unbanned?"))
+            await ctx.reply(embed=ErrorEmbed("Specified user could not be unbanned! Perhaps the user is already unbanned?"))
 
 
 async def setup(client: Pidroid):
