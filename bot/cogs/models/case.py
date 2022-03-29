@@ -1,10 +1,12 @@
 from __future__ import annotations
+import datetime
 
 import bson
 import discord
 
 from bson.objectid import ObjectId
 from datetime import timedelta
+from dateutil.relativedelta import relativedelta
 from discord.channel import TextChannel
 from discord.embeds import Embed
 from discord.ext.commands.context import Context
@@ -19,12 +21,15 @@ from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..utils.embeds import PidroidEmbed, SuccessEmbed
 from ..utils.paginators import ListPageSource, PidroidPages
-from ..utils.time import humanize, time_since, timedelta_to_datetime, timestamp_to_date, timestamp_to_datetime, utcnow
+from ..utils.time import delta_to_datetime, humanize, time_since, timestamp_to_date, timestamp_to_datetime, utcnow
 
 if TYPE_CHECKING:
     from ..utils.api import API
+    Channel = Union[TextChannel, Thread]
     PunishmentChannel = Union[TextChannel, Thread]
     DiscordUser = Union[Member, User]
+    Moderator = Union[Member, User]
+    Length = Union[int, timedelta, relativedelta]
 
 class BaseCase:
 
@@ -172,6 +177,151 @@ class CasePaginator(ListPageSource):
         self.embed.set_footer(text=f'{len(self.entries)} entry(-ies)')
         return self.embed
 
+class BasePunishment2:
+
+    if TYPE_CHECKING:
+        _api: API
+        type: str
+        case: Optional[Case]
+        _channel: PunishmentChannel
+
+        guild: Guild
+        user: DiscordUser
+        moderator: User
+        silent: bool
+
+        # These are not to be used
+        # They are only useful when creating a punishment, not revoking it
+        _date_expires: Optional[int]
+        _reason: Optional[str]
+
+    def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
+        # Only used internally, we initialize them here
+        self.type = None
+        self.case = None
+        self._date_expires = None
+        self._reason = None
+
+        if ctx is not None:
+            self._fill(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user)
+
+    def _fill(self, api: API, guild: Guild, channel: Optional[PunishmentChannel], moderator: User, user: DiscordUser) -> None:
+        self._api: API = api
+        self.guild = guild
+        self._channel = channel
+
+        self.set_moderator(moderator)
+        self.set_user(user)
+
+        self.silent = self._channel is None
+
+    def __str__(self) -> str:
+        return self.type or "unknown"
+
+    @property
+    def user_name(self) -> str:
+        """Returns user name."""
+        return str(self.user)
+
+    @property
+    def moderator_name(self) -> str:
+        """Returns moderator name."""
+        return str(self.moderator)
+
+    @property
+    def length(self) -> int:
+        if self._date_expires is None:
+            return -1
+        return self._date_expires
+
+    @property
+    def length_as_datetime(self) -> Optional[datetime.datetime]:
+        if self._date_expires is None:
+            return None
+        return timestamp_to_datetime(self._date_expires)
+
+    @length.setter
+    def length(self, length: Union[int, timedelta, relativedelta]) -> None:
+        if isinstance(length, (timedelta, relativedelta)):
+            length = delta_to_datetime(length).timestamp()
+        self._date_expires = int(length)
+
+    @property
+    def reason(self) -> str:
+        return self._reason
+
+    @reason.setter
+    def reason(self, reason: str) -> None:
+        if len(reason) > 512:
+            raise BadArgument("Your reason is too long. Please make sure it's below or equal to 512 characters!")
+        self._reason = reason
+
+    async def _create_db_entry(self) -> Case:
+        case_id = await self._api.get_unique_id(self._api.punishments)
+        await self._api.punishments.insert_one({
+            "id": case_id,
+            "type": self.type,
+
+            "guild_id": bson.Int64(self.guild.id),
+            "user_id": bson.Int64(self.user.id),
+            "moderator_id": bson.Int64(self.moderator.id),
+
+            "user_name": self.user_name,
+            "moderator_name": self.moderator_name,
+
+            "reason": self.reason,
+            "date_issued": bson.Int64(int(utcnow().timestamp())),
+            "date_expires": self.length,
+            "visible": True
+        })
+        return await self._api.fetch_case(self.guild.id, case_id)
+
+    async def _revoke_punishment_db_entry(self, type: str) -> None:
+        """Removes all punishments of specified type for the current user."""
+        await self._api.revoke_punishment(type, self.guild.id, self.user.id)
+
+    """Would rather stick these user notification features into an event listener of sorts."""
+    async def _notify_user(self, message: str):
+        try:
+            await self.user.send(message)
+        except Exception: # nosec
+            pass
+
+    async def _notify_chat(self, message: str, image_file: Optional[File] = None):
+        if self.silent:
+            return
+
+        embed = SuccessEmbed(message)
+        if self.case:
+            embed.title = f"Case #{self.case.case_id}"
+            if image_file is not None:
+                embed.set_image(url=f"attachment://{image_file.filename}")
+        try:
+            await self._channel.send(embed=embed, file=image_file)
+        except Exception: # nosec
+            pass
+
+    def set_member(self, member: Member) -> None:
+        if isinstance(member, User):
+            raise BadArgument("Member required, got user")
+        self.user = member
+
+    def set_user(self, user: DiscordUser) -> None:
+        if isinstance(user, Member):
+            self.user = user._user
+        self.user = user
+
+    def set_moderator(self, moderator: DiscordUser) -> None:
+        self.moderator = moderator
+        if isinstance(moderator, Member):
+            self.moderator = moderator._user
+
+    async def issue(self) -> Case:
+        raise NotImplementedError
+
+    async def revoke(self) -> None:
+        raise NotImplementedError
+
 class BasePunishment:
 
     if TYPE_CHECKING:
@@ -229,9 +379,9 @@ class BasePunishment:
         return self._date_expires
 
     @length.setter
-    def length(self, length: Union[int, timedelta]) -> None:
-        if isinstance(length, timedelta):
-            length = timedelta_to_datetime(length).timestamp()
+    def length(self, length: Union[int, timedelta, relativedelta]) -> None:
+        if isinstance(length, (timedelta, relativedelta)):
+            length = delta_to_datetime(length).timestamp()
         self._date_expires = int(length)
 
     @property
@@ -479,9 +629,99 @@ class Mute(BasePunishment):
         await self._notify_chat(f"{self.user_name} was unmuted!")
         await self._notify_user(f"You have been unmuted in {self.guild.name} server!")
 
+class Ban2(BasePunishment2):
 
-def setup(client) -> None:
-    pass
+    if TYPE_CHECKING:
+        user: DiscordUser
 
-def teardown(client) -> None:
-    pass
+    def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
+        super().__init__(ctx, user)
+        self.type = "ban"
+
+    async def issue(self) -> Case:
+        """Bans the user."""
+        await self._revoke_punishment_db_entry("jail")
+        await self._revoke_punishment_db_entry("mute")
+        await self._revoke_punishment_db_entry("timeout")
+        self.case = await self._create_db_entry()
+
+        if self.reason is None:
+            await self._notify_chat(f"{self.user_name} was banned!")
+            await self._notify_user(f"You have been banned from {self.guild.name} server!")
+        else:
+            await self._notify_chat(f'{self.user_name} was banned for the following reason: {self.reason}')
+            await self._notify_user(f"You have been banned from {self.guild.name} server for the following reason: {self.reason}")
+
+        await self.guild.ban(user=self.user, reason=self.reason)
+        return self.case
+
+    async def revoke(self, reason: str = None) -> None:
+        await self._revoke_punishment_db_entry("ban")
+        await self.user.unban(reason=reason)
+
+        await self._notify_chat(f"{self.user_name} was unbanned!")
+        await self._notify_user(f"You have been unbanned from {self.guild.name} server!")
+
+class Timeout(BasePunishment2):
+
+    if TYPE_CHECKING:
+        user: Member
+
+    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
+        super().__init__(ctx, member)
+        self.type = "timeout"
+
+    async def issue(self) -> Case:
+        self.case = await self._create_db_entry()
+        await self.user.timeout(self.length_as_datetime, reason=self.reason)
+
+        if self.reason is None:
+            await self._notify_chat(f"{self.user_name} was timed out!")
+            await self._notify_user(f"You have been timed out in {self.guild.name} server!")
+        else:
+            await self._notify_chat(f"{self.user_name} was timed out for the following reason: {self.reason}")
+            await self._notify_user(f"You have been timed out in {self.guild.name} server for the following reason: {self.reason}")
+        return self.case
+
+    async def revoke(self, reason: str = None) -> None:
+        await self._revoke_punishment_db_entry("timeout")
+        await self.user.edit(timed_out_until=None, reason=reason)
+
+        await self._notify_chat(f"Timeout for {self.user_name} was removed!")
+        await self._notify_user(f"Your timeout has been removed in {self.guild.name} server!")
+
+async def create_ban(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
+    ban = Ban()
+    ban._fill(api, channel, guild, user, moderator)
+    ban.length = length
+    ban.reason = reason
+    return await ban.issue()
+
+async def remove_ban(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, reason: str = None):
+    ban = Ban()
+    ban._fill(api, guild, channel, moderator, user)
+    await ban.revoke(reason)
+
+async def create_timeout(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
+    timeout = Timeout()
+    timeout._fill(api, channel, guild, user, moderator)
+    timeout.length = length
+    timeout.reason = reason
+    return await timeout.issue()
+
+async def remove_timeout(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, reason: str = None):
+    timeout = Timeout()
+    timeout._fill(api, guild, channel, moderator, user)
+    await timeout.revoke(reason)
+
+async def create_ban_from_context(ctx: Context, user: Member, length: Length, reason: str) -> Case:
+    return await create_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, length, reason)
+
+async def create_timeout_from_context(ctx: Context, user: Member, length: Length, reason: str) -> Case:
+    return await create_timeout(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, length, reason)
+
+async def remove_ban_from_context(ctx: Context, user: Member, reason: str):
+    return await remove_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
+
+async def remove_timeout_from_context(ctx: Context, user: Member, reason: str):
+    return await remove_timeout(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)

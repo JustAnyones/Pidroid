@@ -158,12 +158,9 @@ def is_guild_moderator(guild: Guild, channel: TextChannel, member: Member):
             )
     return False
 
-def has_moderator_permissions(ctx: Context, strict: bool = False, **perms):
+def has_moderator_permissions(ctx: Context, **perms):
     if is_guild_theotown(ctx.guild):
         return TheoTownChecks.is_junior_moderator(ctx.author)
-
-    if strict:
-        return check_permissions(ctx, **perms)
 
     # Ugly, I don't care
     try:
@@ -210,10 +207,3 @@ def check_purge_permissions(ctx: Context, **perms):
             raise MissingUserPermissions('You need to be at least a moderator or event organiser to run this command!')
         return True
     return check_permissions(ctx, **perms)
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

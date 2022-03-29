@@ -1,27 +1,438 @@
+from __future__ import annotations
+
+"""
+Left to consider
+
+Please do not forget to implement the following:
+- Custom length and reason selection
+- Actual checking of moderator permissions before executing and providing the buttons
+- Actual issueing of punishments
+- Ability to revoke punishments
+- Passing or acquiring the roles for required operations
+
+"""
+
 import discord
 import typing
 
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
-from typing import Optional
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from client import Pidroid
-from cogs.models.case import Ban, Kick, Mute, Jail, Warning
+from cogs.models.case import Ban2, Kick, Timeout, Jail, Warning, remove_timeout
 from cogs.models.categories import ModerationCategory
-from cogs.utils.converters import Duration, MemberOffender, UserOffender
+from cogs.models.exceptions import InvalidDuration
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import SuccessEmbed, ErrorEmbed
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.getters import get_role, get_channel
-from cogs.utils.time import datetime_to_duration
 
-async def is_banned(ctx: Context, user: typing.Union[discord.Member, discord.User]) -> bool:
-    """Returns true if user is in guild's ban list."""
-    bans = await ctx.guild.bans()
-    for entry in bans:
-        if entry.user.id == user.id:
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from discord import ui, ButtonStyle, Interaction
+from discord.colour import Colour
+from discord.ui import Modal, TextInput
+from discord.user import User
+from discord.embeds import Embed
+from discord.emoji import Emoji
+from discord.ext.commands.errors import BadArgument
+from discord.member import Member
+from discord.partial_emoji import PartialEmoji
+from discord.utils import escape_markdown
+
+from cogs.utils.checks import is_guild_moderator
+from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime
+
+class ReasonModal(Modal, title='Custom reason modal'):
+    reason_input = TextInput(label="Reason", placeholder="Please provide the reason")
+    interaction = None
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.interaction = interaction
+        self.stop()
+
+class LengthModal(Modal, title='Custom length modal'):
+    length_input = TextInput(label="Length", placeholder="Please provide the length")
+    interaction = None
+
+    async def on_submit(self, interaction: discord.Interaction):
+        self.interaction = interaction
+        self.stop()
+
+class BaseButton(ui.Button):
+    if TYPE_CHECKING:
+        view: PunishmentInteraction
+
+    def __init__(self, style: ButtonStyle, label: str, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
+
+class ValueButton(BaseButton):
+    def __init__(self, label: Optional[str], value: Optional[Any]):
+        super().__init__(ButtonStyle.gray, label)
+        # If value doesn't exist, mark it as custom
+        if value is None:
+            self.label = label or "Custom..."
+            self.style = ButtonStyle.blurple
+        # If value is -1, consider it permanent and therefore colour the button red
+        elif value == -1:
+            self.style = ButtonStyle.red
+        self.value = value
+
+class LengthButton(ValueButton):
+    def __init__(self, label: Optional[str], value: Optional[Union[int, timedelta]]):
+        super().__init__(label, value)
+
+    async def callback(self, interaction: Interaction) -> None:
+        value = self.value
+        if value is None:
+            value, interaction = await self.view.custom_length_modal(interaction)
+            try:
+                value = duration_string_to_relativedelta(value)
+            except InvalidDuration as e:
+                return await interaction.response.send_message(str(e), ephemeral=True)
+
+        self.view._select_length(value)
+        await self.view.create_reason_selector()
+        await self.view._update_view(interaction)
+
+class ReasonButton(ValueButton):
+    def __init__(self, label: Optional[str], value: Optional[str]):
+        super().__init__(label, value)
+
+    async def callback(self, interaction: Interaction) -> None:
+        value = self.value
+        if value is None:
+            value, interaction = await self.view.custom_reason_modal(interaction)
+
+        self.view._select_reason(value)
+        await self.view.create_confirmation_selector()
+        await self.view._update_view(interaction)
+
+class ConfirmButton(BaseButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.green, "Confirm")
+
+    async def callback(self, interaction: Interaction) -> None:
+        await self.view._handle_confirmation(interaction, True)
+
+class CancelButton(BaseButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.red, "Cancel")
+
+    async def callback(self, interaction: Interaction) -> None:
+        await self.view._handle_confirmation(interaction, False)
+
+class BasePunishmentButton(ui.Button):
+    if TYPE_CHECKING:
+        view: PunishmentInteraction
+
+    def __init__(self, style: ButtonStyle, label: str, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
+
+class BanButton(BasePunishmentButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.red, "Ban", emoji="🔨")
+
+    async def callback(self, interaction: Interaction) -> None:
+        self.view._select_type(Ban2(self.view.ctx, self.view.user))
+        await self.view.create_length_selector()
+        await self.view._update_view(interaction)
+
+class UnbanButton(BasePunishmentButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.red, "Unban", emoji="🔨")
+
+    async def callback(self, interaction: Interaction) -> None:
+        print("NO IDEA HOW TO IMPLEMENT")
+
+class KickButton(BasePunishmentButton):
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Kick", disabled=disabled)
+
+    async def callback(self, interaction: Interaction) -> None:
+        self.view._select_type(Kick(self.view.ctx, self.view.user))
+        await self.view.create_reason_selector()
+        await self.view._update_view(interaction)
+
+class JailButton(BasePunishmentButton):
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Jail", disabled=disabled)
+
+    async def callback(self, interaction: Interaction) -> None:
+        self.view._select_type(Jail(self.view.ctx, self.view.user))
+        await self.view.create_reason_selector()
+        await self.view._update_view(interaction)
+
+class RemoveJailButton(BasePunishmentButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.gray, "Release from jail")
+
+    async def callback(self, interaction: Interaction) -> None:
+        print("NO IDEA HOW TO IMPLEMENT")
+
+class TimeoutButton(BasePunishmentButton):
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Time-out", disabled=disabled)
+
+    async def callback(self, interaction: Interaction) -> None:
+        self.view._select_type(Timeout(self.view.ctx, self.view.user))
+        await self.view.create_length_selector()
+        await self.view._update_view(interaction)
+
+class RemoveTimeoutButton(BasePunishmentButton):
+    def __init__(self):
+        super().__init__(ButtonStyle.gray, "Remove time-out")
+
+    async def callback(self, interaction: Interaction) -> None:
+        await remove_timeout(
+            self.view.ctx.bot.api, self.view.ctx.guild, self.view.ctx.channel,
+            self.view.ctx.author, self.view.user,
+            f"Removed by {str(self.view.ctx.author)}"
+        )
+        await self.view.finish(interaction)
+
+class WarnButton(BasePunishmentButton):
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Warn", disabled, "⚠️")
+
+    async def callback(self, interaction: Interaction) -> None:
+        self.view._select_type(Warning(self.view.ctx, self.view.user))
+        await self.view.create_reason_selector()
+        await self.view._update_view(interaction)
+
+
+LENGTH_MAPPING = {
+    "timeout": [
+        LengthButton("30 minutes", timedelta(minutes=30)),
+        LengthButton("An hour", timedelta(hours=1)),
+        LengthButton("2 hours", timedelta(hours=2)),
+        LengthButton("12 hours", timedelta(hours=12)),
+        LengthButton("A day", timedelta(hours=24)),
+        LengthButton("A week", timedelta(weeks=1)),
+        LengthButton(None, None)
+    ],
+    "ban": [
+        LengthButton("24 hours", timedelta(hours=24)),
+        LengthButton("A week", timedelta(weeks=1)),
+        LengthButton("2 weeks", timedelta(weeks=2)),
+        LengthButton("A month", timedelta(days=30)),
+        LengthButton("Permanent", -1),
+        LengthButton(None, None)
+    ]
+}
+
+# TODO: add
+REASON_MAPPING = {
+    "ban": [
+        ReasonButton("Spam", "Spam"),
+        ReasonButton(None, None)
+    ],
+    "kick": [
+        ReasonButton(None, None)
+    ],
+    "jail": [
+        ReasonButton("Investigation", "Investigation"),
+        ReasonButton(None, None)
+    ],
+    "timeout": [
+        ReasonButton(None, None)
+    ],
+    "warning": [
+        ReasonButton(None, None)
+    ]
+}
+
+class PunishmentInteraction(ui.View):
+
+    def __init__(self, ctx: Context, user: Union[Member, User], embed: Embed):
+        super().__init__(timeout=180)
+        self.ctx = ctx
+        self.user = user
+        self.embed = embed
+
+        self._punishment: Union[Ban2, Kick, Jail, Timeout, Warning] = None
+
+    """Private utility methods"""
+
+    def _select_type(self, instance):
+        self.embed.description = f"Type: {str(instance)}"
+        self._punishment = instance
+
+    def _select_length(self, length: Union[int, timedelta, relativedelta]):
+        # Get correct representation of provided length value
+        if isinstance(length, int):
+            if length == -1:
+                len_str = "permanent"
+            else:
+                len_str = humanize(timestamp_to_datetime(length), max_units=3)
+        elif isinstance(length, relativedelta):
+            len_str = humanize(length, max_units=3)
+        else:
+            len_str = humanize(timedelta_to_datetime(length), max_units=3)
+
+        self.embed.description += f"\nLength: {len_str}"
+        self._punishment.length = length
+
+    def _select_reason(self, reason: str):
+        self.embed.description += f"\nReason: {reason}"
+        self._punishment.reason = reason
+
+    async def _update_view(self, interaction: Interaction):
+        await interaction.response.edit_message(embed=self.embed, view=self)
+
+    """Checks"""
+
+    async def is_user_banned(self) -> bool:
+        """Returns true if user is currently banned."""
+        for entry in await self.ctx.guild.bans():
+            if entry.user.id == self.user.id:
+                return True
+        return False
+
+    async def is_user_jailed(self) -> bool:
+        """Returns true if user is currently jailed."""
+        # TODO: implement
+        return False
+
+    async def is_user_timed_out(self) -> bool:
+        """Returns true if user is currently muted."""
+        if isinstance(self.user, User):
+            return False
+        return self.user.is_timed_out()
+
+    """
+    Methods for creating button interfaces for:
+    - Selecting punishment type
+    - Selecting punishment length
+    - Selecting punishment reason
+    - Confirming or cancelling the action
+    """
+
+    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
+        modal = ReasonModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        return modal.reason_input.value, modal.interaction
+
+    async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
+        modal = LengthModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        return modal.length_input.value, modal.interaction
+
+    async def create_type_selector(self):
+        self.embed.set_footer(text="Select punishment type")
+        self.clear_items()
+        is_member = isinstance(self.user, Member)
+
+        # Add ban/unban buttons
+        if not await self.is_user_banned():
+            self.add_item(BanButton())
+        else:
+            self.add_item(UnbanButton())
+
+        # Kick button
+        self.add_item(KickButton(not is_member))
+
+        # Add jail/unjail buttons
+        if not await self.is_user_jailed():
+            self.add_item(JailButton(not is_member))
+        else:
+            self.add_item(RemoveJailButton())
+
+        # Add timeout/un-timeout buttons
+        if not await self.is_user_timed_out():
+            self.add_item(TimeoutButton(not is_member))
+        else:
+            self.add_item(RemoveTimeoutButton())
+
+        # Warn button
+        self.add_item(WarnButton(not is_member))
+
+    async def create_length_selector(self):
+        # Acquire mapping for lengths for punishment types
+        mapping: List[ValueButton] = LENGTH_MAPPING.get(str(self._punishment), None)
+        if mapping is None or len(mapping) == 0:
+            return await self.create_reason_selector()
+
+        self.clear_items()
+        for button in mapping:
+            self.add_item(button)
+        self.embed.set_footer(text="Select punishment length")
+
+    async def create_reason_selector(self):
+        # Acquire mapping for lengths for punishment types
+        mapping: List[ValueButton] = REASON_MAPPING.get(str(self._punishment), None)
+        if mapping is None or len(mapping) == 0:
+            return await self.create_confirmation_selector()
+
+        self.clear_items()
+        for button in mapping:
+            self.add_item(button)
+        self.embed.set_footer(text="Select punishment reason")
+
+    async def create_confirmation_selector(self):
+        self.clear_items()
+        self.add_item(ConfirmButton())
+        self.add_item(CancelButton())
+        self.embed.set_footer(text="Confirm or cancel the punishment")
+
+    """Handle selections"""
+
+    async def _handle_confirmation(self, interaction: Interaction, confirmed: bool):
+        self.embed.remove_footer()
+
+        # If moderator confirmed the action
+        if confirmed:
+
+            if (self._punishment.type and (
+                self._punishment.type == "timeout"
+                or self._punishment.type == "ban"
+            )):
+                await self._punishment.issue()
+
+            return await self.finish()
+
+        # Otherwise, clear items
+        self.embed.set_footer(text="CANCELLED")
+        self.embed.colour = Colour.red()
+        self.remove_items()
+        await self._update_view(interaction)
+        self.stop()
+
+    """Clean up related methods"""
+
+    def disable_items(self) -> None:
+        """Disables all view items."""
+        for child in self.children:
+            child.disabled = True
+
+    def remove_items(self) -> None:
+        """Removes all items from the view."""
+        for child in self.children.copy():
+            self.remove_item(child)
+
+    async def finish(self, interaction: Interaction) -> None:
+        """Causes the view to remove itself and stop listening to interactions."""
+        await interaction.response.defer()
+        await interaction.delete_original_message()
+        return self.stop()
+
+    def stop(self) -> None:
+        """Stops listening to all interactions for this view."""
+        self.remove_items()
+        return super().stop()
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        """Ensure that the interaction is called by the message author.
+
+        Moderator, in this case."""
+        if interaction.user and interaction.user.id == self.ctx.author.id:
             return True
-    return False
+        await interaction.response.send_message('This menu cannot be controlled by you, sorry!', ephemeral=True)
+        return False
+
 
 class ModeratorCommands(commands.Cog):
     """This class implements cog which contains commands for moderation."""
@@ -61,216 +472,37 @@ class ModeratorCommands(commands.Cog):
         await ctx.send(file=discord.File('./resources/delete_this.png'))
 
     @commands.command(
-        brief='Issues a warning to specified member.',
-        usage='<member> <warning>',
+        brief="Open user moderation and punishment menu.",
+        usage="<user/member>",
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True)
-    @command_checks.is_junior_moderator(kick_members=True)
+    @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def warn(self, ctx: Context, member: MemberOffender, *, warning: str):
-        w = Warning(ctx, member)
-        await w.issue(warning)
-        await ctx.message.delete(delay=0)
+    @commands.is_owner()
+    async def punish(self, ctx: Context, user: Union[Member, User] = None):
+        # Check initial permissions
+        if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):
+            raise BadArgument("You need to be a moderator to run this command!")
 
-    @commands.command(
-        brief='Mutes specified member for the specified amount of time and a reason.',
-        usage='<member> [duration] [reason]',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only()
-    async def mute(self, ctx: Context, member: MemberOffender, duration_datetime: typing.Optional[Duration] = None, *, reason: str = None):
-        if not self.client.guild_config_cache_ready:
-            return
-
-        c = self.client.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.mute_role)
-        if role is None:
-            return await ctx.reply(embed=ErrorEmbed("Mute role not found!"))
-
-        if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=ErrorEmbed("The user is already muted!"))
-
-        m = Mute(ctx, member)
-        if duration_datetime is None:
-            await m.issue(role, reason=reason)
-            return await ctx.message.delete(delay=0)
-
-        if datetime_to_duration(duration_datetime) < 30:
-            return await ctx.reply(embed=ErrorEmbed(
-                'The duration for the mute is too short! Make sure it\'s at least 30 seconds long.'
-            ))
-        m.length = int(duration_datetime.timestamp())
-        await m.issue(role, reason=reason)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Unmutes specified member.',
-        usage='<member>',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only()
-    async def unmute(self, ctx: Context, *, member: MemberOffender):
-        if not self.client.guild_config_cache_ready:
-            return
-
-        c = self.client.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.mute_role)
-        if role is None:
-            return await ctx.reply(embed=ErrorEmbed("Mute role not found, cannot remove!"))
-
-        if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            return await ctx.reply(embed=ErrorEmbed("The user is not muted!"))
-
-        m = Mute(ctx, member)
-        await m.revoke(role)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Throws specified member in jail.',
-        usage='<member> [reason]',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only()
-    async def jail(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        if not self.client.guild_config_cache_ready:
-            return
-
-        c = self.client.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.jail_role)
-        if role is None:
-            return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
-
-        channel = get_channel(ctx.guild, c.jail_channel)
-        if channel is None:
-            return await ctx.reply(embed=ErrorEmbed("Jail channel not found!"))
-
-        if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=ErrorEmbed("The user is already jailed!"))
-
-        j = Jail(ctx, member)
-        await j.issue(role, reason)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Throws specified member in jail.',
-        usage='<member> [reason]',
-        aliases=['van'],
-        category=ModerationCategory,
-        hidden=True
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only()
-    async def kidnap(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        if not self.client.guild_config_cache_ready:
-            return
-
-        c = self.client.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.jail_role)
-        if role is None:
-            return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
-
-        channel = get_channel(ctx.guild, c.jail_channel)
-        if channel is None:
-            return await ctx.reply(embed=ErrorEmbed("Jail channel not found!"))
-
-        if discord.utils.get(ctx.guild.roles, id=role.id) in member.roles:
-            return await ctx.reply(embed=ErrorEmbed("The user is already kidnapped, don't you remember?"))
-
-        j = Jail(ctx, member)
-        await j.issue(role, reason, True)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Releases specified member from jail.',
-        usage='<member>',
-        aliases=["release"],
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only()
-    async def unjail(self, ctx: Context, *, member: MemberOffender):
-        if not self.client.guild_config_cache_ready:
-            return
-
-        c = self.client.get_guild_configuration(ctx.guild.id)
-        role = get_role(ctx.guild, c.jail_role)
-        if role is None:
-            return await ctx.reply(embed=ErrorEmbed("Jail role not found, cannot remove!"))
-
-        if discord.utils.get(ctx.guild.roles, id=role.id) not in member.roles:
-            return await ctx.reply(embed=ErrorEmbed("The user is not in jail!"))
-
-        j = Jail(ctx, member)
-        await j.revoke(role)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Kicks the specified member for specified reason.',
-        usage='<member> [reason]',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, kick_members=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only()
-    async def kick(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        k = Kick(ctx, member)
-        await k.issue(reason)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Bans the specified user for specified reason for the specified amount of time.',
-        usage='<user> [duration] [reason]',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
-    @command_checks.is_moderator(ban_members=True)
-    @commands.guild_only()
-    async def ban(self, ctx: Context, user: UserOffender, duration_datetime: Optional[Duration] = None, *, reason: str = None):
-        if await is_banned(ctx, user):
-            return await ctx.reply(embed=ErrorEmbed("Specified user is already banned!"))
-
-        b = Ban(ctx, user)
-        if duration_datetime is None:
-            await b.issue(reason=reason)
-        else:
-            if datetime_to_duration(duration_datetime) < 60:
-                return await ctx.reply(embed=ErrorEmbed('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
-            b.length = int(duration_datetime.timestamp())
-            await b.issue(reason=reason)
-        await ctx.message.delete(delay=0)
-
-    @commands.command(
-        brief='Unbans the specified user.',
-        usage='<user ID>',
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
-    @command_checks.is_senior_moderator(administrator=True)
-    @commands.guild_only()
-    async def unban(self, ctx: Context, *, user: Optional[discord.User]):
         if user is None:
-            return await ctx.reply(embed=ErrorEmbed("Please specify someone you are trying to unban!"))
+            raise BadArgument("Please specify the member or the user you are trying to punish!")
 
-        try:
-            await ctx.guild.unban(user)
-            await ctx.reply(embed=SuccessEmbed(f"{str(user)} has been unbanned!"))
-        except HTTPException:
-            await ctx.reply(embed=ErrorEmbed("Specified user could not be unbanned! Perhaps the user is already unbanned?"))
+        # Prevent moderator from punishing himself
+        if user.id == ctx.message.author.id:
+            raise BadArgument("You cannot punish yourself! That's what PHP is for.")
 
+        # Generic check to only invoke the menu if author is a moderator
+        if is_guild_moderator(ctx.guild, ctx.channel, user):
+            raise BadArgument("You cannot punish a moderator!")
+
+        # Create an embed overview
+        embed = PidroidEmbed()
+        embed.title = f"Punish {escape_markdown(str(user))}"
+
+        view = PunishmentInteraction(ctx, user, embed)
+        await view.create_type_selector()
+
+        await ctx.reply(embed=embed, view=view)
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorCommands(client))

@@ -4,6 +4,8 @@ import re
 from dateutil.relativedelta import relativedelta
 from typing import Optional, Union
 
+from cogs.models.exceptions import InvalidDuration
+
 DURATION_PATTERN = re.compile(
     r"((?P<years>\d+?) ?(years|year|Y|y) ?)?"
     r"((?P<months>\d+?) ?(months|month|mo) ?)?"
@@ -45,6 +47,26 @@ def utcnow() -> datetime.datetime:
     """Returns current datetime."""
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
+def duration_string_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
+    """Converts a duration string to a relativedelta object."""
+    match = DURATION_PATTERN.fullmatch(duration_str)
+    if not match:
+        raise InvalidDuration((
+            f"'{duration_str}' is not a valid duration!\n"
+            "Pidroid supports the following symbols for each unit of time:\n"
+            "- years: `Y`, `y`, `year`, `years`\n"
+            "- months: `mo`, `month`, `months`\n"
+            "- weeks: `w`, `W`, `week`, `weeks`\n"
+            "- days: `d`, `D`, `day`, `days`\n"
+            "- hours: `H`, `h`, `hour`, `hours`\n"
+            "- minutes: `m`, `minute`, `minutes`\n"
+            "- seconds: `S`, `s`, `second`, `seconds`\n"
+            "The units need to be provided in descending order of magnitude."
+        ))
+
+    duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
+    return relativedelta(**duration_dict)
+
 def duration_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
     """Converts a duration string to a relativedelta object."""
     match = DURATION_PATTERN.fullmatch(duration_str)
@@ -63,6 +85,10 @@ def datetime_to_duration(date: datetime.datetime) -> float:
     return datetime_to_timedelta(date).total_seconds()
 
 def timedelta_to_datetime(delta: datetime.timedelta) -> datetime.datetime:
+    """Converts a timedelta object to a datetime object."""
+    return utcnow() + delta
+
+def delta_to_datetime(delta: Union[datetime.timedelta, relativedelta]) -> datetime.datetime:
     """Converts a timedelta object to a datetime object."""
     return utcnow() + delta
 
@@ -150,10 +176,3 @@ def datetime_to_date(datetime: datetime.datetime, style="default", custom_format
     else:
         style = DATE_STYLES.get(style, "%a, %b %d, %Y %I:%M %p")
     return datetime.strftime(style)
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

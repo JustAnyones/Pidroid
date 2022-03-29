@@ -79,6 +79,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.commands.theotown',
             'cogs.ext.commands.utilities',
             'cogs.ext.commands.mod.punish',
+            'cogs.ext.commands.mod.old_punish',
             'cogs.ext.commands.mod.logs',
 
             # Events
