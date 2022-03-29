@@ -4,7 +4,7 @@ import asyncio
 import discord
 import json
 import random
-import subprocess # noqa
+import subprocess # nosec
 import sys
 import logging
 
@@ -301,7 +301,6 @@ class Pidroid(commands.Bot):
         win_user_name = proc1.stdout.read().decode("utf-8").strip()"""
         proc2 = subprocess.Popen('git config user.name', stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
         git_user_name = proc2.stdout.read().decode("utf-8").strip()
-        #has_tt_folder = os.path.exists(os.path.join(os.environ["userprofile"], "TheoTown"))
 
         # We do a miniscule amount of trolling
         if git_user_name == "erksmit":

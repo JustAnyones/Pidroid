@@ -108,7 +108,7 @@ class Tag:
 
     def remove_co_author(self, author_id: int) -> None:
         if author_id not in self.co_author_ids:
-            raise BadArgument("Specified member is not a co-author!")    
+            raise BadArgument("Specified member is not a co-author!")
         self._author_ids.remove(author_id)
 
     def _serialize(self) -> dict:
