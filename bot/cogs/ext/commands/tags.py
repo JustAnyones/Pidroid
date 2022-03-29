@@ -5,12 +5,14 @@ from bson.objectid import ObjectId
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
+from discord.file import File
 from discord.guild import Guild
 from discord.user import User
 from discord.member import Member
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.utils import escape_markdown, format_dt
+from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
 
 from cogs.models.categories import UtilityCategory
@@ -21,7 +23,7 @@ from cogs.utils.embeds import PidroidEmbed, SuccessEmbed
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = [
     "create", "edit", "remove", "claim", "transfer", "list", "info",
-    "add-author", "add_author",
+    "add-author", "add_author", "raw",
     "remove-author", "remove_author"
 ]
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
@@ -251,6 +253,21 @@ class TagCommands(commands.Cog):
             embed.add_field(name="Co-authors", value=' '.join([user.mention for user in authors[1:]]))
         embed.add_field(name="Date created", value=format_dt(tag._id.generation_time))
         await ctx.reply(embed=embed)
+
+    @tag.command(
+        brief='Returns raw tag content.',
+        usage='<tag name>',
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
+    async def raw(self, ctx: Context, *, tag_name: str = None):
+        tag = await self.resolve_tag(ctx, tag_name)
+
+        with BytesIO(tag.content.encode("utf-8")) as buffer:
+            file = File(buffer, f"{tag.name[:40]}-content.txt")
+
+        await ctx.reply(f"Raw content for the tag '{tag.name}'", file=file)
 
     @tag.command(
         brief="Create a server tag.",
