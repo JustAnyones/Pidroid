@@ -15,7 +15,7 @@ from discord.utils import escape_markdown, format_dt
 from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
 
-from cogs.models.categories import UtilityCategory
+from cogs.models.categories import TagCategory
 from cogs.utils.checks import has_moderator_permissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, SuccessEmbed
@@ -192,7 +192,7 @@ class TagCommands(commands.Cog):
     @commands.group(
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
-        category=UtilityCategory,
+        category=TagCategory,
         invoke_without_command=True
     )
     @commands.bot_has_permissions(send_messages=True)
@@ -220,7 +220,7 @@ class TagCommands(commands.Cog):
 
     @tag.command(
         brief="Returns a list of available server tags.",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -237,7 +237,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief='Returns information about a server tag.',
         usage='<tag name>',
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -257,7 +257,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief='Returns raw tag content.',
         usage='<tag name>',
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -272,7 +272,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief="Create a server tag.",
         usage="<tag name> <tag content>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=10, per=60 * 60, type=commands.BucketType.user)
@@ -300,7 +300,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief="Edit a server tag.",
         usage="<tag name> <tag content>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -327,7 +327,7 @@ class TagCommands(commands.Cog):
         name="add-author",
         brief="Add a new tag co-author.",
         usage="<tag name> <member>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -354,7 +354,7 @@ class TagCommands(commands.Cog):
         name="remove-author",
         brief="Remove a tag co-author.",
         usage="<tag name> <member>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -377,7 +377,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief="Claim a server tag in the case the tag owner leaves.",
         usage="<tag name>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -404,7 +404,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief="Transfer a server tag to someone else.",
         usage="<tag name> <member>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -433,7 +433,7 @@ class TagCommands(commands.Cog):
     @tag.command(
         brief="Remove a server tag.",
         usage="<tag name>",
-        category=UtilityCategory
+        category=TagCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
