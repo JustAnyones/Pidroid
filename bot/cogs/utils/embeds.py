@@ -21,11 +21,11 @@ class PidroidEmbed(Embed):
         super().__init__(colour=EMBED_COLOUR, title=title, type=type, url=url, description=description, timestamp=timestamp)
 
 class SuccessEmbed(Embed):
-    def __init__(self, description: str):
+    def __init__(self, description: str = None):
         super().__init__(description=description, colour=Colour.green())
 
 class ErrorEmbed(Embed):
-    def __init__(self, description: str):
+    def __init__(self, description: str = None):
         super().__init__(description=description, colour=Colour.red())
 
 def error(content: str) -> Embed:
