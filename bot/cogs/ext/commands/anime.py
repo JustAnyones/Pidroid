@@ -98,91 +98,90 @@ class AnimeCommands(commands.Cog):
             await ctx.reply(file=discord.File('./resources/you_were_banned.mp4'))
 
     @commands.group(
-        brief='It\'s a gamble, really.',
         category=RandomCategory,
         hidden=True,
         invoke_without_command=True
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer(self, ctx: Context):
+    async def neko(self, ctx: Context):
         if ctx.invoked_subcommand is None:
-            await ctx.reply("Why are we still here? Just to suffer?")
+            raise BadArgument((
+                "Invalid neko subcommand specified. "
+                "Please consult the help command."
+            ))
 
-    @cancer.command(
+    @neko.command(
         name='fact',
-        brief='Tells a random fact.',
+        brief='Tells a random fact as provided by the API.',
         category=RandomCategory,
-        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer_fact(self, ctx: Context):
+    async def neko_fact(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/fact") as r:
             data = await r.json()
-        await ctx.reply(data["fact"])
+        await ctx.reply(embed=SuccessEmbed(data["fact"]))
 
-    @cancer.command(
+    @neko.command(
         name='name',
-        brief='Returns a random name.',
-        category=RandomCategory,
-        hidden=True
+        brief='Generates a random name from the API.',
+        category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer_name(self, ctx: Context):
+    async def neko_name(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/name") as r:
             data = await r.json()
-        await ctx.reply(data["name"])
+        await ctx.reply(embed=SuccessEmbed(data["name"]))
 
-    @cancer.command(
+    @neko.command(
         name='why',
-        brief='Questions the life itself.',
+        brief='Questions that make you think as provided by the API.',
         category=RandomCategory,
-        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer_why(self, ctx: Context):
+    async def neko_why(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/why") as r:
             data = await r.json()
-        await ctx.reply(data["why"])
+        await ctx.reply(embed=SuccessEmbed(data["why"]))
 
-    @cancer.command(
+    @neko.command(
         name='image',
-        brief='Returns an image for the specified category.',
+        brief='Fetches an image for the specified type as provided by the API.',
         usage='[image type]',
         category=RandomCategory,
-        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer_image(self, ctx: Context, endpoint: str = None):
-        async with ctx.typing():
-            if endpoint is None:
-                endpoint = random.choice(NEKO_ENDPOINTS) # nosec
-            endpoint = endpoint.lower()
-            if endpoint in NEKO_ENDPOINTS:
-                async with await http.get(self.client, f"{NEKO_API}/img/{endpoint}") as r:
-                    data = await r.json()
-                await ctx.reply(data["url"])
-            else:
-                await ctx.reply(embed=ErrorEmbed(
-                    'Wrong type specified. The allowed types are: `' + ', '.join(NEKO_ENDPOINTS) + '`.'
-                ))
+    async def neko_image(self, ctx: Context, endpoint: str = None):
+        if endpoint is None:
+            endpoint = random.choice(NEKO_ENDPOINTS) # nosec
 
-    @cancer.command(
-        name='owo',
+        endpoint = endpoint.lower()
+        if endpoint in NEKO_ENDPOINTS:
+            async with await http.get(self.client, f"{NEKO_API}/img/{endpoint}") as r:
+                data = await r.json()
+            embed = SuccessEmbed()
+            embed.set_image(url=data["url"])
+            embed.set_footer(text=endpoint)
+            return await ctx.reply(embed=embed)
+
+        raise BadArgument(
+            'Wrong image type specified. The allowed types are: `' + ', '.join(NEKO_ENDPOINTS) + '`.'
+        )
+
+    @commands.command(
         brief='Returns the original input text, but in owo format.',
-        usage='<text to be owoified>',
-        category=RandomCategory,
-        hidden=True
+        usage='<text to be converted>',
+        category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def cancer_owo(self, ctx: Context, *, text: str = None):
+    async def owo(self, ctx: Context, *, text: str = None):
         if text is None:
-            return await ctx.reply(embed=ErrorEmbed("UwU, what do you want to owoify?")) # I apologize
+            raise BadArgument("UwU, what do you want to owoify?") # I apologize
         await ctx.reply(embed=SuccessEmbed(get_owo(text)))
 
     @commands.command(
-        brief='Gets a random waifu from mywaifulist.',
+        brief='Returns a random waifu from MyWaifuList.',
+        usage='[waifu to search]',
         category=RandomCategory,
-        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
@@ -222,24 +221,27 @@ class AnimeCommands(commands.Cog):
 
     @commands.command(
         name="animedia",
-        brief="Fetches an anime themed GIF/image file from an API for the specified purpose.",
+        brief="Fetches an anime themed GIF/image file from waifu.pics API.",
+        usage="[media type]",
         category=RandomCategory,
-        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True)
     async def anime_media(self, ctx: Context, endpoint: str = None):
         if endpoint is not None:
             endpoint = endpoint.lower().strip()
             if endpoint not in WAIFU_PICS_ENDPOINTS:
-                raise BadArgument("WRONG!!!")
+                raise BadArgument((
+                    'Wrong media type specified. '
+                    'The allowed types are: `' + ', '.join(WAIFU_PICS_ENDPOINTS) + '`.'
+                ))
         else:
             endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
         async with await http.get(self.client, f"{WAIFU_PICS_API}/{endpoint}") as r:
             data = await r.json()
 
-        embed = PidroidEmbed()
-        embed.title = f"Endpoint: {endpoint}"
+        embed = SuccessEmbed()
         embed.set_image(url=data["url"])
+        embed.set_footer(text=endpoint)
         await ctx.reply(embed=embed)
 
     @commands.command(
