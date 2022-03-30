@@ -177,7 +177,7 @@ class CasePaginator(ListPageSource):
         self.embed.set_footer(text=f'{len(self.entries)} entry(-ies)')
         return self.embed
 
-class BasePunishment2:
+class BasePunishment:
 
     if TYPE_CHECKING:
         _api: API
@@ -322,275 +322,6 @@ class BasePunishment2:
     async def revoke(self) -> None:
         raise NotImplementedError
 
-class BasePunishment:
-
-    if TYPE_CHECKING:
-        _api: API
-        _channel: PunishmentChannel
-
-        guild: Guild
-        user: DiscordUser
-        moderator: User
-        silent: bool
-
-        # These are not to be used
-        # They are only useful when creating a punishment, not revoking it
-        _case_id: Optional[str]
-        _type: Optional[str]
-        _date_expires: Optional[int]
-        _date_issued: Optional[int]
-        _reason: Optional[str]
-
-    def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
-        # Only used internally, we initialize them here
-        self._case_id = None
-        self._type = None
-        self._date_expires = None
-        self._date_issued = None
-        self._reason = None
-
-        if ctx is not None:
-            self._fill(ctx.bot.api, ctx.channel, ctx.guild, user, ctx.author)
-
-    def _fill(self, api: API, channel: Optional[PunishmentChannel], guild: Guild, user: DiscordUser, moderator: User) -> None:
-        self._api: API = api
-        self._channel = channel
-        self.guild = guild
-
-        self.set_user(user)
-        self.set_moderator(moderator)
-
-        self.silent = self._channel is None
-
-    @property
-    def user_name(self) -> str:
-        """Returns user name."""
-        return str(self.user)
-
-    @property
-    def moderator_name(self) -> str:
-        """Returns moderator name."""
-        return str(self.moderator)
-
-    @property
-    def length(self) -> int:
-        if self._date_expires is None:
-            return -1
-        return self._date_expires
-
-    @length.setter
-    def length(self, length: Union[int, timedelta, relativedelta]) -> None:
-        if isinstance(length, (timedelta, relativedelta)):
-            length = delta_to_datetime(length).timestamp()
-        self._date_expires = int(length)
-
-    @property
-    def reason(self) -> str:
-        return self._reason
-
-    @reason.setter
-    def reason(self, reason: str) -> None:
-        if len(reason) > 512:
-            raise BadArgument("Your reason is too long. Please make sure it's below or equal to 512 characters!")
-        self._reason = reason
-
-    def _deserialize(self) -> dict:
-        return {
-            "id": self._case_id,
-            "type": self._type,
-
-            "guild_id": bson.Int64(self.guild.id),
-            "user_id": bson.Int64(self.user.id),
-            "moderator_id": bson.Int64(self.moderator.id),
-
-            "user_name": self.user_name,
-            "moderator_name": self.moderator_name,
-
-            "reason": self.reason,
-            "date_issued": self._date_issued,
-            "date_expires": self.length,
-            "visible": True
-        }
-
-    async def _create_punishment(self, p_type: str, length: Union[int, timedelta] = None, reason: Optional[str] = None) -> Case:
-        self._type = p_type
-
-        if length:
-            self.length = length
-
-        if reason:
-            self.reason = reason
-
-        self._date_issued = int(utcnow().timestamp())
-
-        self._case_id = await self._api.get_unique_id(self._api.punishments)
-        await self._api.punishments.insert_one(self._deserialize())
-        return await self._api.fetch_case(self.guild.id, self._case_id)
-
-    async def _remove_punishment(self, p_type: str) -> None:
-        """Removes all punishments of specified type for the current user."""
-        await self._api.revoke_punishment(p_type, self.guild.id, self.user.id)
-
-    async def _notify_user(self, message: str):
-        try:
-            await self.user.send(message)
-        except Exception: # nosec
-            pass
-
-    async def _notify_chat(self, message: str, image_file: Optional[File] = None):
-        if self.silent:
-            return
-
-        embed = SuccessEmbed(message)
-        if self._case_id:
-            embed.title = f"Case #{self._case_id}"
-            if image_file is not None:
-                embed.set_image(url=f"attachment://{image_file.filename}")
-        try:
-            await self._channel.send(embed=embed, file=image_file)
-        except Exception: # nosec
-            pass
-
-    def set_member(self, member: Member) -> None:
-        if isinstance(member, User):
-            raise BadArgument("Member required, got user")
-        self.user = member
-
-    def set_user(self, user: DiscordUser) -> None:
-        if isinstance(user, Member):
-            self.user = user._user
-        self.user = user
-
-    def set_moderator(self, moderator: DiscordUser) -> None:
-        self.moderator = moderator
-        if isinstance(moderator, Member):
-            self.moderator = moderator._user
-
-    async def issue(self) -> Case:
-        raise NotImplementedError
-
-    async def revoke(self) -> None:
-        raise NotImplementedError
-
-
-class Warning(BasePunishment):
-
-    if TYPE_CHECKING:
-        user: Member
-
-    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
-        super().__init__(ctx, member)
-        if ctx is not None:
-            self.set_member(member)
-
-    def __str__(self) -> str:
-        return "warning"
-
-    async def issue(self, reason: str) -> Case:
-        """Warns the member."""
-        case = await self._create_punishment("warning", timedelta(days=90), reason)
-        await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
-        await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
-        return case
-
-class Ban(BasePunishment):
-
-    def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
-        super().__init__(ctx, user)
-
-    def __str__(self) -> str:
-        return "ban"
-
-    async def issue(self, length: Union[int, timedelta] = None, reason: str = None) -> Case:
-        """Bans the user."""
-        await self._remove_punishment("jail")
-        await self._remove_punishment("mute")
-        case = await self._create_punishment("ban", length, reason)
-
-        if self.reason is None:
-            await self._notify_chat(f"{self.user_name} was banned!")
-            await self._notify_user(f"You have been banned from {self.guild.name} server!")
-        else:
-            await self._notify_chat(f'{self.user_name} was banned for the following reason: {self.reason}')
-            await self._notify_user(f"You have been banned from {self.guild.name} server for the following reason: {self.reason}")
-
-        await self.guild.ban(user=self.user, reason=self.reason)
-        return case
-
-class Kick(BasePunishment):
-
-    if TYPE_CHECKING:
-        user: Member
-
-    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
-        super().__init__(ctx, member)
-        if ctx is not None:
-            self.set_member(member)
-
-    def __str__(self) -> str:
-        return "kick"
-
-    async def issue(self, reason: str = None) -> Case:
-        await self._remove_punishment('jail')
-        await self._remove_punishment('mute')
-        case = await self._create_punishment('kick', reason=reason)
-
-        if self.reason is None:
-            await self._notify_chat(f"{self.user_name} was kicked!")
-            await self._notify_user(f"You have been kicked from {self.guild.name} server!")
-        else:
-            await self._notify_chat(f'{self.user_name} was kicked for the following reason: {self.reason}')
-            await self._notify_user(f"You have been kicked from {self.guild.name} server for the following reason: {self.reason}")
-
-        await self.user.kick(reason=self.reason)
-        return case
-
-class Jail(BasePunishment):
-
-    if TYPE_CHECKING:
-        user: Member
-
-    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
-        super().__init__(ctx, member)
-        if ctx is not None:
-            self.set_member(member)
-
-    def __str__(self) -> str:
-        return "jail"
-
-    async def issue(self, role: Role, reason: str = None, kidnap: bool = False) -> Case:
-        """Jails the member."""
-        case = await self._create_punishment("jail", reason=reason)
-        await self.user.add_roles(
-            discord.utils.get(self.guild.roles, id=role.id),
-            reason=f"Jailed by {self.moderator_name}"
-        )
-
-        if kidnap:
-            await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File('./resources/bus.png'))
-            if self.reason is None:
-                await self._notify_user(f"You have been kidnapped in {self.guild.name} server!")
-                return case
-            await self._notify_user(f"You have been kidnapped in {self.guild.name} server for the following reason: {self.reason}")
-            return case
-
-        if self.reason is None:
-            await self._notify_chat(f"{self.user_name} was jailed!")
-            await self._notify_user(f"You have been jailed in {self.guild.name} server!")
-        else:
-            await self._notify_chat(f"{self.user_name} was jailed for the following reason: {self.reason}")
-            await self._notify_user(f"You have been jailed in {self.guild.name} server for the following reason: {self.reason}")
-        return case
-
-    async def revoke(self, role: Role) -> None:
-        await self._remove_punishment("jail")
-        await self.user.remove_roles(
-            discord.utils.get(self.guild.roles, id=role.id),
-            reason=f"Released by {self.moderator_name}"
-        )
-        await self._notify_chat(f"{self.user_name} was unjailed!")
-        await self._notify_user(f"You have been unjailed in {self.guild.name} server!")
-
 class Mute(BasePunishment):
 
     if TYPE_CHECKING:
@@ -598,29 +329,10 @@ class Mute(BasePunishment):
 
     def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
         super().__init__(ctx, member)
-        if ctx is not None:
-            self.set_member(member)
-
-    def __str__(self) -> str:
-        return "mute"
-
-    async def issue(self, role: Role, length: Union[int, timedelta] = None, reason: str = None) -> Case:
-        case = await self._create_punishment("mute", length, reason)
-        await self.user.add_roles(
-            discord.utils.get(self.guild.roles, id=role.id),
-            reason=f"Muted by {self.moderator_name}"
-        )
-
-        if self.reason is None:
-            await self._notify_chat(f"{self.user_name} was muted!")
-            await self._notify_user(f"You have been muted in {self.guild.name} server!")
-        else:
-            await self._notify_chat(f"{self.user_name} was muted for the following reason: {self.reason}")
-            await self._notify_user(f"You have been muted in {self.guild.name} server for the following reason: {self.reason}")
-        return case
+        self.type = "mute"
 
     async def revoke(self, role: Role) -> None:
-        await self._remove_punishment("mute")
+        await self._revoke_punishment_db_entry("mute")
         await self.user.remove_roles(
             discord.utils.get(self.guild.roles, id=role.id),
             reason=f"Unmuted by {self.moderator_name}"
@@ -629,7 +341,7 @@ class Mute(BasePunishment):
         await self._notify_chat(f"{self.user_name} was unmuted!")
         await self._notify_user(f"You have been unmuted in {self.guild.name} server!")
 
-class Ban2(BasePunishment2):
+class Ban(BasePunishment):
 
     if TYPE_CHECKING:
         user: DiscordUser
@@ -662,7 +374,92 @@ class Ban2(BasePunishment2):
         await self._notify_chat(f"{self.user_name} was unbanned!")
         await self._notify_user(f"You have been unbanned from {self.guild.name} server!")
 
-class Timeout(BasePunishment2):
+class Kick(BasePunishment):
+
+    if TYPE_CHECKING:
+        user: Member
+
+    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
+        super().__init__(ctx, member)
+        self.type = "kick"
+
+    async def issue(self) -> Case:
+        await self._revoke_punishment_db_entry('jail')
+        await self._revoke_punishment_db_entry('mute')
+        await self._revoke_punishment_db_entry('timeout')
+        self.case = await self._create_db_entry()
+
+        if self.reason is None:
+            await self._notify_chat(f"{self.user_name} was kicked!")
+            await self._notify_user(f"You have been kicked from {self.guild.name} server!")
+        else:
+            await self._notify_chat(f'{self.user_name} was kicked for the following reason: {self.reason}')
+            await self._notify_user(f"You have been kicked from {self.guild.name} server for the following reason: {self.reason}")
+
+        await self.user.kick(reason=self.reason)
+        return self.case
+
+class Jail(BasePunishment):
+
+    if TYPE_CHECKING:
+        user: Member
+
+    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
+        super().__init__(ctx, member)
+        self.type = "jail"
+
+    async def issue(self, role: Role, kidnap: bool = False) -> Case:
+        """Jails the member."""
+        self.case = await self._create_db_entry()
+        await self.user.add_roles(
+            discord.utils.get(self.guild.roles, id=role.id),
+            reason=self.reason
+        )
+
+        if kidnap:
+            await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File('./resources/bus.png'))
+            if self.reason is None:
+                await self._notify_user(f"You have been kidnapped in {self.guild.name} server!")
+                return self.case
+            await self._notify_user(f"You have been kidnapped in {self.guild.name} server for the following reason: {self.reason}")
+            return self.case
+
+        if self.reason is None:
+            await self._notify_chat(f"{self.user_name} was jailed!")
+            await self._notify_user(f"You have been jailed in {self.guild.name} server!")
+        else:
+            await self._notify_chat(f"{self.user_name} was jailed for the following reason: {self.reason}")
+            await self._notify_user(f"You have been jailed in {self.guild.name} server for the following reason: {self.reason}")
+        return self.case
+
+    async def revoke(self, role: Role, reason: str = None) -> None:
+        await self._revoke_punishment_db_entry("jail")
+        await self.user.remove_roles(
+            discord.utils.get(self.guild.roles, id=role.id),
+            reason=reason
+        )
+        await self._notify_chat(f"{self.user_name} was unjailed!")
+        await self._notify_user(f"You have been unjailed in {self.guild.name} server!")
+
+class Warning(BasePunishment):
+
+    if TYPE_CHECKING:
+        user: Member
+
+    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
+        super().__init__(ctx, member)
+        self.type = "warning"
+
+    async def issue(self) -> Case:
+        """Warns the member."""
+        if self._date_expires is None:
+            self.length = timedelta(days=90)
+        self.case = await self._create_db_entry()
+        await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
+        await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
+        return self.case
+
+class Timeout(BasePunishment):
 
     if TYPE_CHECKING:
         user: Member
@@ -692,7 +489,7 @@ class Timeout(BasePunishment2):
 
 async def create_ban(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     ban = Ban()
-    ban._fill(api, channel, guild, user, moderator)
+    ban._fill(api, guild, channel, moderator, user)
     ban.length = length
     ban.reason = reason
     return await ban.issue()
@@ -701,6 +498,23 @@ async def remove_ban(api: API, guild: Guild, channel: PunishmentChannel, moderat
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
     await ban.revoke(reason)
+
+async def create_kick(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, reason: str) -> Case:
+    kick = Kick()
+    kick._fill(api, guild, channel, moderator, user)
+    kick.reason = reason
+    return await kick.issue()
+
+async def create_jail(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, role: Role, reason: str) -> Case:
+    jail = Jail()
+    jail._fill(api, guild, channel, moderator, user)
+    jail.reason = reason
+    return await jail.issue(role)
+
+async def remove_jail(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, role: Role, reason: str = None) -> Case:
+    jail = Jail()
+    jail._fill(api, guild, channel, moderator, user)
+    return await jail.revoke(role, reason)
 
 async def create_timeout(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     timeout = Timeout()
@@ -714,14 +528,32 @@ async def remove_timeout(api: API, guild: Guild, channel: PunishmentChannel, mod
     timeout._fill(api, guild, channel, moderator, user)
     await timeout.revoke(reason)
 
+async def create_warning(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, reason: str) -> Case:
+    warning = Warning()
+    warning._fill(api, guild, channel, moderator, user)
+    warning.reason = reason
+    return await warning.issue()
+
 async def create_ban_from_context(ctx: Context, user: Member, length: Length, reason: str) -> Case:
     return await create_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, length, reason)
+
+async def create_kick_from_context(ctx: Context, user: Member, reason: str) -> Case:
+    return await create_kick(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
+
+async def create_jail_from_context(ctx: Context, user: Member, role: Role, reason: str) -> Case:
+    return await create_jail(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, role, reason)
 
 async def create_timeout_from_context(ctx: Context, user: Member, length: Length, reason: str) -> Case:
     return await create_timeout(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, length, reason)
 
+async def create_warning_from_context(ctx: Context, user: Member, reason: str) -> Case:
+    return await create_warning(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
+
 async def remove_ban_from_context(ctx: Context, user: Member, reason: str):
     return await remove_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
+
+async def remove_jail_from_context(ctx: Context, user: Member, role: Role, reason: str):
+    return await remove_jail(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, role, reason)
 
 async def remove_timeout_from_context(ctx: Context, user: Member, reason: str):
     return await remove_timeout(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)

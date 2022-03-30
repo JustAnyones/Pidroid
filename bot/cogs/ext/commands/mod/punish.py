@@ -4,56 +4,48 @@ from __future__ import annotations
 Left to consider
 
 Please do not forget to implement the following:
-- Custom length and reason selection
-- Actual checking of moderator permissions before executing and providing the buttons
-- Actual issueing of punishments
-- Ability to revoke punishments
-- Passing or acquiring the roles for required operations
-
+- Actual checking of bot permissions before providing buttons
+- Refactor automatic expiring to use the new classes
 """
 
 import discord
-import typing
-
-from discord.errors import HTTPException
-from discord.ext import commands
-from discord.ext.commands.context import Context # type: ignore
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
-
-from client import Pidroid
-from cogs.models.case import Ban2, Kick, Timeout, Jail, Warning, remove_timeout
-from cogs.models.categories import ModerationCategory
-from cogs.models.exceptions import InvalidDuration
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.getters import get_role, get_channel
 
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from discord import ui, ButtonStyle, Interaction
 from discord.colour import Colour
-from discord.ui import Modal, TextInput
 from discord.user import User
 from discord.embeds import Embed
 from discord.emoji import Emoji
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument, MissingPermissions
 from discord.member import Member
 from discord.partial_emoji import PartialEmoji
+from discord.role import Role
 from discord.utils import escape_markdown
+from discord.ext import commands
+from discord.ext.commands.context import Context # type: ignore
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
-from cogs.utils.checks import is_guild_moderator
-from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime
+from client import Pidroid
+from cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_context, remove_jail_from_context, remove_timeout_from_context
+from cogs.models.categories import ModerationCategory
+from cogs.models.exceptions import InvalidDuration, MissingUserPermissions
+from cogs.utils.decorators import command_checks
+from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from cogs.utils.getters import get_role
+from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, is_guild_moderator
+from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime, utcnow
 
-class ReasonModal(Modal, title='Custom reason modal'):
-    reason_input = TextInput(label="Reason", placeholder="Please provide the reason")
+class ReasonModal(ui.Modal, title='Custom reason modal'):
+    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason")
     interaction = None
 
     async def on_submit(self, interaction: discord.Interaction):
         self.interaction = interaction
         self.stop()
 
-class LengthModal(Modal, title='Custom length modal'):
-    length_input = TextInput(label="Length", placeholder="Please provide the length")
+class LengthModal(ui.Modal, title='Custom length modal'):
+    length_input = ui.TextInput(label="Length", placeholder="Please provide the length")
     interaction = None
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -91,6 +83,16 @@ class LengthButton(ValueButton):
                 value = duration_string_to_relativedelta(value)
             except InvalidDuration as e:
                 return await interaction.response.send_message(str(e), ephemeral=True)
+
+            now = utcnow()
+            delta: timedelta = now - (now - value)
+
+            if delta.total_seconds() < 5 * 60:
+                return await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
+
+            if self.view._punishment.type == "timeout":
+                if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
+                    return await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
 
         self.view._select_length(value)
         await self.view.create_reason_selector()
@@ -131,24 +133,28 @@ class BasePunishmentButton(ui.Button):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
 
 class BanButton(BasePunishmentButton):
-    def __init__(self):
-        super().__init__(ButtonStyle.red, "Ban", emoji="🔨")
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.red, "Ban", disabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
-        self.view._select_type(Ban2(self.view.ctx, self.view.user))
+        self.view._select_type(Ban(self.view.ctx, self.view.user))
         await self.view.create_length_selector()
         await self.view._update_view(interaction)
 
 class UnbanButton(BasePunishmentButton):
-    def __init__(self):
-        super().__init__(ButtonStyle.red, "Unban", emoji="🔨")
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.red, "Unban", disabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
-        print("NO IDEA HOW TO IMPLEMENT")
+        await remove_ban_from_context(
+            self.view.ctx, self.view.user,
+            f"Unbanned by {str(self.view.ctx.author)}"
+        )
+        await self.view.finish(interaction)
 
 class KickButton(BasePunishmentButton):
     def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Kick", disabled=disabled)
+        super().__init__(ButtonStyle.gray, "Kick", disabled)
 
     async def callback(self, interaction: Interaction) -> None:
         self.view._select_type(Kick(self.view.ctx, self.view.user))
@@ -157,7 +163,7 @@ class KickButton(BasePunishmentButton):
 
 class JailButton(BasePunishmentButton):
     def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Jail", disabled=disabled)
+        super().__init__(ButtonStyle.gray, "Jail", disabled)
 
     async def callback(self, interaction: Interaction) -> None:
         self.view._select_type(Jail(self.view.ctx, self.view.user))
@@ -165,15 +171,20 @@ class JailButton(BasePunishmentButton):
         await self.view._update_view(interaction)
 
 class RemoveJailButton(BasePunishmentButton):
-    def __init__(self):
-        super().__init__(ButtonStyle.gray, "Release from jail")
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Release from jail", disabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        print("NO IDEA HOW TO IMPLEMENT")
+        await remove_jail_from_context(
+            self.view.ctx, self.view.user,
+            self.view.jail_role,
+            f"Released by {str(self.view.ctx.author)}"
+        )
+        await self.view.finish(interaction)
 
 class TimeoutButton(BasePunishmentButton):
     def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Time-out", disabled=disabled)
+        super().__init__(ButtonStyle.gray, "Time-out", disabled)
 
     async def callback(self, interaction: Interaction) -> None:
         self.view._select_type(Timeout(self.view.ctx, self.view.user))
@@ -181,13 +192,12 @@ class TimeoutButton(BasePunishmentButton):
         await self.view._update_view(interaction)
 
 class RemoveTimeoutButton(BasePunishmentButton):
-    def __init__(self):
-        super().__init__(ButtonStyle.gray, "Remove time-out")
+    def __init__(self, disabled: bool = False):
+        super().__init__(ButtonStyle.gray, "Remove time-out", disabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        await remove_timeout(
-            self.view.ctx.bot.api, self.view.ctx.guild, self.view.ctx.channel,
-            self.view.ctx.author, self.view.user,
+        await remove_timeout_from_context(
+            self.view.ctx, self.view.user,
             f"Removed by {str(self.view.ctx.author)}"
         )
         await self.view.finish(interaction)
@@ -210,6 +220,7 @@ LENGTH_MAPPING = {
         LengthButton("12 hours", timedelta(hours=12)),
         LengthButton("A day", timedelta(hours=24)),
         LengthButton("A week", timedelta(weeks=1)),
+        LengthButton("4 weeks (max)", timedelta(weeks=4)),
         LengthButton(None, None)
     ],
     "ban": [
@@ -222,23 +233,41 @@ LENGTH_MAPPING = {
     ]
 }
 
-# TODO: add
 REASON_MAPPING = {
     "ban": [
-        ReasonButton("Spam", "Spam"),
+        ReasonButton("Ignoring moderator's orders", "Ignoring moderator's orders."),
+        ReasonButton("Hacked content", "Sharing hacked content."),
+        ReasonButton("Offensive content or hate-speech", "Posting offensive content or hate-speech."),
+        ReasonButton("Underage user", "You are under the allowed age as defined in Discord's Terms of Service."),
+        ReasonButton("Harassing other members", "Harassing other members."),
+        ReasonButton("Scam or phishing", "Sharing scams or phishing content."),
+        ReasonButton("Continued offences", "Continued and or repeat offences."),
         ReasonButton(None, None)
     ],
     "kick": [
+        ReasonButton("Underage", "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."),
+        ReasonButton("Alternative account", "Alternative accounts are not allowed."),
         ReasonButton(None, None)
     ],
     "jail": [
-        ReasonButton("Investigation", "Investigation"),
+        ReasonButton("Pending investigation", "Pending investigation."),
+        ReasonButton("Questioning", "Questioning."),
         ReasonButton(None, None)
     ],
     "timeout": [
+        ReasonButton("Being emotional or upset", "Being emotional or upset."),
+        ReasonButton("Spam", "Spam."),
+        ReasonButton("Disrupting the chat", "Disrupting the chat."),
         ReasonButton(None, None)
     ],
     "warning": [
+        ReasonButton("Spam", "Spam"),
+        ReasonButton("Failure to follow orders", "Failure to follow orders."),
+        ReasonButton("Failure to comply with verbal warning", "Failure to comply with a verbal warning."),
+        ReasonButton("Hateful content", "Sharing hateful content."),
+        ReasonButton("Repeat use of wrong channels", "Repeat use of wrong channels."),
+        ReasonButton("NSFW content", "Sharing of NSFW content."),
+        ReasonButton("Politics", "Politics and or political content."),
         ReasonButton(None, None)
     ]
 }
@@ -251,7 +280,16 @@ class PunishmentInteraction(ui.View):
         self.user = user
         self.embed = embed
 
-        self._punishment: Union[Ban2, Kick, Jail, Timeout, Warning] = None
+        self._punishment: Union[Ban, Kick, Jail, Timeout, Warning] = None
+
+        self.jail_role: Role = None
+
+    async def initialise(self):
+        client: Pidroid = self.ctx.bot
+        c = client.get_guild_configuration(self.ctx.guild.id)
+        role = get_role(self.ctx.guild, c.jail_role)
+        if role is not None:
+            self.jail_role = role
 
     """Private utility methods"""
 
@@ -292,14 +330,44 @@ class PunishmentInteraction(ui.View):
 
     async def is_user_jailed(self) -> bool:
         """Returns true if user is currently jailed."""
-        # TODO: implement
-        return False
+        if isinstance(self.user, User) or self.jail_role is None:
+            return False
+        client: Pidroid = self.ctx.bot
+        return (
+            discord.utils.get(self.ctx.guild.roles, id=self.jail_role.id) in self.user.roles
+            and await client.api.is_currently_jailed(self.ctx.guild.id, self.user.id)
+        )
 
     async def is_user_timed_out(self) -> bool:
         """Returns true if user is currently muted."""
         if isinstance(self.user, User):
             return False
         return self.user.is_timed_out()
+
+    """
+    Permission checks for moderators and Pidroid
+    """
+
+    def is_junior_moderator(self, **perms) -> bool:
+        try:
+            check_junior_moderator_permissions(self.ctx, **perms)
+            return True
+        except (MissingUserPermissions, MissingPermissions):
+            return False
+
+    def is_normal_moderator(self, **perms) -> bool:
+        try:
+            check_normal_moderator_permissions(self.ctx, **perms)
+            return True
+        except (MissingUserPermissions, MissingPermissions):
+            return False
+
+    def is_senior_moderator(self, **perms) -> bool:
+        try:
+            check_senior_moderator_permissions(self.ctx, **perms)
+            return True
+        except (MissingUserPermissions, MissingPermissions):
+            return False
 
     """
     Methods for creating button interfaces for:
@@ -312,13 +380,13 @@ class PunishmentInteraction(ui.View):
     async def custom_reason_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
         modal = ReasonModal()
         await interaction.response.send_modal(modal)
-        timed_out = await modal.wait()
+        timed_out = await modal.wait() # TODO: figure out what to do
         return modal.reason_input.value, modal.interaction
 
     async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
         modal = LengthModal()
         await interaction.response.send_modal(modal)
-        timed_out = await modal.wait()
+        timed_out = await modal.wait() # TODO: figure out what to do
         return modal.length_input.value, modal.interaction
 
     async def create_type_selector(self):
@@ -326,18 +394,22 @@ class PunishmentInteraction(ui.View):
         self.clear_items()
         is_member = isinstance(self.user, Member)
 
+        can_ban = self.is_normal_moderator(ban_members=True)
+        can_unban = self.is_senior_moderator(administrator=True)
+        can_kick = self.is_junior_moderator(kick_members=True)
+
         # Add ban/unban buttons
         if not await self.is_user_banned():
-            self.add_item(BanButton())
+            self.add_item(BanButton(not can_ban))
         else:
-            self.add_item(UnbanButton())
+            self.add_item(UnbanButton(not can_unban))
 
         # Kick button
-        self.add_item(KickButton(not is_member))
+        self.add_item(KickButton(not is_member and not can_kick))
 
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
-            self.add_item(JailButton(not is_member))
+            self.add_item(JailButton(not is_member or self.jail_role is None))
         else:
             self.add_item(RemoveJailButton())
 
@@ -386,13 +458,11 @@ class PunishmentInteraction(ui.View):
         # If moderator confirmed the action
         if confirmed:
 
-            if (self._punishment.type and (
-                self._punishment.type == "timeout"
-                or self._punishment.type == "ban"
-            )):
+            if self._punishment.type == "jail":
+                await self._punishment.issue(self.jail_role)
+            else:
                 await self._punishment.issue()
-
-            return await self.finish()
+            return await self.finish(interaction)
 
         # Otherwise, clear items
         self.embed.set_footer(text="CANCELLED")
@@ -500,6 +570,7 @@ class ModeratorCommands(commands.Cog):
         embed.title = f"Punish {escape_markdown(str(user))}"
 
         view = PunishmentInteraction(ctx, user, embed)
+        await view.initialise()
         await view.create_type_selector()
 
         await ctx.reply(embed=embed, view=view)

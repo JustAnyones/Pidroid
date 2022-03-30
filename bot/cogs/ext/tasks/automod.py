@@ -57,8 +57,9 @@ class AutomodTask(commands.Cog):
         if member_data["count"] > 3:
             if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
                 k = Kick()
-                k._fill(self.client.api, None, message.guild, message.author, self.client.user) # type: ignore
-                await k.issue("Phishing automod violation limit exceeded")
+                k._fill(self.client.api, message.guild, None, self.client.user, message.author) # type: ignore
+                k.reason = "Phishing automod violation limit exceeded"
+                await k.issue()
             del self.automod_violations[guild_id][member_id]
             return
 
