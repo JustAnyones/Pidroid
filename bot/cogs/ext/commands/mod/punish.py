@@ -405,7 +405,7 @@ class PunishmentInteraction(ui.View):
             self.add_item(UnbanButton(not can_unban))
 
         # Kick button
-        self.add_item(KickButton(not is_member and not can_kick))
+        self.add_item(KickButton(not is_member or not can_kick))
 
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
