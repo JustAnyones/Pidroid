@@ -369,7 +369,7 @@ class Ban(BasePunishment):
 
     async def revoke(self, reason: str = None) -> None:
         await self._revoke_punishment_db_entry("ban")
-        await self.user.unban(reason=reason)
+        await self.guild.unban(self.user, reason=reason)
 
         await self._notify_chat(f"{self.user_name} was unbanned!")
         await self._notify_user(f"You have been unbanned from {self.guild.name} server!")
