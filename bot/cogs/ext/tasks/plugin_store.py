@@ -26,7 +26,7 @@ class PluginStoreTasks(commands.Cog):
 
         self.new_plugins_cache = []
 
-        self.retrieve_new_plugins.start()
+        #self.retrieve_new_plugins.start()
         self.archive_threads.start()
 
     def cog_unload(self) -> None:
