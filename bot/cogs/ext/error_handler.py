@@ -140,7 +140,7 @@ class Error(commands.Cog):
 
                 # Put traceback into a string and clean it
                 trace = "".join(
-                    traceback.format_exception(etype=type(error), value=error, tb=error.__traceback__)
+                    traceback.format_exception(type(error), value=error, tb=error.__traceback__)
                 ).replace('```', '``\N{zero width space}`')
 
                 paginator.add_line(trace)
