@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from discord import Member, User, TextChannel, Guild
-from discord.ext.commands import MissingPermissions, Context
+from discord import Member, User, TextChannel, Guild, VoiceChannel
+from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -41,6 +41,15 @@ def check_permissions(ctx: Context, **perms):
 
     if missing:
         raise MissingPermissions(missing)
+    return True
+
+def check_bot_channel_permissions(channel: Union[TextChannel, VoiceChannel], member: Member, **perms):
+    permissions = channel.permissions_for(member)
+
+    missing = [perm for perm, value in perms.items() if getattr(permissions, perm) != value]
+
+    if missing:
+        raise BotMissingPermissions(missing)
     return True
 
 def check_guild_permissions(ctx: Context, **perms):
