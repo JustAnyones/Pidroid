@@ -146,6 +146,8 @@ class InfoCommands(commands.Cog):
             return await ctx.reply(embed=ErrorEmbed("Please specify the role to view the information for"))
 
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
+        if role.icon:
+            embed.set_thumbnail(url=role.icon.with_size(4096).url)
         embed.add_field(name="Name", value=role.name)
         embed.add_field(name="ID", value=role.id)
         embed.add_field(name="Position", value=role.position)
