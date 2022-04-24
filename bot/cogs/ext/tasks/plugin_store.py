@@ -22,6 +22,7 @@ class PluginStoreTasks(commands.Cog):
         self.api = self.client.api
 
         self.use_threads = True
+        self.add_reactions = True
 
         self.new_plugins_cache = []
 
@@ -94,9 +95,10 @@ class PluginStoreTasks(commands.Cog):
                     self.new_plugins_cache.append(plugin.id)
 
                     message = await self.showcase_channel.send(embed=plugin.to_embed())
-
-                    await message.add_reaction(emoji="👍")
-                    await message.add_reaction(emoji="👎")
+                    
+                    if self.add_reactions:
+                        await message.add_reaction(emoji="👍")
+                        await message.add_reaction(emoji="👎")
 
                     if self.use_threads:
                         thread = await message.create_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
