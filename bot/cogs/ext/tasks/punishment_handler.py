@@ -2,7 +2,6 @@ import discord
 import traceback
 import sys
 
-from discord.errors import HTTPException
 from discord.ext import tasks, commands
 from discord.guild import Guild
 from discord.utils import get
@@ -29,7 +28,7 @@ class PunishmentHandlerTask(commands.Cog):
         await self.api.revoke_punishment("ban", guild.id, user.id)
         try:
             await guild.unban(user, reason='Ban expired')
-        except HTTPException:
+        except Exception: # nosec
             pass
 
     async def handle_unmute(self, guild: Guild, member_id: int) -> None:

@@ -323,10 +323,11 @@ class PunishmentInteraction(ui.View):
 
     async def is_user_banned(self) -> bool:
         """Returns true if user is currently banned."""
-        for entry in await self.ctx.guild.bans():
-            if entry.user.id == self.user.id:
-                return True
-        return False
+        try:
+            await self.ctx.guild.fetch_ban(self.user)
+            return True
+        except Exception:
+            return False
 
     async def is_user_jailed(self) -> bool:
         """Returns true if user is currently jailed."""

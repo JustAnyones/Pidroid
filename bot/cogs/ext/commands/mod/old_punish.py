@@ -17,11 +17,11 @@ from cogs.utils.time import datetime_to_duration
 
 async def is_banned(ctx: Context, user: typing.Union[discord.Member, discord.User]) -> bool:
     """Returns true if user is in guild's ban list."""
-    bans = await ctx.guild.bans()
-    for entry in bans:
-        if entry.user.id == user.id:
-            return True
-    return False
+    try:
+        await ctx.guild.fetch_ban(user)
+        return True
+    except Exception:
+        return False
 
 class OldModeratorCommands(commands.Cog):
     """This class implements cog which contains commands for moderation."""
