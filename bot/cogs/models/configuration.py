@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from bson.int64 import Int64
-from bson.objectid import ObjectId
+from bson.int64 import Int64 # type: ignore
+from bson.objectid import ObjectId # type: ignore
 from discord.channel import TextChannel
 from discord.role import Role
 from typing import TYPE_CHECKING, List, Optional

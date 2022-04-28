@@ -4,9 +4,9 @@ import httpx
 import urllib.parse
 
 from io import StringIO
-from lxml import etree
+from lxml import etree # type: ignore # nosec
 from httpx._models import Response
-from typing import Any, TYPE_CHECKING, Optional, List, Union
+from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
 from enum import Enum
 
 from cogs.models.exceptions import APIException
@@ -190,12 +190,12 @@ class MyWaifuListAPI:
         self._forever_alone_session = None
         self.client = httpx.AsyncClient(http2=True)
         self.search_cache = {}
-        self.waifu_cache = {}
+        self.waifu_cache: Dict[int, Waifu] = {}
 
     async def _acquire_tokens_for_forgery(self) -> None:
         """Sends a GET request to dash page to acquire tokens for forgery."""
         r = await self.client.get(BASE_URL + "/dash")
-        tree = etree.parse(StringIO(r.text), PARSER)
+        tree = etree.parse(StringIO(r.text), PARSER) # nosec
         self._xsrf_token = r.cookies["XSRF-TOKEN"]
         self._forever_alone_session = r.cookies["forever_alone_session"]
         self._csrf_token = tree.xpath("//meta[@name='csrf-token']")[0].attrib['content']
@@ -209,6 +209,7 @@ class MyWaifuListAPI:
         """Returns XSRF token."""
         if self._xsrf_token is None:
             await self._acquire_tokens_for_forgery()
+        assert self._xsrf_token is not None
         return self._xsrf_token
 
     @property
@@ -216,6 +217,7 @@ class MyWaifuListAPI:
         """Returns CSRF token."""
         if self._csrf_token is None:
             await self._acquire_tokens_for_forgery()
+        assert self._csrf_token is not None
         return self._csrf_token
 
     @property
@@ -223,6 +225,7 @@ class MyWaifuListAPI:
         """Returns some sort of token related to CSRF, no idea myself."""
         if self._forever_alone_session is None:
             await self._acquire_tokens_for_forgery()
+        assert self._forever_alone_session is not None
         return self._forever_alone_session
 
     @property
@@ -267,15 +270,16 @@ class MyWaifuListAPI:
     async def fetch_random_waifu(self) -> Waifu:
         """Returns a random waifu."""
         r = await self.client.get(f"{BASE_URL}/random", headers=await self.forged_headers, follow_redirects=True)
-        tree = etree.parse(StringIO(r.text), PARSER)
+        tree = etree.parse(StringIO(r.text), PARSER) # nosec
         waifu_id = tree.xpath("//waifu-core")[0].attrib[':waifu-id']
         waifu = await self.fetch_waifu_by_id(waifu_id)
         return waifu
 
     async def fetch_waifu_by_id(self, id: int) -> Waifu:
         """Returns a waifu by the specified ID."""
-        if self.waifu_cache.get(id):
-            return self.waifu_cache.get(id)
+        waifu = self.waifu_cache.get(id)
+        if waifu:
+            return waifu
 
         r = await self.get(f"/waifu/{id}")
         waifu = Waifu(r.json()["data"])

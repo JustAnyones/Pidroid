@@ -1,16 +1,16 @@
 from __future__ import annotations
 import datetime
 
-import bson
+import bson # type: ignore
 import discord
 
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId # type: ignore
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta # type: ignore
 from discord.channel import TextChannel
 from discord.embeds import Embed
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.file import File
 from discord.guild import Guild
 from discord.member import Member
@@ -205,7 +205,7 @@ class BasePunishment:
         if ctx is not None:
             self._fill(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user)
 
-    def _fill(self, api: API, guild: Guild, channel: Optional[PunishmentChannel], moderator: User, user: DiscordUser) -> None:
+    def _fill(self, api: API, guild: Guild, channel: Optional[PunishmentChannel], moderator: Moderator, user: DiscordUser) -> None:
         self._api: API = api
         self.guild = guild
         self._channel = channel
@@ -234,17 +234,17 @@ class BasePunishment:
             return -1
         return self._date_expires
 
-    @property
-    def length_as_datetime(self) -> Optional[datetime.datetime]:
-        if self._date_expires is None:
-            return None
-        return timestamp_to_datetime(self._date_expires)
-
     @length.setter
     def length(self, length: Union[int, timedelta, relativedelta]) -> None:
         if isinstance(length, (timedelta, relativedelta)):
             length = delta_to_datetime(length).timestamp()
         self._date_expires = int(length)
+
+    @property
+    def length_as_datetime(self) -> Optional[datetime.datetime]:
+        if self._date_expires is None:
+            return None
+        return timestamp_to_datetime(self._date_expires)
 
     @property
     def reason(self) -> str:
@@ -511,14 +511,14 @@ async def create_jail(api: API, guild: Guild, channel: PunishmentChannel, modera
     jail.reason = reason
     return await jail.issue(role)
 
-async def remove_jail(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, role: Role, reason: str = None) -> Case:
+async def remove_jail(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, role: Role, reason: str = None):
     jail = Jail()
     jail._fill(api, guild, channel, moderator, user)
     return await jail.revoke(role, reason)
 
 async def create_timeout(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     timeout = Timeout()
-    timeout._fill(api, channel, guild, user, moderator)
+    timeout._fill(api, guild, channel, user, moderator)
     timeout.length = length
     timeout.reason = reason
     return await timeout.issue()
