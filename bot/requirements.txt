@@ -1,7 +1,7 @@
 git+https://github.com/Rapptz/discord.py@0bcb0d0e3ce395d42a5b1dae61b0090791ee018d#egg=discord.py[voice]
 aiofiles==0.6.0
 aiocron==1.3
-git+https://github.com/Gorialis/jishaku@046189f53d0a04b7e27427b7c58bbcadf3f931ad#egg=jishaku
+jishaku==2.4.0
 asyncpraw==7.5.0
 psutil==5.8.0
 pillow==9.0.1

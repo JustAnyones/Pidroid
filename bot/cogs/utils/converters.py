@@ -2,10 +2,10 @@ import datetime
 import discord
 import typing
 
-from dateutil import relativedelta
-from discord.ext.commands import Context, Converter
-from discord.ext.commands.converter import MemberConverter, UserConverter
-from discord.ext.commands.errors import BadArgument, CommandError
+from dateutil import relativedelta # type: ignore
+from discord.ext.commands import Context, Converter # type: ignore
+from discord.ext.commands.converter import MemberConverter, UserConverter # type: ignore
+from discord.ext.commands.errors import BadArgument, CommandError # type: ignore
 
 from cogs.models.exceptions import InvalidDuration
 from cogs.utils.checks import member_above_bot, is_guild_moderator, member_above_moderator

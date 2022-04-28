@@ -8,8 +8,8 @@ import random
 from contextlib import suppress
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from jishaku.paginators import PaginatorInterface, WrappedPaginator
+from discord.ext.commands.context import Context # type: ignore
+from jishaku.paginators import PaginatorInterface, WrappedPaginator # type: ignore
 from typing import TYPE_CHECKING
 
 from constants import REFUSE_COMMAND_RESPONSES

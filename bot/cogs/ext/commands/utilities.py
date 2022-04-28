@@ -2,7 +2,7 @@ import bitly_api
 import re
 
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context, BadArgument
 from urllib.parse import quote_plus as urlencode
 
 from client import Pidroid
@@ -64,8 +64,7 @@ class UtilityCommands(commands.Cog):
 
             # Checks if definition exists
             if not definitions:
-                await ctx.reply(embed=ErrorEmbed("I couldn't find any definitions for the specified term!"))
-                return
+                raise BadArgument("I couldn't find any definitions for the specified term!")
 
             definition = definitions[0]
 
@@ -90,14 +89,12 @@ class UtilityCommands(commands.Cog):
     async def bitly(self, ctx: Context, url: str = None):
         async with ctx.typing():
             if url is None:
-                await ctx.reply(embed=ErrorEmbed("Please specify the URL you want to shorten!"))
-                return
+                raise BadArgument("Please specify the URL you want to shorten!")
 
             try:
                 config = self.client.config['authentication']['bitly']
             except KeyError:
-                await ctx.reply(embed=ErrorEmbed("I could not find bitly credentials to use the API!"))
-                return
+                raise BadArgument("I could not find bitly credentials to use the API!")
 
             bitly = bitly_api.Connection(config['login'], config['api key'])
             response = bitly.shorten(url)

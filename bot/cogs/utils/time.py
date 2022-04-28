@@ -1,7 +1,7 @@
 import datetime
 import re
 
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta # type: ignore
 from typing import Optional, Union
 
 from cogs.models.exceptions import InvalidDuration
