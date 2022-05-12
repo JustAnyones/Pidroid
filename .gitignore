@@ -10,6 +10,8 @@ bot/data/*
 # JetBrains PyCharm
 .idea/*
 
+python/*
+
 # Scripts and files used for changelog generation
 build changelog.py
 changelog.html

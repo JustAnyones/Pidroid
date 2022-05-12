@@ -1,4 +1,4 @@
-import aiocron
+import aiocron # type: ignore
 import asyncio
 import calendar
 import discord
@@ -130,7 +130,6 @@ async def post_shitpost(client: Pidroid) -> None:
         return
 
     shitpost_channel: TextChannel = client.get_channel(779757485980385321)
-    discord_file = None
 
     if file_url is not None:
         async with await http.get(client, file_url) as r:
@@ -138,8 +137,9 @@ async def post_shitpost(client: Pidroid) -> None:
             filename = get_filename(r.headers['Content-Disposition'])
         with BytesIO(payload) as f:
             discord_file = discord.File(f, filename)
-
-    await shitpost_channel.send(content=text, file=discord_file)
+        await shitpost_channel.send(content=text, file=discord_file)
+    else:
+        await shitpost_channel.send(content=text)
 
     last_posts.pop(0)
     last_posts.append(choice['_id'])

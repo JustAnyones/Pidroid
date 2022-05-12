@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from discord import Member, User, TextChannel, Guild
-from discord.ext.commands import MissingPermissions, Context
+from discord import Member, User, TextChannel, Guild, VoiceChannel
+from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context # type: ignore
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
 from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
 from cogs.models.exceptions import MissingUserPermissions
+from cogs.utils.aliases import DiscordUser, GuildChannel
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -16,10 +17,10 @@ if TYPE_CHECKING:
 def member_has_role(member: Member, role_id: int):
     return get(member.guild.roles, id=role_id) in member.roles
 
-def member_has_permission(channel: TextChannel, member: Member, permission: str):
+def has_permission(channel: GuildChannel, member: Member, permission: str) -> bool:
     return getattr(channel.permissions_for(member), permission)
 
-def member_has_guild_permission(member: Member, permission: str):
+def has_guild_permission(member: Member, permission: str) -> bool:
     return getattr(member.guild_permissions, permission)
 
 # Check whether member is above the another user in terms of roles
@@ -43,13 +44,13 @@ def check_permissions(ctx: Context, **perms):
         raise MissingPermissions(missing)
     return True
 
-def check_guild_permissions(ctx: Context, **perms):
-    permissions = ctx.author.guild_permissions
+def check_bot_channel_permissions(channel: Union[TextChannel, VoiceChannel], member: Member, **perms):
+    permissions = channel.permissions_for(member)
 
     missing = [perm for perm, value in perms.items() if getattr(permissions, perm) != value]
 
     if missing:
-        raise MissingPermissions(missing)
+        raise BotMissingPermissions(missing)
     return True
 
 def guild_has_configuration(client: Pidroid, guild: Guild) -> bool:
@@ -129,33 +130,31 @@ class TheoTownChecks:
         return user.id in THEOTOWN_DEVELOPERS
 
 
-def is_guild_administrator(guild: Guild, channel: TextChannel, member: Member):
-    member = guild.get_member(member.id)
-    if member is not None:
-        if member in guild.members:
-            if is_guild_theotown(guild):
-                return TheoTownChecks.is_administrator(member)
-            return (
-                member_has_permission(channel, member, 'administrator')
-                or member_has_permission(channel, member, 'manage_guild')
-            )
+def is_guild_administrator(guild: Guild, channel: GuildChannel, member: DiscordUser):
+    if get(guild.members, id=member.id):
+        assert isinstance(member, Member)
+        if is_guild_theotown(guild):
+            return TheoTownChecks.is_administrator(member)
+        return (
+            has_permission(channel, member, 'administrator')
+            or has_permission(channel, member, 'manage_guild')
+        )
     return False
 
-def is_guild_moderator(guild: Guild, channel: TextChannel, member: Member):
-    member = guild.get_member(member.id)
-    if member is not None:
-        if member in guild.members:
-            if is_guild_theotown(guild):
-                return (
-                    TheoTownChecks.is_administrator(member)
-                    or TheoTownChecks.is_senior_moderator(member)
-                    or TheoTownChecks.is_normal_moderator(member)
-                    or TheoTownChecks.is_junior_moderator(member)
-                )
+def is_guild_moderator(guild: Guild, channel: GuildChannel, member: DiscordUser):
+    if get(guild.members, id=member.id):
+        assert isinstance(member, Member)
+        if is_guild_theotown(guild):
             return (
-                member_has_permission(channel, member, 'kick_members')
-                or member_has_permission(channel, member, 'ban_members')
+                TheoTownChecks.is_administrator(member)
+                or TheoTownChecks.is_senior_moderator(member)
+                or TheoTownChecks.is_normal_moderator(member)
+                or TheoTownChecks.is_junior_moderator(member)
             )
+        return (
+            has_permission(channel, member, 'kick_members')
+            or has_permission(channel, member, 'ban_members')
+        )
     return False
 
 def has_moderator_permissions(ctx: Context, **perms):
@@ -178,7 +177,7 @@ def can_modify_tags(ctx: Context) -> bool:
     if conf:
         if conf.public_tags:
             return True
-    return has_moderator_permissions(ctx, True, manage_messages=True)
+    return has_moderator_permissions(ctx, manage_messages=True)
 
 def check_junior_moderator_permissions(ctx: Context, **perms):
     if is_guild_theotown(ctx.guild):

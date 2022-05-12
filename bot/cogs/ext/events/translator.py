@@ -1,6 +1,6 @@
 import asyncio
 import base64
-import emoji # I am not updating the emoji regex myself every time there's a new one
+import emoji # type: ignore # I am not updating the emoji regex myself every time there's a new one
 import re
 
 from contextlib import suppress

@@ -106,10 +106,3 @@ BEG_FAILURE_RESPONSES = [
     'I apologize, I gave my funds to someone else. Maybe next time?',
     'Uh, oh, I have an important meeting to attend. Sorry, I\'ll catch you later.'
 ]
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

@@ -26,9 +26,10 @@ class PunishmentHandlerTask(commands.Cog):
     async def handle_ban(self, guild: Guild, user: Union[discord.Member, discord.User]) -> None:
         """Handles automatic unban in relation to the guild."""
         await self.api.revoke_punishment("ban", guild.id, user.id)
-        guild_bans = await guild.bans()
-        if get(guild_bans, user=user):
+        try:
             await guild.unban(user, reason='Ban expired')
+        except Exception: # nosec
+            pass
 
     async def handle_unmute(self, guild: Guild, member_id: int) -> None:
         """Handles automatic unmute in relation to the guild."""

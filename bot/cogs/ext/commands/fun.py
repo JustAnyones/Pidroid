@@ -15,6 +15,7 @@ from discord.voice_client import VoiceClient
 from client import Pidroid
 from constants import FACTS
 from cogs.models.categories import RandomCategory
+from cogs.utils.checks import check_bot_channel_permissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import get, Route
@@ -196,7 +197,7 @@ class FunCommands(commands.Cog):
         category=RandomCategory,
         hidden=True
     )
-    @commands.bot_has_permissions(send_messages=True, move_members=True, speak=True, connect=True)
+    @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @command_checks.is_cheese_consumer()
     async def cloaker(self, ctx: Context, member: discord.Member):
@@ -210,6 +211,8 @@ class FunCommands(commands.Cog):
 
         if self.client.user in channel.members:
             return await ctx.reply(embed=ErrorEmbed('Bro, I am already in that channel. What do you want me to do?'))
+
+        check_bot_channel_permissions(channel, ctx.me, move_members=True, speak=True, connect=True)
 
         try:
             vc: VoiceClient = await channel.connect(reconnect=False)

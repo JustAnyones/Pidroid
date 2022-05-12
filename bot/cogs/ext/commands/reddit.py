@@ -4,6 +4,7 @@ import typing
 
 from asyncpraw.models.reddit.submission import Submission
 from asyncpraw.models.reddit.subreddit import Subreddit
+from asyncprawcore.exceptions import ResponseException
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
@@ -53,7 +54,7 @@ def is_submission_gallery(sub: Submission) -> bool:
     """Returns True if submission is a gallery."""
     return hasattr(sub, 'media_metadata')
 
-def get_submission_gallery(sub: Submission) -> list:
+def get_submission_gallery(sub: Submission) -> typing.List[str]:
     """Returns a list of submission gallery."""
     if not is_submission_gallery(sub):
         return []
@@ -89,14 +90,14 @@ class RedditCommands(commands.Cog):
     async def reddit(self, ctx: Context, subreddit_name: str = None):
         async with ctx.typing():
             if subreddit_name is None:
-                await ctx.reply(embed=ErrorEmbed('Please specify a subreddit from which you want to fetch a random post!'))
-                return
+                return await ctx.reply(embed=ErrorEmbed('Please specify a subreddit from which you want to fetch a random post!'))
 
             try:
                 subreddit = await self.reddit_instance.subreddit(subreddit_name, fetch=True)
+            except ResponseException as e:
+                return await ctx.reply(embed=ErrorEmbed(str(e)))
             except Exception:
-                await ctx.reply(embed=ErrorEmbed("I could not find the specified subreddit!"))
-                return
+                return await ctx.reply(embed=ErrorEmbed("I could not find the specified subreddit!"))
 
             # Check subreddit for nsfw
             assure_content_rating(ctx, subreddit)
@@ -105,7 +106,7 @@ class RedditCommands(commands.Cog):
             # Check submission for nsfw
             assure_content_rating(ctx, submission)
 
-            images = []
+            images: typing.List[str] = []
             is_gallery = is_submission_gallery(submission)
 
             subreddit_name = f'/{submission.subreddit_name_prefixed}/'

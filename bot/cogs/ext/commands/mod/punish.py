@@ -1,29 +1,21 @@
 from __future__ import annotations
 
-"""
-Left to consider
-
-Please do not forget to implement the following:
-- Actual checking of bot permissions before providing buttons
-- Refactor automatic expiring to use the new classes
-"""
-
-import discord
-
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta
+from dateutil.relativedelta import relativedelta # type: ignore
 from discord import ui, ButtonStyle, Interaction
 from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
 from discord.emoji import Emoji
-from discord.ext.commands.errors import BadArgument, MissingPermissions
+from discord.ext.commands.errors import BadArgument, MissingPermissions # type: ignore
 from discord.member import Member
 from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.utils import escape_markdown
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
+from discord.utils import get
+from discord.file import File
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
 
 from client import Pidroid
@@ -33,22 +25,22 @@ from cogs.models.exceptions import InvalidDuration, MissingUserPermissions
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.getters import get_role
-from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, is_guild_moderator
+from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
 from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
     reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason")
-    interaction = None
+    interaction: Interaction = None
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
         self.stop()
 
 class LengthModal(ui.Modal, title='Custom length modal'):
     length_input = ui.TextInput(label="Length", placeholder="Please provide the length")
-    interaction = None
+    interaction: Interaction = None
 
-    async def on_submit(self, interaction: discord.Interaction):
+    async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
         self.stop()
 
@@ -323,10 +315,11 @@ class PunishmentInteraction(ui.View):
 
     async def is_user_banned(self) -> bool:
         """Returns true if user is currently banned."""
-        for entry in await self.ctx.guild.bans():
-            if entry.user.id == self.user.id:
-                return True
-        return False
+        try:
+            await self.ctx.guild.fetch_ban(self.user)
+            return True
+        except Exception:
+            return False
 
     async def is_user_jailed(self) -> bool:
         """Returns true if user is currently jailed."""
@@ -334,7 +327,7 @@ class PunishmentInteraction(ui.View):
             return False
         client: Pidroid = self.ctx.bot
         return (
-            discord.utils.get(self.ctx.guild.roles, id=self.jail_role.id) in self.user.roles
+            get(self.ctx.guild.roles, id=self.jail_role.id) in self.user.roles
             and await client.api.is_currently_jailed(self.ctx.guild.id, self.user.id)
         )
 
@@ -394,9 +387,20 @@ class PunishmentInteraction(ui.View):
         self.clear_items()
         is_member = isinstance(self.user, Member)
 
-        can_ban = self.is_normal_moderator(ban_members=True)
-        can_unban = self.is_senior_moderator(administrator=True)
-        can_kick = self.is_junior_moderator(kick_members=True)
+        can_ban = (
+            self.is_normal_moderator(ban_members=True)
+            and has_guild_permission(self.ctx.me, "ban_members")
+        )
+        can_unban = (
+            self.is_senior_moderator(ban_members=True)
+            and has_guild_permission(self.ctx.me, "ban_members")
+        )
+        can_kick = (
+            self.is_junior_moderator(kick_members=True)
+            and has_guild_permission(self.ctx.me, "kick_members")
+        )
+        can_time_out = has_guild_permission(self.ctx.me, "moderate_members")
+        can_jail = has_guild_permission(self.ctx.me, "manage_roles")
 
         # Add ban/unban buttons
         if not await self.is_user_banned():
@@ -405,19 +409,19 @@ class PunishmentInteraction(ui.View):
             self.add_item(UnbanButton(not can_unban))
 
         # Kick button
-        self.add_item(KickButton(not is_member and not can_kick))
+        self.add_item(KickButton(not is_member or not can_kick))
 
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
-            self.add_item(JailButton(not is_member or self.jail_role is None))
+            self.add_item(JailButton(not is_member or self.jail_role is None or not can_jail))
         else:
-            self.add_item(RemoveJailButton())
+            self.add_item(RemoveJailButton(not can_jail))
 
         # Add timeout/un-timeout buttons
         if not await self.is_user_timed_out():
-            self.add_item(TimeoutButton(not is_member))
+            self.add_item(TimeoutButton(not is_member or not can_time_out))
         else:
-            self.add_item(RemoveTimeoutButton())
+            self.add_item(RemoveTimeoutButton(not can_time_out))
 
         # Warn button
         self.add_item(WarnButton(not is_member))
@@ -539,7 +543,7 @@ class ModeratorCommands(commands.Cog):
     async def deletethis(self, ctx: Context):
         await ctx.message.delete(delay=0)
         await ctx.channel.purge(limit=1)
-        await ctx.send(file=discord.File('./resources/delete_this.png'))
+        await ctx.send(file=File('./resources/delete_this.png'))
 
     @commands.command(
         brief="Open user moderation and punishment menu.",
