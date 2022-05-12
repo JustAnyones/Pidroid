@@ -4,15 +4,13 @@ import sys
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
-from discord.errors import NotFound
 from discord.ext import tasks, commands
-from discord.threads import Thread
 from typing import Optional
 
 from client import Pidroid
 from cogs.utils.checks import is_client_pidroid
 from cogs.utils.parsers import truncate_string
-from cogs.utils.time import timedelta_to_datetime, utcnow
+from cogs.utils.time import timedelta_to_datetime
 
 class PluginStoreTasks(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
@@ -26,48 +24,16 @@ class PluginStoreTasks(commands.Cog):
 
         self.new_plugins_cache = []
 
-        #self.retrieve_new_plugins.start()
-        self.archive_threads.start()
+        self.retrieve_new_plugins.start()
 
     def cog_unload(self) -> None:
         """Ensure that tasks are cancelled on cog unload."""
         self.retrieve_new_plugins.cancel()
-        self.archive_threads.cancel()
 
     @property
     def showcase_channel(self) -> Optional[TextChannel]:
         """Returns plugin showcase channel object."""
         return self.client.get_channel(640522649033769000)
-
-    @tasks.loop(seconds=60)
-    async def archive_threads(self) -> None:
-        """Archives plugin showcase threads."""
-        threads_to_archive = await self.api.get_archived_plugin_threads(utcnow().timestamp())
-        for thread_item in threads_to_archive:
-            thread_id: int = thread_item["thread_id"]
-
-            try:
-                thread: Thread = await self.client.fetch_channel(thread_id)
-            except Exception as e:
-                self.client.logger.exception(f"Failure to look up a plugin showcase thread, ID is {thread_id}\nException: {e}")
-
-                if isinstance(e, NotFound):
-                    # If thread channel was deleted completely
-                    if e.code == 10003:
-                        self.client.logger.info("Thread channel does not exist, deleting from the database")
-                        await self.api.remove_plugin_thread(thread_item["_id"])
-                continue
-
-            await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
-            await thread.edit(archived=True, locked=True)
-            await self.api.remove_plugin_thread(thread_item["_id"])
-
-    @archive_threads.before_loop
-    async def before_archive_threads(self) -> None:
-        """Runs before archive_threads task to ensure that the task is allowed to run."""
-        await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
-            self.archive_threads.cancel()
 
     @tasks.loop(seconds=30)
     async def retrieve_new_plugins(self) -> None:
@@ -102,7 +68,7 @@ class PluginStoreTasks(commands.Cog):
 
                     if self.use_threads:
                         thread = await message.create_thread(name=f"{truncate_string(plugin.clean_title, 89)} discussion", auto_archive_duration=60)
-                        await self.api.create_new_plugin_thread(thread.id, timedelta_to_datetime(timedelta(days=7)).timestamp())
+                        await self.api.create_new_expiring_thread(thread.id, timedelta_to_datetime(timedelta(days=7)).timestamp())
         except ServerDisconnectedError:
             self.client.logger.exception("An server disconnection was encountered while trying to retrieve and publish new plugin information")
         except Exception as e:
