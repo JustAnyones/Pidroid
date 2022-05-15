@@ -97,7 +97,7 @@ class Pidroid(commands.Bot):
             'cogs.ext.tasks.guild_statistics',
             'cogs.ext.tasks.plugin_store',
             'cogs.ext.tasks.punishment_handler',
-            'cogs.ext.tasks.thread',
+            'cogs.ext.tasks.archive_threads',
 
             # Error handler
             'cogs.ext.error_handler',
