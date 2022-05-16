@@ -7,7 +7,6 @@ import secrets
 import string
 
 from bson.objectid import ObjectId # type: ignore
-from discord import Message # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from motor.core import AgnosticCollection # type: ignore
 from pymongo.results import InsertOneResult # type: ignore
@@ -45,8 +44,8 @@ class API:
 
     @property
     def expiring_threads(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for plugin showcase threads."""
-        return self.db["Plugin_threads"]
+        """Returns a MongoDB collection for expiring threads."""
+        return self.db["Expiring_threads"]
 
     @property
     def punishments(self) -> AgnosticCollection:
@@ -186,11 +185,6 @@ class API:
             "thread_id": thread_id,
             "expires": expire_timestamp
         })
-
-    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int):
-        """Creates a new expiring thread"""
-        thread = await message.create_thread(name=name, auto_archive_duration=60)
-        await self.create_new_expiring_thread(thread.id, expire_timestamp)
 
     async def get_archived_threads(self, timestamp: float) -> List[dict]:
         """Returns a list of active threads which require archiving."""
