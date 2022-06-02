@@ -183,7 +183,7 @@ class Pidroid(commands.Bot):
     def _remove_guild_configuration(self, guild_id: int) -> None:
         self.guild_configurations.pop(guild_id)
 
-    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int, auto_archive_duration=60):
+    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
         thread = await message.create_thread(name, auto_archive_duration)
         await self.api.create_new_expiring_thread(thread.id, expire_timestamp)
