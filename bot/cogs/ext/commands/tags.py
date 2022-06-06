@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from bson.int64 import Int64
-from bson.objectid import ObjectId
+from bson.int64 import Int64 # type: ignore
+from bson.objectid import ObjectId # type: ignore
 from discord.ext import commands
-from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.file import File
 from discord.guild import Guild
 from discord.user import User
@@ -45,7 +45,7 @@ class Tag:
         aliases: List[str]
         locked: bool
 
-    def __init__(self, api: API = None, data: dict = None) -> None:
+    def __init__(self, api: API, data: dict = None) -> None:
         self.api = api
         self._author_ids = []
         self.aliases = []
@@ -145,7 +145,7 @@ class Tag:
         await self.api.remove_tag(self._id)
 
 
-class TagCommands(commands.Cog):
+class TagCommands(commands.Cog): # type: ignore
     """This class implements a cog for dealing with guild tag related commands.."""
 
     def __init__(self, client: Pidroid):
@@ -170,7 +170,7 @@ class TagCommands(commands.Cog):
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag_list
 
-    async def resolve_tag(self, ctx: Context, tag_name: Optional[str]) -> Optional[Tag]:
+    async def resolve_tag(self, ctx: Context, tag_name: Optional[str]) -> Tag:
         if tag_name is None:
             raise BadArgument("Please specify a tag name!")
 
@@ -189,14 +189,14 @@ class TagCommands(commands.Cog):
         attachment = message.attachments[0]
         return attachment.url
 
-    @commands.group(
+    @commands.group( # type: ignore
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
         category=TagCategory,
         invoke_without_command=True
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def tag(self, ctx: Context, *, tag_name: Optional[str]):
         if ctx.invoked_subcommand is None:
             tag_list = await self.find_tags(ctx, tag_name)
@@ -222,8 +222,8 @@ class TagCommands(commands.Cog):
         brief="Returns a list of available server tags.",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def list(self, ctx: Context):
         guild_tags = await self.api.fetch_guild_tags(ctx.guild.id)
         if len(guild_tags) == 0:
@@ -239,8 +239,8 @@ class TagCommands(commands.Cog):
         usage='<tag name>',
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def info(self, ctx: Context, *, tag_name: str = None):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -259,8 +259,8 @@ class TagCommands(commands.Cog):
         usage='<tag name>',
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def raw(self, ctx: Context, *, tag_name: str = None):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -274,10 +274,10 @@ class TagCommands(commands.Cog):
         usage="<tag name> <tag content>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.cooldown(rate=10, per=60 * 60, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.cooldown(rate=10, per=60 * 60, type=commands.BucketType.user) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def create(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = Tag(self.api)
         tag.guild_id = ctx.guild.id
@@ -289,7 +289,7 @@ class TagCommands(commands.Cog):
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
             raise BadArgument("Please provide content for the tag!")
-        tag.content = (content or "" + "\n" + attachment_url or "").strip()
+        tag.content = ((content or "") + "\n" + (attachment_url or "")).strip()
 
         if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
             raise BadArgument("There's already a tag by the specified name!")
@@ -302,9 +302,9 @@ class TagCommands(commands.Cog):
         usage="<tag name> <tag content>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def edit(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -318,7 +318,7 @@ class TagCommands(commands.Cog):
         attachment_url = await self.resolve_attachments(ctx.message)
         if content is None and attachment_url is None:
             raise BadArgument("Please provide content for a tag!")
-        tag.content = (content or "" + "\n" + attachment_url or "").strip()
+        tag.content = ((content or "") + "\n" + (attachment_url or "")).strip()
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
@@ -329,9 +329,9 @@ class TagCommands(commands.Cog):
         usage="<tag name> <member>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def add_author(self, ctx: Context, tag_name: Optional[str], member: Optional[Member]):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -356,9 +356,9 @@ class TagCommands(commands.Cog):
         usage="<tag name> <member>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def remove_author(self, ctx: Context, tag_name: Optional[str], member: Optional[Member]):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -379,9 +379,9 @@ class TagCommands(commands.Cog):
         usage="<tag name>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def claim(self, ctx: Context, *, tag_name: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -406,9 +406,9 @@ class TagCommands(commands.Cog):
         usage="<tag name> <member>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def transfer(self, ctx: Context, tag_name: Optional[str], *, member: Optional[Member]):
         tag = await self.resolve_tag(ctx, tag_name)
 
@@ -435,9 +435,9 @@ class TagCommands(commands.Cog):
         usage="<tag name>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def remove(self, ctx: Context, *, tag_name: Optional[str]):
         tag = await self.resolve_tag(ctx, tag_name)
 

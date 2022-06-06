@@ -4,7 +4,7 @@ import sys
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
-from discord.ext import tasks, commands
+from discord.ext import tasks, commands # type: ignore
 from typing import Optional
 
 from client import Pidroid
@@ -12,7 +12,7 @@ from cogs.utils.checks import is_client_pidroid
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timedelta_to_datetime
 
-class PluginStoreTasks(commands.Cog):
+class PluginStoreTasks(commands.Cog): # type: ignore
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -22,7 +22,7 @@ class PluginStoreTasks(commands.Cog):
         self.use_threads = True
         self.add_reactions = True
 
-        self.new_plugins_cache = []
+        self.new_plugins_cache: List[int] = []
 
         self.retrieve_new_plugins.start()
 
@@ -61,7 +61,7 @@ class PluginStoreTasks(commands.Cog):
                     self.new_plugins_cache.append(plugin.id)
 
                     message = await self.showcase_channel.send(embed=plugin.to_embed())
-                    
+
                     if self.add_reactions:
                         await message.add_reaction(emoji="👍")
                         await message.add_reaction(emoji="👎")

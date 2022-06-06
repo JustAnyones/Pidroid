@@ -4,9 +4,9 @@ from asyncio import exceptions
 from discord import utils
 from discord.channel import TextChannel
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from discord.ext.commands.converter import TextChannelConverter
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.converter import TextChannelConverter # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 
 from client import Pidroid
@@ -17,7 +17,7 @@ from cogs.utils.time import datetime_to_duration
 
 GIVEAWAY_TIMEOUT = 180
 
-class GiveawayCommand(commands.Cog):
+class GiveawayCommand(commands.Cog): # type: ignore
     """This class implements a cog with commands for dealing with giveaway creation."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -60,13 +60,13 @@ class GiveawayCommand(commands.Cog):
             raise BadArgument("I can't count higher than 31 days, can we go a little lower?")
         return datetime
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='An experimental command for possible inclusion of the giveaway system.',
         category=UtilityCategory,
         hidden=True
     )
-    @commands.is_owner()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.is_owner() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def giveaway(self, ctx: Context):
         await ctx.reply((
             ":tada: Alright, let's begin!\n\n"
@@ -116,7 +116,7 @@ class GiveawayCommand(commands.Cog):
             embed = PidroidEmbed(title=prize, description=description, timestamp=datetime)
             await ctx.reply(f'Beginning the giveaway in {channel.mention}')
             msg = await channel.send(content=':tada: **GIVEAWAY** :tada:', embed=embed)
-            await msg.add_reaction(emoji="🎉")
+            await msg.add_reaction("🎉")
         except exceptions.TimeoutError:
             await ctx.reply('Giveaway creation failed: timeout!')
 

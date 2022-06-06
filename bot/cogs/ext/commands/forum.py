@@ -14,21 +14,21 @@ from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
 from cogs.utils.time import timestamp_to_datetime
 
-class ForumCommands(commands.Cog):
+class ForumCommands(commands.Cog): # type: ignore
     """This class implements a cog which contains commands for communication via TheoTown forums."""
 
     def __init__(self, client: Pidroid):
         self.client = client
         self.api = self.client.api
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='forum-user',
         brief='Returns forum account information for the specified user.',
         usage='<forum username/ID>',
         aliases=['forum-ui'],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def forum_user(self, ctx: Context, *, username: str):
         async with ctx.typing():
             res = await self.api.get(Route(
@@ -65,14 +65,14 @@ class ForumCommands(commands.Cog):
 
             await ctx.reply(embed=ErrorEmbed(res["details"]))
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='forum-gift',
         brief='Gifts specified items to the specified user.',
         usage='<diamonds/region coins> <amount> <forum username/ID>',
         permissions=["TheoTown developer"],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
     async def forum_gift(self, ctx: Context, *args):
         async with ctx.typing():
@@ -92,23 +92,25 @@ class ForumCommands(commands.Cog):
             pos = gift_type.regs[0]
 
             # Convert remaining arguments into list
-            args = command_args[pos[1]:].strip().split()
+            parsed_args = command_args[pos[1]:].strip().split()
 
             # Raise errors for missing arguments
-            if len(args) == 0:
+            if len(parsed_args) == 0:
                 raise MissingRequiredArgument(SimpleNamespace(name='amount'))
-            if len(args) == 1:
+            if len(parsed_args) == 1:
                 raise MissingRequiredArgument(SimpleNamespace(name='user'))
 
             # Parse the arguments for API
             item = command_args[pos[0]:pos[1]].lower()
-            amount = args[0]
+            amount = parsed_args[0]
             try:
-                amount = int(amount)
+                amount = int(amount) # type: ignore
             except ValueError:
                 return await ctx.reply(embed=ErrorEmbed(f"{amount} is not a valid amount!"))
-            amount = abs(int(amount))
-            user = ' '.join(args[1:])
+
+            assert isinstance(amount, int)
+            amount = abs(amount)
+            user = ' '.join(parsed_args[1:])
 
             encoded_item = item.replace(' ', '')
 
@@ -122,14 +124,14 @@ class ForumCommands(commands.Cog):
                 return await ctx.reply(f'{amount:,} {item} have been gifted to {data["name"]}!')
             await ctx.reply(embed=ErrorEmbed(res["details"]))
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='forum-pm',
         brief='Send a forum PM to specified user as Pidroid.',
         usage='<target user ID> <subject> <body>',
         hidden=True,
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True, manage_messages=True)
+    @commands.bot_has_permissions(send_messages=True, manage_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
     async def forum_pm(self, ctx: Context, target: int, subject: str, *, text: str):
         async with ctx.typing():
@@ -140,14 +142,14 @@ class ForumCommands(commands.Cog):
             await ctx.message.delete(delay=0)
             await ctx.reply(data["details"])
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='forum-authorise',
         brief='Activates specified user\'s forum account.',
         usage='<forum username/ID>',
         aliases=['forum-auth', 'forum-activate'],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
     async def forum_authorise(self, ctx: Context, *, user: str):
         async with ctx.typing():

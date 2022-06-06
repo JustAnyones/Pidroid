@@ -210,13 +210,13 @@ class PidroidPages(discord.ui.View):
         self,
         source: PageSource,
         *,
-        ctx: commands.Context,
+        ctx: commands.Context, # type: ignore
         check_embeds: bool = True,
     ):
         super().__init__()
         self.source: PageSource = source
         self.check_embeds: bool = check_embeds
-        self.ctx: commands.Context = ctx
+        self.ctx: commands.Context = ctx # type: ignore
         self.message: Optional[discord.Message] = None
         self.current_page: int = 0
         self.input_lock = asyncio.Lock()
@@ -234,8 +234,8 @@ class PidroidPages(discord.ui.View):
                 self.add_item(self.go_to_last_page)  # type: ignore
             self.add_item(self.stop_pages)  # type: ignore
 
-    async def _get_kwargs_from_page(self, page: int) -> Optional[Dict[str, Any]]:
-        value = await discord.utils.maybe_coroutine(self.source.format_page, self, page)
+    async def _get_kwargs_from_page(self, page: int) -> Optional[Dict[str, Any]]: # type: ignore
+        value = await discord.utils.maybe_coroutine(self.source.format_page, self, page) # type: ignore
         if isinstance(value, dict):
             return value
         elif isinstance(value, str):

@@ -1,8 +1,8 @@
-import bitly_api
+import bitly_api # type: ignore
 import re
 
 from discord.ext import commands
-from discord.ext.commands import Context, BadArgument
+from discord.ext.commands import Context, BadArgument # type: ignore
 from urllib.parse import quote_plus as urlencode
 
 from client import Pidroid
@@ -37,20 +37,20 @@ def get_corona_endpoint(location: str) -> str:
     return f'{CORONA_API_URL}/countries/{location}'
 
 
-class UtilityCommands(commands.Cog):
+class UtilityCommands(commands.Cog): # type: ignore
     """This class implements a cog for various utility commands."""
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Looks up the specified term on urban dictionary.",
         usage="<term>",
         permissions=["Bot owner"],
         aliases=["ud"],
         category=UtilityCategory
     )
-    @commands.is_owner()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.is_owner() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def urban(self, ctx: Context, *, query: str = None):
         async with ctx.typing():
             if query is None:
@@ -78,14 +78,14 @@ class UtilityCommands(commands.Cog):
             embed.set_footer(text=f"Written on {definition['written_on']} by {definition['author']}")
             await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Generates a bitly link from an URL.",
         usage="<url>",
         permissions=["Bot owner"],
         category=UtilityCategory
     )
-    @commands.is_owner()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.is_owner() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def bitly(self, ctx: Context, url: str = None):
         async with ctx.typing():
             if url is None:
@@ -101,13 +101,13 @@ class UtilityCommands(commands.Cog):
             shortened_url = response["url"]
             await ctx.reply(f"URL shortened: {shortened_url}")
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Displays the coronavirus statistics for the specified place.",
         usage="[country/continent/global]",
         aliases=['corona', 'covid-19', 'covid'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def coronavirus(self, ctx: Context, *, location: str = "global"):
         async with ctx.typing():
             url = get_corona_endpoint(location.lower())

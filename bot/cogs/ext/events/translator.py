@@ -41,7 +41,9 @@ LANGUAGE_MAPPING = {
     "SK": "Slovak",
     "SL": "Slovenian",
     "SV": "Swedish",
-    "ZH": "Chinese"
+    "ZH": "Chinese",
+    "ID": "Indonesian",
+    "TR": "Turkish"
 }
 
 FEED_CHANNEL = 943920969637040140
@@ -111,7 +113,7 @@ class TextParser:
         # Otherwise, just return normal string
         return ParserFlags.NORMAL, self.text
 
-class TranslationEventHandler(commands.Cog):
+class TranslationEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for event handling related to TheoTown translations."""
 
     def __init__(self, client: Pidroid):
@@ -183,7 +185,7 @@ class TranslationEventHandler(commands.Cog):
 
         return translations
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message):
         # Check whether message is valid for further processing
         if not self.is_valid(message):

@@ -10,12 +10,12 @@ from client import Pidroid
 from constants import EVENTS_CHANNEL
 from cogs.utils.checks import TheoTownChecks as TTChecks, is_client_pidroid, is_guild_moderator, is_guild_theotown
 
-class EventChannelHandler(commands.Cog):
+class EventChannelHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message):
         if not is_client_pidroid(self.client):
             return
@@ -30,17 +30,19 @@ class EventChannelHandler(commands.Cog):
 
             if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.guild, message.channel, message.author):
                 if message.attachments:
-                    await message.add_reaction(emoji="👍")
+                    await message.add_reaction("👍")
                     return
 
                 await message.delete(delay=0)
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
         if not is_client_pidroid(self.client):
             return
 
-        member: discord.Member = payload.member
+        if not payload.member:
+            return
+
         channel: TextChannel = self.client.get_channel(payload.channel_id)
         try:
             message: Message = await channel.fetch_message(payload.message_id)
@@ -55,9 +57,9 @@ class EventChannelHandler(commands.Cog):
             return
 
         # Remove votes from unauthorised users in events channel
-        if message.attachments and not member.bot and (not TTChecks.is_event_voter(member) or member.id == message.author.id):
+        if message.attachments and not payload.member.bot and (not TTChecks.is_event_voter(payload.member) or payload.member.id == message.author.id):
             with suppress(discord.NotFound):
-                await message.remove_reaction("👍", member)
+                await message.remove_reaction("👍", payload.member)
 
 
 async def setup(client: Pidroid) -> None:

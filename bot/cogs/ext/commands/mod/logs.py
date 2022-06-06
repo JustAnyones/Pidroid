@@ -13,21 +13,21 @@ from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.paginators import PidroidPages
 
 
-class ModeratorInfoCommands(commands.Cog):
+class ModeratorInfoCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for viewing and editing moderation logs and statistics."""
 
     def __init__(self, client: Pidroid):
         self.client = client
         self.api = self.client.api
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Displays details for the specified case.\nCases can be modified by providing a reason parameter.',
         usage='<case ID> [reason]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @command_checks.is_junior_moderator(kick_members=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def case(self, ctx: Context, case_id: str, *, reason: Optional[str]):
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
@@ -37,29 +37,29 @@ class ModeratorInfoCommands(commands.Cog):
 
         await ctx.reply(embed=case.to_embed())
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='invalidate-warning',
         brief='Invalidates specified warning.',
         usage='<case ID>',
         aliases=['invalidate-warn', 'invalidatewarn', 'invalidatewarning'],
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_senior_moderator(ban_members=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def invalidatewarning(self, ctx: Context, case_id: str):
         case = await self.client.fetch_case(ctx.guild.id, case_id)
         await case.invalidate()
         await ctx.reply('Warning invalidated successfully!')
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Displays all active warnings for the specified user.',
         usage='[user] [all]',
         aliases=['warns'],
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def warnings(self, ctx: Context, user: Union[discord.Member, discord.User] = None, amount: str = 'none'):
         user = user or ctx.author
 
@@ -82,13 +82,13 @@ class ModeratorInfoCommands(commands.Cog):
         )
         await pages.start()
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Displays all moderation logs for the specified user.',
         usage='[user]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def modlogs(self, ctx: Context, *, user: Union[discord.Member, discord.User] = None):
         user = user or ctx.author
 
@@ -109,14 +109,14 @@ class ModeratorInfoCommands(commands.Cog):
         )
         await pages.start()
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Displays moderation statistics for the specified member.',
         usage='[member]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def modstats(self, ctx: Context, *, member: discord.Member = None):
         member = member or ctx.author
         bans = kicks = jails = warnings = 0

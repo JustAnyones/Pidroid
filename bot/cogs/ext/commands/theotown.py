@@ -4,7 +4,7 @@ import random
 from contextlib import suppress
 from discord.ext import commands
 from discord.errors import HTTPException
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
 from typing import Optional
 
@@ -28,19 +28,19 @@ def handle_wrong_gallery_modes(query: str) -> Optional[str]:
         return "rating"
     return None
 
-class TheoTownCommands(commands.Cog):
+class TheoTownCommands(commands.Cog): # type: ignore
     """This class implements a cog for TheoTown API related commands."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.api = self.client.api
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Returns the latest game version of TheoTown for all platforms.",
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user) # type: ignore
     async def version(self, ctx: Context):
         async with ctx.typing():
             cache = self.client.version_cache
@@ -73,15 +73,15 @@ class TheoTownCommands(commands.Cog):
             embed.set_footer(text='Note: this will also include versions which are not yet available to regular users.')
             await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Returns TheoTown's online mode statistics.",
         aliases=["multiplayer"],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
-    @commands.cooldown(rate=1, per=15, type=commands.BucketType.channel)
-    @commands.max_concurrency(number=3, per=commands.BucketType.guild)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
+    @commands.cooldown(rate=1, per=15, type=commands.BucketType.channel) # type: ignore
+    @commands.max_concurrency(number=3, per=commands.BucketType.guild) # type: ignore
     async def online(self, ctx: Context):
         async with ctx.typing():
             res = await self.api.get(Route("/private/game/get_online_statistics"))
@@ -100,19 +100,19 @@ class TheoTownCommands(commands.Cog):
             embed.add_field(name='Total population', value=f'{population:,}')
             await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Returns an image from TheoTown\'s in-game gallery.',
         usage='[recent/trends/rating] [random number]',
         aliases=['screenshot'],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user) # type: ignore
     async def gallery(self, ctx: Context, mode: str = 'recent', number: int = None):
         async with ctx.typing():
-            mode = handle_wrong_gallery_modes(mode.lower())
+            selected_mode = handle_wrong_gallery_modes(mode.lower())
 
-            if mode not in SUPPORTED_GALLERY_MODES:
+            if selected_mode not in SUPPORTED_GALLERY_MODES:
                 self.gallery.reset_cooldown(ctx)
                 return await ctx.reply(embed=ErrorEmbed(
                     'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
@@ -131,7 +131,7 @@ class TheoTownCommands(commands.Cog):
                 self.gallery.reset_cooldown(ctx)
                 return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
 
-            res = await self.client.api.get(Route("/public/game/gallery", {"mode": mode, "limit": number}))
+            res = await self.client.api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
             if not res["success"]:
                 return await ctx.reply(embed=ErrorEmbed("Unable to retrieve gallery data!"))
 
@@ -143,16 +143,16 @@ class TheoTownCommands(commands.Cog):
             embed.set_footer(text=f'#{screenshot["id"]}')
             await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='find-plugin',
         brief='Searches plugin store for the specified plugin.',
         usage='<query>',
         aliases=['findplugin'],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
-    @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
+    @commands.cooldown(rate=2, per=10, type=commands.BucketType.user) # type: ignore
     async def findplugin(self, ctx: Context, *, query: str = None): # noqa
         async with ctx.typing():
             if query is None:
@@ -205,7 +205,7 @@ class TheoTownCommands(commands.Cog):
 
             await ctx.reply(embed=plugin_list[index].to_embed())
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='download-plugin',
         brief='Downloads a plugin by the specified ID.',
         usage='<plugin ID>',
@@ -213,7 +213,7 @@ class TheoTownCommands(commands.Cog):
         aliases=['downloadplugin'],
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
     async def downloadplugin(self, ctx: Context, *, plugin_id: str = None):
         async with ctx.typing():
@@ -235,15 +235,15 @@ class TheoTownCommands(commands.Cog):
             await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
             await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Send a feature suggestion to the suggestions channel.',
         usage='<suggestion>',
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True)  # permissions kind of obsolete
+    @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True) # type: ignore # permissions kind of obsolete
     @command_checks.is_bot_commands()
     @command_checks.is_theotown_guild()
-    @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
     @command_checks.client_is_pidroid()
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
         async with ctx.typing():
@@ -294,10 +294,10 @@ class TheoTownCommands(commands.Cog):
                 embed.set_image(url=f'attachment://{filename}')
 
             message: Message = await channel.send(embed=embed, file=file)
-            await message.add_reaction(emoji="✅")
-            await message.add_reaction(emoji="❌")
-            await message.add_reaction(emoji="❗")
-            await message.add_reaction(emoji="⛔")
+            await message.add_reaction("✅")
+            await message.add_reaction("❌")
+            await message.add_reaction("❗")
+            await message.add_reaction("⛔")
             if message.embeds[0].image.url is not None:
                 attachment_url = message.embeds[0].image.url
             s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
@@ -305,26 +305,6 @@ class TheoTownCommands(commands.Cog):
             await message.edit(embed=embed)
             with suppress(HTTPException):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
-
-    @commands.command(
-        brief='DEPRECATED IN FAVOUR OF TAG COMMAND.\nReturns frequently asked questions and their indexes.',
-        category=TheoTownCategory,
-        hidden=True
-    )
-    @commands.bot_has_permissions(send_messages=True)
-    async def faq(self, ctx: Context):
-        description = (
-            "The FAQ command is deprecated. "
-            "Most frequently asked questions have been migrated to the new tag system.\n"
-            "You can view available server tags by running ``Ptag list`` command."
-        )
-
-        embed = PidroidEmbed(
-            title="Where did everything go?",
-            description=description
-        )
-        await ctx.reply(embed=embed)
-
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommands(client))

@@ -1,6 +1,8 @@
 import json
 import os
 
+from typing import Dict, Optional
+
 
 PERSISTENT_DATA_FILE = "./data/data.json"
 
@@ -8,7 +10,7 @@ class PersistentDataManager:
     """This class manages Pidroid's persistent data."""
 
     def __init__(self) -> None:
-        self._data = None
+        self._data: Optional[Dict] = None
 
     @property
     def data(self) -> dict:

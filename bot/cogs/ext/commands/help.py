@@ -1,7 +1,7 @@
 from discord.embeds import Embed
 from discord.ext import commands
-from discord.ext.commands.core import Command
-from discord.ext.commands.context import Context
+from discord.ext.commands.core import Command # type: ignore
+from discord.ext.commands.context import Context # type: ignore
 from typing import List, Tuple
 
 from client import Pidroid
@@ -50,7 +50,7 @@ def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
     return name, value
 
 
-class HelpCommand(commands.Cog):
+class HelpCommand(commands.Cog): # type: ignore
     """This class implements a cog which manages the help command of the bot."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -73,12 +73,12 @@ class HelpCommand(commands.Cog):
             cmd_list.append(command)
         return cmd_list
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Returns help command.',
         usage='[category/command]',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def help(self, ctx: Context, *, search_string: str = None):
         prefix = self.client.get_prefixes(ctx.message)[0]
         # Would ideally want to cache these
@@ -124,7 +124,7 @@ class HelpCommand(commands.Cog):
 
         # Category commands
         if query in category_name_list:
-            category: Category = category_object_list[category_name_list.index(query)]
+            category = category_object_list[category_name_list.index(query)]
             embed = PidroidEmbed(
                 title=f"{category.title} category command listing",
                 description=category.description

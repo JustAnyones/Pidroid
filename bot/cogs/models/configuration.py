@@ -7,9 +7,7 @@ from discord.role import Role
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from client import Pidroid
     from cogs.utils.api import API
-
 
 class GuildConfiguration:
 
@@ -67,32 +65,36 @@ class GuildConfiguration:
         self.prefixes = [prefix]
         await self.api.set_guild_config(self._id, "prefixes", self.prefixes)
 
-    async def update_jail_channel(self, channel: TextChannel) -> None:
+    async def update_jail_channel(self, channel: Optional[TextChannel]) -> None:
         """Updates the guild jail text channel."""
-        self.jail_channel = channel.id
         if channel is None:
+            self.jail_channel = None
             return await self.api.unset_guild_config(self._id, "jail_channel")
+        self.jail_channel = channel.id
         await self.api.set_guild_config(self._id, "jail_channel", Int64(channel.id))
 
-    async def update_jail_role(self, role: Role) -> None:
+    async def update_jail_role(self, role: Optional[Role]) -> None:
         """Updates the guild jail role."""
-        self.jail_role = role.id
         if role is None:
+            self.jail_role = None
             return await self.api.unset_guild_config(self._id, "jail_role")
+        self.jail_role = role.id
         await self.api.set_guild_config(self._id, "jail_role", Int64(role.id))
 
-    async def update_mute_role(self, role: Role) -> None:
+    async def update_mute_role(self, role: Optional[Role]) -> None:
         """Updates the guild mute role."""
-        self.mute_role = role.id
         if role is None:
+            self.mute_role = None
             return await self.api.unset_guild_config(self._id, "mute_role")
+        self.mute_role = role.id
         await self.api.set_guild_config(self._id, "mute_role", Int64(role.id))
 
-    async def update_log_channel(self, channel: TextChannel) -> None:
+    async def update_log_channel(self, channel: Optional[TextChannel]) -> None:
         """Updates the guild log text channel."""
-        self.log_channel = channel.id
         if channel is None:
+            self.log_channel = None
             return await self.api.unset_guild_config(self._id, "log_channel")
+        self.log_channel = channel.id
         await self.api.set_guild_config(self._id, "log_channel", Int64(channel.id))
 
     async def update_suspicious_users(self, suspicious_users: List[str]) -> None:
@@ -104,10 +106,3 @@ class GuildConfiguration:
         """Updates the exact banned words list."""
         self.banned_exact_words = banned_words
         await self.api.set_guild_config(self._id, "banned_exact_words", banned_words)
-
-
-def setup(client: Pidroid):
-    pass
-
-def teardown(client: Pidroid):
-    pass

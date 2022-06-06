@@ -29,7 +29,7 @@ def clean_markdown(message_content: str) -> str:
     return re.sub(r"[^a-zA-Z0-9\s]", "", message_content) # Did I ever tell you how much I hate regex?
 
 
-class AutomodTask(commands.Cog):
+class AutomodTask(commands.Cog): # type: ignore
     """This class implements a cog for handling automatic moderation of the TheoTown guild."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -114,7 +114,7 @@ class AutomodTask(commands.Cog):
                 return True
         return False
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_member_join(self, member: Member) -> None:
         """Checks whether new member is suspicious."""
         if member.bot:
@@ -127,7 +127,7 @@ class AutomodTask(commands.Cog):
 
         await self.handle_suspicious_member(config, member)
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message) -> None:
         """Checks every new message if it contains phising or swearing."""
         if message.author.bot:

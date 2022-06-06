@@ -1,13 +1,13 @@
-import asyncpraw
+import asyncpraw # type: ignore
 import random
 import typing
 
-from asyncpraw.models.reddit.submission import Submission
-from asyncpraw.models.reddit.subreddit import Subreddit
-from asyncprawcore.exceptions import ResponseException
+from asyncpraw.models.reddit.submission import Submission # type: ignore
+from asyncpraw.models.reddit.subreddit import Subreddit # type: ignore
+from asyncprawcore.exceptions import ResponseException # type: ignore
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 
 from client import Pidroid
 from cogs.models.categories import RandomCategory
@@ -16,7 +16,7 @@ from cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
 UNMARKED_NSFW_SUBREDDITS = [
-    'keqing'
+    'keqing', 'copypasta'
 ]
 
 async def get_random_submission(subreddit: Subreddit, limit: int = 50) -> Submission:
@@ -60,7 +60,7 @@ def get_submission_gallery(sub: Submission) -> typing.List[str]:
         return []
     return [sub.media_metadata[i]['s']['u'] for i in sub.media_metadata.keys()]
 
-class RedditCommands(commands.Cog):
+class RedditCommands(commands.Cog): # type: ignore
     """This class implements a cog for reddit related commands and methods."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -81,12 +81,12 @@ class RedditCommands(commands.Cog):
         if self.reddit_instance is not None:
             self.client.loop.create_task(self.reddit_instance.close())  # Just so I don't get asyncio unclosed loop errors
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Fetches a random post from specified subreddit.',
         usage='<subreddit name>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def reddit(self, ctx: Context, subreddit_name: str = None):
         async with ctx.typing():
             if subreddit_name is None:

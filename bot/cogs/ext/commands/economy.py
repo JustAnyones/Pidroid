@@ -1,10 +1,10 @@
-import dill # nosec
+import dill # type: ignore # nosec
 import json
 import random
 import os
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 
 from client import Pidroid
 from constants import BEG_FAILURE_RESPONSES, BEG_SUCCESS_RESPONSES
@@ -24,7 +24,7 @@ def get_currency(money_amount: int):
     return f"{CURRENCY_SYMBOL}{money_amount:,}"
 
 
-class EconomyCommands(commands.Cog):
+class EconomyCommands(commands.Cog): # type: ignore
     """This class implements a cog which contains interactions with unbelievaboat bot API."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -39,14 +39,14 @@ class EconomyCommands(commands.Cog):
         with open(COOLDOWN_FILE_PATH, "wb") as f:
             dill.dump(self.beg._buckets._cache, f)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Beg Pidroid to print some money for you.',
         category=RandomCategory
     )
-    @commands.cooldown(rate=1, per=60 * 60 * 24 * 3, type=commands.BucketType.user)
+    @commands.cooldown(rate=1, per=60 * 60 * 24 * 3, type=commands.BucketType.user) # type: ignore
     @command_checks.is_theotown_guild()
     @command_checks.client_is_pidroid()
-    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     async def beg(self, ctx: Context):
         try:
             token = self.client.config['authentication']['unbelievaboat']['token']
@@ -74,7 +74,7 @@ class EconomyCommands(commands.Cog):
 
     @beg.error
     async def clear_error(self, ctx: Context, e):
-        if isinstance(e, commands.CommandOnCooldown):
+        if isinstance(e, commands.CommandOnCooldown): # type: ignore
             await ctx.reply(f'Quit begging, you may ask me for money again in {humanize(e.retry_after, False, max_units=2)}.')
         elif isinstance(e, exceptions.ClientIsNotPidroid):
             self.beg.reset_cooldown(ctx)

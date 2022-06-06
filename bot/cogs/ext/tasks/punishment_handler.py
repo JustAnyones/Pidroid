@@ -2,7 +2,7 @@ import discord
 import traceback
 import sys
 
-from discord.ext import tasks, commands
+from discord.ext import tasks, commands # type: ignore
 from discord.guild import Guild
 from discord.utils import get
 from typing import Union
@@ -11,7 +11,7 @@ from client import Pidroid
 from cogs.utils.getters import get_role
 from cogs.utils.time import utcnow
 
-class PunishmentHandlerTask(commands.Cog):
+class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -75,7 +75,7 @@ class PunishmentHandlerTask(commands.Cog):
         """Runs before check_punishment task to ensure that the task is allowed to run."""
         await self.client.wait_guild_config_cache_ready()
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_member_join(self, member: discord.Member) -> None:
         """Handles role-based punishment revocation for new members."""
         await self.client.wait_guild_config_cache_ready()
@@ -93,13 +93,13 @@ class PunishmentHandlerTask(commands.Cog):
             if await self.api.is_currently_muted(member.guild.id, member.id):
                 await member.add_roles(get(member.guild.roles, id=mute_role), reason="Muted automatically as punishment evasion was detected.")
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_member_unban(self, guild: discord.Guild, user: Union[discord.Member, discord.User]) -> None:
         """Removes ban records from the database for an unbanned user."""
         await self.client.wait_until_ready()
         await self.api.revoke_punishment('ban', guild.id, user.id)
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
         """Handles jail and mute role removal."""
         await self.client.wait_guild_config_cache_ready()

@@ -508,21 +508,21 @@ class PunishmentInteraction(ui.View):
         return False
 
 
-class ModeratorCommands(commands.Cog):
+class ModeratorCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for moderation."""
 
     def __init__(self, client: Pidroid):
         self.client = client
         self.api = self.client.api
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Removes a specified amount of messages from the channel.',
         usage='<amount>',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True) # type: ignore
     @command_checks.can_purge()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def purge(self, ctx: Context, amount: int = 0):
         if amount <= 0:
             return await ctx.reply(embed=ErrorEmbed(
@@ -536,23 +536,23 @@ class ModeratorCommands(commands.Cog):
         await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
 
-    @commands.command(hidden=True)
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
+    @commands.command(hidden=True) # type: ignore
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True) # type: ignore
     @command_checks.is_junior_moderator(manage_messages=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def deletethis(self, ctx: Context):
         await ctx.message.delete(delay=0)
         await ctx.channel.purge(limit=1)
         await ctx.send(file=File('./resources/delete_this.png'))
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief="Open user moderation and punishment menu.",
         usage="<user/member>",
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
-    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only() # type: ignore
+    @commands.is_owner() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
         # Check initial permissions
         if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):

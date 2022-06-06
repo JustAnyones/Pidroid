@@ -7,14 +7,14 @@ import sys
 import aiohttp
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 
 from client import Pidroid
 from constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
 
 # Use uvloop if possible
 try:
-    import uvloop # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
+    import uvloop # type: ignore # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
     uvloop.install()
 except ImportError:
     pass

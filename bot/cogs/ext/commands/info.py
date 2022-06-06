@@ -1,7 +1,7 @@
 import discord
 
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context # type: ignore
 from discord.embeds import Embed
 from discord.guild import Guild
 from discord.role import Role
@@ -14,19 +14,19 @@ from cogs.utils.checks import is_guild_moderator, is_guild_administrator
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
-class InfoCommands(commands.Cog):
+class InfoCommands(commands.Cog): # type: ignore
     """This class implements a cog for various discord information commands."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='profile-avatar',
         brief='Displays the real profile picture of a specified member.',
         usage='[member]',
         category=InformationCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def profile_avatar(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
@@ -36,43 +36,40 @@ class InfoCommands(commands.Cog):
             embed.set_image(url=member._user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='avatar',
         brief='Displays the server profile picture of a specified member.',
         usage='[member]',
         aliases=['server-avatar'],
         category=InformationCategory
     )
-    @commands.guild_only()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def server_avatar(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='user-info',
         brief='Displays the user information of a specified member.',
         usage='[member]',
         aliases=['ui', 'user', 'userinfo'],
         category=InformationCategory
     )
-    @commands.guild_only()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def user_info(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
-        is_user = isinstance(member, discord.User)
 
         embed = PidroidEmbed(description=member.mention)
         embed.set_author(name=f'{member.name}#{member.discriminator}', icon_url=member.display_avatar.url)
         embed.add_field(name='Username', value=f'{escape_markdown(member.name)}#{member.discriminator}')
         embed.add_field(name='ID', value=member.id)
         embed.add_field(name='Registered', value=format_dt(member.created_at), inline=False)
-        if not is_user:
-            embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
 
-        if not is_user:
+        if not isinstance(member, discord.User):
 
             role_list = [role.mention for role in reversed(member.roles) if role.name != "@everyone"]
 
@@ -100,6 +97,7 @@ class InfoCommands(commands.Cog):
             # Get join position
             pos = sum(m.joined_at < member.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
 
+            embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
             embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
             embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
@@ -108,14 +106,14 @@ class InfoCommands(commands.Cog):
         embed.set_thumbnail(url=member.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='server-info',
         brief='Displays the server information.',
         aliases=['si', 'serverinfo'],
         category=InformationCategory
     )
-    @commands.guild_only()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def server_info(self, ctx: Context):
         guild: Guild = ctx.guild
         embed = PidroidEmbed(timestamp=guild.created_at)
@@ -133,14 +131,14 @@ class InfoCommands(commands.Cog):
         embed.set_footer(text='Server created')
         await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='role-info',
         brief='Displays the role information.',
         aliases=['ri', 'roleinfo'],
         category=InformationCategory
     )
-    @commands.guild_only()
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def role_info(self, ctx: Context, role: Role = None):
         if role is None:
             return await ctx.reply(embed=ErrorEmbed("Please specify the role to view the information for"))

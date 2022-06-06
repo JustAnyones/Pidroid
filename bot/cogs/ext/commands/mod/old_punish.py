@@ -23,36 +23,36 @@ async def is_banned(ctx: Context, user: typing.Union[discord.Member, discord.Use
     except Exception:
         return False
 
-class OldModeratorCommands(commands.Cog):
+class OldModeratorCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for moderation."""
 
     def __init__(self, client: Pidroid):
         self.client = client
         self.api = self.client.api
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Issues a warning to specified member.',
         usage='<member> <warning>',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def warn(self, ctx: Context, member: MemberOffender, *, warning: str):
         w = Warning(ctx, member)
         w.reason = warning
         await w.issue()
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Unmutes specified member.',
         usage='<member>',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def unmute(self, ctx: Context, *, member: MemberOffender):
         if not self.client.guild_config_cache_ready:
             return
@@ -69,15 +69,15 @@ class OldModeratorCommands(commands.Cog):
         await m.revoke(role)
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Throws specified member in jail.',
         usage='<member> [reason]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def jail(self, ctx: Context, member: MemberOffender, *, reason: str = None):
         if not self.client.guild_config_cache_ready:
             return
@@ -99,17 +99,17 @@ class OldModeratorCommands(commands.Cog):
         await j.issue(role)
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Throws specified member in jail.',
         usage='<member> [reason]',
         aliases=['van'],
         category=ModerationCategory,
         hidden=True
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def kidnap(self, ctx: Context, member: MemberOffender, *, reason: str = None):
         if not self.client.guild_config_cache_ready:
             return
@@ -131,16 +131,16 @@ class OldModeratorCommands(commands.Cog):
         await j.issue(role, True)
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Releases specified member from jail.',
         usage='<member>',
         aliases=["release"],
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, manage_roles=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @command_checks.guild_configuration_exists()
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def unjail(self, ctx: Context, *, member: MemberOffender):
         if not self.client.guild_config_cache_ready:
             return
@@ -157,28 +157,28 @@ class OldModeratorCommands(commands.Cog):
         await j.revoke(role, f"Released by {str(ctx.author)}")
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Kicks the specified member for specified reason.',
         usage='<member> [reason]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, kick_members=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, kick_members=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def kick(self, ctx: Context, member: MemberOffender, *, reason: str = None):
         k = Kick(ctx, member)
         k.reason = reason
         await k.issue()
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Bans the specified user for specified reason for the specified amount of time.',
         usage='<user> [duration] [reason]',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True) # type: ignore
     @command_checks.is_moderator(ban_members=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def ban(self, ctx: Context, user: UserOffender, duration_datetime: Optional[Duration] = None, *, reason: str = None):
         if await is_banned(ctx, user):
             return await ctx.reply(embed=ErrorEmbed("Specified user is already banned!"))
@@ -192,14 +192,14 @@ class OldModeratorCommands(commands.Cog):
         await b.issue()
         await ctx.message.delete(delay=0)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='DEPRECATED: Unbans the specified user.',
         usage='<user ID>',
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True)
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, ban_members=True) # type: ignore
     @command_checks.is_senior_moderator(administrator=True)
-    @commands.guild_only()
+    @commands.guild_only() # type: ignore
     async def unban(self, ctx: Context, *, user: Optional[discord.User]):
         if user is None:
             return await ctx.reply(embed=ErrorEmbed("Please specify someone you are trying to unban!"))

@@ -4,8 +4,8 @@ import typing
 from discord.enums import StickerFormatType
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 from discord.sticker import GuildSticker, StandardSticker, StickerItem
 from io import BytesIO
@@ -23,21 +23,21 @@ def get_message_stickers(message: Message) -> typing.List[StickerItem]:
     return stickers
 
 
-class StickerCommands(commands.Cog):
+class StickerCommands(commands.Cog): # type: ignore
     """This class implements a cog for dealing with sticker related commands."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='clone-sticker',
         brief='Retrieves the sticker from a referenced message and adds it to server sticker list.',
         aliases=['steal-sticker', 'stealsticker', 'clonesticker'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True, manage_emojis_and_stickers=True)
-    @commands.has_permissions(manage_emojis_and_stickers=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True, manage_emojis_and_stickers=True) # type: ignore# type: ignore
+    @commands.has_permissions(manage_emojis_and_stickers=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def steal_sticker(self, ctx: Context, message: typing.Optional[Message]):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -51,6 +51,8 @@ class StickerCommands(commands.Cog):
 
         if isinstance(sticker, StandardSticker):
             raise BadArgument("Specified sticker is already in-built. It'd be dumb to add it again.")
+
+        assert isinstance(sticker, GuildSticker)
 
         b = BytesIO(await sticker.read())
         try:
@@ -67,13 +69,13 @@ class StickerCommands(commands.Cog):
         else:
             await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='get-sticker',
         brief='Retrieves a sticker from a referenced message.',
         aliases=['getsticker'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def get_sticker(self, ctx: Context, message: typing.Optional[Message]):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
