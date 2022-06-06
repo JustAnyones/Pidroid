@@ -16,7 +16,7 @@ from cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
 UNMARKED_NSFW_SUBREDDITS = [
-    'keqing'
+    'keqing', 'copypasta'
 ]
 
 async def get_random_submission(subreddit: Subreddit, limit: int = 50) -> Submission:
