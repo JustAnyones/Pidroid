@@ -11,6 +11,7 @@ bot/data/*
 .idea/*
 
 python/*
+venv
 
 # Scripts and files used for changelog generation
 build changelog.py
