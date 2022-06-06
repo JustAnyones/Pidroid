@@ -43,9 +43,9 @@ class API:
         return self.db["Suggestions"]
 
     @property
-    def plugin_threads(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for plugin showcase threads."""
-        return self.db["Plugin_threads"]
+    def expiring_threads(self) -> AgnosticCollection:
+        """Returns a MongoDB collection for expiring threads."""
+        return self.db["Expiring_threads"]
 
     @property
     def punishments(self) -> AgnosticCollection:
@@ -179,23 +179,23 @@ class API:
         ))
         return [Plugin(p) for p in response["data"]]
 
-    async def create_new_plugin_thread(self, thread_id: int, expire_timestamp: int) -> None:
-        """Creates a new plugin thread entry inside the database."""
-        await self.plugin_threads.insert_one({
+    async def create_new_expiring_thread(self, thread_id: int, expire_timestamp: int) -> None:
+        """Creates a new expiring thread entry inside the database."""
+        await self.expiring_threads.insert_one({
             "thread_id": thread_id,
             "expires": expire_timestamp
         })
 
-    async def get_archived_plugin_threads(self, timestamp: float) -> List[dict]:
-        """Returns a list of active plugin threads which require archiving."""
-        cursor = self.plugin_threads.find(
+    async def get_archived_threads(self, timestamp: float) -> List[dict]:
+        """Returns a list of active threads which require archiving."""
+        cursor = self.expiring_threads.find(
             {"expires": {"$lte": timestamp}}
         )
         return [i async for i in cursor]
 
-    async def remove_plugin_thread(self, _id: ObjectId) -> None:
-        """Removes a plugin thread entry from the database."""
-        await self.plugin_threads.delete_many({"_id": _id})
+    async def remove_thread(self, _id: ObjectId) -> None:
+        """Removes a thread entry from the database."""
+        await self.expiring_threads.delete_many({"_id": _id})
 
     """Moderation related methods"""
 
