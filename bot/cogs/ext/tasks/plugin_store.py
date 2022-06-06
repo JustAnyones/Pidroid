@@ -5,7 +5,7 @@ from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands # type: ignore
-from typing import Optional
+from typing import Optional, List
 
 from client import Pidroid
 from cogs.utils.checks import is_client_pidroid
