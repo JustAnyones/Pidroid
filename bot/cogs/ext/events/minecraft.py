@@ -33,13 +33,13 @@ async def handle_command(message: Message, command: str, **args) -> str:
     return f'Minecraft command executor couldn\'t find the executor for "{command}" command!'
 
 
-class MinecraftEventHandler(commands.Cog):
+class MinecraftEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for event handling related to Minecraft."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message): # noqa C901
         if not message.guild:
             return

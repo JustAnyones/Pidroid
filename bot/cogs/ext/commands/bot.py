@@ -14,21 +14,18 @@ from cogs.models.categories import BotCategory
 from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.time import humanize, timestamp_to_date, utcnow
 
-COMMANDS_PER_PAGE = 6
-
-
-class BotCommands(commands.Cog):
+class BotCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands primarily used to diagnose Pidroid."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Returns ping of the bot and the Discord websocket.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
-    @commands.cooldown(rate=1, per=1, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.cooldown(rate=1, per=1, type=commands.BucketType.user) # type: ignore
     async def ping(self, ctx: Context):
         msg: Message = await ctx.reply("**Pinging...**")
         client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
@@ -36,19 +33,19 @@ class BotCommands(commands.Cog):
         embed = PidroidEmbed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
         await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Returns invite link for the bot.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def invite(self, ctx: Context):
         await ctx.reply('You can invite the bot to your server with the following url: https://ja.theotown.com/pidroid/invite')
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Returns general information about the bot.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def info(self, ctx: Context, mode: str = None):
         async with ctx.typing():
             # Fetch data from config file

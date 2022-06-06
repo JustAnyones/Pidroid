@@ -19,43 +19,43 @@ from cogs.utils.time import humanize
 
 # Errors which command error handler will ignore
 ignored_exceptions = (
-    commands.CommandNotFound,
-    commands.DisabledCommand,
+    commands.CommandNotFound, # type: ignore
+    commands.DisabledCommand, # type: ignore
     exceptions.ClientIsNotPidroid
 )
 
 # Errors which command error handler won't modify the behaviour of
 use_default = (
     # Permission exceptions
-    commands.BotMissingPermissions,
-    commands.MissingPermissions,
+    commands.BotMissingPermissions, # type: ignore
+    commands.MissingPermissions, # type: ignore
     exceptions.MissingUserPermissions,
     exceptions.NotInTheoTownGuild,
 
     # Cooldown and concurrency exceptions
-    commands.MaxConcurrencyReached,
+    commands.MaxConcurrencyReached, # type: ignore
 
     # Argument exceptions
-    commands.BadArgument,
-    commands.BadUnionArgument,
-    commands.TooManyArguments,
-    commands.MissingRequiredArgument,
+    commands.BadArgument, # type: ignore
+    commands.BadUnionArgument, # type: ignore
+    commands.TooManyArguments, # type: ignore
+    commands.MissingRequiredArgument, # type: ignore
     exceptions.InvalidDuration,
 
     # API errors
     exceptions.APIException,
 
     # Quoted argument parser errors
-    commands.UnexpectedQuoteError,
-    commands.InvalidEndOfQuotedStringError,
-    commands.ExpectedClosingQuoteError
+    commands.UnexpectedQuoteError, # type: ignore
+    commands.InvalidEndOfQuotedStringError, # type: ignore
+    commands.ExpectedClosingQuoteError # type: ignore
 )
 
 
 if TYPE_CHECKING:
     from client import Pidroid
 
-class Error(commands.Cog):
+class Error(commands.Cog): # type: ignore
     """This class implements a cog for handling of unhandled bot command errors and exceptions."""
 
     def __init__(self, client: Pidroid):
@@ -65,7 +65,7 @@ class Error(commands.Cog):
         with suppress(discord.errors.Forbidden):
             await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_command_error(self, ctx: Context, error):  # noqa: C901
 
         # Prevents commands with local error handling being handled here
@@ -77,7 +77,7 @@ class Error(commands.Cog):
         error = getattr(error, 'original', error)
 
         # Resets command cooldown on command error
-        if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown):
+        if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown): # type: ignore
             ctx.command.reset_cooldown(ctx)
 
         # Ignore errors

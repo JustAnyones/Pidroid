@@ -55,7 +55,7 @@ AMONG_US_COPYPASTA: str = (
     "jie"
 )
 
-class CopypastaEventHandler(commands.Cog):
+class CopypastaEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling invocation of copypastas and other memes invoked by events like on_message."""
 
     def __init__(self, client: Pidroid):
@@ -102,8 +102,8 @@ class CopypastaEventHandler(commands.Cog):
                 and find_whole_word('us', content))
         )
 
-    @commands.Cog.listener()
-    async def on_message(self, message: Message):
+    @commands.Cog.listener() # type: ignore
+    async def on_message(self, message: Message): # noqa: C901
         if is_client_development(self.client) or message.author.bot or not message.guild or not is_guild_theotown(message.guild):
             return
 

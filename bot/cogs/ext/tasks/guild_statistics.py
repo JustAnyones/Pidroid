@@ -1,14 +1,14 @@
 import traceback
 import sys
 
-from discord.ext import tasks, commands
+from discord.ext import tasks, commands # type: ignore
 
 from client import Pidroid
 from constants import THEOTOWN_GUILD
 from cogs.utils.checks import is_client_pidroid
 from cogs.utils.http import Route
 
-class GuildStatisticsTask(commands.Cog):
+class GuildStatisticsTask(commands.Cog): # type: ignore
     """This class implements a cog for synchronizing TheoTown's guild member count with the TheoTown API."""
 
     def __init__(self, client: Pidroid) -> None:

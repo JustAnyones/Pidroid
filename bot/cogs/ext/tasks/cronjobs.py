@@ -19,7 +19,7 @@ from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.parsers import clean_inline_translations
 
 
-class CronjobTask(commands.Cog):
+class CronjobTask(commands.Cog): # type: ignore
     """This class implements a cog for cronjob handling."""
 
     def __init__(self, client: Pidroid) -> None:

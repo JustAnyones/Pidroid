@@ -235,7 +235,7 @@ class BasePunishment:
         return self._date_expires
 
     @length.setter
-    def length(self, length: Union[int, timedelta, relativedelta]) -> None:
+    def length(self, length: Length) -> None:
         if isinstance(length, (timedelta, relativedelta)):
             length = delta_to_datetime(length).timestamp()
         self._date_expires = int(length)
@@ -247,7 +247,7 @@ class BasePunishment:
         return timestamp_to_datetime(self._date_expires)
 
     @property
-    def reason(self) -> str:
+    def reason(self) -> Optional[str]:
         return self._reason
 
     @reason.setter
@@ -331,7 +331,7 @@ class Mute(BasePunishment):
         super().__init__(ctx, member)
         self.type = "mute"
 
-    async def revoke(self, role: Role) -> None:
+    async def revoke(self, role: Role) -> None: # type: ignore
         await self._revoke_punishment_db_entry("mute")
         await self.user.remove_roles(
             discord.utils.get(self.guild.roles, id=role.id),
@@ -408,7 +408,7 @@ class Jail(BasePunishment):
         super().__init__(ctx, member)
         self.type = "jail"
 
-    async def issue(self, role: Role, kidnap: bool = False) -> Case:
+    async def issue(self, role: Role, kidnap: bool = False) -> Case: # type: ignore
         """Jails the member."""
         self.case = await self._create_db_entry()
         await self.user.add_roles(
@@ -432,7 +432,7 @@ class Jail(BasePunishment):
             await self._notify_user(f"You have been jailed in {self.guild.name} server for the following reason: {self.reason}")
         return self.case
 
-    async def revoke(self, role: Role, reason: str = None) -> None:
+    async def revoke(self, role: Role, reason: str = None) -> None: # type: ignore
         await self._revoke_punishment_db_entry("jail")
         await self.user.remove_roles(
             discord.utils.get(self.guild.roles, id=role.id),
@@ -453,7 +453,7 @@ class Warning(BasePunishment):
     async def issue(self) -> Case:
         """Warns the member."""
         if self._date_expires is None:
-            self.length = timedelta(days=90)
+            self.length = timedelta(days=90) # type: ignore
         self.case = await self._create_db_entry()
         await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
         await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
@@ -490,7 +490,7 @@ class Timeout(BasePunishment):
 async def create_ban(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
-    ban.length = length
+    ban.length = length # type: ignore
     ban.reason = reason
     return await ban.issue()
 
@@ -519,7 +519,7 @@ async def remove_jail(api: API, guild: Guild, channel: PunishmentChannel, modera
 async def create_timeout(api: API, guild: Guild, channel: PunishmentChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     timeout = Timeout()
     timeout._fill(api, guild, channel, user, moderator)
-    timeout.length = length
+    timeout.length = length # type: ignore
     timeout.reason = reason
     return await timeout.issue()
 

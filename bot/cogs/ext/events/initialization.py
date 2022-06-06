@@ -8,14 +8,14 @@ if TYPE_CHECKING:
     from cogs.ext.tasks.automod import AutomodTask
 
 
-class InvocationEventHandler(commands.Cog):
+class InvocationEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling invocation of functions upon internal bot cache being prepared."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.log = self.client.logger
 
-    @commands.Cog.listener()
+    @commands.Cog.listener() # type: ignore
     async def on_ready(self) -> None:
         """This notifies the host of the bot that the client is ready to use."""
         self.annoy_erk = self.client.loop.create_task(self.client.annoy_erksmit())

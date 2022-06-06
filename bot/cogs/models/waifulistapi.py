@@ -185,11 +185,11 @@ class MyWaifuListAPI:
 
     def __init__(self) -> None:
         """Initializes API instance."""
-        self._xsrf_token = None
-        self._csrf_token = None
-        self._forever_alone_session = None
+        self._xsrf_token: Optional[str] = None
+        self._csrf_token: Optional[str] = None
+        self._forever_alone_session: Optional[str] = None
         self.client = httpx.AsyncClient(http2=True)
-        self.search_cache = {}
+        self.search_cache: Dict[str, List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]] = {}
         self.waifu_cache: Dict[int, Waifu] = {}
 
     async def _acquire_tokens_for_forgery(self) -> None:
@@ -262,7 +262,7 @@ class MyWaifuListAPI:
         )
         if r.status_code == 419:
             if attempts > 2:
-                raise APIException('Re-authorization attempts have failed. Try again later.')
+                raise APIException(401, 'Re-authorization attempts have failed. Try again later.')
             await self.reauthorize()
             return await self.post(endpoint, json, attempts + 1)
         return r
@@ -289,10 +289,11 @@ class MyWaifuListAPI:
     async def search(self, query: str) -> List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]]:
         """Returns a list of results matching your query."""
         query = query.lower()
-        if self.search_cache.get(query):
-            return self.search_cache.get(query)
+        cached_res = self.search_cache.get(query)
+        if cached_res:
+            return cached_res
         r = await self.post("/waifu/search", {"query": query})
-        results = []
+        results: List[Union[WaifuSearchResult, SeriesSearchResult, SearchResult]] = []
         for i in r.json():
             if i["entity_type"] == "waifu":
                 results.append(WaifuSearchResult(self, i))

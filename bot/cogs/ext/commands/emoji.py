@@ -4,7 +4,7 @@ import re
 from discord.emoji import Emoji
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands import Context
+from discord.ext.commands import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
@@ -49,18 +49,18 @@ def get_emoji_name(emoji: Union[Emoji, PartialEmoji]) -> str:
     return f":\N{zero width space}{emoji.name}\N{zero width space}:"
 
 
-class EmojiCommands(commands.Cog):
+class EmojiCommands(commands.Cog): # type: ignore
     """This class implements a cog for dealing with emoji related commands."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Displays the image or the GIF file of the emoji.',
         usage='<emoji>',
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def emoji(self, ctx: Context, *, emoji: discord.PartialEmoji = None):
         if emoji is None:
             return await ctx.reply(embed=ErrorEmbed("Please specify a custom emoji you want to view!"))
@@ -69,15 +69,15 @@ class EmojiCommands(commands.Cog):
         embed.set_image(url=emoji.url)
         await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='clone-emoji',
         brief='Retrieves the first emoji from a referenced message and adds it to server custom emoji list.',
         aliases=['steal-emoji', 'stealemoji', 'cloneemoji'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True, manage_emojis=True)
-    @commands.has_permissions(manage_emojis=True)
-    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True, manage_emojis=True) # type: ignore
+    @commands.has_permissions(manage_emojis=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def steal_emoji(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -87,9 +87,9 @@ class EmojiCommands(commands.Cog):
 
         emote_count = len(emojis)
         if emote_count == 1:
-            partial_emoji: PartialEmoji = emojis[0]
+            partial_emoji = emojis[0]
         elif 1 <= emoji_index <= emote_count:
-            partial_emoji: PartialEmoji = emojis[emoji_index - 1]
+            partial_emoji = emojis[emoji_index - 1]
         else:
             raise BadArgument("Please select the correct index of the emoji you want to steal")
 
@@ -109,13 +109,13 @@ class EmojiCommands(commands.Cog):
         else:
             await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
 
-    @commands.command(
+    @commands.command( # type: ignore
         name='get-emojis',
         brief='Retrieves all custom emojis from a referenced message.',
         aliases=['getemojis', 'get-emoji', 'getemoji'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def get_emojis(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)

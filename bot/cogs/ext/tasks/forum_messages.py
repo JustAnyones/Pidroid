@@ -13,7 +13,7 @@ from cogs.utils.http import Route
 from cogs.utils.parsers import truncate_string
 from cogs.utils.time import timestamp_to_datetime
 
-class ForumMessageTask(commands.Cog):
+class ForumMessageTask(commands.Cog): # type: ignore
     """This class implements a cog for handling forum PMs to Pidroid user."""
 
     def __init__(self, client: Pidroid) -> None:
