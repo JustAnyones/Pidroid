@@ -1,4 +1,4 @@
-import pytz
+import pytz # type: ignore
 
 from discord import Member, User
 from datetime import datetime

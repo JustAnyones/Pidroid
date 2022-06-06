@@ -1,13 +1,13 @@
-import asyncpraw
+import asyncpraw # type: ignore
 import random
 import typing
 
-from asyncpraw.models.reddit.submission import Submission
-from asyncpraw.models.reddit.subreddit import Subreddit
-from asyncprawcore.exceptions import ResponseException
+from asyncpraw.models.reddit.submission import Submission # type: ignore
+from asyncpraw.models.reddit.subreddit import Subreddit # type: ignore
+from asyncprawcore.exceptions import ResponseException # type: ignore
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 
 from client import Pidroid
 from cogs.models.categories import RandomCategory

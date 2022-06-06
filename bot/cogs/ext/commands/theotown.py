@@ -4,7 +4,7 @@ import random
 from contextlib import suppress
 from discord.ext import commands
 from discord.errors import HTTPException
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
 from typing import Optional
 

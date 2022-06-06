@@ -5,7 +5,7 @@ from discord.enums import StickerFormatType
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 from discord.sticker import GuildSticker, StandardSticker, StickerItem
 from io import BytesIO

@@ -1,4 +1,4 @@
-import bitly_api
+import bitly_api # type: ignore
 import re
 
 from discord.ext import commands

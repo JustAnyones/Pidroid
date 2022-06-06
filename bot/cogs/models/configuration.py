@@ -7,9 +7,7 @@ from discord.role import Role
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from client import Pidroid
     from cogs.utils.api import API
-
 
 class GuildConfiguration:
 
@@ -104,10 +102,3 @@ class GuildConfiguration:
         """Updates the exact banned words list."""
         self.banned_exact_words = banned_words
         await self.api.set_guild_config(self._id, "banned_exact_words", banned_words)
-
-
-def setup(client: Pidroid):
-    pass
-
-def teardown(client: Pidroid):
-    pass

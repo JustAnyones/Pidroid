@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from bson.int64 import Int64
-from bson.objectid import ObjectId
+from bson.int64 import Int64 # type: ignore
+from bson.objectid import ObjectId # type: ignore
 from discord.ext import commands
 from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.file import File
 from discord.guild import Guild
 from discord.user import User

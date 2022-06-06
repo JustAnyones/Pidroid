@@ -1,11 +1,6 @@
 from __future__ import annotations
 
-from discord.ext.commands import CheckFailure, BadArgument
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from client import Pidroid
-
+from discord.ext.commands import CheckFailure, BadArgument # type: ignore
 
 class NotInTheoTownGuild(CheckFailure):
     def __init__(self, message: str = None):
@@ -33,10 +28,3 @@ class APIException(BadArgument):
         if message is None:
             return super().__init__(f"An error has been encountered inside TheoTown API, status code: {status}")
         return super().__init__(message)
-
-
-def setup(client: Pidroid) -> None:
-    pass
-
-def teardown(client: Pidroid) -> None:
-    pass
