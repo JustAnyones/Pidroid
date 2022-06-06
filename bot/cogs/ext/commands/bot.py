@@ -1,11 +1,11 @@
 import discord
 import platform
-import psutil
+import psutil # type: ignore
 import os
 import sys
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
 
 from client import Pidroid

@@ -3,7 +3,7 @@ import discord
 from discord import AllowedMentions
 from discord.channel import TextChannel
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 from discord.guild import Guild
 from discord.role import Role
 from discord.utils import escape_markdown

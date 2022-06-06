@@ -5,7 +5,7 @@ from discord.emoji import Emoji
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from typing import Optional, Union, List

@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord.ext.commands import BadArgument
+from discord.ext.commands import BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 
 from constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN

@@ -1,10 +1,10 @@
-import dill # nosec
+import dill # type: ignore # nosec
 import json
 import random
 import os
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
+from discord.ext.commands.context import Context # type: ignore
 
 from client import Pidroid
 from constants import BEG_FAILURE_RESPONSES, BEG_SUCCESS_RESPONSES

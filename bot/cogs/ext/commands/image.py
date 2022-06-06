@@ -2,10 +2,10 @@ import discord
 import os
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from io import BytesIO
-from PIL import Image
+from PIL import Image # type: ignore
 from PIL import ImageFont
 from PIL import ImageDraw
 from typing import Tuple
@@ -47,20 +47,20 @@ async def handle_attachment(ctx: Context) -> Tuple[discord.Attachment, str]:
     return attachment, extension
 
 
-class ImageManipCommands(commands.Cog):
+class ImageManipCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for image manipulation."""
 
     def __init__(self, client):
         self.client = client
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Bonks the specified member.',
         usage='<member>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
     async def bonk(self, ctx: Context, member: discord.Member = None):
         if member is None:
             await ctx.reply(embed=ErrorEmbed('Please specify a member which you want to bonk!'))
@@ -83,14 +83,14 @@ class ImageManipCommands(commands.Cog):
             await ctx.reply(content=member.mention, file=discord.File(output_file, filename='image.png'))
         output_file.close()
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Updates meme uploaded as attachment to comply within the German copyright regulations.',
         usage='[bool whether to retain ratio]',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
     async def memefy(self, ctx: Context, retain_aspect: bool = False):
         async with ctx.channel.typing():
             attachment, extension = await handle_attachment(ctx)
@@ -115,15 +115,15 @@ class ImageManipCommands(commands.Cog):
             )
         output_file.close()
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Upscales image to 4k resolution.',
         usage='<quality(1-10)>',
         aliases=['jpeg'],
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
-    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
     async def hank(self, ctx: Context, quality: int = 1):
         async with ctx.channel.typing():
             attachment, _ = await handle_attachment(ctx)

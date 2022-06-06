@@ -60,7 +60,7 @@ def get_submission_gallery(sub: Submission) -> typing.List[str]:
         return []
     return [sub.media_metadata[i]['s']['u'] for i in sub.media_metadata.keys()]
 
-class RedditCommands(commands.Cog):
+class RedditCommands(commands.Cog): # type: ignore
     """This class implements a cog for reddit related commands and methods."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -81,12 +81,12 @@ class RedditCommands(commands.Cog):
         if self.reddit_instance is not None:
             self.client.loop.create_task(self.reddit_instance.close())  # Just so I don't get asyncio unclosed loop errors
 
-    @commands.command(
+    @commands.command( # type: ignore
         brief='Fetches a random post from specified subreddit.',
         usage='<subreddit name>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def reddit(self, ctx: Context, subreddit_name: str = None):
         async with ctx.typing():
             if subreddit_name is None:

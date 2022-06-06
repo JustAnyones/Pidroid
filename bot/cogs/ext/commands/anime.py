@@ -6,8 +6,8 @@ import random
 import re
 
 from discord.ext import commands
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import List, Union
 
 from client import Pidroid

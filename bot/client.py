@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from cogs.models.configuration import GuildConfiguration
 
 
-class Pidroid(commands.Bot):
+class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
 
     if TYPE_CHECKING:
@@ -252,14 +252,15 @@ class Pidroid(commands.Bot):
             return self.prefixes
 
         if message.guild and message.guild.id in self.guild_configuration_guilds:
-            guild_prefixes = self.get_guild_configuration(message.guild.id).prefixes
-            return guild_prefixes or self.prefixes
+            config = self.get_guild_configuration(message.guild.id)
+            if config:
+                return config.prefixes or self.prefixes
         return self.prefixes
 
     async def get_prefix(self, message: Message):
         """Returns a prefix for client to respond to."""
         await self.wait_guild_config_cache_ready()
-        return commands.when_mentioned_or(*self.get_prefixes(message))(self, message)
+        return commands.when_mentioned_or(*self.get_prefixes(message))(self, message) # type: ignore
 
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.

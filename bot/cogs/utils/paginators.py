@@ -210,13 +210,13 @@ class PidroidPages(discord.ui.View):
         self,
         source: PageSource,
         *,
-        ctx: commands.Context,
+        ctx: commands.Context, # type: ignore
         check_embeds: bool = True,
     ):
         super().__init__()
         self.source: PageSource = source
         self.check_embeds: bool = check_embeds
-        self.ctx: commands.Context = ctx
+        self.ctx: commands.Context = ctx # type: ignore
         self.message: Optional[discord.Message] = None
         self.current_page: int = 0
         self.input_lock = asyncio.Lock()
