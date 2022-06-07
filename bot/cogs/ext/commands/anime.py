@@ -178,7 +178,12 @@ class AnimeCommands(commands.Cog): # type: ignore
     async def owo(self, ctx: Context, *, text: str = None):
         if text is None:
             raise BadArgument("UwU, what do you want to owoify?") # I apologize
-        await ctx.reply(embed=SuccessEmbed(get_owo(text)))
+        owo = get_owo(text)
+        print(len(owo))
+        if len(owo) > 4096:
+            await ctx.reply(embed=ErrorEmbed('The text is too long!'))
+            return
+        await ctx.reply(embed=SuccessEmbed(owo))
 
     @commands.command( # type: ignore
         brief='Returns a random waifu from MyWaifuList.',
