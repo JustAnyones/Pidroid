@@ -2,6 +2,7 @@ import os.path
 import random
 
 from contextlib import suppress
+from datetime import timedelta
 from discord.ext import commands
 from discord.errors import HTTPException
 from discord.ext.commands.context import Context # type: ignore
@@ -15,7 +16,8 @@ from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
 from cogs.utils.paginators import PidroidPages, PluginListPaginator
-from cogs.utils.parsers import format_version_code
+from cogs.utils.parsers import format_version_code, truncate_string
+from cogs.utils.time import timedelta_to_datetime
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
@@ -34,6 +36,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.api = self.client.api
+        self.use_suggestion_threads = True
 
     @commands.command( # type: ignore
         brief="Returns the latest game version of TheoTown for all platforms.",
@@ -303,6 +306,8 @@ class TheoTownCommands(commands.Cog): # type: ignore
             s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
             await message.edit(embed=embed)
+            if self.use_suggestion_threads:
+                self.client.create_expiring_thread(message, f"{truncate_string(suggestion, 89)} discussion", timedelta_to_datetime(timedelta(days=7)).timestamp())
             with suppress(HTTPException):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
 
