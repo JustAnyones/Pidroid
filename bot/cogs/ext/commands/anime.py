@@ -179,7 +179,6 @@ class AnimeCommands(commands.Cog): # type: ignore
         if text is None:
             raise BadArgument("UwU, what do you want to owoify?") # I apologize
         owo = get_owo(text)
-        print(len(owo))
         if len(owo) > 4096:
             await ctx.reply(embed=ErrorEmbed('The text is too long!'))
             return
