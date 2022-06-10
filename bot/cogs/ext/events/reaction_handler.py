@@ -1,7 +1,7 @@
 import discord
 
 from discord.channel import TextChannel
-from discord.ext import commands
+from discord.ext import commands # type: ignore
 from discord.message import Message
 from discord.raw_models import RawReactionActionEvent
 
