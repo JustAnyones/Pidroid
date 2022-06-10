@@ -16,7 +16,6 @@ from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from discord.types.channel import GuildChannel
 from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional
 
 from cogs.models.case import Case
@@ -37,6 +36,7 @@ class VersionInfo(NamedTuple):
 __VERSION__ = VersionInfo(major=4, minor=5, micro=5, releaselevel='alpha', serial=1)
 
 if TYPE_CHECKING:
+    from discord.types.channel import GuildChannel
     from cogs.models.configuration import GuildConfiguration
 
 
