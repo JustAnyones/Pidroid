@@ -22,11 +22,22 @@ from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
-    'tickle', 'meow', 'poke', 'kiss',
-    '8ball', 'lizard', 'slap', 'cuddle',
-    'goose', 'hug', 'smug', 'waifu',
-    'gecg', 'pat', 'wallpaper', 'feed',
-    'woof', 'baka'
+    # Animals
+    'goose', 'lizard', 'meow', 'woof',
+
+    # Images
+    'waifu', '8ball', 'gecg', 'avatar',
+    'fox_girl', 'neko', 'wallpaper',
+
+    # GIFs
+    'slap', 'pat', 'feed', 'cuddle', 'hug',
+    'tickle', 'smug', 'kiss', 'spank',
+
+    # Questionable, better to exclude
+    # 'gasm', 'lewd',
+
+    # NSFW as conducted per research
+    # 'ngif'
 ]
 
 WAIFU_PICS_API = "https://api.waifu.pics/sfw"
@@ -184,7 +195,8 @@ class AnimeCommands(commands.Cog): # type: ignore
         brief='Returns a random waifu from MyWaifuList.',
         usage='[waifu to search]',
         category=RandomCategory,
-        enabled=False
+        enabled=False,
+        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user) # type: ignore
