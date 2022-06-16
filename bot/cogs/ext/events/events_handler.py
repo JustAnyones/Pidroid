@@ -25,6 +25,11 @@ class EventChannelHandler(commands.Cog): # type: ignore
 
         if not is_guild_theotown(message.guild):
             return
+        assert message.guild is not None
+        assert message.channel is not None
+
+        if isinstance(message.author, discord.User):
+            return
 
         if message.channel.id == EVENTS_CHANNEL:
 

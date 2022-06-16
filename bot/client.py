@@ -16,7 +16,7 @@ from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional
+from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional, Union
 
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
@@ -185,7 +185,7 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
-        thread = await message.create_thread(name, auto_archive_duration)
+        thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration)
         await self.api.create_new_expiring_thread(thread.id, expire_timestamp)
         return thread
 
@@ -200,7 +200,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         channel = await self.get_or_fetch_channel(guild, config.log_channel)
         if channel is not None:
-            channel: TextChannel
+            assert isinstance(channel, TextChannel)
             await channel.send(embed=log.as_embed())
 
     async def fetch_case(self, guild_id: int, case_id: str) -> Case:
