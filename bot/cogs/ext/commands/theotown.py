@@ -307,7 +307,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
             await message.edit(embed=embed)
             if self.use_suggestion_threads:
-                self.client.create_expiring_thread(message, f"{truncate_string(suggestion, 89)} discussion", timedelta_to_datetime(timedelta(days=7)).timestamp())
+                await self.client.create_expiring_thread(message, f"{truncate_string(suggestion, 89)} discussion", timedelta_to_datetime(timedelta(days=7)).timestamp())
             with suppress(HTTPException):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
 
