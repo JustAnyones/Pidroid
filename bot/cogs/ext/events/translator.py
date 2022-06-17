@@ -158,7 +158,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         return (
             is_client_pidroid(self.client)
             and self.auth_key is not None
-            and message.guild
+            and message.guild is not None
             and not message.author.bot
             and message.channel.id == SOURCE_CHANNEL
         )
@@ -197,6 +197,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         # Try to cache the channel object
         if self.channel is None:
             self.channel = await self.client.get_or_fetch_channel(message.guild, FEED_CHANNEL)
+            if self.channel is None:
+                self.client.logger.warning("Translation output channel is None!")
 
         # Reset used chars counter
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:
@@ -211,11 +213,13 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if parser.should_translate:
             flag, text = parser.get_parsed_text()
             if text is None and flag == ParserFlags.FAIL:
-                self.client.logger.warn(f"Failed parsing of base64 text for '{parser.text}'")
+                self.client.logger.warn(f"Failed parsing of base64 text for '{parser.original}'")
                 text = parser.text
                 flag = ParserFlags.FAIL
-            translations = await self.translate_message(message, text)
-        await self.dispatch_translation(message, translations, flag)
+            translations = await self.translate_message(message, text or parser.text)
+
+        if self.channel:
+            await self.dispatch_translation(message, translations, flag)
 
     async def dispatch_translation(self, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
         # If message contains a reply, track down the reference author
@@ -267,6 +271,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
                 if footer is not None:
                     embed.set_footer(text=f"{footer} | {embed.footer.text}")
 
+        assert self.channel is not None
         await self.channel.send(embeds=embeds)
 
 async def setup(client: Pidroid) -> None:

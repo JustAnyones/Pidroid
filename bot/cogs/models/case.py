@@ -199,7 +199,7 @@ class BasePunishment:
         self._date_expires = None
         self._reason = None
 
-        if ctx is not None:
+        if ctx is not None and user is not None:
             self._fill(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user)
 
     def _fill(self, api: API, guild: Guild, channel: Optional[GuildTextChannel], moderator: Moderator, user: DiscordUser) -> None:
