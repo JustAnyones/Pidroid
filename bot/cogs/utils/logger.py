@@ -1,8 +1,8 @@
 import discord
 
-from discord.abc import User
 from discord.embeds import Embed
 from discord.member import Member
+from discord.user import User
 from typing import Union
 
 from discord.message import Message

@@ -38,6 +38,9 @@ class PluginStoreTasks(commands.Cog): # type: ignore
     @tasks.loop(seconds=30)
     async def retrieve_new_plugins(self) -> None:
         """Retrieves new plugin store plugins and publishes them to TheoTown guild channel."""
+        if self.showcase_channel is None:
+            return self.client.logger.warning("Showcase channel returned a None!")
+
         try:
             last_approval_time = self.client.persistent_data.data.get("last plugin approval", -1)
 
@@ -63,8 +66,8 @@ class PluginStoreTasks(commands.Cog): # type: ignore
                     message = await self.showcase_channel.send(embed=plugin.to_embed())
 
                     if self.add_reactions:
-                        await message.add_reaction(emoji="👍")
-                        await message.add_reaction(emoji="👎")
+                        await message.add_reaction("👍")
+                        await message.add_reaction("👎")
 
                     if self.use_threads:
                         await self.client.create_expiring_thread(

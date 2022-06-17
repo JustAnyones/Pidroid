@@ -200,6 +200,7 @@ class TagCommands(commands.Cog): # type: ignore
     async def tag(self, ctx: Context, *, tag_name: Optional[str]):
         if ctx.invoked_subcommand is None:
             tag_list = await self.find_tags(ctx, tag_name)
+            assert tag_name is not None
 
             if len(tag_list) == 1:
                 message_content = tag_list[0].content

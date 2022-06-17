@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from discord import Member, User, TextChannel, Guild, VoiceChannel
+from discord import Member, Thread, User, TextChannel, Guild, VoiceChannel
 from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context # type: ignore
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
 from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
 from cogs.models.exceptions import MissingUserPermissions
-from cogs.utils.aliases import DiscordUser, GuildChannel
+from cogs.utils.aliases import DiscordUser, GuildChannel, GuildTextChannel
 
 if TYPE_CHECKING:
     from client import Pidroid
@@ -141,7 +141,7 @@ def is_guild_administrator(guild: Guild, channel: GuildChannel, member: DiscordU
         )
     return False
 
-def is_guild_moderator(guild: Guild, channel: GuildChannel, member: DiscordUser):
+def is_guild_moderator(guild: Guild, channel: GuildTextChannel, member: DiscordUser):
     if get(guild.members, id=member.id):
         assert isinstance(member, Member)
         if is_guild_theotown(guild):

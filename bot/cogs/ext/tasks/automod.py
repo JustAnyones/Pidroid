@@ -1,7 +1,8 @@
 import random
 import re
+from threading import Thread
 
-from discord import Member
+from discord import Member, TextChannel
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.message import Message
@@ -9,6 +10,7 @@ from typing import Dict, List, Union
 from urllib.parse import urlparse
 
 from client import Pidroid
+from cogs.utils.aliases import GuildTextChannel
 from constants import AUTOMODERATOR_RESPONSES
 from cogs.models.case import Kick
 from cogs.models.configuration import GuildConfiguration
@@ -44,6 +46,7 @@ class AutomodTask(commands.Cog): # type: ignore
         self.phising_urls = urls
 
     async def count_violation(self, message: Message):
+        assert message.guild is not None
         guild_id = message.guild.id
         member_id = message.author.id
         # Set default values if data doesn't exist
@@ -66,7 +69,7 @@ class AutomodTask(commands.Cog): # type: ignore
         member_data["last_violation"] = utcnow().timestamp()
         member_data["count"] += 1
 
-    async def punish_phising(self, message: Message, trigger_url: str = None):
+    async def punish_phishing(self, message: Message, trigger_url: str = None):
         assert message.guild is not None
         await self.client.dispatch_log(message.guild, PhisingLog(message, trigger_url))
         await message.delete(delay=0)
@@ -85,12 +88,12 @@ class AutomodTask(commands.Cog): # type: ignore
             await message.delete(delay=0)
             await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
 
-    async def handle_phising(self, message: Message) -> bool:
-        """Handles the detection and filtering of phising messages."""
+    async def handle_phishing(self, message: Message) -> bool:
+        """Handles the detection and filtering of phishing messages."""
         # URL based phising in plain message
         for url in self.phising_urls:
             if url in message.content:
-                await self.punish_phising(message, url)
+                await self.punish_phishing(message, url)
                 return True
 
         # Phising related to embedded content
@@ -102,7 +105,7 @@ class AutomodTask(commands.Cog): # type: ignore
                     if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
                         url = urlparse(link_embed.url.lower())
                         if url.netloc != "discord.gift":
-                            await self.punish_phising(message)
+                            await self.punish_phishing(message)
                             return True
                 except AttributeError:
                     pass
@@ -143,10 +146,11 @@ class AutomodTask(commands.Cog): # type: ignore
         if config is None:
             return
 
+        assert isinstance(message.channel, (TextChannel, Thread)) # checking with alias not supported for versions below 3.10
         if is_guild_moderator(message.guild, message.channel, message.author):
             return
 
-        punished = await self.handle_phising(message)
+        punished = await self.handle_phishing(message)
         if not punished:
             await self.handle_banned_words(config, message)
 
