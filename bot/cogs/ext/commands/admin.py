@@ -95,6 +95,11 @@ class AdminCommands(commands.Cog): # type: ignore
             if log_channel is not None:
                 embed.add_field(name='Log channel', value=log_channel.mention)
 
+            suggestion_channel = guild.get_channel(data.suggestion_channel)
+            if suggestion_channel is not None:
+                embed.add_field(name='Suggestion channel', value=suggestion_channel.mention)
+
+            embed.add_field(name="Add threads to suggestions?", value=data.use_suggestion_threads)
             embed.add_field(name="Everyone can create tags?", value=data.public_tags)
             embed.add_field(name="Strict phising protection?", value=data.strict_anti_phising)
 
@@ -192,6 +197,46 @@ class AdminCommands(commands.Cog): # type: ignore
         config = self.client.get_guild_configuration(ctx.guild.id)
         await config.update_log_channel(channel)
         await ctx.reply(f'Log channel set to {channel.mention}')
+
+    @configuration.command(
+        brief='Sets server suggestions channel.\nRequires manage server permissions.',
+        usage='<suggestion channel>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
+    @commands.has_permissions(manage_guild=True) # type: ignore
+    @commands.guild_only() # type: ignore
+    async def setsuggestionchannel(self, ctx: Context, channel: discord.TextChannel):
+        if not self.client.guild_config_cache_ready:
+            return
+        config = self.client.get_guild_configuration(ctx.guild.id)
+        await config.update_suggestion_channel(channel)
+        await ctx.reply(f'Suggestion channel set to {channel.mention}')
+
+    @configuration.command(
+        name="toggle-suggestion-threads",
+        brief='Set whether to add discussion threads to suggestions',
+        usage='<true/false>',
+        category=AdministrationCategory
+    )
+    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
+    @commands.has_permissions(manage_guild=True) # type: ignore
+    @commands.guild_only() # type: ignore
+    async def toggle_suggestion_threads(self, ctx: Context, use_threads: bool = None):
+        if not self.client.guild_config_cache_ready:
+            return
+
+        config = self.client.get_guild_configuration(ctx.guild.id)
+
+        if not use_threads:
+            use_threads = not config.use_suggestion_threads
+        await config.update_suggestion_threads(use_threads)
+
+        if use_threads:
+            return await ctx.reply(embed=SuccessEmbed('Suggestions will now have threads.'))
+        await ctx.reply(embed=SuccessEmbed('Suggestions will no longer have threads.'))
 
     @configuration.command(
         brief='Sets server bot prefix.\nRequires manage server permission.',

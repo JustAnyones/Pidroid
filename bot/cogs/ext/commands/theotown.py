@@ -10,8 +10,11 @@ from discord.message import Message
 from typing import Optional
 
 from client import Pidroid
+from constants import BOT_COMMANDS_CHANNEL
 from cogs.models.categories import TheoTownCategory
+from cogs.models.exceptions import InvalidChannel
 from cogs.utils import http
+from cogs.utils.checks import is_guild_theotown, is_channel_bot_commands
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
@@ -36,7 +39,6 @@ class TheoTownCommands(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid) -> None:
         self.client = client
         self.api = self.client.api
-        self.use_suggestion_threads = True
 
     @commands.command( # type: ignore
         brief="Returns the latest game version of TheoTown for all platforms.",
@@ -244,12 +246,21 @@ class TheoTownCommands(commands.Cog): # type: ignore
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True) # type: ignore # permissions kind of obsolete
-    @command_checks.is_bot_commands()
-    @command_checks.is_theotown_guild()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
-    @command_checks.client_is_pidroid()
+    @command_checks.guild_configuration_exists()
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
         async with ctx.typing():
+            is_theotown = is_guild_theotown(ctx.guild)
+            if is_theotown:
+                if not is_channel_bot_commands(ctx.channel):
+                    raise InvalidChannel(f'The command can only be used inside <#{BOT_COMMANDS_CHANNEL}> channel')
+
+            if not self.client.guild_config_cache_ready:
+                return
+            c = self.client.get_guild_configuration(ctx.guild.id)
+            if c.suggestion_channel is None:
+                return await ctx.reply(embed=ErrorEmbed("Suggestion channel has not been setup."))
+
             if suggestion is None:
                 await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
                 self.suggest.reset_cooldown(ctx)
@@ -267,8 +278,11 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 return
 
             attachment_url = None
-            channel = self.client.get_channel(409800607466258445)
             file = None
+            channel = self.client.get_channel(c.suggestion_channel)
+
+            if channel is None:
+                return await ctx.reply(embed=ErrorEmbed("Suggestion channel not found!"))
 
             embed = PidroidEmbed(description=suggestion)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
@@ -299,17 +313,23 @@ class TheoTownCommands(commands.Cog): # type: ignore
             message: Message = await channel.send(embed=embed, file=file)
             await message.add_reaction("✅")
             await message.add_reaction("❌")
-            await message.add_reaction("❗")
-            await message.add_reaction("⛔")
+            if is_theotown:
+                await message.add_reaction("❗")
+                await message.add_reaction("❕")
+                await message.add_reaction("⛔")
+
             if message.embeds[0].image.url is not None:
                 attachment_url = message.embeds[0].image.url
-            s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
-            embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
+            if is_theotown:
+                s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
+                embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible ❕ Already possible with plugin(s).\n#{s_id}')
+            else:
+                embed.set_footer(text='✅ I like this idea; ❌ I hate this idea.')
             await message.edit(embed=embed)
-            if self.use_suggestion_threads:
+            if c.use_suggestion_threads:
                 await self.client.create_expiring_thread(message, f"{truncate_string(suggestion, 89)} discussion", timedelta_to_datetime(timedelta(days=7)).timestamp())
             with suppress(HTTPException):
-                await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
+                await ctx.reply(f'Your suggestion has been submitted to <#{c.suggestion_channel}> channel successfully!')
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommands(client))

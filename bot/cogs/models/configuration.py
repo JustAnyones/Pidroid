@@ -22,6 +22,9 @@ class GuildConfiguration:
         mute_role: Optional[int]
         log_channel: Optional[int]
 
+        suggestion_channel: Optional[int]
+        use_suggestion_threads: bool
+
         strict_anti_phising: bool
         public_tags: bool
 
@@ -43,6 +46,9 @@ class GuildConfiguration:
         self.jail_role = c.get("jail_role", None)
         self.mute_role = c.get("mute_role", None)
         self.log_channel = c.get("log_channel", None)
+
+        self.suggestion_channel = c.get("suggestion_channel", None)
+        self.use_suggestion_threads = c.get("use_suggestion_threads", False)
 
         self.public_tags = c.get("public_tags", False)
         self.strict_anti_phising = c.get("strict_anti_phising", False)
@@ -96,6 +102,19 @@ class GuildConfiguration:
             return await self.api.unset_guild_config(self._id, "log_channel")
         self.log_channel = channel.id
         await self.api.set_guild_config(self._id, "log_channel", Int64(channel.id))
+
+    async def update_suggestion_channel(self, channel: Optional[TextChannel]) -> None:
+        """Updates the guild suggestion text channel."""
+        if channel is None:
+            self.suggestion_channel = None
+            return await self.api.unset_guild_config(self._id, "suggestion_channel")
+        self.suggestion_channel = channel.id
+        await self.api.set_guild_config(self._id, "suggestion_channel", Int64(channel.id))
+
+    async def update_suggestion_threads(self, use_threads: bool):
+        """Updates use of suggestion threads."""
+        self.use_suggestion_threads = use_threads
+        await self.api.set_guild_config(self._id, "use_suggestion_threads", use_threads)
 
     async def update_suspicious_users(self, suspicious_users: List[str]) -> None:
         """Updates the suspicious user list."""
