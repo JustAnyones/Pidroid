@@ -32,6 +32,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
             return
 
         if message.channel.id == EVENTS_CHANNEL:
+            assert isinstance(message.channel, TextChannel)
 
             if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.guild, message.channel, message.author):
                 if message.attachments:

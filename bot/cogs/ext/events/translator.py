@@ -11,6 +11,7 @@ from discord.message import Message
 from typing import List, Optional, Tuple
 
 from client import Pidroid
+from cogs.utils.aliases import GuildChannel
 from cogs.utils.checks import is_client_pidroid
 from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.http import post
@@ -190,6 +191,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         # Check whether message is valid for further processing
         if not self.is_valid(message):
             return
+
+        assert message.guild is not None
 
         # Try to cache the channel object
         if self.channel is None:
