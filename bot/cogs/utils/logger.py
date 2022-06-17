@@ -70,7 +70,7 @@ class PhisingLog(BaseLog):
 
     def __init__(self, message: Message, url: str = None) -> None:
         super().__init__()
-        self.set_type("Phising detected")
+        self.set_type("Phishing detected")
         self.put_author(message.author)
         self.set_footer(f"User ID: {message.author.id} | False positive? Create an issue in the Pidroid Github repository")
         if url is not None:

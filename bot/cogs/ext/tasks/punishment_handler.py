@@ -34,7 +34,10 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
     async def handle_unmute(self, guild: Guild, member_id: int) -> None:
         """Handles automatic unmute in relation to the guild."""
         await self.api.revoke_punishment("mute", guild.id, member_id)
-        mute_role = self.client.get_guild_configuration(guild.id).mute_role
+        config = self.client.get_guild_configuration(guild.id)
+        if config is None:
+            return
+        mute_role = config.mute_role
         if mute_role is None:
             return
         member = guild.get_member(member_id)
