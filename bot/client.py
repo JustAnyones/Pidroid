@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional, Union
 
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
+from cogs.utils.aliases import GuildChannel
 from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
@@ -36,7 +37,6 @@ class VersionInfo(NamedTuple):
 __VERSION__ = VersionInfo(major=4, minor=5, micro=5, releaselevel='alpha', serial=1)
 
 if TYPE_CHECKING:
-    from discord.types.channel import GuildChannel
     from cogs.models.configuration import GuildConfiguration
 
 
