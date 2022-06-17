@@ -45,7 +45,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         category=ModerationCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @command_checks.is_senior_moderator(ban_members=True)
+    @command_checks.is_senior_moderator(manage_guild=True)
     @commands.guild_only() # type: ignore
     async def invalidatewarning(self, ctx: Context, case_id: str):
         case = await self.client.fetch_case(ctx.guild.id, case_id)
