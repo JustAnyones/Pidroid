@@ -3,7 +3,7 @@ import datetime
 
 from discord import File
 from discord.message import Message
-from discord.ext import commands
+from discord.ext import commands # type: ignore
 from random import randint
 
 from client import Pidroid

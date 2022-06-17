@@ -1,5 +1,5 @@
 from discord import NotFound
-from discord.ext import tasks, commands
+from discord.ext import tasks, commands # type: ignore
 from discord.threads import Thread
 
 from client import Pidroid
@@ -7,7 +7,7 @@ from cogs.utils.checks import is_client_pidroid
 from cogs.utils.time import utcnow
 
 
-class ThreadTasks(commands.Cog):
+class ThreadTasks(commands.Cog): # type: ignore
     """This class implements a cog for handling of Threads that get archived after some time."""
 
     def __init__(self, client: Pidroid) -> None:

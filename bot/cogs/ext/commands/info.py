@@ -97,7 +97,8 @@ class InfoCommands(commands.Cog): # type: ignore
             # Get join position
             pos = sum(m.joined_at < member.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
 
-            embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
+            if member.joined_at is not None:
+                embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
             embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
             embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)

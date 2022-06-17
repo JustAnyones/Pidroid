@@ -4,7 +4,7 @@ import emoji # type: ignore # I am not updating the emoji regex myself every tim
 import re
 
 from contextlib import suppress
-from discord.ext import commands
+from discord.ext import commands # type: ignore
 from discord.channel import TextChannel
 from discord.utils import remove_markdown
 from discord.message import Message
@@ -128,7 +128,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         self.used_chars = 0
         self.last_reset = utcnow()
 
-        self.channel: TextChannel = None
+        self.channel: Optional[TextChannel] = None
 
     async def translate(self, text: str) -> List[dict]:
         self._translating.clear()

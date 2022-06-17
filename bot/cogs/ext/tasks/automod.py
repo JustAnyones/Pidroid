@@ -5,7 +5,7 @@ from discord import Member
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.message import Message
-from typing import List, Union
+from typing import Dict, List, Union
 from urllib.parse import urlparse
 
 from client import Pidroid
@@ -34,7 +34,7 @@ class AutomodTask(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.automod_violations = {}
+        self.automod_violations: Dict[int, Dict[int, dict]] = {}
         self.phising_urls: List[str] = []
 
     async def _update_phising_urls(self):
@@ -67,6 +67,7 @@ class AutomodTask(commands.Cog): # type: ignore
         member_data["count"] += 1
 
     async def punish_phising(self, message: Message, trigger_url: str = None):
+        assert message.guild is not None
         await self.client.dispatch_log(message.guild, PhisingLog(message, trigger_url))
         await message.delete(delay=0)
         config = self.client.get_guild_configuration(message.guild.id)
@@ -79,6 +80,7 @@ class AutomodTask(commands.Cog): # type: ignore
         content = clean_markdown(message.clean_content.lower())
         word = find_swearing(content, config.banned_exact_words)
         if word is not None:
+            assert message.guild is not None
             await self.client.dispatch_log(message.guild, BannedWordLog(message, word))
             await message.delete(delay=0)
             await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec

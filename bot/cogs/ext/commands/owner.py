@@ -5,7 +5,7 @@ import os
 import typing
 import sys
 
-from discord.ext import commands
+from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import TYPE_CHECKING

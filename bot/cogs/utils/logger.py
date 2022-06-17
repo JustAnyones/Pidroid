@@ -18,8 +18,8 @@ class BaseLog:
     def __str__(self) -> str:
         return self.__class__.__name__
 
-    def __repr__(self) -> Embed:
-        return self.as_embed()
+    def __repr__(self) -> str:
+        return f'<BaseLog type="{self.type}" title="{self.embed.title}">'
 
     def set_title(self, title: str) -> None:
         """Sets embed title."""
