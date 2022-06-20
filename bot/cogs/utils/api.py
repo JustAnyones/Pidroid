@@ -312,7 +312,8 @@ class API:
     async def create_new_guild_configuration(
         self, guild_id: int,
         jail_id: int = None, jail_role_id: int = None,
-        mute_role_id: int = None
+        mute_role_id: int = None,
+        suggestion_channel_id: int = None
     ) -> Optional[GuildConfiguration]:
         """Creates a new guild configuration entry."""
         d = {
@@ -324,6 +325,8 @@ class API:
             d["jail_role"] = bson.Int64(jail_role_id)
         if mute_role_id:
             d["mute_role"] = bson.Int64(mute_role_id)
+        if suggestion_channel_id:
+            d["suggestion_channel"] = bson.Int64(suggestion_channel_id)
         result: InsertOneResult = await self.guild_configurations.insert_one(d)
         return await self.get_guild_configuration_by_id(result.inserted_id)
 

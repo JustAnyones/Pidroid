@@ -2,6 +2,7 @@ import os.path
 import random
 
 from contextlib import suppress
+from datetime import timedelta
 from discord.ext import commands
 from discord.errors import HTTPException
 from discord.ext.commands.context import Context # type: ignore
@@ -9,13 +10,17 @@ from discord.message import Message
 from typing import Optional
 
 from client import Pidroid
+from constants import BOT_COMMANDS_CHANNEL
 from cogs.models.categories import TheoTownCategory
+from cogs.models.exceptions import InvalidChannel
 from cogs.utils import http
+from cogs.utils.checks import is_guild_theotown, is_channel_bot_commands
 from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.http import Route
 from cogs.utils.paginators import PidroidPages, PluginListPaginator
-from cogs.utils.parsers import format_version_code
+from cogs.utils.parsers import format_version_code, truncate_string
+from cogs.utils.time import timedelta_to_datetime
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
@@ -241,70 +246,90 @@ class TheoTownCommands(commands.Cog): # type: ignore
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True) # type: ignore # permissions kind of obsolete
-    @command_checks.is_bot_commands()
-    @command_checks.is_theotown_guild()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
-    @command_checks.client_is_pidroid()
+    @command_checks.guild_configuration_exists()
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
+        is_theotown = is_guild_theotown(ctx.guild)
+        if is_theotown:
+            if not is_channel_bot_commands(ctx.channel):
+                raise InvalidChannel(f'The command can only be used inside <#{BOT_COMMANDS_CHANNEL}> channel')
+
+        if not self.client.guild_config_cache_ready:
+            return
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        if c.suggestion_channel is None:
+            return await ctx.reply(embed=ErrorEmbed("Suggestion channel has not been setup."))
+
+        if suggestion is None:
+            await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        if len(suggestion) < 4:
+            await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        # If suggestion text is above discord embed description limit
+        if len(suggestion) > 2048:
+            await ctx.reply(embed=ErrorEmbed('The suggestion is too long!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        attachment_url = None
+        file = None
+        channel = self.client.get_channel(c.suggestion_channel)
+
+        if channel is None:
+            return await ctx.reply(embed=ErrorEmbed("Suggestion channel not found!"))
+
+        embed = PidroidEmbed(description=suggestion)
+        embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
+        attachments = ctx.message.attachments
+        if attachments:
+
+            if len(attachments) > 1:
+                await ctx.reply(embed=ErrorEmbed('Only one picture can be submitted for a suggestion!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            attachment = attachments[0]
+            if attachment.size >= 7000000:
+                await ctx.reply(embed=ErrorEmbed('Your image is too big to be uploaded!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            filename = attachment.filename
+            extension = os.path.splitext(filename)[1]
+            if extension.lower() not in ['.png', '.jpg', '.jpeg']:
+                await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            file = await attachment.to_file()
+            embed.set_image(url=f'attachment://{filename}')
+
         async with ctx.typing():
-            if suggestion is None:
-                await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            if len(suggestion) < 4:
-                await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            # If suggestion text is above discord embed description limit
-            if len(suggestion) > 2048:
-                await ctx.reply(embed=ErrorEmbed('The suggestion is too long!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            attachment_url = None
-            channel = self.client.get_channel(409800607466258445)
-            file = None
-
-            embed = PidroidEmbed(description=suggestion)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
-            attachments = ctx.message.attachments
-            if attachments:
-
-                if len(attachments) > 1:
-                    await ctx.reply(embed=ErrorEmbed('Only one picture can be submitted for a suggestion!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                attachment = attachments[0]
-                if attachment.size >= 7000000:
-                    await ctx.reply(embed=ErrorEmbed('Your image is too big to be uploaded!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                filename = attachment.filename
-                extension = os.path.splitext(filename)[1]
-                if extension.lower() not in ['.png', '.jpg', '.jpeg']:
-                    await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                file = await attachment.to_file()
-                embed.set_image(url=f'attachment://{filename}')
-
             message: Message = await channel.send(embed=embed, file=file)
             await message.add_reaction("✅")
             await message.add_reaction("❌")
-            await message.add_reaction("❗")
-            await message.add_reaction("⛔")
+            if is_theotown:
+                await message.add_reaction("❗")
+                await message.add_reaction("❕")
+                await message.add_reaction("⛔")
+
             if message.embeds[0].image.url is not None:
                 attachment_url = message.embeds[0].image.url
-            s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
-            embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
+            if is_theotown:
+                s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
+                embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible ❕ Already possible with plugin(s).\n#{s_id}')
+            else:
+                embed.set_footer(text='✅ I like this idea; ❌ I hate this idea.')
             await message.edit(embed=embed)
+            if c.use_suggestion_threads:
+                await self.client.create_expiring_thread(message, f"{truncate_string(suggestion, 89)} discussion", timedelta_to_datetime(timedelta(days=7)).timestamp())
             with suppress(HTTPException):
-                await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
+                await ctx.reply(f'Your suggestion has been submitted to <#{c.suggestion_channel}> channel successfully!')
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommands(client))

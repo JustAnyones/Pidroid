@@ -46,7 +46,7 @@ class command_checks:
         """Checks whether the command is invoked in a guild with Pidroid configuration."""
         async def predicate(ctx: Context):
             if not guild_has_configuration(ctx.bot, ctx.guild):
-                raise BadArgument('Server does not have a moderation system set up!')
+                raise BadArgument('Server does not have a configuration set up!')
             return True
         return commands.check(predicate)
 
