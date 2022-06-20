@@ -12,6 +12,7 @@ from typing import List, Tuple
 
 from client import Pidroid
 from cogs.models.categories import AdministrationCategory, UtilityCategory
+from cogs.utils.decorators import command_checks
 from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 
 SETUP_REASON = "Guild configuration setup"
@@ -203,6 +204,7 @@ class AdminCommands(commands.Cog): # type: ignore
         usage='<suggestion channel>',
         category=AdministrationCategory
     )
+    @command_checks.guild_configuration_exists()
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
@@ -220,6 +222,7 @@ class AdminCommands(commands.Cog): # type: ignore
         usage='<true/false>',
         category=AdministrationCategory
     )
+    @command_checks.guild_configuration_exists()
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
