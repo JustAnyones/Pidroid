@@ -283,33 +283,33 @@ class TheoTownCommands(commands.Cog): # type: ignore
         if channel is None:
             return await ctx.reply(embed=ErrorEmbed("Suggestion channel not found!"))
 
+        embed = PidroidEmbed(description=suggestion)
+        embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
+        attachments = ctx.message.attachments
+        if attachments:
+
+            if len(attachments) > 1:
+                await ctx.reply(embed=ErrorEmbed('Only one picture can be submitted for a suggestion!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            attachment = attachments[0]
+            if attachment.size >= 7000000:
+                await ctx.reply(embed=ErrorEmbed('Your image is too big to be uploaded!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            filename = attachment.filename
+            extension = os.path.splitext(filename)[1]
+            if extension.lower() not in ['.png', '.jpg', '.jpeg']:
+                await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
+                self.suggest.reset_cooldown(ctx)
+                return
+
+            file = await attachment.to_file()
+            embed.set_image(url=f'attachment://{filename}')
+
         async with ctx.typing():
-            embed = PidroidEmbed(description=suggestion)
-            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
-            attachments = ctx.message.attachments
-            if attachments:
-
-                if len(attachments) > 1:
-                    await ctx.reply(embed=ErrorEmbed('Only one picture can be submitted for a suggestion!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                attachment = attachments[0]
-                if attachment.size >= 7000000:
-                    await ctx.reply(embed=ErrorEmbed('Your image is too big to be uploaded!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                filename = attachment.filename
-                extension = os.path.splitext(filename)[1]
-                if extension.lower() not in ['.png', '.jpg', '.jpeg']:
-                    await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
-                    self.suggest.reset_cooldown(ctx)
-                    return
-
-                file = await attachment.to_file()
-                embed.set_image(url=f'attachment://{filename}')
-
             message: Message = await channel.send(embed=embed, file=file)
             await message.add_reaction("✅")
             await message.add_reaction("❌")
