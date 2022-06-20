@@ -249,41 +249,41 @@ class TheoTownCommands(commands.Cog): # type: ignore
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
     @command_checks.guild_configuration_exists()
     async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
+        is_theotown = is_guild_theotown(ctx.guild)
+        if is_theotown:
+            if not is_channel_bot_commands(ctx.channel):
+                raise InvalidChannel(f'The command can only be used inside <#{BOT_COMMANDS_CHANNEL}> channel')
+
+        if not self.client.guild_config_cache_ready:
+            return
+        c = self.client.get_guild_configuration(ctx.guild.id)
+        if c.suggestion_channel is None:
+            return await ctx.reply(embed=ErrorEmbed("Suggestion channel has not been setup."))
+
+        if suggestion is None:
+            await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        if len(suggestion) < 4:
+            await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        # If suggestion text is above discord embed description limit
+        if len(suggestion) > 2048:
+            await ctx.reply(embed=ErrorEmbed('The suggestion is too long!'))
+            self.suggest.reset_cooldown(ctx)
+            return
+
+        attachment_url = None
+        file = None
+        channel = self.client.get_channel(c.suggestion_channel)
+
+        if channel is None:
+            return await ctx.reply(embed=ErrorEmbed("Suggestion channel not found!"))
+
         async with ctx.typing():
-            is_theotown = is_guild_theotown(ctx.guild)
-            if is_theotown:
-                if not is_channel_bot_commands(ctx.channel):
-                    raise InvalidChannel(f'The command can only be used inside <#{BOT_COMMANDS_CHANNEL}> channel')
-
-            if not self.client.guild_config_cache_ready:
-                return
-            c = self.client.get_guild_configuration(ctx.guild.id)
-            if c.suggestion_channel is None:
-                return await ctx.reply(embed=ErrorEmbed("Suggestion channel has not been setup."))
-
-            if suggestion is None:
-                await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            if len(suggestion) < 4:
-                await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            # If suggestion text is above discord embed description limit
-            if len(suggestion) > 2048:
-                await ctx.reply(embed=ErrorEmbed('The suggestion is too long!'))
-                self.suggest.reset_cooldown(ctx)
-                return
-
-            attachment_url = None
-            file = None
-            channel = self.client.get_channel(c.suggestion_channel)
-
-            if channel is None:
-                return await ctx.reply(embed=ErrorEmbed("Suggestion channel not found!"))
-
             embed = PidroidEmbed(description=suggestion)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
             attachments = ctx.message.attachments
