@@ -24,16 +24,20 @@ To begin, you'll need to install Python. Pidroid requires **Python 3.8** or abov
 python --version
 ```
 
-After installing Python, we need to navigate to Pidroid's bot directory where we'll do the initial setup and run the bot.
+After installing Python, we need to create a virtual environment where we'll install the project dependencies.
 
 ```shell
 python -m venv venv
 ```
 
+And activate the said virtual environment like so.
+
+Linux:
 ```shell
 source venv/bin/activate
 ```
 
+Windows:
 ```shell
 venv\Scripts\activate
 ```
@@ -45,7 +49,7 @@ pip install -r requirements.txt
 ```
 
 After installing all required packages, we need to configure the bot. Please check [here](#configuration) on how to do so.
-The bot uses a Mongo database. It accepts the login credentials as a [connection string](https://docs.mongodb.com/manual/reference/connection-string/#standard-connection-string-format). Please check [configuration manual](#configuration) on where to input it.
+The bot uses a MongoDB and a Postgres database. It accepts the login credentials as a [DSN](https://docs.mongodb.com/manual/reference/connection-string/#standard-connection-string-format). Please check [configuration manual](#configuration) on where to input it.
 
 Lastly, all we have to do is run the bot. You can do so by running this command:
 
@@ -53,52 +57,50 @@ Lastly, all we have to do is run the bot. You can do so by running this command:
 python pidroid/main.py
 ```
 
+On Linux, you can load the environment variables and start the bot like so:
+```shell
+export $(cat config.env | xargs) && python pidroid/main.py
+```
+
 ### Configuration
 
-Pidroid uses a `config.json` file at its `./bot` path (the same path where `main.py` is located) for its configuration.
+Pidroid used to use a `config.json` file at its `./bot` path for its configuration.
 
-$(ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1)
+Pidroid 5, however, switches to using environment variables as defined in the `config.env` file in the project root.
+This is done to be compatible with Docker containers.
 
+```ini
+# Comma separated list of prefixes Pidroid will use by default
+PREFIXES=
+# Discord bot token
+TOKEN=
+# Mongo DSN string
+MONGO_DSN=
+# Postgres DSN string
+POSTGRES_DSN=
+# Github token for making issues on TT repo, optional
+GITHUB_TOKEN=
+# TheoTown API key to interact with backend TheoTown API
+TT_API_KEY=
+# DeepL API key used for translations
+DEEPL_API_KEY=
+# Unbelievaboat API key for economy integration in TT server
+UNBELIEVABOAT_API_KEY=
+# Tenor API key for gifs
+TENOR_API_KEY=
+# Bitly credentials for bitly command
+BITLY_LOGIN=
+BITLY_API_KEY=
+# Reddit related credentials for reddit command
+REDDIT_CLIENT_ID=
+REDDIT_CLIENT_SECRET=
+REDDIT_USERNAME=
+REDDIT_PASSWORD=
+```
+
+Config options that are yet to be reimplemented
 ```jsonc
 {
-  "embed color": 5928495,       // Default Discord Embed colour
-  "prefixes": [],               // String array, used for prefixes. Prefixes are case sensitive.
-
-  // Object which contains all secret bot authentication credentials
-  "authentication": {
-    "bot token": "",            // Bot token given by Discord
-
-    // MongoDB database
-    "database": {
-      "connection string": ""   // MongoDB connection string
-    },
-
-    "theotown api token": "",   // Token given by JustAnyone to access private TheoTown APIs
-
-    // Used for the economy cog of the bot (OPTIONAL)
-    "unbelievaboat": {
-      "token": ""               // API token given by Unbelievaboat
-    },
-
-    // Used for GIF command (OPTIONAL)
-    "tenor": {
-      "token": ""               // API token given by TENOR
-    },
-  
-    // Used for bitly command (OPTIONAL)
-    "bitly": {
-      "login": "",
-      "api key": ""
-    },
-
-    // Used for Reddit command
-    "reddit": {
-      "client id": "",
-      "client secret": "",
-      "username": "",
-      "password": ""
-    },
-
     // Used for RCON command (OPTIONAL)
     "minecraft rcon": {
 
@@ -113,7 +115,10 @@ $(ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f
 }
 ```
 
-Please note that Pidroid does not support the JSONC (JSON with comments) file format. It's used here for the sake of documentation and syntax highlighting.
+Obtain docker IP to access services on host device from within a dockerised container.
+```shell
+ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1
+```
 
 ## Versioning scheme
 
