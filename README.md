@@ -2,11 +2,21 @@
 
 Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [discord.py](https://github.com/Rapptz/discord.py) wrapper.
 
-## Planned features
+## Production use
 
-Work-in-progress and planned features may be found on Pidroid's trello board [here](https://trello.com/b/1ZLnbi2A/pidroid).
+To use Pidroid in production, first we need to build a [docker](https://www.docker.com) image with this command:
 
-## Setup
+```shell
+docker build . --tag pidroid-bot
+```
+
+After building the docker image, now we just need to run it in a docker container with the following command:
+
+```shell
+docker-compose up -d
+```
+
+## Development setup
 
 To begin, you'll need to install Python. Pidroid requires **Python 3.8** or above to work. You can check what version of Python you have installed by running this command:
 
@@ -17,7 +27,15 @@ python --version
 After installing Python, we need to navigate to Pidroid's bot directory where we'll do the initial setup and run the bot.
 
 ```shell
-cd bot
+python -m venv venv
+```
+
+```shell
+source venv/bin/activate
+```
+
+```shell
+venv\Scripts\activate
 ```
 
 Pidroid requires a few Python Packages as dependencies. You can install them by running the following command:
@@ -32,12 +50,14 @@ The bot uses a Mongo database. It accepts the login credentials as a [connection
 Lastly, all we have to do is run the bot. You can do so by running this command:
 
 ```shell
-python main.py
+python pidroid/main.py
 ```
 
 ### Configuration
 
 Pidroid uses a `config.json` file at its `./bot` path (the same path where `main.py` is located) for its configuration.
+
+$(ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1)
 
 ```jsonc
 {

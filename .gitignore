@@ -1,17 +1,17 @@
 # Bot configuration file
-bot/config.json
+config.env
 
 # Python cache
 __pycache__
 
 # Data files
-bot/data/*
+data/*
 
 # JetBrains PyCharm
 .idea/*
 
-python/*
-venv
+# Virtual environment
+venv/*
 
 # Scripts and files used for changelog generation
 build changelog.py

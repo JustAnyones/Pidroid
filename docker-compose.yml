@@ -1,0 +1,9 @@
+version: "3.7"
+
+services:
+  pidroid:
+    image: pidroid-bot:latest
+    volumes:
+      - ./data:/data
+    env_file:
+      - config.env
