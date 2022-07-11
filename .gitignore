@@ -1,5 +1,5 @@
 # Bot configuration file
-config.env
+*.env
 
 # Python cache
 __pycache__
@@ -12,8 +12,3 @@ data/*
 
 # Virtual environment
 venv/*
-
-# Scripts and files used for changelog generation
-build changelog.py
-changelog.html
-changes.txt

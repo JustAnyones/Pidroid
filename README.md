@@ -54,13 +54,10 @@ The bot uses a MongoDB and a Postgres database. It accepts the login credentials
 Lastly, all we have to do is run the bot. You can do so by running this command:
 
 ```shell
-python pidroid/main.py
+python pidroid/main.py -e config.env
 ```
 
-On Linux, you can load the environment variables and start the bot like so:
-```shell
-export $(cat config.env | xargs) && python pidroid/main.py
-```
+The -e argument specifies which file to use for the environment variables.
 
 ### Configuration
 
