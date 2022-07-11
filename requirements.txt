@@ -7,7 +7,7 @@ psutil==5.8.0
 pillow==9.0.1
 mcrcon==0.6.0
 dill==0.3.3
-lxml==4.6.5
+lxml==4.9.1
 motor==2.5.0
 emoji==1.6.3
 git+https://github.com/JustAnyones/bitly-api-python#egg=bitly-api
