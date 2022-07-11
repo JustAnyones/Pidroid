@@ -5,6 +5,7 @@ import asyncio
 import os
 import sys
 
+from argparse import ArgumentParser
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 
@@ -25,13 +26,20 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
+def load_env_from_file(path: str) -> None:
+    print("Loading environment from a file")
+    with open(path) as f:
+        for l in f.readlines():
+            key, value = l.split("=", 1)
+            os.environ[key] = value.strip()
+
 def config_from_env() -> dict:
 
     if os.environ.get("TOKEN", None) is None:
         exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
     
 
-    if os.environ.get("DSN", None) is None:
+    if os.environ.get("MONGO_DSN", None) is None:
         exit("No DSN was specified. Please specify it using the DSN environment variable.")
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
@@ -66,6 +74,13 @@ async def main():  # noqa: C901
         os.mkdir(DATA_FILE_PATH)
     if not os.path.exists(TEMPORARY_FILE_PATH):
         os.mkdir(TEMPORARY_FILE_PATH)
+
+    arg_parser = ArgumentParser()
+    arg_parser.add_argument("-e", "--envfile", help="specifies .env file to load environment from")
+
+    args = arg_parser.parse_args()
+    if args.envfile:
+        load_env_from_file(args.envfile)
 
     # Load configuration from environment
     bot = Pidroid(config_from_env())
