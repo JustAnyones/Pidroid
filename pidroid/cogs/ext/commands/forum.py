@@ -19,7 +19,6 @@ class ForumCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        self.api = self.client.deprecated_api
 
     @commands.command( # type: ignore
         name='forum-user',
@@ -31,7 +30,7 @@ class ForumCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def forum_user(self, ctx: Context, *, username: str):
         async with ctx.typing():
-            res = await self.api.get(Route(
+            res = await self.client.api.get(Route(
                 "/private/forum/deprecated",
                 {"type": "find", "user": username}
             ))
@@ -115,7 +114,7 @@ class ForumCommands(commands.Cog): # type: ignore
             encoded_item = item.replace(' ', '')
 
             # Send the request to API
-            res = await self.api.get(Route(
+            res = await self.client.api.get(Route(
                 "/private/game/gift",
                 {"username": user, encoded_item: amount}
             ))
@@ -135,7 +134,7 @@ class ForumCommands(commands.Cog): # type: ignore
     @command_checks.is_theotown_developer()
     async def forum_pm(self, ctx: Context, target: int, subject: str, *, text: str):
         async with ctx.typing():
-            data = await self.api.get(Route(
+            data = await self.client.api.get(Route(
                 "/private/forum/deprecated",
                 {"type": "pm", "author": 10911, "target": target, "subject": subject, "text": text}
             ))
@@ -153,7 +152,7 @@ class ForumCommands(commands.Cog): # type: ignore
     @command_checks.is_theotown_developer()
     async def forum_authorise(self, ctx: Context, *, user: str):
         async with ctx.typing():
-            res = await self.api.get(Route(
+            res = await self.client.api.get(Route(
                 "/private/forum/deprecated",
                 {"type": "authorise", "user": user}
             ))

@@ -6,7 +6,7 @@ from discord.ext import commands # type: ignore
 from discord.errors import HTTPException
 from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
-from typing import Optional
+from typing import List, Optional
 
 from client import Pidroid
 from cogs.models.categories import TheoTownCategory
@@ -33,7 +33,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
+        self.api = self.client.api
 
     @commands.command( # type: ignore
         brief="Returns the latest game version of TheoTown for all platforms.",
@@ -53,15 +53,15 @@ class TheoTownCommands(commands.Cog): # type: ignore
                     continue
 
                 version = format_version_code(version_data[version_name]['version'])
-                url = None
+                url: Optional[str] = None
                 if version not in cache or cache[version] is None:
-                    print(f'URL for version {version} not found in internal cache, querying the API')
+                    self.client.logger.info(f'URL for version {version} not found in internal cache, querying the API')
 
                     res = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
 
                     if res["success"]:
                         url = res["data"]["url"]
-                        print(f'Version URL found, internal cache updated with {url}')
+                        self.client.logger.info(f'Version URL found, internal cache updated with {url}')
 
                     cache[version] = url
                 url = cache[version]
@@ -131,7 +131,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 self.gallery.reset_cooldown(ctx)
                 return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
 
-            res = await self.client.deprecated_api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
+            res = await self.client.api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
             if not res["success"]:
                 return await ctx.reply(embed=ErrorEmbed("Unable to retrieve gallery data!"))
 
@@ -298,9 +298,10 @@ class TheoTownCommands(commands.Cog): # type: ignore
             await message.add_reaction("❌")
             await message.add_reaction("❗")
             await message.add_reaction("⛔")
+            suggestion_attachments: List[str] = []
             if message.embeds[0].image.url is not None:
-                attachment_url = message.embeds[0].image.url
-            s_id = await self.api.submit_suggestion(ctx.author.id, message.id, suggestion, attachment_url)
+                suggestion_attachments.append(message.embeds[0].image.url)
+            s_id = await self.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
             await message.edit(embed=embed)
             with suppress(HTTPException):

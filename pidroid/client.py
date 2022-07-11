@@ -15,7 +15,7 @@ from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from typing import TYPE_CHECKING, List, Literal, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
@@ -107,13 +107,13 @@ class Pidroid(commands.Bot): # type: ignore
 
         # This holds cached guild configurations
         self._guild_config_ready = asyncio.Event()
-        self._cached_configurations = {}
+        self._cached_configurations: Dict[int, GuildConfiguration] = {}
 
         self.client_version = __VERSION__
 
         self.command_categories = get_command_categories()
 
-        self.version_cache = {}
+        self.version_cache: Dict[str, Optional[str]] = {}
 
         self.config = config
         self.prefixes = self.config['prefixes']
@@ -186,7 +186,7 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
-        thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration)
+        thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration) # type: ignore
         await self.deprecated_api.create_new_expiring_thread(thread.id, expire_timestamp)
         return thread
 

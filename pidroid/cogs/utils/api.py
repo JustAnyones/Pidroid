@@ -19,27 +19,55 @@ from cogs.models.plugins import NewPlugin, Plugin
 from cogs.utils.http import HTTP, Route
 from cogs.utils.time import utcnow
 
-if TYPE_CHECKING:
-    from client import Pidroid
-
 from sqlalchemy import Column
 from sqlalchemy import DateTime
-from sqlalchemy import ForeignKey
-from sqlalchemy import func, text
-from sqlalchemy import Integer
+from sqlalchemy import func, text, delete, select, update, values
+from sqlalchemy import Integer, BigInteger, Text, ARRAY, Boolean
 from sqlalchemy import String
 from sqlalchemy.engine.result import ChunkedIteratorResult
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.future import select
 from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
 from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import sessionmaker
 
+if TYPE_CHECKING:
+    from client import Pidroid
+
 Base = declarative_base()
 
-class PhishingUrlTable(Base):
+class SuggestionTable(Base): # type: ignore
+    __tablename__ = "Suggestions"
+
+    id = Column(Integer, primary_key=True)
+    author_id = Column(BigInteger)
+    message_id = Column(BigInteger)
+    suggestion = Column(Text)
+    date_submitted = Column(DateTime(timezone=True), default=func.now())
+    attachments = Column(ARRAY(Text), server_default="{}")
+
+class TagTable(Base): # type: ignore
+    __tablename__ = "Tags"
+
+    id = Column(Integer, primary_key=True)
+    guild_id = Column(BigInteger)
+    name = Column(Text)
+    content = Column(Text)
+    authors = Column(ARRAY(BigInteger))
+    aliases = Column(ARRAY(Text), server_default="{}")
+    locked = Column(Boolean, server_default="false")
+    date_created = Column(DateTime(timezone=True), default=func.now())
+
+class GuildConfigurationTable(Base): # type: ignore
+    __tablename__ = "GuildConfiguration"
+
+    id = Column(Integer, primary_key=True)
+    guild_id = Column(BigInteger)
+    jail_channel = Column(BigInteger, nullable=True)
+    jail_role = Column(BigInteger, nullable=True)
+    mute_role = Column(BigInteger, nullable=True)
+
+class PhishingUrlTable(Base): # type: ignore
     __tablename__ = "PhishingUrls"
 
     id = Column(Integer, primary_key=True)
@@ -55,34 +83,153 @@ class API:
 
     def __init__(self, client: Pidroid, dsn: str, debug: bool = False) -> None:
         self.client = client
-        self.dsn = dsn
+        self._dsn = dsn
         self._debug = debug
+        self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
     async def connect(self) -> None:
-        self.engine = create_async_engine(self.dsn, echo=self._debug)
+        self.engine = create_async_engine(self._dsn, echo=self._debug)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
         async with self.engine.begin() as conn:
-            #await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
 
-    async def get_session(self) -> AsyncSession:
-        async with self.session() as session:
-            yield session
+    async def get(self, route: Route) -> dict:
+        """Sends a GET request to the TheoTown API."""
+        return await self._http.request("GET", route)
 
     async def insert_phishing_url(self, url: str) -> None:
+        """Inserts a phishing link to the database."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 session.add(PhishingUrlTable(url=url))
             await session.commit()
 
-    async def fetch_phishing_urls(self) -> list:
+    async def fetch_phishing_urls(self) -> List[str]:
+        """Fetches a list of known phishing links and urls."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(select(PhishingUrlTable.url))
-            return [r[0] for r in result.fetchall()]
+        return [r[0] for r in result.fetchall()]
+
+    async def insert_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str] = []) -> int:
+        """Creates a suggestion entry in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = SuggestionTable(
+                    author_id=author_id,
+                    message_id=message_id,
+                    suggestion=suggestion,
+                    attachments=attachment_urls
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
+    """Tag related"""
+
+    async def insert_tag(self, guild_id: int, name: str, content: str, authors: List[int]) -> int:
+        """Creates a tag entry in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = TagTable(
+                    guild_id=guild_id,
+                    name=name,
+                    content=content,
+                    authors=authors
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
+    async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
+        """Returns a guild tag for the appropriate name."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(TagTable).
+                filter(TagTable.guild_id == guild_id, TagTable.name.ilike(tag_name)).
+                order_by(TagTable.name.asc())
+            )
+        row = result.fetchone()
+        if row:
+            return Tag(self, row[0])
+        return None
+
+    async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
+        """Returns all guild tags matching the appropriate name."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(TagTable).
+                filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
+                order_by(TagTable.name.asc())
+            )
+        return [Tag(self, r[0]) for r in result.fetchall()]
+
+    async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
+        """Returns a list of all tags defined in the guild."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(TagTable).
+                filter(TagTable.guild_id == guild_id).
+                order_by(TagTable.name.asc())
+            )
+        return [Tag(self, r[0]) for r in result.fetchall()]
+
+    async def edit_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
+        """Edits a tag by specified row ID."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(TagTable).
+                    filter(TagTable.id == row_id).
+                    values(
+                        content=content,
+                        authors=authors,
+                        aliases=aliases,
+                        locked=locked
+                    )
+                )
+            await session.commit()
+
+    async def remove_tag(self, row_id: int) -> None:
+        """Removes a tag by specified row ID."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(delete(TagTable).filter(TagTable.id == row_id))
+            await session.commit()
+
+    """TheoTown backend related"""
+
+    async def fetch_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
+        """Queries the TheoTown API for new plugins after the specified approval time."""
+        response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
+        return [NewPlugin(np) for np in response["data"]]
+
+    async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> List[Plugin]:
+        """Queries the TheoTown API for a plugin of the specified ID."""
+        response = await self.get(Route(
+            "/private/plugin/find2",
+            {"id": plugin_id, "show_hidden": show_hidden}
+        ))
+        return [Plugin(p) for p in response["data"]]
+
+    async def search_plugins(self, query: str, show_hidden: bool = False) -> List[Plugin]:
+        """Queries the TheoTown API for plugins matching the query string."""
+        response = await self.get(Route(
+            "/private/plugin/find2",
+            {"query": query, "show_hidden": show_hidden}
+        ))
+        return [Plugin(p) for p in response["data"]]
 
 class DeprecatedAPI:
     """This class handles actions related to Pidroid Mongo and MySQL database calls over TheoTown API."""
@@ -97,11 +244,6 @@ class DeprecatedAPI:
     def internal(self) -> AgnosticCollection:
         """Returns a MongoDB collection for internal related data."""
         return self.db["Internal"]
-
-    @property
-    def suggestions(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for TheoTown suggestions."""
-        return self.db["Suggestions"]
 
     @property
     def expiring_threads(self) -> AgnosticCollection:
@@ -119,11 +261,6 @@ class DeprecatedAPI:
         return self.db["Guild_configurations"]
 
     @property
-    def tags(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for tags."""
-        return self.db["Tags"]
-
-    @property
     def shitposts(self) -> AgnosticCollection:
         """Returns a MongoDB collection for Pidroid shitposts."""
         return self.db["Shitposts"]
@@ -132,14 +269,6 @@ class DeprecatedAPI:
     def translations(self) -> AgnosticCollection:
         """Returns a MongoDB collection for translations."""
         return self.db["Translations"]
-
-    async def get(self, route: Route) -> dict:
-        """Sends a GET request to the TheoTown API."""
-        return await self.http.request("GET", route)
-
-    async def post(self, route: Route, data: dict = None) -> dict:
-        """Sends a POST request to the TheoTown API."""
-        return await self.http.request("GET", route, data=data)
 
     @staticmethod
     def generate_id(characters: str = string.ascii_lowercase + string.ascii_uppercase + string.digits, size: int = 6) -> str:
@@ -193,48 +322,6 @@ class DeprecatedAPI:
         if data is None:
             return []
         return data["translation"]
-
-    """Suggestion related methods"""
-
-    async def submit_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_url: str = None) -> str:
-        """Submits a suggestion to the database.
-
-        Returns submitted suggestion ID."""
-        d_id = await self.get_unique_id(self.suggestions)
-        d = {
-            "id": d_id,
-            "author": bson.Int64(author_id),
-            "message_id": bson.Int64(message_id),
-            "suggestion": suggestion,
-            "timestamp": bson.Int64(utcnow().timestamp())
-        }
-        if attachment_url:
-            d["attachment_url"] = attachment_url
-        await self.suggestions.insert_one(d)
-        return d_id
-
-    """Plugin API related methods"""
-
-    async def get_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
-        """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
-        return [NewPlugin(np) for np in response["data"]]
-
-    async def search_plugins(self, query: str, show_hidden: bool = False) -> List[Plugin]:
-        """Queries the TheoTown API for plugins matching the query string."""
-        response = await self.get(Route(
-            "/private/plugin/find2",
-            {"query": query, "show_hidden": show_hidden}
-        ))
-        return [Plugin(p) for p in response["data"]]
-
-    async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> List[Plugin]:
-        """Queries the TheoTown API for a plugin of the specified ID."""
-        response = await self.get(Route(
-            "/private/plugin/find2",
-            {"id": plugin_id, "show_hidden": show_hidden}
-        ))
-        return [Plugin(p) for p in response["data"]]
 
     async def create_new_expiring_thread(self, thread_id: int, expire_timestamp: int) -> None:
         """Creates a new expiring thread entry inside the database."""
@@ -370,7 +457,7 @@ class DeprecatedAPI:
         self, guild_id: int,
         jail_id: int = None, jail_role_id: int = None,
         mute_role_id: int = None
-    ) -> Optional[GuildConfiguration]:
+    ) -> GuildConfiguration:
         """Creates a new guild configuration entry."""
         d = {
             "guild_id": bson.Int64(guild_id),
@@ -382,7 +469,9 @@ class DeprecatedAPI:
         if mute_role_id:
             d["mute_role"] = bson.Int64(mute_role_id)
         result: InsertOneResult = await self.guild_configurations.insert_one(d)
-        return await self.get_guild_configuration_by_id(result.inserted_id)
+        config = await self.get_guild_configuration_by_id(result.inserted_id)
+        assert config is not None
+        return config
 
     async def delete_guild_configuration(self, object_id: ObjectId) -> None:
         """Deletes a guild configuration document."""
@@ -401,44 +490,6 @@ class DeprecatedAPI:
             {'_id': object_id},
             {"$unset": {key: 1}}
         )
-
-    """Tag related methods"""
-
-    async def create_tag(self, data: dict) -> ObjectId:
-        """Creates a guild tag from a dictionary."""
-        result: InsertOneResult = await self.tags.insert_one(data)
-        return result.inserted_id
-
-    async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
-        """Returns a guild tag for the appropriate name."""
-        raw_tag = await self.tags.find_one({
-            "guild_id": bson.Int64(guild_id),
-            "name": {"$regex": f"^{tag_name}$", "$options": "i"}
-        })
-        if raw_tag is None:
-            return None
-        return Tag(self, raw_tag)
-
-    async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
-        """Returns all guild tags matching the appropriate name."""
-        cursor = self.tags.find({
-            "guild_id": bson.Int64(guild_id),
-            "name": {"$regex": tag_name, "$options": "i"}
-        })
-        return [Tag(self, i) async for i in cursor]
-
-    async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
-        """Returns a list of all tags defined in the guild."""
-        cursor = self.tags.find({"guild_id": bson.Int64(guild_id)}).sort("name", 1)
-        return [Tag(self, i) async for i in cursor]
-
-    async def edit_tag(self, object_id: ObjectId, data: dict) -> None:
-        """Edits a tag by specified object ID."""
-        await self.tags.update_one({'_id': object_id}, {'$set': data})
-
-    async def remove_tag(self, object_id: ObjectId) -> None:
-        """Removes a tag by specified object ID."""
-        await self.tags.delete_one({'_id': object_id})
 
     """Shitpost related methods"""
 

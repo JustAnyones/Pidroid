@@ -1,4 +1,5 @@
 from __future__ import annotations
+import datetime
 
 from bson.int64 import Int64 # type: ignore
 from bson.objectid import ObjectId # type: ignore
@@ -30,26 +31,25 @@ ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, rep
 
 if TYPE_CHECKING:
     from client import Pidroid
-    from cogs.utils.api import DeprecatedAPI
+    from cogs.utils.api import API, TagTable
 
 
 class Tag:
     """This class represents a guild tag."""
 
     if TYPE_CHECKING:
-        _id: ObjectId
+        _id: int
         guild_id: int
         _name: str
         _content: str
         _author_ids: List[int]
         aliases: List[str]
         locked: bool
+        date_created: datetime.datetime
 
-    def __init__(self, api: DeprecatedAPI, data: dict = None) -> None:
+    def __init__(self, api: API, data: TagTable = None) -> None:
         self.api = api
         self._author_ids = []
-        self.aliases = []
-        self.locked = False
         if data:
             self._deserialize(data)
 
@@ -111,32 +111,23 @@ class Tag:
             raise BadArgument("Specified member is not a co-author!")
         self._author_ids.remove(author_id)
 
-    def _serialize(self) -> dict:
-        return {
-            "guild_id": Int64(self.guild_id),
-            "name": self.name,
-            "content": self.content,
-            "author_ids": [Int64(auth_id) for auth_id in self._author_ids],
-            "aliases": self.aliases,
-            "locked": self.locked
-        }
-
-    def _deserialize(self, data: dict) -> None:
-        self._id = data["_id"]
-        self.guild_id = data["guild_id"]
-        self.name = data["name"]
-        self.content = data["content"]
-        self._author_ids = data.get("author_ids", [data.get("author_id", [])])
-        self.aliases = data.get("aliases", [])
-        self.locked = data.get("locked", False)
+    def _deserialize(self, data: TagTable) -> None:
+        self._id = data.id
+        self.guild_id = data.guild_id
+        self._name = data.name
+        self._content = data.content
+        self._author_ids = data.authors
+        self.aliases = data.aliases
+        self.locked = data.locked
+        self.date_created = data.date_created
 
     async def create(self) -> None:
         """Creates a tag by inserting a document to the database."""
-        self._id = await self.api.create_tag(self._serialize())
+        self._id = await self.api.insert_tag(self.guild_id, self.name, self.content, self._author_ids)
 
     async def edit(self) -> None:
         """Edits a tag by updating the document in the database."""
-        await self.api.edit_tag(self._id, self._serialize())
+        await self.api.edit_tag(self._id, self.content, self._author_ids, self.aliases, self.locked)
 
     async def remove(self) -> None:
         """Removes a tag from the database."""
@@ -150,7 +141,6 @@ class TagCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        self.api = self.client.deprecated_api
 
     async def fetch_tag_author_users(self, tag: Tag) -> List[Optional[User]]:
         return [await self.client.get_or_fetch_user(auth_id) for auth_id in tag._author_ids]
@@ -165,7 +155,7 @@ class TagCommands(commands.Cog): # type: ignore
         if len(tag_name) < 3:
             raise BadArgument("Query term is too short! Please keep it above 2 characters!")
 
-        tag_list = await self.api.search_guild_tags(ctx.guild.id, tag_name)
+        tag_list = await self.client.api.search_guild_tags(ctx.guild.id, tag_name)
         if len(tag_list) == 0:
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag_list
@@ -174,7 +164,7 @@ class TagCommands(commands.Cog): # type: ignore
         if tag_name is None:
             raise BadArgument("Please specify a tag name!")
 
-        tag = await self.api.fetch_guild_tag(ctx.guild.id, tag_name)
+        tag = await self.client.api.fetch_guild_tag(ctx.guild.id, tag_name)
         if tag is None:
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag
@@ -226,7 +216,7 @@ class TagCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def list(self, ctx: Context):
-        guild_tags = await self.api.fetch_guild_tags(ctx.guild.id)
+        guild_tags = await self.client.api.fetch_guild_tags(ctx.guild.id)
         if len(guild_tags) == 0:
             raise BadArgument("This server has no defined tags!")
 
@@ -251,8 +241,14 @@ class TagCommands(commands.Cog): # type: ignore
         if authors[0]:
             embed.add_field(name="Tag owner", value=authors[0].mention)
         if len(authors[1:]) > 0:
-            embed.add_field(name="Co-authors", value=' '.join([user.mention for user in authors[1:]]))
-        embed.add_field(name="Date created", value=format_dt(tag._id.generation_time))
+            author_value = ""
+            for i, user in enumerate(authors[1:]):
+                if user is None:
+                    author_value += f'{tag.co_author_ids[i]} '
+                else:
+                    author_value += f'{user.mention} '
+            embed.add_field(name="Co-authors", value=author_value.strip())
+        embed.add_field(name="Date created", value=format_dt(tag.date_created))
         await ctx.reply(embed=embed)
 
     @tag.command(
@@ -280,7 +276,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def create(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
-        tag = Tag(self.api)
+        tag = Tag(self.client.api)
         tag.guild_id = ctx.guild.id
         tag.author_id = ctx.author.id
         if tag_name is None:
@@ -292,7 +288,7 @@ class TagCommands(commands.Cog): # type: ignore
             raise BadArgument("Please provide content for the tag!")
         tag.content = ((content or "") + "\n" + (attachment_url or "")).strip()
 
-        if await self.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
+        if await self.client.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
             raise BadArgument("There's already a tag by the specified name!")
 
         await tag.create()

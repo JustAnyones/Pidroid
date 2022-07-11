@@ -17,7 +17,6 @@ class PluginStoreTasks(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
 
         self.use_threads = True
         self.add_reactions = True
@@ -44,7 +43,7 @@ class PluginStoreTasks(commands.Cog): # type: ignore
         try:
             last_approval_time = self.client.persistent_data.data.get("last plugin approval", -1)
 
-            plugins = await self.api.get_new_plugins(last_approval_time)
+            plugins = await self.client.api.fetch_new_plugins(last_approval_time)
 
             if len(plugins) == 0:
                 self.new_plugins_cache = []

@@ -35,8 +35,16 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.is_owner() # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     async def postgres(self, ctx: Context, *, message: str = None):
-        await self.client.api.fetch_phishing_urls()
-        await ctx.send("Works I guess")
+        res = await self.client.api.fetch_phishing_urls()
+        print(res)
+        urls = await self.client.deprecated_api.fetch_phising_url_list()
+        if len(res) == len(urls):
+            raise BadArgument("Phishing URLs already migrated")
+        for url in urls:
+            await self.client.api.insert_phishing_url(url)
+        res = await self.client.api.fetch_phishing_urls()
+        print(res)
+        await ctx.send("Phishing URLs migrated")
 
     @commands.command( # type: ignore
         brief="Sends a message to a specified guild channel as the bot.",
@@ -137,7 +145,7 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.is_owner() # type: ignore
     async def updateurls(self, ctx: Context):
         cog: AutomodTask = self.client.get_cog("AutomodTask")
-        await cog._update_phising_urls()
+        await cog._update_phishing_urls()
         await ctx.reply("Phising URL list has been updated!")
 
     @phising.command(

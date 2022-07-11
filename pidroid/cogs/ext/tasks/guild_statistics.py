@@ -25,7 +25,7 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
         """Updates TheoTown API with guild member count."""
         try:
             guild = self.client.get_guild(THEOTOWN_GUILD)
-            await self.api.get(Route(
+            await self.client.api.get(Route(
                 "/private/discord/update",
                 {"type": "write", "member_count": guild.member_count}
             ))

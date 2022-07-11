@@ -55,7 +55,6 @@ class FunCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
 
     @property
     def tenor_token(self) -> str:
@@ -111,7 +110,7 @@ class FunCommands(commands.Cog): # type: ignore
     @command_checks.is_theotown_developer()
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def happiness(self, ctx: Context):
-        res = await self.api.get(Route("/private/review/get"))
+        res = await self.client.api.get(Route("/private/review/get"))
         data = res["data"]
         embed = PidroidEmbed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
         embed.set_author(name=data['author'])

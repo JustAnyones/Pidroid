@@ -18,7 +18,6 @@ class ForumMessageTask(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
         self.fetch_messages.start()
 
     def cog_unload(self) -> None:
@@ -33,7 +32,7 @@ class ForumMessageTask(commands.Cog): # type: ignore
     @tasks.loop(seconds=60)
     async def fetch_messages(self) -> None:
         try:
-            response = await self.client.deprecated_api.get(Route("/private/forum/get_unread_messages"))
+            response = await self.client.api.get(Route("/private/forum/get_unread_messages"))
 
             for message in response["data"]:
 
