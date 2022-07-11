@@ -43,7 +43,7 @@ class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
 
     if TYPE_CHECKING:
-        session: ClientSession
+        session: Optional[ClientSession]
 
     def __init__(self, config: dict):
         intents = discord.Intents.all()
@@ -118,9 +118,9 @@ class Pidroid(commands.Bot): # type: ignore
         self.config = config
         self.prefixes = self.config['prefixes']
 
-        self.session: Optional[ClientSession] = None
+        self.session = None
 
-        self.api = API(self, self.config["postgres_dsn"])
+        self.api = API(self, self.config["postgres_dsn"], True)
         self.deprecated_api = DeprecatedAPI(self, self.config['mongo_dsn'])
 
         self.persistent_data = PersistentDataManager()
@@ -253,6 +253,10 @@ class Pidroid(commands.Bot): # type: ignore
         self.logger.setLevel(logging_level)
         if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
             self.logger.setLevel(logging.DEBUG)
+        ch = logging.StreamHandler()
+        formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
+        ch.setFormatter(formatter)
+        self.logger.addHandler(ch)
 
     def get_prefixes(self, message: Message) -> List[str]:
         """Returns a string list of prefixes for a message using message's context."""

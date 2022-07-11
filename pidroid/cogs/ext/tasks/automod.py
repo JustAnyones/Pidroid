@@ -14,7 +14,7 @@ from cogs.utils.aliases import GuildTextChannel
 from constants import AUTOMODERATOR_RESPONSES
 from cogs.models.case import Kick
 from cogs.models.configuration import GuildConfiguration
-from cogs.utils.logger import BannedWordLog, PhisingLog, SuspiciousUserLog
+from cogs.utils.logger import BannedWordLog, PhishingLog, SuspiciousUserLog
 from cogs.utils.time import utcnow
 from cogs.utils.checks import is_guild_moderator
 
@@ -39,7 +39,7 @@ class AutomodTask(commands.Cog): # type: ignore
         self.automod_violations: Dict[int, Dict[int, dict]] = {}
         self.phising_urls: List[str] = []
 
-    async def _update_phising_urls(self):
+    async def _update_phishing_urls(self):
         """Updates internal phishing url list."""
         urls = await self.client.api.fetch_phishing_urls()
         self.client.logger.info("Updated phishing url list")
@@ -71,7 +71,7 @@ class AutomodTask(commands.Cog): # type: ignore
 
     async def punish_phishing(self, message: Message, trigger_url: str = None):
         assert message.guild is not None
-        await self.client.dispatch_log(message.guild, PhisingLog(message, trigger_url))
+        await self.client.dispatch_log(message.guild, PhishingLog(message, trigger_url))
         await message.delete(delay=0)
         config = self.client.get_guild_configuration(message.guild.id)
         if config is not None:

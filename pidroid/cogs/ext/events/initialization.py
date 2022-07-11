@@ -32,10 +32,11 @@ class InvocationEventHandler(commands.Cog): # type: ignore
         raw_configs = await self.client.deprecated_api.get_all_guild_configurations()
         for config in raw_configs:
             self.client._update_guild_configuration(config.guild_id, config)
+        self.log.debug("Cache filled")
 
         # Also update phising URLS
         cog: AutomodTask = self.client.get_cog("AutomodTask")
-        await cog._update_phising_urls()
+        await cog._update_phishing_urls()
 
         self.client._guild_config_ready.set()
         self.log.debug("Guild configuration cache filled")

@@ -28,6 +28,7 @@ class HTTP:
             new_headers['Authorization'] = self.client.config['tt_api_key']
 
         # Do actual request
+        assert self.client.session is not None
         async with self.client.session.request(
             method, route.url,
             headers=new_headers, data=data
@@ -91,12 +92,15 @@ def get_filename(cd: str) -> str:
 
 async def get(client: Pidroid, url: str, headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a GET request to the specified URL."""
+    assert client.session is not None
     return client.session.get(url, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
 async def post(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a POST request to the specified URL."""
+    assert client.session is not None
     return client.session.post(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
 async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
     """Sends a PATCH request to the specified URL."""
+    assert client.session is not None
     return client.session.patch(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))

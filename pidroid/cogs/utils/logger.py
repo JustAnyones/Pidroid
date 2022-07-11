@@ -66,7 +66,7 @@ class SuspiciousUserLog(BaseLog):
             f"This message has been triggered by the following word in the member's username: '{trigger_word}'"
         )
 
-class PhisingLog(BaseLog):
+class PhishingLog(BaseLog):
 
     def __init__(self, message: Message, url: str = None) -> None:
         super().__init__()
