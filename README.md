@@ -59,7 +59,7 @@ python pidroid/main.py -e config.env
 
 The -e argument specifies which file to use for the environment variables.
 
-### Configuration
+## Configuration
 
 Pidroid used to use a `config.json` file at its `./bot` path for its configuration.
 
@@ -112,7 +112,9 @@ Config options that are yet to be reimplemented
 }
 ```
 
-Obtain docker IP to access services on host device from within a dockerised container.
+### Useful commands for setup
+
+If you want to access a service on host device through a docker container, you'll need to obtain docker IP.
 ```shell
 ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1
 ```
