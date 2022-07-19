@@ -31,7 +31,7 @@ class InfoCommands(commands.Cog): # type: ignore
         member = member or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         if isinstance(member, discord.User):
-            embed.set_image(url=member.display_avatar.with_size(4096).url)
+            embed.set_image(url=member.display_avatar.with_size(4096).url) # type: ignore
         else:
             embed.set_image(url=member._user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
@@ -120,7 +120,7 @@ class InfoCommands(commands.Cog): # type: ignore
         embed = PidroidEmbed(timestamp=guild.created_at)
         if guild.icon:
             embed.set_author(name=guild.name, icon_url=guild.icon.url)
-            embed.set_thumbnail(url=guild.icon.with_size(4096).url)
+            embed.set_thumbnail(url=guild.icon.with_size(4096).url) # type: ignore
         else:
             embed.set_author(name=guild.name)
         embed.add_field(name='Owner', value=guild.owner)
@@ -146,7 +146,7 @@ class InfoCommands(commands.Cog): # type: ignore
 
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         if role.icon:
-            embed.set_thumbnail(url=role.icon.with_size(4096).url)
+            embed.set_thumbnail(url=role.icon.with_size(4096).url) # type: ignore
         embed.add_field(name="Name", value=role.name)
         embed.add_field(name="ID", value=role.id)
         embed.add_field(name="Position", value=role.position)

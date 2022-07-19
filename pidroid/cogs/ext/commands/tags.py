@@ -1,8 +1,7 @@
 from __future__ import annotations
+
 import datetime
 
-from bson.int64 import Int64 # type: ignore
-from bson.objectid import ObjectId # type: ignore
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
@@ -127,13 +126,13 @@ class Tag:
 
     async def edit(self) -> None:
         """Edits a tag by updating the document in the database."""
-        await self.api.edit_tag(self._id, self.content, self._author_ids, self.aliases, self.locked)
+        await self.api.update_tag(self._id, self.content, self._author_ids, self.aliases, self.locked)
 
     async def remove(self) -> None:
         """Removes a tag from the database."""
         if not self.api:
             raise BadArgument("API attribute is missing!")
-        await self.api.remove_tag(self._id)
+        await self.api.delete_tag(self._id)
 
 
 class TagCommands(commands.Cog): # type: ignore

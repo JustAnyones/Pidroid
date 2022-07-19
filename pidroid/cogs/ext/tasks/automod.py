@@ -1,20 +1,18 @@
-import random
 import re
-from threading import Thread
 
+from dateutil.relativedelta import relativedelta # type: ignore
 from discord import Member, TextChannel
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.message import Message
+from discord.threads import Thread
 from typing import Dict, List, Union
 from urllib.parse import urlparse
 
 from client import Pidroid
-from cogs.utils.aliases import GuildTextChannel
-from constants import AUTOMODERATOR_RESPONSES
-from cogs.models.case import Kick
+from cogs.models.case import Timeout
 from cogs.models.configuration import GuildConfiguration
-from cogs.utils.logger import BannedWordLog, PhishingLog, SuspiciousUserLog
+from cogs.utils.logger import PhishingLog, SuspiciousUserLog
 from cogs.utils.time import utcnow
 from cogs.utils.checks import is_guild_moderator
 
@@ -59,10 +57,11 @@ class AutomodTask(commands.Cog): # type: ignore
         member_data = self.automod_violations[guild_id][member_id]
         if member_data["count"] > 3:
             if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
-                k = Kick()
-                k._fill(self.client.deprecated_api, message.guild, None, self.client.user, message.author) # type: ignore
-                k.reason = "Phishing automod violation limit exceeded"
-                await k.issue()
+                t = Timeout()
+                t._fill(self.client.deprecated_api, message.guild, None, self.client.user, message.author)
+                t.reason = "Phishing automod violation limit exceeded"
+                t.length = relativedelta(hours=24)
+                await t.issue()
             del self.automod_violations[guild_id][member_id]
             return
 
@@ -75,18 +74,8 @@ class AutomodTask(commands.Cog): # type: ignore
         await message.delete(delay=0)
         config = self.client.get_guild_configuration(message.guild.id)
         if config is not None:
-            if config.strict_anti_phising:
+            if config.strict_anti_phishing:
                 await self.count_violation(message)
-
-    async def handle_banned_words(self, config: GuildConfiguration, message: Message) -> None:
-        """Handles the detection and removal of banned words."""
-        content = clean_markdown(message.clean_content.lower())
-        word = find_swearing(content, config.banned_exact_words)
-        if word is not None:
-            assert message.guild is not None
-            await self.client.dispatch_log(message.guild, BannedWordLog(message, word))
-            await message.delete(delay=0)
-            await message.channel.send(random.choice(AUTOMODERATOR_RESPONSES).replace('%user%', message.author.mention), delete_after=3.5) # nosec
 
     async def handle_phishing(self, message: Message) -> bool:
         """Handles the detection and filtering of phishing messages."""
@@ -101,19 +90,18 @@ class AutomodTask(commands.Cog): # type: ignore
             # Only scan link embeds which attempt to fake discord gift embed
             link_type_embeds: List[Embed] = [e for e in message.embeds if e.type == "link"]
             for link_embed in link_type_embeds:
-                try:
-                    if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
-                        url = urlparse(link_embed.url.lower())
-                        if url.netloc != "discord.gift":
-                            await self.punish_phishing(message)
-                            return True
-                except AttributeError:
-                    pass
+                if link_embed.title is None or link_embed.provider.name is None or link_embed.url is None:
+                    return False
+                if "nitro" in link_embed.title.lower() and "a wild gift appears" in link_embed.provider.name.lower():
+                    parsed_url = urlparse(link_embed.url.lower())
+                    if parsed_url.netloc != "discord.gift":
+                        await self.punish_phishing(message)
+                        return True
         return False
 
     async def handle_suspicious_member(self, config: GuildConfiguration, member: Member) -> bool:
         """Handles the detection of members which are deemed suspicious."""
-        for trigger_word in config.suspicious_users:
+        for trigger_word in config.suspicious_usernames:
             if trigger_word in member.name.lower():
                 await self.client.dispatch_log(member.guild, SuspiciousUserLog(member, trigger_word))
                 return True
@@ -150,9 +138,7 @@ class AutomodTask(commands.Cog): # type: ignore
         if is_guild_moderator(message.guild, message.channel, message.author):
             return
 
-        punished = await self.handle_phishing(message)
-        if not punished:
-            await self.handle_banned_words(config, message)
+        await self.handle_phishing(message)
 
 
 async def setup(client: Pidroid) -> None:

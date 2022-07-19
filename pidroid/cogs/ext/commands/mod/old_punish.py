@@ -54,10 +54,9 @@ class OldModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def unmute(self, ctx: Context, *, member: MemberOffender):
-        if not self.client.guild_config_cache_ready:
-            return
-
         c = self.client.get_guild_configuration(ctx.guild.id)
+        assert c is not None
+
         role = get_role(ctx.guild, c.mute_role)
         if role is None:
             return await ctx.reply(embed=ErrorEmbed("Mute role not found, cannot remove!"))
@@ -79,10 +78,9 @@ class OldModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def jail(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        if not self.client.guild_config_cache_ready:
-            return
-
         c = self.client.get_guild_configuration(ctx.guild.id)
+        assert c is not None
+
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
             return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
@@ -111,10 +109,9 @@ class OldModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def kidnap(self, ctx: Context, member: MemberOffender, *, reason: str = None):
-        if not self.client.guild_config_cache_ready:
-            return
-
         c = self.client.get_guild_configuration(ctx.guild.id)
+        assert c is not None
+
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
             return await ctx.reply(embed=ErrorEmbed("Jail role not found!"))
@@ -142,10 +139,9 @@ class OldModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def unjail(self, ctx: Context, *, member: MemberOffender):
-        if not self.client.guild_config_cache_ready:
-            return
-
         c = self.client.get_guild_configuration(ctx.guild.id)
+        assert c is not None
+
         role = get_role(ctx.guild, c.jail_role)
         if role is None:
             return await ctx.reply(embed=ErrorEmbed("Jail role not found, cannot remove!"))

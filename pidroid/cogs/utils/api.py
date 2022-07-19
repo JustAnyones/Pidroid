@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import bson # type: ignore
 import motor.motor_asyncio # type: ignore
 import random
 import secrets
@@ -9,7 +8,6 @@ import string
 from bson.objectid import ObjectId # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from motor.core import AgnosticCollection # type: ignore
-from pymongo.results import InsertOneResult # type: ignore
 from typing import Any, List, Optional, Union, TYPE_CHECKING
 
 from cogs.ext.commands.tags import Tag
@@ -65,7 +63,12 @@ class GuildConfigurationTable(Base): # type: ignore
     guild_id = Column(BigInteger)
     jail_channel = Column(BigInteger, nullable=True)
     jail_role = Column(BigInteger, nullable=True)
-    mute_role = Column(BigInteger, nullable=True)
+    mute_role = Column(BigInteger, nullable=True) # Deprecated, only used for backwards compatibility
+    log_channel = Column(BigInteger, nullable=True)
+    prefixes = Column(ARRAY(Text), server_default="{}")
+    suspicious_usernames = Column(ARRAY(Text), server_default="{}")
+    public_tags = Column(Boolean, server_default="false")
+    strict_anti_phishing = Column(Boolean, server_default="false")
 
 class PhishingUrlTable(Base): # type: ignore
     __tablename__ = "PhishingUrls"
@@ -183,8 +186,8 @@ class API:
             )
         return [Tag(self, r[0]) for r in result.fetchall()]
 
-    async def edit_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
-        """Edits a tag by specified row ID."""
+    async def update_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
+        """Updates a tag entry by specified row ID."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
             async with session.begin():
@@ -200,12 +203,96 @@ class API:
                 )
             await session.commit()
 
-    async def remove_tag(self, row_id: int) -> None:
+    async def delete_tag(self, row_id: int) -> None:
         """Removes a tag by specified row ID."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(TagTable).filter(TagTable.id == row_id))
+            await session.commit()
+
+    """Guild configuration related"""
+
+    async def insert_guild_configuration(
+        self,
+        guild_id: int,
+        jail_channel: Optional[int] = None, jail_role: Optional[int] = None,
+        log_channel: Optional[int] = None
+    ) -> GuildConfiguration:
+        """Inserts a minimal guild configuration entry to the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = GuildConfigurationTable(
+                    guild_id=guild_id,
+                    jail_channel=jail_channel,
+                    jail_role=jail_role,
+                    log_channel=log_channel
+                )
+                session.add(entry)
+            await session.commit()
+        config = await self.fetch_guild_configuration_by_id(entry.id)
+        assert config is not None
+        return config
+
+    async def fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
+        """Fetches and returns a deserialized guild configuration if available."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(GuildConfigurationTable).
+                filter(GuildConfigurationTable.id == id)
+            )
+        r = result.fetchone()
+        if r is None:
+            return None
+        return GuildConfiguration(self, r[0])
+
+    async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
+        """Returns a list of all guild configuration entries in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(GuildConfigurationTable)
+            )
+        return [GuildConfiguration(self, r[0]) for r in result.fetchall()]
+
+    async def update_guild_configuration(
+        self,
+        row_id: int,
+        jail_channel: Optional[int], jail_role: Optional[int],
+        mute_role: Optional[int],
+        log_channel: Optional[int],
+        prefixes: List[str],
+        suspicious_usernames: List[str],
+        public_tags: bool, strict_anti_phishing: bool
+    ) -> None:
+        """Updates a guild configuration entry by specified row ID."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(GuildConfigurationTable).
+                    filter(GuildConfigurationTable.id == row_id).
+                    values(
+                        jail_channel=jail_channel,
+                        jail_role=jail_role,
+                        mute_role=mute_role,
+                        log_channel=log_channel,
+                        prefixes=prefixes,
+                        suspicious_usernames=suspicious_usernames,
+                        public_tags=public_tags,
+                        strict_anti_phishing=strict_anti_phishing
+                    )
+                )
+            await session.commit()
+
+    async def delete_guild_configuration(self, row_id: int) -> None:
+        """Removes a guild configuration entry by specified row ID."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(delete(GuildConfigurationTable).filter(GuildConfigurationTable.id == row_id))
             await session.commit()
 
     """TheoTown backend related"""
@@ -254,11 +341,6 @@ class DeprecatedAPI:
     def punishments(self) -> AgnosticCollection:
         """Returns a MongoDB collection for guild member punishments."""
         return self.db["Punishments"]
-
-    @property
-    def guild_configurations(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for guild configurations."""
-        return self.db["Guild_configurations"]
 
     @property
     def shitposts(self) -> AgnosticCollection:
@@ -431,65 +513,6 @@ class DeprecatedAPI:
             {"type": {"$ne": "warning"}, "guild_id": guild_id, "date_expires": {"$gt": 0}, "visible": True}
         )
         return [i async for i in cursor]
-
-    """Guild configuration related methods"""
-
-    async def get_all_guild_configurations(self) -> List[GuildConfiguration]:
-        """Returns a list of all guild configurations."""
-        cursor = self.guild_configurations.find({})
-        return [GuildConfiguration(self, i) async for i in cursor]
-
-    async def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
-        """Returns a specified guild configuration."""
-        data = await self.guild_configurations.find_one({"guild_id": guild_id})
-        if data:
-            return GuildConfiguration(self, data)
-        return None
-
-    async def get_guild_configuration_by_id(self, object_id: ObjectId) -> Optional[GuildConfiguration]:
-        """Returns a specified guild configuration."""
-        data = await self.guild_configurations.find_one({"_id": object_id})
-        if data:
-            return GuildConfiguration(self, data)
-        return None
-
-    async def create_new_guild_configuration(
-        self, guild_id: int,
-        jail_id: int = None, jail_role_id: int = None,
-        mute_role_id: int = None
-    ) -> GuildConfiguration:
-        """Creates a new guild configuration entry."""
-        d = {
-            "guild_id": bson.Int64(guild_id),
-        }
-        if jail_id:
-            d["jail_channel"] = bson.Int64(jail_id)
-        if jail_role_id:
-            d["jail_role"] = bson.Int64(jail_role_id)
-        if mute_role_id:
-            d["mute_role"] = bson.Int64(mute_role_id)
-        result: InsertOneResult = await self.guild_configurations.insert_one(d)
-        config = await self.get_guild_configuration_by_id(result.inserted_id)
-        assert config is not None
-        return config
-
-    async def delete_guild_configuration(self, object_id: ObjectId) -> None:
-        """Deletes a guild configuration document."""
-        await self.guild_configurations.delete_one({'_id': object_id})
-
-    async def set_guild_config(self, object_id: ObjectId, key: str, value: Any) -> None:
-        """Sets a guild configuration key with specified value."""
-        await self.guild_configurations.update_one(
-            {"_id": object_id},
-            {"$set": {key: value}}
-        )
-
-    async def unset_guild_config(self, object_id: ObjectId, key: str) -> None:
-        """Unsets a guild configuration key."""
-        await self.guild_configurations.update_one(
-            {'_id': object_id},
-            {"$unset": {key: 1}}
-        )
 
     """Shitpost related methods"""
 

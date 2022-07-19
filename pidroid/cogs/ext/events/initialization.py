@@ -29,10 +29,18 @@ class InvocationEventHandler(commands.Cog): # type: ignore
 
     async def _fill_guild_config_cache(self):
         self.log.debug("Filling guild configuration cache")
-        raw_configs = await self.client.deprecated_api.get_all_guild_configurations()
+        raw_configs = await self.client.api.fetch_guild_configurations()
         for config in raw_configs:
             self.client._update_guild_configuration(config.guild_id, config)
         self.log.debug("Cache filled")
+
+        # Generate configurations for guilds that do not already have it
+        for guild in self.client.guilds:
+            config = self.client.get_guild_configuration(guild.id)
+            if config is None:
+                config = await self.client.api.insert_guild_configuration(guild.id)
+                self.client._update_guild_configuration(guild.id, config)
+                self.log.warn(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
 
         # Also update phising URLS
         cog: AutomodTask = self.client.get_cog("AutomodTask")

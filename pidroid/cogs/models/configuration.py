@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from bson.int64 import Int64 # type: ignore
-from bson.objectid import ObjectId # type: ignore
 from discord.channel import TextChannel
 from discord.role import Role
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from cogs.utils.api import DeprecatedAPI
+    from cogs.utils.api import API, GuildConfigurationTable
 
 class GuildConfiguration:
 
     if TYPE_CHECKING:
-        _id: ObjectId
+        _id: int
         guild_id: int
 
         prefixes: List[str]
@@ -22,87 +20,92 @@ class GuildConfiguration:
         mute_role: Optional[int]
         log_channel: Optional[int]
 
-        strict_anti_phising: bool
+        strict_anti_phishing: bool
         public_tags: bool
 
-        suspicious_users: List[str]
-        banned_exact_words: List[str]
+        suspicious_usernames: List[str]
 
-    def __init__(self, api: DeprecatedAPI, data: dict) -> None:
+    def __init__(self, api: API, data: GuildConfigurationTable) -> None:
         self.api = api
-        self._serialize(data)
+        self._deserialize(data)
 
-    def _serialize(self, c: dict) -> None:
-        """Creates GuildConfiguration object from a dictionary."""
-        self._id = c["_id"]
-        self.guild_id = c["guild_id"]
+    def _deserialize(self, c: GuildConfigurationTable) -> None:
+        """Creates a GuildConfiguration object from a table object."""
+        self._id = c.id
+        self.guild_id = c.guild_id
 
-        self.prefixes = c.get("prefixes", [])
+        self.prefixes = c.prefixes
 
-        self.jail_channel = c.get("jail_channel", None)
-        self.jail_role = c.get("jail_role", None)
-        self.mute_role = c.get("mute_role", None)
-        self.log_channel = c.get("log_channel", None)
+        self.jail_channel = c.jail_channel
+        self.jail_role = c.jail_role
+        self.mute_role = c.mute_role
+        self.log_channel = c.log_channel
 
-        self.public_tags = c.get("public_tags", False)
-        self.strict_anti_phising = c.get("strict_anti_phising", False)
+        self.public_tags = c.public_tags
+        self.strict_anti_phishing = c.strict_anti_phishing
 
-        self.suspicious_users = c.get("suspicious_users", [])
-        self.banned_exact_words = c.get("banned_exact_words", [])
+        self.suspicious_usernames = c.suspicious_usernames
+
+    async def _update(self) -> None:
+        await self.api.update_guild_configuration(
+            self._id,
+            self.jail_channel, self.jail_role,
+            self.mute_role,
+            self.log_channel,
+            self.prefixes,
+            self.suspicious_usernames,
+            self.public_tags,
+            self.strict_anti_phishing
+        )
 
     async def update_public_tag_permission(self, allow_public: bool) -> None:
         """Updates public tag permission."""
         self.public_tags = allow_public
-        await self.api.set_guild_config(self._id, "public_tags", allow_public)
+        await self._update()
 
     async def update_anti_phising_permission(self, strict: bool) -> None:
         """Updates strict anti-phising permission."""
-        self.strict_anti_phising = strict
-        await self.api.set_guild_config(self._id, "strict_anti_phising", strict)
+        self.strict_anti_phishing = strict
+        await self._update()
 
-    async def update_prefix(self, prefix: str) -> None:
-        """Updates the guild bot prefix."""
+    async def update_prefixes(self, prefix: str) -> None:
+        """Updates the guild bot prefixes."""
         self.prefixes = [prefix]
-        await self.api.set_guild_config(self._id, "prefixes", self.prefixes)
+        await self._update()
 
     async def update_jail_channel(self, channel: Optional[TextChannel]) -> None:
         """Updates the guild jail text channel."""
         if channel is None:
             self.jail_channel = None
-            return await self.api.unset_guild_config(self._id, "jail_channel")
-        self.jail_channel = channel.id
-        await self.api.set_guild_config(self._id, "jail_channel", Int64(channel.id))
+        else:
+            self.jail_channel = channel.id
+        await self._update()
 
     async def update_jail_role(self, role: Optional[Role]) -> None:
         """Updates the guild jail role."""
         if role is None:
             self.jail_role = None
-            return await self.api.unset_guild_config(self._id, "jail_role")
-        self.jail_role = role.id
-        await self.api.set_guild_config(self._id, "jail_role", Int64(role.id))
+        else:
+            self.jail_role = role.id
+        await self._update()
 
     async def update_mute_role(self, role: Optional[Role]) -> None:
         """Updates the guild mute role."""
         if role is None:
             self.mute_role = None
-            return await self.api.unset_guild_config(self._id, "mute_role")
-        self.mute_role = role.id
-        await self.api.set_guild_config(self._id, "mute_role", Int64(role.id))
+        else:
+            self.mute_role = role.id
+        await self._update()
 
     async def update_log_channel(self, channel: Optional[TextChannel]) -> None:
         """Updates the guild log text channel."""
         if channel is None:
             self.log_channel = None
-            return await self.api.unset_guild_config(self._id, "log_channel")
-        self.log_channel = channel.id
-        await self.api.set_guild_config(self._id, "log_channel", Int64(channel.id))
+        else:
+            self.log_channel = channel.id
+        await self._update()
 
     async def update_suspicious_users(self, suspicious_users: List[str]) -> None:
         """Updates the suspicious user list."""
-        self.suspicious_users = suspicious_users
-        await self.api.set_guild_config(self._id, "suspicious_users", suspicious_users)
-
-    async def update_banned_exact_words(self, banned_words: List[str]) -> None:
-        """Updates the exact banned words list."""
-        self.banned_exact_words = banned_words
-        await self.api.set_guild_config(self._id, "banned_exact_words", banned_words)
+        self.suspicious_usernames = suspicious_users
+        await self._update()

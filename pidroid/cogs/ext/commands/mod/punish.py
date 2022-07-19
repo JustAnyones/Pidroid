@@ -30,16 +30,16 @@ from cogs.utils.checks import check_junior_moderator_permissions, check_normal_m
 from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
-    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason")
-    interaction: Interaction = None
+    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason") # type: ignore
+    interaction: Interaction = None # type: ignore
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
         self.stop()
 
 class LengthModal(ui.Modal, title='Custom length modal'):
-    length_input = ui.TextInput(label="Length", placeholder="Please provide the length")
-    interaction: Interaction = None
+    length_input = ui.TextInput(label="Length", placeholder="Please provide the length") # type: ignore
+    interaction: Interaction = None # type: ignore
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
@@ -49,7 +49,7 @@ class BaseButton(ui.Button):
     if TYPE_CHECKING:
         view: PunishmentInteraction
 
-    def __init__(self, style: ButtonStyle, label: str, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+    def __init__(self, style: ButtonStyle, label: Optional[str], disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
 
 class ValueButton(BaseButton):
@@ -72,6 +72,10 @@ class LengthButton(ValueButton):
         value = self.value
         if value is None:
             value, interaction = await self.view.custom_length_modal(interaction)
+
+            if value is None:
+                return await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
+
             try:
                 value = duration_string_to_relativedelta(value)
             except InvalidDuration as e:
@@ -82,7 +86,8 @@ class LengthButton(ValueButton):
 
             if delta.total_seconds() < 5 * 60:
                 return await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
-
+            
+            assert self.view._punishment is not None
             if self.view._punishment.type == "timeout":
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
                     return await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
@@ -99,6 +104,9 @@ class ReasonButton(ValueButton):
         value = self.value
         if value is None:
             value, interaction = await self.view.custom_reason_modal(interaction)
+
+            if value is None:
+                return await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
 
         self.view._select_reason(value)
         await self.view.create_confirmation_selector()
@@ -273,13 +281,15 @@ class PunishmentInteraction(ui.View):
         self.user = user
         self.embed = embed
 
-        self._punishment: Union[Ban, Kick, Jail, Timeout, Warning] = None
+        self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
 
-        self.jail_role: Role = None
+        self.jail_role: Optional[Role] = None
 
-    async def initialise(self):
-        client: Pidroid = self.ctx.bot
+    async def initialize(self):
+        client = self.ctx.bot
+        assert isinstance(client, Pidroid)
         c = client.get_guild_configuration(self.ctx.guild.id)
+        assert c is not None
         role = get_role(self.ctx.guild, c.jail_role)
         if role is not None:
             self.jail_role = role
@@ -302,11 +312,15 @@ class PunishmentInteraction(ui.View):
         else:
             len_str = humanize(timedelta_to_datetime(length), max_units=3)
 
+        assert isinstance(self.embed.description, str)
         self.embed.description += f"\nLength: {len_str}"
+        assert self._punishment is not None
         self._punishment.length = length
 
     def _select_reason(self, reason: str):
+        assert isinstance(self.embed.description, str)
         self.embed.description += f"\nReason: {reason}"
+        assert self._punishment is not None
         self._punishment.reason = reason
 
     async def _update_view(self, interaction: Interaction):
@@ -375,12 +389,14 @@ class PunishmentInteraction(ui.View):
         modal = ReasonModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait() # TODO: figure out what to do
+        print(timed_out)
         return modal.reason_input.value, modal.interaction
 
     async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
         modal = LengthModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait() # TODO: figure out what to do
+        print(timed_out)
         return modal.length_input.value, modal.interaction
 
     async def create_type_selector(self):
@@ -462,10 +478,13 @@ class PunishmentInteraction(ui.View):
 
         # If moderator confirmed the action
         if confirmed:
-
+            assert self._punishment is not None
             if self._punishment.type == "jail":
+                assert isinstance(self._punishment, Jail)
+                assert self.jail_role is not None
                 await self._punishment.issue(self.jail_role)
             else:
+                assert isinstance(self._punishment, (Ban, Kick, Timeout, Warning))
                 await self._punishment.issue()
             return await self.finish(interaction)
 
@@ -478,11 +497,6 @@ class PunishmentInteraction(ui.View):
 
     """Clean up related methods"""
 
-    def disable_items(self) -> None:
-        """Disables all view items."""
-        for child in self.children:
-            child.disabled = True
-
     def remove_items(self) -> None:
         """Removes all items from the view."""
         for child in self.children.copy():
@@ -490,8 +504,11 @@ class PunishmentInteraction(ui.View):
 
     async def finish(self, interaction: Interaction) -> None:
         """Causes the view to remove itself and stop listening to interactions."""
+        print("asked to defer")
         await interaction.response.defer()
+        print("asked to delete original")
         await interaction.delete_original_message()
+        print("asked to stop")
         return self.stop()
 
     def stop(self) -> None:
@@ -552,6 +569,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         category=ModerationCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     @commands.is_owner() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
@@ -575,7 +593,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         embed.title = f"Punish {escape_markdown(str(user))}"
 
         view = PunishmentInteraction(ctx, user, embed)
-        await view.initialise()
+        await view.initialize()
         await view.create_type_selector()
 
         await ctx.reply(embed=embed, view=view)

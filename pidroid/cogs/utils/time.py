@@ -47,7 +47,7 @@ def utcnow() -> datetime.datetime:
     """Returns current datetime."""
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
-def duration_string_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
+def duration_string_to_relativedelta(duration_str: str) -> relativedelta:
     """Converts a duration string to a relativedelta object."""
     match = DURATION_PATTERN.fullmatch(duration_str)
     if not match:

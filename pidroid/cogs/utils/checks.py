@@ -54,7 +54,7 @@ def check_bot_channel_permissions(channel: Union[TextChannel, VoiceChannel], mem
     return True
 
 def guild_has_configuration(client: Pidroid, guild: Guild) -> bool:
-    return guild.id in client.guild_configuration_guilds
+    return client.get_guild_configuration(guild.id) is not None
 
 def is_user_justanyone(user: Union[Member, User]) -> bool:
     """Returns true if specified user is JustAnyone."""

@@ -23,7 +23,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         if guild.id in self.client.guild_configuration_guilds:
             return
 
-        config = await self.api.create_new_guild_configuration(guild.id)
+        config = await self.client.api.insert_guild_configuration(guild.id)
         self.client._update_guild_configuration(guild.id, config)
 
     @commands.Cog.listener() # type: ignore
@@ -37,7 +37,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         if config is None:
             return
 
-        await self.api.delete_guild_configuration(config._id)
+        await self.client.api.delete_guild_configuration(config._id)
         self.client._remove_guild_configuration(guild.id)
 
     @commands.Cog.listener() # type: ignore
