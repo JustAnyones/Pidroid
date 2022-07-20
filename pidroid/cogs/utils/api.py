@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import motor.motor_asyncio # type: ignore
 import random
 import secrets
@@ -34,6 +35,13 @@ if TYPE_CHECKING:
 
 Base = declarative_base()
 
+class ExpiringThreadTable(Base): # type: ignore
+    __tablename__ = "ExpiringThreads"
+
+    id = Column(Integer, primary_key=True)
+    thread_id = Column(BigInteger)
+    expiration_date = Column(DateTime(timezone=True))
+
 class SuggestionTable(Base): # type: ignore
     __tablename__ = "Suggestions"
 
@@ -57,7 +65,7 @@ class TagTable(Base): # type: ignore
     date_created = Column(DateTime(timezone=True), default=func.now())
 
 class GuildConfigurationTable(Base): # type: ignore
-    __tablename__ = "GuildConfiguration"
+    __tablename__ = "GuildConfigurations"
 
     id = Column(Integer, primary_key=True)
     guild_id = Column(BigInteger)
@@ -244,9 +252,9 @@ class API:
                 filter(GuildConfigurationTable.id == id)
             )
         r = result.fetchone()
-        if r is None:
-            return None
-        return GuildConfiguration(self, r[0])
+        if r:
+            return GuildConfiguration(self, r[0])
+        return None
 
     async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
         """Returns a list of all guild configuration entries in the database."""
@@ -295,6 +303,33 @@ class API:
                 await session.execute(delete(GuildConfigurationTable).filter(GuildConfigurationTable.id == row_id))
             await session.commit()
 
+    """Expiring thread related"""
+
+    async def insert_expiring_thread(self, thread_id: int, expiration_date: datetime.datetime) -> None:
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                session.add(ExpiringThreadTable(thread_id=thread_id, expiration_date=expiration_date))
+            await session.commit()
+
+    async def fetch_expired_threads(self, expiration_date: datetime.datetime) -> List[ExpiringThreadTable]:
+        """Returns a list of active threads which require archiving."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(ExpiringThreadTable).
+                filter(ExpiringThreadTable.expiration_date <= expiration_date)
+            )
+        return [r[0] for r in result.fetchall()]
+
+    async def delete_expiring_thread(self, row_id: int) -> None:
+        """Removes an expiring thread entry from the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(delete(ExpiringThreadTable).filter(ExpiringThreadTable.id == row_id))
+            await session.commit()
+
     """TheoTown backend related"""
 
     async def fetch_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
@@ -331,11 +366,6 @@ class DeprecatedAPI:
     def internal(self) -> AgnosticCollection:
         """Returns a MongoDB collection for internal related data."""
         return self.db["Internal"]
-
-    @property
-    def expiring_threads(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for expiring threads."""
-        return self.db["Expiring_threads"]
 
     @property
     def punishments(self) -> AgnosticCollection:
@@ -404,24 +434,6 @@ class DeprecatedAPI:
         if data is None:
             return []
         return data["translation"]
-
-    async def create_new_expiring_thread(self, thread_id: int, expire_timestamp: int) -> None:
-        """Creates a new expiring thread entry inside the database."""
-        await self.expiring_threads.insert_one({
-            "thread_id": thread_id,
-            "expires": expire_timestamp
-        })
-
-    async def get_archived_threads(self, timestamp: float) -> List[dict]:
-        """Returns a list of active threads which require archiving."""
-        cursor = self.expiring_threads.find(
-            {"expires": {"$lte": timestamp}}
-        )
-        return [i async for i in cursor]
-
-    async def remove_thread(self, _id: ObjectId) -> None:
-        """Removes a thread entry from the database."""
-        await self.expiring_threads.delete_many({"_id": _id})
 
     """Moderation related methods"""
 

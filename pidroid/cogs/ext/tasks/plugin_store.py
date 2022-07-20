@@ -71,7 +71,7 @@ class PluginStoreTasks(commands.Cog): # type: ignore
                     if self.use_threads:
                         await self.client.create_expiring_thread(
                             message, f"{truncate_string(plugin.clean_title, 89)} discussion",
-                            int(timedelta_to_datetime(timedelta(days=7)).timestamp())
+                            timedelta_to_datetime(timedelta(days=7))
                         )
         except ServerDisconnectedError:
             self.client.logger.exception("An server disconnection was encountered while trying to retrieve and publish new plugin information")

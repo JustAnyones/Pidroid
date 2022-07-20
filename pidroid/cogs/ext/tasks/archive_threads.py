@@ -12,8 +12,6 @@ class ThreadTasks(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
-
         self.archive_threads.start()
 
     def cog_unload(self) -> None:
@@ -23,25 +21,24 @@ class ThreadTasks(commands.Cog): # type: ignore
     @tasks.loop(seconds=60)
     async def archive_threads(self) -> None:
         """Archives expired threads."""
-        threads_to_archive = await self.api.get_archived_threads(utcnow().timestamp())
-        for thread_item in threads_to_archive:
-            thread_id: int = thread_item["thread_id"]
+        threads_to_archive = await self.client.api.fetch_expired_threads(utcnow())
+        for thread_entry in threads_to_archive:
 
             try:
-                thread: Thread = await self.client.fetch_channel(thread_id)
+                thread: Thread = await self.client.fetch_channel(thread_entry.thread_id)
             except Exception as e:
-                self.client.logger.exception(f"Failure to look up a thread, ID is {thread_id}\nException: {e}")
+                self.client.logger.exception(f"Failure to look up a thread, ID is {thread_entry.thread_id}\nException: {e}")
 
                 if isinstance(e, NotFound):
                     # If thread channel was deleted completely
                     if e.code == 10003:
                         self.client.logger.info("Thread channel does not exist, deleting from the database")
-                        await self.api.remove_thread(thread_item["_id"])
+                        await self.client.api.delete_expiring_thread(thread_entry.id)
                 continue
 
             await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
             await thread.edit(archived=True, locked=True)
-            await self.api.remove_thread(thread_item["_id"])
+            await self.client.api.delete_expiring_thread(thread_entry.id)
 
     @archive_threads.before_loop
     async def before_archive_threads(self) -> None:

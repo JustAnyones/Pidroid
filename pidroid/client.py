@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import discord
 import random
 import subprocess # nosec
@@ -184,10 +185,10 @@ class Pidroid(commands.Bot): # type: ignore
     def _remove_guild_configuration(self, guild_id: int) -> None:
         self.guild_configurations.pop(guild_id)
 
-    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: int, auto_archive_duration: int = 60):
+    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
         thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration) # type: ignore
-        await self.deprecated_api.create_new_expiring_thread(thread.id, expire_timestamp)
+        await self.api.insert_expiring_thread(thread.id, expire_timestamp)
         return thread
 
     async def dispatch_log(self, guild: Guild, log: BaseLog):
