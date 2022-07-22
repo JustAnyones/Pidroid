@@ -257,6 +257,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
             # Insert rich description
             if len(rich_description) > 0:
+                assert embed.description is not None
                 embed.description += "\n--\n" + rich_description
 
             # Add attachments if they exist

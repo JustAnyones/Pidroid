@@ -1,10 +1,8 @@
 from __future__ import annotations
-import datetime
 
-import bson # type: ignore
+import datetime
 import discord
 
-from bson.objectid import ObjectId # type: ignore
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord.embeds import Embed
@@ -21,10 +19,10 @@ from ..utils.aliases import GuildTextChannel
 from ..utils.embeds import PidroidEmbed, SuccessEmbed
 from ..utils.file import Resource
 from ..utils.paginators import ListPageSource, PidroidPages
-from ..utils.time import delta_to_datetime, humanize, time_since, timestamp_to_date, timestamp_to_datetime, utcnow
+from ..utils.time import datetime_to_date, delta_to_datetime, humanize, time_since, timestamp_to_datetime, utcnow
 
 if TYPE_CHECKING:
-    from ..utils.api import DeprecatedAPI
+    from ..utils.api import API, PunishmentTable
     DiscordUser = Union[Member, User]
     Moderator = Union[Member, User]
     Length = Union[int, timedelta, relativedelta]
@@ -32,8 +30,8 @@ if TYPE_CHECKING:
 class BaseCase:
 
     if TYPE_CHECKING:
-        _id: ObjectId
-        case_id: str
+        _id: int
+        case_id: int
         type: str
         guild_id: int
 
@@ -43,36 +41,50 @@ class BaseCase:
         _user_name: Optional[str]
         _moderator_name: Optional[str]
 
-        date_issued: int
-        date_expires: int
         reason: Optional[str]
+        date_issued: datetime.datetime
+        date_expires: Optional[datetime.datetime]
 
-    def __init__(self, api: DeprecatedAPI, data: dict) -> None:
+        visible: bool
+        handled: bool
+
+    def __init__(self, api: API, data: PunishmentTable) -> None:
         self._api = api
-        self._update(data)
+        self._deserialize(data)
 
-    def _update(self, data: dict):
-        self._id = data["_id"]
-        self.case_id = data["id"]
-        self.type = data["type"]
-        self.guild_id = data["guild_id"]
+    def _deserialize(self, data: PunishmentTable):
+        self._id = data.id
+        self.case_id = data.case_id
+        self.type = data.type
+        self.guild_id = data.guild_id
 
-        self.user_id = data["user_id"]
-        self.moderator_id = data["moderator_id"]
+        self.user_id = data.user_id
+        self.moderator_id = data.moderator_id
 
-        self._user_name = data.get("user_name", None)
-        self._moderator_name = data.get("moderator_name", None)
+        self._user_name = data.user_name
+        self._moderator_name = data.moderator_name
 
-        self.date_issued = data["date_issued"]
-        self.date_expires = data["date_expires"]
-        self.reason = data.get("reason", None)
+        self.reason = data.reason
+        self.date_issued = data.issue_date
+        self.date_expires = data.expire_date
+
+        self.visible = data.visible
+        self.handled = data.handled
+
+    async def _update(self) -> None:
+        await self._api.update_case_by_internal_id(self._id, self.reason, self.date_expires, self.visible, self.handled)
 
     @property
     def has_expired(self) -> bool:
         """Returns true if the punishment expired."""
-        if self.date_expires == -1:
+        # If case expired by getting explicitly handled
+        if self.handled:
+            return True
+        # If the date of expiration is set to none, then it never expires
+        if self.date_expires is None:
             return False
-        return self.date_expires <= utcnow().timestamp()
+        # Otherwise, if current date is above or equal to the date is should expire, then it IS expired
+        return self.date_expires <= utcnow()
 
     @property
     def user_name(self) -> str:
@@ -98,29 +110,27 @@ class BaseCase:
 
         if self.has_expired:
             duration = "Expired."
-        elif self.date_expires == -1:
+        elif self.date_expires is None:
             duration = "∞"
         else:
-            duration = humanize(timestamp_to_datetime(self.date_expires), max_units=3)
+            duration = humanize(self.date_expires, max_units=3)
 
         embed.add_field(name='Duration', value=duration)
-        embed.set_footer(text=f"Issued {time_since(timestamp_to_datetime(self.date_issued), max_units=3)}")
+        embed.set_footer(text=f"Issued {time_since(self.date_issued, max_units=3)}")
         return embed
 
 class Case(BaseCase):
 
     if TYPE_CHECKING:
-        user: User
-        moderator: User
+        user: Optional[User]
+        moderator: Optional[User]
 
-    def __init__(self, api: DeprecatedAPI, data: dict) -> None:
+    def __init__(self, api: API, data: PunishmentTable) -> None:
         super().__init__(api, data)
 
-    def _update(self, data: dict):
-        super()._update(data)
-
-        self.user = data["user"]
-        self.moderator = data["moderator"]
+    async def _fetch_users(self) -> None:
+        self.user = await self._api.client.get_or_fetch_user(self.user_id)
+        self.moderator = await self._api.client.get_or_fetch_user(self.moderator_id)
 
     @property
     def user_name(self) -> str:
@@ -135,10 +145,7 @@ class Case(BaseCase):
     async def update_reason(self, reason: str) -> None:
         """Updates the case reason."""
         self.reason = reason
-        await self._api.punishments.update_one(
-            {"_id": self._id},
-            {'$set': {'reason': reason}}
-        )
+        await self._update()
 
     async def invalidate(self) -> None:
         """Invalidates specified case.
@@ -146,10 +153,10 @@ class Case(BaseCase):
         Note, this only works for warnings."""
         if self.type != "warning":
             raise BadArgument("Only warnings can be invalidated!")
-        await self._api.punishments.update_one(
-            {"_id": self._id},
-            {'$set': {'date_expires': 0, "visible": False}}
-        )
+        self.date_expires = utcnow()
+        self.handled = True
+        self.visible = False
+        await self._update()
 
 
 class CasePaginator(ListPageSource):
@@ -163,12 +170,12 @@ class CasePaginator(ListPageSource):
         for case in cases:
             if self.compact:
                 name = f"#{case.case_id} issued by {case.moderator_name}"
-                value = f"\"{case.reason}\" issued on {timestamp_to_date(case.date_issued)}"
+                value = f"\"{case.reason}\" issued on {datetime_to_date(case.date_issued)}"
             else:
                 name = f"Case #{case.case_id}: {case.type}"
                 value = (
                     f"**Issued by:** {case.moderator_name}\n"
-                    f"**Issued on:** {timestamp_to_date(case.date_issued)}\n"
+                    f"**Issued on:** {datetime_to_date(case.date_issued)}\n"
                     f"**Reason:** {case.clean_reason.capitalize()}"
                 )
             self.embed.add_field(name=name, value=value, inline=False)
@@ -178,7 +185,7 @@ class CasePaginator(ListPageSource):
 class BasePunishment:
 
     if TYPE_CHECKING:
-        _api: DeprecatedAPI
+        _api: API
         type: str
         case: Optional[Case]
         _channel: Optional[GuildTextChannel]
@@ -203,8 +210,8 @@ class BasePunishment:
         if ctx is not None and user is not None:
             self._fill(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user)
 
-    def _fill(self, api: DeprecatedAPI, guild: Guild, channel: Optional[GuildTextChannel], moderator: Moderator, user: DiscordUser) -> None:
-        self._api: DeprecatedAPI = api
+    def _fill(self, api: API, guild: Guild, channel: Optional[GuildTextChannel], moderator: Moderator, user: DiscordUser) -> None:
+        self._api = api
         self.guild = guild
         self._channel = channel
 
@@ -255,30 +262,17 @@ class BasePunishment:
         self._reason = reason
 
     async def _create_db_entry(self) -> Case:
-        case_id = await self._api.get_unique_id(self._api.punishments)
-        await self._api.punishments.insert_one({
-            "id": case_id,
-            "type": self.type,
-
-            "guild_id": bson.Int64(self.guild.id),
-            "user_id": bson.Int64(self.user.id),
-            "moderator_id": bson.Int64(self.moderator.id),
-
-            "user_name": self.user_name,
-            "moderator_name": self.moderator_name,
-
-            "reason": self.reason,
-            "date_issued": bson.Int64(int(utcnow().timestamp())),
-            "date_expires": self.length,
-            "visible": True
-        })
-        case = await self._api.fetch_case(self.guild.id, case_id)
-        assert case is not None
-        return case
+        return await self._api.insert_punishment_entry(
+            self.type,
+            self.guild.id,
+            self.user.id, self.user_name,
+            self.moderator.id, self.moderator_name,
+            self.reason, self.length_as_datetime
+        )
 
     async def _revoke_punishment_db_entry(self, type: str) -> None:
         """Removes all punishments of specified type for the current user."""
-        await self._api.revoke_punishment(type, self.guild.id, self.user.id)
+        await self._api.revoke_cases_by_type(type, self.guild.id, self.user.id)
 
     """Would rather stick these user notification features into an event listener of sorts."""
     async def _notify_user(self, message: str):
@@ -481,48 +475,48 @@ class Timeout(BasePunishment):
         await self._notify_chat(f"Timeout for {self.user_name} was removed!")
         await self._notify_user(f"Your timeout has been removed in {self.guild.name} server!")
 
-async def create_ban(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
+async def create_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
     ban.length = length # type: ignore
     ban.reason = reason
     return await ban.issue()
 
-async def remove_ban(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str = None):
+async def remove_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str = None):
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
     await ban.revoke(reason)
 
-async def create_kick(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str) -> Case:
+async def create_kick(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str) -> Case:
     kick = Kick()
     kick._fill(api, guild, channel, moderator, user)
     kick.reason = reason
     return await kick.issue()
 
-async def create_jail(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, role: Role, reason: str) -> Case:
+async def create_jail(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, role: Role, reason: str) -> Case:
     jail = Jail()
     jail._fill(api, guild, channel, moderator, user)
     jail.reason = reason
     return await jail.issue(role)
 
-async def remove_jail(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, role: Role, reason: str = None):
+async def remove_jail(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, role: Role, reason: str = None):
     jail = Jail()
     jail._fill(api, guild, channel, moderator, user)
     return await jail.revoke(role, reason)
 
-async def create_timeout(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
+async def create_timeout(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     timeout = Timeout()
     timeout._fill(api, guild, channel, user, moderator)
     timeout.length = length # type: ignore
     timeout.reason = reason
     return await timeout.issue()
 
-async def remove_timeout(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str = None):
+async def remove_timeout(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str = None):
     timeout = Timeout()
     timeout._fill(api, guild, channel, moderator, user)
     await timeout.revoke(reason)
 
-async def create_warning(api: DeprecatedAPI, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str) -> Case:
+async def create_warning(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str) -> Case:
     warning = Warning()
     warning._fill(api, guild, channel, moderator, user)
     warning.reason = reason

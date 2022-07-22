@@ -176,7 +176,10 @@ class Pidroid(commands.Bot): # type: ignore
 
     def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Returns guild configuration for specified guild."""
-        return self.guild_configurations.get(guild_id)
+        config = self.guild_configurations.get(guild_id)
+        if config is None:
+            self.logger.error(f"Failure acquiring guild configuration for {guild_id}")
+        return config
 
     def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
         self.guild_configurations[guild_id] = config
@@ -205,24 +208,24 @@ class Pidroid(commands.Bot): # type: ignore
             assert isinstance(channel, TextChannel)
             await channel.send(embed=log.as_embed())
 
-    async def fetch_case(self, guild_id: int, case_id: str) -> Case:
+    async def fetch_case(self, guild_id: int, case_id: int) -> Case:
         """Returns a case for specified guild and user."""
-        case = await self.deprecated_api.fetch_case(guild_id, case_id)
+        case = await self.api.fetch_case(guild_id, case_id)
         if case is None:
             raise BadArgument("Specified case could not be found!")
         return case
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of cases for specified guild and user."""
-        return await self.deprecated_api.fetch_cases(guild_id, user_id)
+        return await self.api.fetch_cases(guild_id, user_id)
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of warning cases for specified guild and user."""
-        return await self.deprecated_api.fetch_warnings(guild_id, user_id)
+        return await self.api.fetch_warnings(guild_id, user_id)
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of active warning cases for specified guild and user."""
-        return await self.deprecated_api.fetch_active_warnings(guild_id, user_id)
+        return await self.api.fetch_active_warnings(guild_id, user_id)
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""

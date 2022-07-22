@@ -3,7 +3,7 @@ import re
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord import Member, TextChannel
 from discord.embeds import Embed
-from discord.ext import commands
+from discord.ext import commands # type: ignore
 from discord.message import Message
 from discord.threads import Thread
 from typing import Dict, List, Union
@@ -58,7 +58,7 @@ class AutomodTask(commands.Cog): # type: ignore
         if member_data["count"] > 3:
             if (utcnow().timestamp() - member_data["last_violation"]) < 60 * 5:
                 t = Timeout()
-                t._fill(self.client.deprecated_api, message.guild, None, self.client.user, message.author)
+                t._fill(self.client.api, message.guild, None, self.client.user, message.author)
                 t.reason = "Phishing automod violation limit exceeded"
                 t.length = relativedelta(hours=24)
                 await t.issue()

@@ -343,7 +343,7 @@ class PunishmentInteraction(ui.View):
         client: Pidroid = self.ctx.bot
         return (
             get(self.ctx.guild.roles, id=self.jail_role.id) in self.user.roles
-            and await client.deprecated_api.is_currently_jailed(self.ctx.guild.id, self.user.id)
+            and await client.api.is_currently_jailed(self.ctx.guild.id, self.user.id)
         )
 
     async def is_user_timed_out(self) -> bool:
@@ -486,6 +486,7 @@ class PunishmentInteraction(ui.View):
             else:
                 assert isinstance(self._punishment, (Ban, Kick, Timeout, Warning))
                 await self._punishment.issue()
+            self.remove_items()
             return await self.finish(interaction)
 
         # Otherwise, clear items
@@ -504,12 +505,13 @@ class PunishmentInteraction(ui.View):
 
     async def finish(self, interaction: Interaction) -> None:
         """Causes the view to remove itself and stop listening to interactions."""
-        print("asked to defer")
+        # Stop responding to interactions
+        self.stop()
+        # Respond to defer
         await interaction.response.defer()
-        print("asked to delete original")
-        await interaction.delete_original_message()
-        print("asked to stop")
-        return self.stop()
+        # Delete original message if it exists
+        if interaction.message:
+            await interaction.message.delete()
 
     def stop(self) -> None:
         """Stops listening to all interactions for this view."""
