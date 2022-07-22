@@ -2,71 +2,60 @@ import discord
 import traceback
 import sys
 
+from contextlib import suppress
 from discord.ext import tasks, commands # type: ignore
-from discord.guild import Guild
-from discord.utils import get
 from typing import Union
 
 from client import Pidroid
 from cogs.utils.getters import get_role
-from cogs.utils.time import utcnow
 
 class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
         self.check_punishments.start()
 
     def cog_unload(self) -> None:
         """Ensure that tasks are cancelled on cog unload."""
         self.check_punishments.stop()
 
-    async def handle_ban(self, guild: Guild, user: Union[discord.Member, discord.User]) -> None:
-        """Handles automatic unban in relation to the guild."""
-        await self.api.revoke_punishment("ban", guild.id, user.id)
-        try:
-            await guild.unban(user, reason='Ban expired') # type: ignore
-        except Exception: # nosec
-            pass
-
-    async def handle_unmute(self, guild: Guild, member_id: int) -> None:
-        """Handles automatic unmute in relation to the guild."""
-        await self.api.revoke_punishment("mute", guild.id, member_id)
-        config = self.client.get_guild_configuration(guild.id)
-        if config is None:
-            return
-
-        if config.mute_role is None:
-            return
-
-        member = guild.get_member(member_id)
-        if member is None:
-            return
-
-        mute_role = get_role(guild, config.mute_role)
-        if mute_role is None:
-            return
-        await member.remove_roles(mute_role, reason="Mute has expired") # type: ignore
-
     @tasks.loop(seconds=5)
     async def check_punishments(self) -> None:
         """Periodically checks for expired punishments to remove."""
         try:
-            current_time = int(utcnow().timestamp())
             for guild in self.client.guilds:
-                punishments = await self.api.get_active_guild_punishments(guild.id)
-                for p in punishments:
-                    if current_time >= p['date_expires']:
-                        user = await self.client.get_or_fetch_user(p["user_id"])
-                        if user is None:
+                punishments = await self.client.api.fetch_active_expiring_guild_punishments(guild.id)
+                for punishment in punishments:
+
+                    # Immediately expire the punishment as far as DB is concerned
+                    await self.client.api.revoke_cases_by_type(punishment.type, guild.id, punishment.user_id)
+
+                    # If user is not able to be resolved, just skip everything
+                    if punishment.user is None:
+                        continue
+                    
+                    # Remove ban entry from Discord
+                    if punishment.type == "ban":
+                        with suppress(Exception):
+                            await guild.unban(punishment.user, reason=f"Ban expired | Case #{punishment.case_id}") # type: ignore
+
+                    # Remove mute role from user
+                    elif punishment.type == "mute":
+                        config = self.client.get_guild_configuration(guild.id)
+                        assert config is not None
+
+                        if config.mute_role is None:
                             continue
 
-                        if p['type'] == 'ban':
-                            await self.handle_ban(guild, user)
-                        elif p['type'] == 'mute':
-                            await self.handle_unmute(guild, user.id)
+                        member = guild.get_member(punishment.user_id)
+                        if member is None:
+                            continue
+
+                        mute_role = get_role(guild, config.mute_role)
+                        if mute_role is None:
+                            continue
+                        await member.remove_roles(mute_role, reason=f"Mute expired | Case #{punishment.case_id}") # type: ignore
 
         except Exception as e:
             self.client.logger.exception("An exception was encountered while trying to check punishments")
@@ -81,25 +70,25 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
     async def on_member_join(self, member: discord.Member) -> None:
         """Handles role-based punishment revocation for new members."""
         await self.client.wait_guild_config_cache_ready()
+
         c = self.client.get_guild_configuration(member.guild.id)
-        if c is None:
-            return
+        assert c is not None
 
         jail_role = get_role(member.guild, c.jail_role)
         if jail_role is not None:
-            if await self.api.is_currently_jailed(member.guild.id, member.id):
+            if await self.client.api.is_currently_jailed(member.guild.id, member.id):
                 await member.add_roles(jail_role, reason="Jailed automatically as punishment evasion was detected.") # type: ignore
 
         mute_role = get_role(member.guild, c.mute_role)
         if mute_role is not None:
-            if await self.api.is_currently_muted(member.guild.id, member.id):
+            if await self.client.api.is_currently_muted(member.guild.id, member.id):
                 await member.add_roles(mute_role, reason="Muted automatically as punishment evasion was detected.") # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_member_unban(self, guild: discord.Guild, user: Union[discord.Member, discord.User]) -> None:
         """Removes ban records from the database for an unbanned user."""
         await self.client.wait_until_ready()
-        await self.api.revoke_punishment('ban', guild.id, user.id)
+        await self.client.api.revoke_cases_by_type('ban', guild.id, user.id)
 
     @commands.Cog.listener() # type: ignore
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
@@ -112,16 +101,15 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
             return
 
         c = self.client.get_guild_configuration(guild_id)
-        if c is None:
-            return
+        assert c is not None
 
         if changed_roles[0].id == c.jail_role:
-            if await self.api.is_currently_jailed(guild_id, after.id):
-                return await self.api.revoke_punishment('jail', guild_id, after.id)
+            if await self.client.api.is_currently_jailed(guild_id, after.id):
+                return await self.client.api.revoke_cases_by_type('jail', guild_id, after.id)
 
         if changed_roles[0].id == c.mute_role:
-            if await self.api.is_currently_muted(guild_id, after.id):
-                return await self.api.revoke_punishment('mute', guild_id, after.id)
+            if await self.client.api.is_currently_muted(guild_id, after.id):
+                return await self.client.api.revoke_cases_by_type('mute', guild_id, after.id)
 
 
 async def setup(client: Pidroid) -> None:
