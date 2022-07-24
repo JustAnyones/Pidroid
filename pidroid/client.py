@@ -121,7 +121,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         self.session = None
 
-        self.api = API(self, self.config["postgres_dsn"], True)
+        self.api = API(self, self.config["postgres_dsn"], False)
 
         self.persistent_data = PersistentDataManager()
 
