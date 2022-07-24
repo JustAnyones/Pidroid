@@ -130,12 +130,12 @@ class BasePunishmentButton(ui.Button):
     if TYPE_CHECKING:
         view: PunishmentInteraction
 
-    def __init__(self, style: ButtonStyle, label: str, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
-        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
+    def __init__(self, style: ButtonStyle, label: str, enabled: bool = True, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+        super().__init__(style=style, label=label, disabled=not enabled, emoji=emoji)
 
 class BanButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.red, "Ban", disabled, "🔨")
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.red, "Ban", enabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
         self.view._select_type(Ban(self.view.ctx, self.view.user))
@@ -143,8 +143,8 @@ class BanButton(BasePunishmentButton):
         await self.view._update_view(interaction)
 
 class UnbanButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.red, "Unban", disabled, "🔨")
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.red, "Unban", enabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
         await remove_ban_from_context(
@@ -154,28 +154,32 @@ class UnbanButton(BasePunishmentButton):
         await self.view.finish(interaction)
 
 class KickButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Kick", disabled)
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Kick", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
         self.view._select_type(Kick(self.view.ctx, self.view.user))
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
 class JailButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Jail", disabled)
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Jail", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
         self.view._select_type(Jail(self.view.ctx, self.view.user))
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
 class RemoveJailButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Release from jail", disabled)
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Release from jail", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
+        assert self.view.jail_role is not None
         await remove_jail_from_context(
             self.view.ctx, self.view.user,
             self.view.jail_role,
@@ -184,19 +188,21 @@ class RemoveJailButton(BasePunishmentButton):
         await self.view.finish(interaction)
 
 class TimeoutButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Time-out", disabled)
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Time-out", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
         self.view._select_type(Timeout(self.view.ctx, self.view.user))
         await self.view.create_length_selector()
         await self.view._update_view(interaction)
 
 class RemoveTimeoutButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Remove time-out", disabled)
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Remove time-out", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
         await remove_timeout_from_context(
             self.view.ctx, self.view.user,
             f"Removed by {str(self.view.ctx.author)}"
@@ -204,10 +210,11 @@ class RemoveTimeoutButton(BasePunishmentButton):
         await self.view.finish(interaction)
 
 class WarnButton(BasePunishmentButton):
-    def __init__(self, disabled: bool = False):
-        super().__init__(ButtonStyle.gray, "Warn", disabled, "⚠️")
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Warn", enabled, "⚠️")
 
     async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
         self.view._select_type(Warning(self.view.ctx, self.view.user))
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
@@ -397,44 +404,45 @@ class PunishmentInteraction(ui.View):
         self.clear_items()
         is_member = isinstance(self.user, Member)
 
-        can_ban = (
+        # Store permission checks here
+        has_ban_permission = (
             self.is_normal_moderator(ban_members=True)
             and has_guild_permission(self.ctx.me, "ban_members")
         )
-        can_unban = (
+        has_unban_permission = (
             self.is_senior_moderator(ban_members=True)
             and has_guild_permission(self.ctx.me, "ban_members")
         )
-        can_kick = (
+        has_kick_permission = (
             self.is_junior_moderator(kick_members=True)
             and has_guild_permission(self.ctx.me, "kick_members")
         )
-        can_time_out = has_guild_permission(self.ctx.me, "moderate_members")
-        can_jail = has_guild_permission(self.ctx.me, "manage_roles")
+        has_timeout_permission = has_guild_permission(self.ctx.me, "moderate_members")
+        has_jail_permission = has_guild_permission(self.ctx.me, "manage_roles")
 
         # Add ban/unban buttons
         if not await self.is_user_banned():
-            self.add_item(BanButton(not can_ban))
+            self.add_item(BanButton(has_ban_permission))
         else:
-            self.add_item(UnbanButton(not can_unban))
+            self.add_item(UnbanButton(has_unban_permission))
 
         # Kick button
-        self.add_item(KickButton(not is_member or not can_kick))
+        self.add_item(KickButton(is_member and has_kick_permission))
 
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
-            self.add_item(JailButton(not is_member or self.jail_role is None or not can_jail))
+            self.add_item(JailButton(is_member and self.jail_role is not None and has_jail_permission))
         else:
-            self.add_item(RemoveJailButton(not can_jail))
+            self.add_item(RemoveJailButton(has_jail_permission))
 
         # Add timeout/un-timeout buttons
         if not await self.is_user_timed_out():
-            self.add_item(TimeoutButton(not is_member or not can_time_out))
+            self.add_item(TimeoutButton(is_member and has_timeout_permission))
         else:
-            self.add_item(RemoveTimeoutButton(not can_time_out))
+            self.add_item(RemoveTimeoutButton(has_timeout_permission))
 
         # Warn button
-        self.add_item(WarnButton(not is_member))
+        self.add_item(WarnButton(is_member))
 
     async def create_length_selector(self):
         # Acquire mapping for lengths for punishment types

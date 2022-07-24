@@ -472,14 +472,14 @@ class Timeout(BasePunishment):
         await self._notify_chat(f"Timeout for {self.user_name} was removed!")
         await self._notify_user(f"Your timeout has been removed in {self.guild.name} server!")
 
-async def create_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
+async def create_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: DiscordUser, length: Length, reason: str) -> Case:
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
     ban.set_length(length)
     ban.reason = reason
     return await ban.issue()
 
-async def remove_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, reason: str = None):
+async def remove_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: DiscordUser, reason: str = None):
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
     await ban.revoke(reason)
@@ -519,7 +519,7 @@ async def create_warning(api: API, guild: Guild, channel: GuildTextChannel, mode
     warning.reason = reason
     return await warning.issue()
 
-async def create_ban_from_context(ctx: Context, user: Member, length: Length, reason: str) -> Case:
+async def create_ban_from_context(ctx: Context, user: DiscordUser, length: Length, reason: str) -> Case:
     return await create_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, length, reason)
 
 async def create_kick_from_context(ctx: Context, user: Member, reason: str) -> Case:
@@ -534,7 +534,7 @@ async def create_timeout_from_context(ctx: Context, user: Member, length: Length
 async def create_warning_from_context(ctx: Context, user: Member, reason: str) -> Case:
     return await create_warning(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
 
-async def remove_ban_from_context(ctx: Context, user: Member, reason: str):
+async def remove_ban_from_context(ctx: Context, user: DiscordUser, reason: str):
     return await remove_ban(ctx.bot.api, ctx.guild, ctx.channel, ctx.author, user, reason)
 
 async def remove_jail_from_context(ctx: Context, user: Member, role: Role, reason: str):
