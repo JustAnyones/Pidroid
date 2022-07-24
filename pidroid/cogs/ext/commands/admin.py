@@ -111,18 +111,17 @@ class AdminCommands(commands.Cog): # type: ignore
             # Update permissions
             cnt = 0
             for channel in guild_channels:
-                perms = channel.permissions_for(jail_role)
-                can_read = perms.read_messages
-                can_everyone_read = channel.permissions_for(ctx.guild.default_role).read_messages
+                has_overwrite = channel.overwrites_for(jail_role).read_messages is not None
                 if channel.id == jail_channel.id:
-                    if not can_read:
+                    if not channel.permissions_for(jail_role).read_messages:
                         await channel.set_permissions(jail_role, read_messages=True, reason=SETUP_REASON)
                     continue
-                if can_read or not can_everyone_read: # Saves on API requests, does not know if everyone can see it or not
+
+                if not has_overwrite: # Saves on API requests, does not know if everyone can see it or not
                     await channel.set_permissions(jail_role, read_messages=False, reason=SETUP_REASON)
                     cnt += 1
             if cnt > 0:
-                action_log.append(f"Denied read messages permissions for {jail_role.mention} in {cnt} channels")
+                action_log.append(f"Set to deny read messages permission for {jail_role.mention} in {cnt} channels")
 
             # Acquire config and submit changes to the database
             config = self.client.get_guild_configuration(ctx.guild.id)
