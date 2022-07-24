@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import datetime
-import motor.motor_asyncio # type: ignore
-import random
 
-from bson.objectid import ObjectId # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
-from motor.core import AgnosticCollection # type: ignore
-from typing import Any, List, Optional, Union, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING
 
 from cogs.ext.commands.tags import Tag
 from cogs.models.case import Case
@@ -18,7 +14,7 @@ from cogs.utils.time import utcnow
 
 from sqlalchemy import Column # type: ignore
 from sqlalchemy import DateTime
-from sqlalchemy import func, text, delete, select, update, values
+from sqlalchemy import func, delete, select, update
 from sqlalchemy import Integer, BigInteger, Text, ARRAY, Boolean
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import insert as pg_insert # type: ignore
@@ -107,16 +103,19 @@ class GuildConfigurationTable(Base): # type: ignore
     public_tags = Column(Boolean, server_default="false")
     strict_anti_phishing = Column(Boolean, server_default="false")
 
+class TranslationTable(Base): # type: ignore
+    __tablename__ = "Translations"
+
+    id = Column(Integer, primary_key=True)
+    original_content = Column(String)
+    detected_language = Column(String)
+    translated_string = Column(String)
+
 class PhishingUrlTable(Base): # type: ignore
     __tablename__ = "PhishingUrls"
 
     id = Column(BigInteger, primary_key=True)
     url = Column(String)
-
-    # required in order to access columns with server defaults
-    # or SQL expression defaults, subsequent to a flush, without
-    # triggering an expired load
-    #__mapper_args__ = {"eager_defaults": True}
 
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
@@ -606,6 +605,31 @@ class API:
             case_list.append(c)
         return case_list
 
+    """Translation related"""
+
+    async def insert_translation_entry(self, original_str: str, detected_lang: str, translated_str: str) -> None:
+        """Inserts a new translation entry to the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = TranslationTable(
+                    original_content=original_str,
+                    detected_language=detected_lang,
+                    translated_string=translated_str
+                )
+                session.add(entry)
+            await session.commit()
+
+    async def fetch_translations(self, original_str: str) -> List[dict]:
+        """Returns a list of translations for specified string."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(TranslationTable).
+                filter(TranslationTable.original_content == original_str)
+            )
+        return [{"detected_source_language": r[0].detected_language, "text": r[0].translated_string} for r in result.fetchall()]
+
     """TheoTown backend related"""
 
     async def fetch_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
@@ -628,72 +652,3 @@ class API:
             {"query": query, "show_hidden": show_hidden}
         ))
         return [Plugin(p) for p in response["data"]]
-
-class DeprecatedAPI:
-    """This class handles actions related to Pidroid Mongo and MySQL database calls over TheoTown API."""
-
-    def __init__(self, client: Pidroid, connection_string: str):
-        self.client = client
-        self.db_client = motor.motor_asyncio.AsyncIOMotorClient(connection_string, serverSelectionTimeoutMS=5000)
-        self.db = self.db_client["Pidroid"]
-        self.http = HTTP(client)
-
-    @property
-    def internal(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for internal related data."""
-        return self.db["Internal"]
-
-    @property
-    def shitposts(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for Pidroid shitposts."""
-        return self.db["Shitposts"]
-
-    @property
-    def translations(self) -> AgnosticCollection:
-        """Returns a MongoDB collection for translations."""
-        return self.db["Translations"]
-
-    """Phising protection related methods"""
-
-    async def fetch_phising_url_list(self) -> List[str]:
-        """Returns a list of phising URLs."""
-        data = await self.internal.find_one({"phising.urls": {"$exists": True}}, {"phising": 1, "_id": 0})
-        if data is None:
-            self.client.logger.critical("Phising URLs returned an empty list!")
-            return []
-        return data["phising"]["urls"]
-
-    """Translation related methods"""
-
-    async def insert_new_translation(self, original: str, translation: List[dict]) -> None:
-        """Inserts a new translation entry to the database."""
-        await self.translations.insert_one({
-            "original_string": original,
-            "translation": translation
-        })
-
-    async def fetch_translation(self, original: str) -> List[dict]:
-        """Returns a list of translations for specified string."""
-        data = await self.translations.find_one({"original_string": original})
-        if data is None:
-            return []
-        return data["translation"]
-
-    """Shitpost related methods"""
-
-    async def get_random_shitpost(self, last_posts: List[Union[ObjectId, int]]) -> dict:
-        """Returns a random shitpost."""
-        data = await self.shitposts.find_one(
-            {"_id": {"$nin": last_posts}}
-        ).sort("times_shown", 1)
-        cursor = self.shitposts.find({
-            "_id": {"$nin": last_posts}, "times_shown": data["times_shown"]
-        })
-        return random.choice([i async for i in cursor]) # nosec
-
-    async def log_shitpost(self, object_id: ObjectId) -> None:
-        """Marks shitpost by specified ID as read by increasing times_shown."""
-        await self.shitposts.update_one(
-            {'_id': object_id},
-            {'$inc': {'times_shown': 1}}
-        )

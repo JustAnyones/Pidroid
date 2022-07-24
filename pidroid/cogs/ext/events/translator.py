@@ -175,10 +175,11 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # Check if text was already translated
         c_key = clean_text.lower()
-        translations = await self.client.deprecated_api.fetch_translation(c_key)
+        translations = await self.client.api.fetch_translations(c_key)
         if len(translations) == 0:
             translations = await self.translate(clean_text)
-            await self.client.deprecated_api.insert_new_translation(c_key, translations)
+            for t in translations:
+                await self.client.api.insert_translation_entry(c_key, t["detected_source_language"], t["text"])
 
         # If message could not be translated, log it as a warning
         if len(translations) == 0:
@@ -226,7 +227,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         action = None
         if message.reference:
             with suppress(Exception):
-                reference = await message.channel.fetch_message(message.reference.message_id)
+                reference = await message.channel.fetch_message(message.reference.message_id) # type: ignore
                 action = f"Replying to {str(reference.author)}"
 
         # Create a rich message description from stickers

@@ -29,7 +29,6 @@ class GitHubCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        self.api = self.client.deprecated_api
 
     @property
     def _headers(self) -> dict:

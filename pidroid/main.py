@@ -39,8 +39,8 @@ def config_from_env() -> dict:
         exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
     
 
-    if os.environ.get("MONGO_DSN", None) is None:
-        exit("No DSN was specified. Please specify it using the DSN environment variable.")
+    if os.environ.get("POSTGRES_DSN", None) is None:
+        exit("No Postgres DSN was specified. Please specify it using the POSTGRES_DSN environment variable.")
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
     prefixes = [p.strip() for p in prefix_string.split(",")]

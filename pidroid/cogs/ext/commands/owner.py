@@ -28,27 +28,6 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.command( # type: ignore
         brief="Sends a message to a specified guild channel as the bot.",
         usage="<channel> <message>",
-        permissions=["Bot owner"],
-        category=OwnerCategory,
-        hidden=True
-    )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    async def postgres(self, ctx: Context, *, message: str = None):
-        res = await self.client.api.fetch_phishing_urls()
-        print(res)
-        urls = await self.client.deprecated_api.fetch_phising_url_list()
-        if len(res) == len(urls):
-            raise BadArgument("Phishing URLs already migrated")
-        for url in urls:
-            await self.client.api.insert_phishing_url(url)
-        res = await self.client.api.fetch_phishing_urls()
-        print(res)
-        await ctx.send("Phishing URLs migrated")
-
-    @commands.command( # type: ignore
-        brief="Sends a message to a specified guild channel as the bot.",
-        usage="<channel> <message>",
         aliases=["say"],
         permissions=["Bot owner"],
         category=OwnerCategory,

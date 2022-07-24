@@ -13,7 +13,6 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.api = self.client.deprecated_api
         self.update_statistics.start()
 
     def cog_unload(self) -> None:

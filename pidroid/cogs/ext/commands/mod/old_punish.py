@@ -28,7 +28,6 @@ class OldModeratorCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        self.api = self.client.deprecated_api
 
     @commands.command( # type: ignore
         brief='DEPRECATED: Issues a warning to specified member.',

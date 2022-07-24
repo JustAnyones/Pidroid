@@ -11,7 +11,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
         self.client = client
-        self.api = self.client.deprecated_api
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_join(self, guild: Guild):

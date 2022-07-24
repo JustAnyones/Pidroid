@@ -49,7 +49,7 @@ pip install -r requirements.txt
 ```
 
 After installing all required packages, we need to configure the bot. Please check [here](#configuration) on how to do so.
-The bot uses a MongoDB and a Postgres database. It accepts the login credentials as a [DSN](https://docs.mongodb.com/manual/reference/connection-string/#standard-connection-string-format). Please check [configuration manual](#configuration) on where to input it.
+The bot uses a Postgres database. It accepts the login credentials as a [DSN](https://docs.mongodb.com/manual/reference/connection-string/#standard-connection-string-format). Please check [configuration manual](#configuration) on where to input it.
 
 Lastly, all we have to do is run the bot. You can do so by running this command:
 
@@ -71,8 +71,6 @@ This is done to be compatible with Docker containers.
 PREFIXES=
 # Discord bot token
 TOKEN=
-# Mongo DSN string
-MONGO_DSN=
 # Postgres DSN string
 POSTGRES_DSN=
 # Github token for making issues on TT repo, optional

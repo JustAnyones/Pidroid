@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 from cogs.models.case import Case
 from cogs.models.categories import get_command_categories
 from cogs.utils.aliases import GuildChannel
-from cogs.utils.api import DeprecatedAPI, API
+from cogs.utils.api import API
 from cogs.utils.checks import is_client_development
 from cogs.utils.data import PersistentDataManager
 from cogs.utils.logger import BaseLog
@@ -122,7 +122,6 @@ class Pidroid(commands.Bot): # type: ignore
         self.session = None
 
         self.api = API(self, self.config["postgres_dsn"], True)
-        self.deprecated_api = DeprecatedAPI(self, self.config['mongo_dsn'])
 
         self.persistent_data = PersistentDataManager()
 

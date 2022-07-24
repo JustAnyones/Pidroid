@@ -1,7 +1,6 @@
 import aiocron # type: ignore
 import asyncio
 import calendar
-import discord
 import traceback
 import sys
 
@@ -9,12 +8,10 @@ from contextlib import suppress
 from discord.channel import TextChannel
 from discord.ext import commands
 from discord.utils import escape_markdown
-from io import BytesIO
 
 from client import Pidroid
 from cogs.utils import http
 from cogs.utils.checks import is_client_pidroid
-from cogs.utils.http import get_filename
 from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.parsers import clean_inline_translations
 
@@ -24,9 +21,6 @@ class CronjobTask(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.shitpost_cronjob = self.client.loop.create_task(
-            self.start_cronjob(shitpost_cronjob, "Shitpost")
-        )
         self.monthly_plugin_cronjob = self.client.loop.create_task(
             self.start_cronjob(monthly_plugin_cronjob, "Monthly plugin")
         )
@@ -52,11 +46,6 @@ class CronjobTask(commands.Cog): # type: ignore
                 cronjob.stop()
                 self.client.logger.info(f"{cron_name} cron job task stopped")
 
-
-@aiocron.crontab('27 14 * * 3,0', start=False) # At 14:27 on Wednesday and Sunday
-async def shitpost_cronjob(client: Pidroid) -> None:
-    """A cron job for Pidroid to post a shitpost in a secret channel."""
-    await post_shitpost(client)
 
 @aiocron.crontab('0 9 1 * *', start=False) # At 8 at the morning of the first day every month
 async def monthly_plugin_cronjob(client: Pidroid) -> None:
@@ -115,34 +104,6 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
     except Exception as e:
         client.logger.exception("An exception was encountered while trying announce monthly plugin information")
         traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
-
-
-last_posts = [-1, -1, -1, -1]
-async def post_shitpost(client: Pidroid) -> None:
-    """Posts a shitpost to a hidden channel."""
-    choice = await client.deprecated_api.get_random_shitpost(last_posts)
-    await client.deprecated_api.log_shitpost(choice["_id"])
-
-    text = choice.get("text", None)
-    file_url = choice.get("attachment_url", None)
-
-    if text is None and file_url is None:
-        return
-
-    shitpost_channel: TextChannel = client.get_channel(779757485980385321)
-
-    if file_url is not None:
-        async with await http.get(client, file_url) as r:
-            payload = await r.read()
-            filename = get_filename(r.headers['Content-Disposition'])
-        with BytesIO(payload) as f:
-            discord_file = discord.File(f, filename)
-        await shitpost_channel.send(content=text, file=discord_file)
-    else:
-        await shitpost_channel.send(content=text)
-
-    last_posts.pop(0)
-    last_posts.append(choice['_id'])
 
 
 async def setup(client: Pidroid) -> None:
