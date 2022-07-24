@@ -60,7 +60,7 @@ class AutomodTask(commands.Cog): # type: ignore
                 t = Timeout()
                 t._fill(self.client.api, message.guild, None, self.client.user, message.author)
                 t.reason = "Phishing automod violation limit exceeded"
-                t.length = relativedelta(hours=24)
+                t.set_length(relativedelta(hours=24))
                 await t.issue()
             del self.automod_violations[guild_id][member_id]
             return

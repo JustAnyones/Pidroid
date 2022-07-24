@@ -27,7 +27,7 @@ from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from cogs.utils.file import Resource
 from cogs.utils.getters import get_role
 from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
-from cogs.utils.time import duration_string_to_relativedelta, humanize, timedelta_to_datetime, timestamp_to_datetime, utcnow
+from cogs.utils.time import duration_string_to_relativedelta, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
     reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason") # type: ignore
@@ -301,21 +301,14 @@ class PunishmentInteraction(ui.View):
         self._punishment = instance
 
     def _select_length(self, length: Union[int, timedelta, relativedelta]):
-        # Get correct representation of provided length value
-        if isinstance(length, int):
-            if length == -1:
-                len_str = "permanent"
-            else:
-                len_str = humanize(timestamp_to_datetime(length), max_units=3)
-        elif isinstance(length, relativedelta):
-            len_str = humanize(length, max_units=3)
-        else:
-            len_str = humanize(timedelta_to_datetime(length), max_units=3)
+        # Special case
+        if length == -1:
+            length = None
 
-        assert isinstance(self.embed.description, str)
-        self.embed.description += f"\nLength: {len_str}"
         assert self._punishment is not None
-        self._punishment.length = length
+        self._punishment.set_length(length)
+        assert isinstance(self.embed.description, str)
+        self.embed.description += f"\nLength: {self._punishment.length_as_string}"
 
     def _select_reason(self, reason: str):
         assert isinstance(self.embed.description, str)

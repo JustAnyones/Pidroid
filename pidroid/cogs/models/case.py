@@ -13,19 +13,20 @@ from discord.guild import Guild
 from discord.member import Member
 from discord.role import Role
 from discord.user import User
+from discord.utils import format_dt
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from ..utils.aliases import GuildTextChannel
 from ..utils.embeds import PidroidEmbed, SuccessEmbed
 from ..utils.file import Resource
 from ..utils.paginators import ListPageSource, PidroidPages
-from ..utils.time import datetime_to_date, delta_to_datetime, humanize, time_since, timestamp_to_datetime, utcnow
+from ..utils.time import delta_to_datetime, humanize, time_since, utcnow
 
 if TYPE_CHECKING:
     from ..utils.api import API, PunishmentTable
     DiscordUser = Union[Member, User]
     Moderator = Union[Member, User]
-    Length = Union[int, timedelta, relativedelta]
+    Length = Union[timedelta, relativedelta]
 
 class BaseCase:
 
@@ -170,12 +171,12 @@ class CasePaginator(ListPageSource):
         for case in cases:
             if self.compact:
                 name = f"#{case.case_id} issued by {case.moderator_name}"
-                value = f"\"{case.reason}\" issued on {datetime_to_date(case.date_issued)}"
+                value = f"\"{case.reason}\" issued on {format_dt(case.date_issued)}"
             else:
                 name = f"Case #{case.case_id}: {case.type}"
                 value = (
                     f"**Issued by:** {case.moderator_name}\n"
-                    f"**Issued on:** {datetime_to_date(case.date_issued)}\n"
+                    f"**Issued on:** {format_dt(case.date_issued)}\n"
                     f"**Reason:** {case.clean_reason.capitalize()}"
                 )
             self.embed.add_field(name=name, value=value, inline=False)
@@ -193,18 +194,18 @@ class BasePunishment:
         guild: Guild
         user: DiscordUser
         moderator: User
-        silent: bool
+        send_message_to_channel: bool
 
         # These are not to be used
         # They are only useful when creating a punishment, not revoking it
-        _date_expires: Optional[int]
+        _expiration_date: Optional[datetime.datetime]
         _reason: Optional[str]
 
     def __init__(self, ctx: Optional[Context] = None, user: Optional[DiscordUser] = None) -> None:
         # Only used internally, we initialize them here
         self.type = "unknown"
         self.case = None
-        self._date_expires = None
+        self._expiration_date = None
         self._reason = None
 
         if ctx is not None and user is not None:
@@ -218,7 +219,7 @@ class BasePunishment:
         self.set_moderator(moderator)
         self.set_user(user)
 
-        self.silent = self._channel is None
+        self.send_message_to_channel = self._channel is None
 
     def __str__(self) -> str:
         return self.type or "unknown"
@@ -233,26 +234,27 @@ class BasePunishment:
         """Returns moderator name."""
         return str(self.moderator)
 
-    @property
-    def length(self) -> int:
-        if self._date_expires is None:
-            return -1
-        return self._date_expires
-
-    @length.setter
-    def length(self, length: Length) -> None:
-        if isinstance(length, (timedelta, relativedelta)):
-            length = delta_to_datetime(length).timestamp()
-        self._date_expires = int(length)
+    def set_length(self, length: Optional[Union[timedelta, relativedelta]]):
+        """Sets punishment length."""
+        if length is None:
+            self._expiration_date = None
+        else:
+            self._expiration_date = delta_to_datetime(length)
 
     @property
-    def length_as_datetime(self) -> Optional[datetime.datetime]:
-        if self._date_expires is None:
-            return None
-        return timestamp_to_datetime(self._date_expires)
+    def length_as_string(self) -> str:
+        if self._expiration_date is None:
+            return "permanent"
+        return humanize(self._expiration_date, max_units=3)
+
+    @property
+    def expiration_date(self) -> Optional[datetime.datetime]:
+        """Returns the date of when the punishment expires."""
+        return self._expiration_date
 
     @property
     def reason(self) -> Optional[str]:
+        """Returns the reason for the punishment."""
         return self._reason
 
     @reason.setter
@@ -267,7 +269,7 @@ class BasePunishment:
             self.guild.id,
             self.user.id, self.user_name,
             self.moderator.id, self.moderator_name,
-            self.reason, self.length_as_datetime
+            self.reason, self.expiration_date
         )
 
     async def _revoke_punishment_db_entry(self, type: str) -> None:
@@ -282,7 +284,7 @@ class BasePunishment:
             pass
 
     async def _notify_chat(self, message: str, image_file: Optional[File] = None):
-        if self.silent or self._channel is None:
+        if self.send_message_to_channel or self._channel is None:
             return
 
         embed = SuccessEmbed(message)
@@ -296,11 +298,6 @@ class BasePunishment:
             await self._channel.send(embed=embed)
         except Exception: # nosec
             pass
-
-    def set_member(self, member: Member) -> None:
-        if isinstance(member, User):
-            raise BadArgument("Member required, got user")
-        self.user = member
 
     def set_user(self, user: DiscordUser) -> None:
         if isinstance(user, Member):
@@ -440,8 +437,8 @@ class Warning(BasePunishment):
 
     async def issue(self) -> Case:
         """Warns the member."""
-        if self._date_expires is None:
-            self.length = timedelta(days=90) # type: ignore
+        if self.expiration_date is None:
+            self.set_length(timedelta(days=90))
         self.case = await self._create_db_entry()
         await self._notify_chat(f"{self.user_name} has been warned: {self.reason}")
         await self._notify_user(f"You have been warned in {self.guild.name} server: {self.reason}")
@@ -458,7 +455,7 @@ class Timeout(BasePunishment):
 
     async def issue(self) -> Case:
         self.case = await self._create_db_entry()
-        await self.user.timeout(self.length_as_datetime, reason=self.reason)
+        await self.user.timeout(self.expiration_date, reason=self.reason)
 
         if self.reason is None:
             await self._notify_chat(f"{self.user_name} was timed out!")
@@ -478,7 +475,7 @@ class Timeout(BasePunishment):
 async def create_ban(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     ban = Ban()
     ban._fill(api, guild, channel, moderator, user)
-    ban.length = length # type: ignore
+    ban.set_length(length)
     ban.reason = reason
     return await ban.issue()
 
@@ -507,7 +504,7 @@ async def remove_jail(api: API, guild: Guild, channel: GuildTextChannel, moderat
 async def create_timeout(api: API, guild: Guild, channel: GuildTextChannel, moderator: Moderator, user: Member, length: Length, reason: str) -> Case:
     timeout = Timeout()
     timeout._fill(api, guild, channel, user, moderator)
-    timeout.length = length # type: ignore
+    timeout.set_length(length)
     timeout.reason = reason
     return await timeout.issue()
 

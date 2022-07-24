@@ -183,7 +183,7 @@ class OldModeratorCommands(commands.Cog): # type: ignore
         if duration_datetime is not None:
             if datetime_to_duration(duration_datetime) < 60:
                 return await ctx.reply(embed=ErrorEmbed('The duration for the ban is too short! Make sure it\'s at least a minute long.'))
-            b.length = int(duration_datetime.timestamp())
+            b.set_length(duration_datetime)
         await b.issue()
         await ctx.message.delete(delay=0)
 
