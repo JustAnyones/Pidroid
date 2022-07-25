@@ -98,6 +98,9 @@ class LengthButton(ValueButton):
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
                     return await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
 
+        if self.view.is_finished():
+            return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+
         self.view._select_length(value)
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
@@ -116,6 +119,9 @@ class ReasonButton(ValueButton):
 
             if value is None:
                 return await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
+
+        if self.view.is_finished():
+            return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
 
         self.view._select_reason(value)
         await self.view.create_confirmation_selector()
@@ -347,7 +353,6 @@ class PunishmentInteraction(ui.View):
     async def _update_view(self, interaction: Optional[Interaction]) -> None:
         if interaction is None:
             assert self._message is not None
-            print("Interaction is none")
             await self._message.edit(embed=self.embed, view=self)
         else:
             await interaction.response.edit_message(embed=self.embed, view=self)
