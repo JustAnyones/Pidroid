@@ -659,7 +659,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
 
-        if self.is_user_being_punished(self.ctx.guild.id, user.id):
+        if self.is_user_being_punished(ctx.guild.id, user.id):
             raise BadArgument("The punishment menu is already open for the user.")
 
         # Prevent moderator from punishing himself
