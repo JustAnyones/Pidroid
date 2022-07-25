@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord import ui, ButtonStyle, Interaction
@@ -17,7 +19,7 @@ from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from discord.utils import get
 from discord.file import File
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from client import Pidroid
 from cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_context, remove_jail_from_context, remove_timeout_from_context
@@ -292,8 +294,9 @@ class PunishmentInteraction(ui.View):
     if TYPE_CHECKING:
         _message: Optional[Message]
 
-    def __init__(self, ctx: Context, user: Union[Member, User], embed: Embed):
+    def __init__(self, cog: ModeratorCommands, ctx: Context, user: Union[Member, User], embed: Embed):
         super().__init__(timeout=300)
+        self.cog = cog
         self.ctx = ctx
         self.user = user
         self.embed = embed
@@ -311,6 +314,9 @@ class PunishmentInteraction(ui.View):
         role = get_role(self.ctx.guild, c.jail_role)
         if role is not None:
             self.jail_role = role
+
+        # Lock the punishment menu with a semaphore
+        await self.cog.lock_punishment_menu(self.user.id)
 
     def set_reply_message(self, message: Message) -> None:
         """Sets the reply message to which this interaction belongs to."""
@@ -522,18 +528,20 @@ class PunishmentInteraction(ui.View):
     """Clean up related methods"""
 
     async def timeout_interface(self, interaction: Optional[Interaction]) -> None:
-        self.embed.set_footer(text="TIMED OUT")
+        self.embed.set_footer(text="Punishment creation has timed out")
         self.embed.colour = Colour.red()
         self.remove_items()
         await self._update_view(interaction)
         self.stop()
+        await self.cog.unlock_punishment_menu(self.user.id)
 
     async def cancel_interface(self, interaction: Interaction) -> None:
-        self.embed.set_footer(text="CANCELLED")
+        self.embed.set_footer(text="Punishment creation has been cancelled")
         self.embed.colour = Colour.red()
         self.remove_items()
         await self._update_view(interaction)
         self.stop()
+        await self.cog.unlock_punishment_menu(self.user.id)
 
     def remove_items(self) -> None:
         """Removes all items from the view."""
@@ -544,6 +552,8 @@ class PunishmentInteraction(ui.View):
         """Causes the view to remove itself and stop listening to interactions."""
         # Stop responding to interactions
         self.stop()
+        # Unlock semaphore
+        await self.cog.unlock_punishment_menu(self.user.id)
         # Respond to defer
         await interaction.response.defer()
         # Delete original message if it exists
@@ -574,6 +584,28 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
+        self.user_semaphores: Dict[int, asyncio.Semaphore] = {}
+
+    def _create_semaphore_if_not_exist(self, user_id: int) -> asyncio.Semaphore:
+        if self.user_semaphores.get(user_id) is None:
+            self.user_semaphores[user_id] = asyncio.Semaphore(1)
+        return self.user_semaphores[user_id]
+
+    async def lock_punishment_menu(self, user_id : int) -> None:
+        sem = self._create_semaphore_if_not_exist(user_id)
+        await sem.acquire()
+
+    async def unlock_punishment_menu(self, user_id: int) -> None:
+        sem = self._create_semaphore_if_not_exist(user_id)
+        sem.release()
+        # Save memory with this simple trick
+        self.user_semaphores.pop(user_id)
+
+    def is_user_being_punished(self, user_id: int) -> bool:
+        sem = self.user_semaphores.get(user_id)
+        if sem is None:
+            return False
+        return sem.locked()
 
     @commands.command( # type: ignore
         brief='Removes a specified amount of messages from the channel.',
@@ -620,6 +652,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
 
+        if self.is_user_being_punished(user.id):
+            raise BadArgument("The punishment menu is already open for the user.")
+
         # Prevent moderator from punishing himself
         if user.id == ctx.message.author.id:
             raise BadArgument("You cannot punish yourself! That's what PHP is for.")
@@ -632,7 +667,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         embed = PidroidEmbed()
         embed.title = f"Punish {escape_markdown(str(user))}"
 
-        view = PunishmentInteraction(ctx, user, embed)
+        view = PunishmentInteraction(self, ctx, user, embed)
         await view.initialize()
         await view.create_type_selector()
 
