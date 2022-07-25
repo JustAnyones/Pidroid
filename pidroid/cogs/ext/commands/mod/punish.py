@@ -9,6 +9,7 @@ from discord.embeds import Embed
 from discord.emoji import Emoji
 from discord.ext.commands.errors import BadArgument, MissingPermissions # type: ignore
 from discord.member import Member
+from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.utils import escape_markdown
@@ -23,7 +24,7 @@ from cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_
 from cogs.models.categories import ModerationCategory
 from cogs.models.exceptions import InvalidDuration, MissingUserPermissions
 from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from cogs.utils.embeds import PidroidEmbed
 from cogs.utils.file import Resource
 from cogs.utils.getters import get_role
 from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
@@ -71,7 +72,10 @@ class LengthButton(ValueButton):
     async def callback(self, interaction: Interaction) -> None:
         value = self.value
         if value is None:
-            value, interaction = await self.view.custom_length_modal(interaction)
+            value, interaction, timed_out = await self.view.custom_length_modal(interaction)
+
+            if timed_out:
+                return await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
 
             if value is None:
                 return await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
@@ -103,7 +107,10 @@ class ReasonButton(ValueButton):
     async def callback(self, interaction: Interaction) -> None:
         value = self.value
         if value is None:
-            value, interaction = await self.view.custom_reason_modal(interaction)
+            value, interaction, timed_out = await self.view.custom_reason_modal(interaction)
+
+            if timed_out:
+                return await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
 
             if value is None:
                 return await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
@@ -282,11 +289,15 @@ REASON_MAPPING = {
 
 class PunishmentInteraction(ui.View):
 
+    if TYPE_CHECKING:
+        _message: Optional[Message]
+
     def __init__(self, ctx: Context, user: Union[Member, User], embed: Embed):
-        super().__init__(timeout=180)
+        super().__init__(timeout=300)
         self.ctx = ctx
         self.user = user
         self.embed = embed
+        self._message = None
 
         self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
 
@@ -300,6 +311,10 @@ class PunishmentInteraction(ui.View):
         role = get_role(self.ctx.guild, c.jail_role)
         if role is not None:
             self.jail_role = role
+
+    def set_reply_message(self, message: Message) -> None:
+        """Sets the reply message to which this interaction belongs to."""
+        self._message = message
 
     """Private utility methods"""
 
@@ -323,8 +338,13 @@ class PunishmentInteraction(ui.View):
         assert self._punishment is not None
         self._punishment.reason = reason
 
-    async def _update_view(self, interaction: Interaction):
-        await interaction.response.edit_message(embed=self.embed, view=self)
+    async def _update_view(self, interaction: Optional[Interaction]) -> None:
+        if interaction is None:
+            assert self._message is not None
+            print("Interaction is none")
+            await self._message.edit(embed=self.embed, view=self)
+        else:
+            await interaction.response.edit_message(embed=self.embed, view=self)
 
     """Checks"""
 
@@ -385,22 +405,24 @@ class PunishmentInteraction(ui.View):
     - Confirming or cancelling the action
     """
 
-    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
+    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction, bool]:
         modal = ReasonModal()
         await interaction.response.send_modal(modal)
-        timed_out = await modal.wait() # TODO: figure out what to do
-        print(timed_out)
-        return modal.reason_input.value, modal.interaction
+        timed_out = await modal.wait()
+        if timed_out:
+            await self.timeout_interface(interaction)
+        return modal.reason_input.value, modal.interaction, timed_out
 
-    async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction]:
+    async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction, bool]:
         modal = LengthModal()
         await interaction.response.send_modal(modal)
-        timed_out = await modal.wait() # TODO: figure out what to do
-        print(timed_out)
-        return modal.length_input.value, modal.interaction
+        timed_out = await modal.wait()
+        if timed_out:
+            await self.timeout_interface(interaction)
+        return modal.length_input.value, modal.interaction, timed_out
 
     async def create_type_selector(self):
-        self.embed.set_footer(text="Select punishment type")
+        self.embed.set_footer(text="Select the punishment type")
         self.clear_items()
         is_member = isinstance(self.user, Member)
 
@@ -444,6 +466,8 @@ class PunishmentInteraction(ui.View):
         # Warn button
         self.add_item(WarnButton(is_member))
 
+        self.add_item(CancelButton())
+
     async def create_length_selector(self):
         # Acquire mapping for lengths for punishment types
         mapping: List[ValueButton] = LENGTH_MAPPING.get(str(self._punishment), None)
@@ -453,7 +477,8 @@ class PunishmentInteraction(ui.View):
         self.clear_items()
         for button in mapping:
             self.add_item(button)
-        self.embed.set_footer(text="Select punishment length")
+        self.add_item(CancelButton())
+        self.embed.set_footer(text="Select the punishment length")
 
     async def create_reason_selector(self):
         # Acquire mapping for lengths for punishment types
@@ -464,7 +489,8 @@ class PunishmentInteraction(ui.View):
         self.clear_items()
         for button in mapping:
             self.add_item(button)
-        self.embed.set_footer(text="Select punishment reason")
+        self.add_item(CancelButton())
+        self.embed.set_footer(text="Select reason for the punishment")
 
     async def create_confirmation_selector(self):
         self.clear_items()
@@ -490,14 +516,24 @@ class PunishmentInteraction(ui.View):
             self.remove_items()
             return await self.finish(interaction)
 
-        # Otherwise, clear items
-        self.embed.set_footer(text="CANCELLED")
+        # Otherwise, cancel the interaction
+        await self.cancel_interface(interaction)
+
+    """Clean up related methods"""
+
+    async def timeout_interface(self, interaction: Optional[Interaction]) -> None:
+        self.embed.set_footer(text="TIMED OUT")
         self.embed.colour = Colour.red()
         self.remove_items()
         await self._update_view(interaction)
         self.stop()
 
-    """Clean up related methods"""
+    async def cancel_interface(self, interaction: Interaction) -> None:
+        self.embed.set_footer(text="CANCELLED")
+        self.embed.colour = Colour.red()
+        self.remove_items()
+        await self._update_view(interaction)
+        self.stop()
 
     def remove_items(self) -> None:
         """Removes all items from the view."""
@@ -518,6 +554,10 @@ class PunishmentInteraction(ui.View):
         """Stops listening to all interactions for this view."""
         self.remove_items()
         return super().stop()
+
+    async def on_timeout(self) -> None:
+        """Called when view times out."""
+        await self.timeout_interface(None)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Ensure that the interaction is called by the message author.
@@ -545,13 +585,11 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def purge(self, ctx: Context, amount: int = 0):
         if amount <= 0:
-            return await ctx.reply(embed=ErrorEmbed(
-                "Please specify an amount of messages to delete!"
-            ))
+            raise BadArgument("Please specify the amount of messages to delete!")
 
         # Evan proof
         if amount > 1000:
-            amount = 1000
+            raise BadArgument("Max amount of messages I can purge at once is 1000!")
 
         await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
@@ -573,7 +611,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
-    @commands.is_owner() # type: ignore
+    #@commands.is_owner() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
         # Check initial permissions
         if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):
@@ -598,7 +636,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
         await view.initialize()
         await view.create_type_selector()
 
-        await ctx.reply(embed=embed, view=view)
+        message = await ctx.reply(embed=embed, view=view)
+        view.set_reply_message(message)
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorCommands(client))
