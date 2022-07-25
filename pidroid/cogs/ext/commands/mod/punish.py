@@ -316,7 +316,7 @@ class PunishmentInteraction(ui.View):
             self.jail_role = role
 
         # Lock the punishment menu with a semaphore
-        await self.cog.lock_punishment_menu(self.user.id)
+        await self.cog.lock_punishment_menu(self.ctx.guild.id, self.user.id)
 
     def set_reply_message(self, message: Message) -> None:
         """Sets the reply message to which this interaction belongs to."""
@@ -533,7 +533,7 @@ class PunishmentInteraction(ui.View):
         self.remove_items()
         await self._update_view(interaction)
         self.stop()
-        await self.cog.unlock_punishment_menu(self.user.id)
+        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
 
     async def cancel_interface(self, interaction: Interaction) -> None:
         self.embed.set_footer(text="Punishment creation has been cancelled")
@@ -541,7 +541,7 @@ class PunishmentInteraction(ui.View):
         self.remove_items()
         await self._update_view(interaction)
         self.stop()
-        await self.cog.unlock_punishment_menu(self.user.id)
+        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
 
     def remove_items(self) -> None:
         """Removes all items from the view."""
@@ -553,7 +553,7 @@ class PunishmentInteraction(ui.View):
         # Stop responding to interactions
         self.stop()
         # Unlock semaphore
-        await self.cog.unlock_punishment_menu(self.user.id)
+        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
         # Respond to defer
         await interaction.response.defer()
         # Delete original message if it exists
@@ -584,25 +584,32 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        self.user_semaphores: Dict[int, asyncio.Semaphore] = {}
+        # GUILD_ID: {USER_ID: Semaphore}
+        self.user_semaphores: Dict[int, Dict[int, asyncio.Semaphore]] = {}
 
-    def _create_semaphore_if_not_exist(self, user_id: int) -> asyncio.Semaphore:
-        if self.user_semaphores.get(user_id) is None:
-            self.user_semaphores[user_id] = asyncio.Semaphore(1)
-        return self.user_semaphores[user_id]
+    def _create_semaphore_if_not_exist(self, guild_id: int, user_id: int) -> asyncio.Semaphore:
+        if self.user_semaphores.get(guild_id) is None:
+            self.user_semaphores[guild_id] = {}
+        user = self.user_semaphores[guild_id].get(user_id)
+        if user is None:
+            self.user_semaphores[guild_id][user_id] = asyncio.Semaphore(1)
+        return self.user_semaphores[guild_id][user_id]
 
-    async def lock_punishment_menu(self, user_id : int) -> None:
-        sem = self._create_semaphore_if_not_exist(user_id)
+    async def lock_punishment_menu(self, guild_id: int, user_id : int) -> None:
+        sem = self._create_semaphore_if_not_exist(guild_id, user_id)
         await sem.acquire()
 
-    async def unlock_punishment_menu(self, user_id: int) -> None:
-        sem = self._create_semaphore_if_not_exist(user_id)
+    def unlock_punishment_menu(self, guild_id: int, user_id: int) -> None:
+        sem = self._create_semaphore_if_not_exist(guild_id, user_id)
         sem.release()
         # Save memory with this simple trick
-        self.user_semaphores.pop(user_id)
+        self.user_semaphores[guild_id].pop(user_id)
 
-    def is_user_being_punished(self, user_id: int) -> bool:
-        sem = self.user_semaphores.get(user_id)
+    def is_user_being_punished(self, guild_id: int, user_id: int) -> bool:
+        guild = self.user_semaphores.get(guild_id)
+        if guild is None:
+            return False
+        sem = guild.get(user_id)
         if sem is None:
             return False
         return sem.locked()
@@ -652,7 +659,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
 
-        if self.is_user_being_punished(user.id):
+        if self.is_user_being_punished(self.ctx.guild.id, user.id):
             raise BadArgument("The punishment menu is already open for the user.")
 
         # Prevent moderator from punishing himself
