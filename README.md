@@ -2,6 +2,16 @@
 
 Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [discord.py](https://github.com/Rapptz/discord.py) wrapper.
 
+## Database
+
+You will need PostgreSQL 9.5 or higher and type the following in the psql tool:
+
+```sql
+CREATE ROLE pidroid WITH LOGIN PASSWORD 'your_database_password';
+CREATE DATABASE pidroid OWNER pidroid;
+CREATE EXTENSION pg_trgm;
+```
+
 ## Production use
 
 To use Pidroid in production, first we need to build a [docker](https://www.docker.com) image with this command:

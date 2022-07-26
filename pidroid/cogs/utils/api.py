@@ -127,12 +127,13 @@ class API:
         self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
-    async def connect(self) -> None:
+    async def connect(self, clear: bool = False) -> None:
         self.engine = create_async_engine(self._dsn, echo=self._debug)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
         async with self.engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
+            if clear:
+                await conn.run_sync(Base.metadata.drop_all)
             await conn.run_sync(Base.metadata.create_all)
 
     async def get(self, route: Route) -> dict:
@@ -169,6 +170,22 @@ class API:
             await session.commit()
         return entry.id
 
+    async def insert_suggestion2(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str], date_submitted: datetime.datetime) -> int:
+        """Creates a suggestion entry in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = SuggestionTable(
+                    author_id=author_id,
+                    message_id=message_id,
+                    suggestion=suggestion,
+                    attachments=attachment_urls,
+                    date_submitted=date_submitted
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
     """Tag related"""
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: List[int]) -> int:
@@ -181,6 +198,22 @@ class API:
                     name=name,
                     content=content,
                     authors=authors
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
+    async def insert_tag2(self, guild_id: int, name: str, content: str, authors: List[int], date_created: datetime.datetime) -> int:
+        """Creates a tag entry in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = TagTable(
+                    guild_id=guild_id,
+                    name=name,
+                    content=content,
+                    authors=authors,
+                    date_created=date_created
                 )
                 session.add(entry)
             await session.commit()
@@ -278,6 +311,19 @@ class API:
             result: ChunkedIteratorResult = await session.execute(
                 select(GuildConfigurationTable).
                 filter(GuildConfigurationTable.id == id)
+            )
+        r = result.fetchone()
+        if r:
+            return GuildConfiguration(self, r[0])
+        return None
+
+    async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
+        """Fetches and returns a deserialized guild configuration if available for the specified guild."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(GuildConfigurationTable).
+                filter(GuildConfigurationTable.guild_id == guild_id)
             )
         r = result.fetchone()
         if r:
@@ -398,6 +444,45 @@ class API:
         assert case is not None
         return case
 
+    async def insert_punishment_entry2(
+        self,
+        type: str,
+        guild_id: int,
+        user_id: int, user_name: str,
+        moderator_id: int, moderator_name: str,
+        reason: Optional[str],
+        expire_date: Optional[datetime.datetime],
+        issue_date: Optional[datetime.datetime],
+        visible: bool, handled: bool
+    ) -> None:
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id, counter=1).on_conflict_do_update(
+                    index_elements=[PunishmentCounterTable.guild_id],
+                    set_=dict(counter=PunishmentCounterTable.counter + 1) # TODO: investigate 
+                ).returning(PunishmentCounterTable.counter)
+
+                res = await session.execute(insert_stmt)
+                counter = res.fetchone()[0]
+
+                entry = PunishmentTable(
+                    case_id=counter,
+                    type=type,
+                    guild_id=guild_id,
+                    user_id=user_id,
+                    user_name=user_name,
+                    moderator_id=moderator_id,
+                    moderator_name=moderator_name,
+                    reason=reason,
+                    issue_date=issue_date,
+                    expire_date=expire_date,
+                    visible=visible,
+                    handled=handled
+                )
+                session.add(entry)
+            await session.commit()
+
     async def fetch_case_by_internal_id(self, id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
         async with self.session() as session:
@@ -505,7 +590,7 @@ class API:
 
     async def fetch_moderation_statistics(self, guild_id: int, moderator_id: int) -> dict:
         """Fetches and returns a dictionary containing the general moderation statistics."""
-        bans = kicks = jails = warnings = guild_total = 0
+        bans = kicks = jails = warnings = user_total = guild_total = 0
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
@@ -519,8 +604,9 @@ class API:
 
             # Tally moderator specific data
             for r in result.fetchall():
+                user_total += 1
                 p_val = r[0]
-                if p_val == "ban": bans += 1         # noqa: E701
+                if p_val == 'ban': bans += 1         # noqa: E701
                 if p_val == 'kick': kicks += 1       # noqa: E701
                 if p_val == 'jail': jails += 1       # noqa: E701
                 if p_val == 'warning': warnings += 1 # noqa: E701
@@ -537,7 +623,7 @@ class API:
 
         return {
             "bans": bans, "kicks": kicks, "jails": jails, "warnings": warnings,
-            "user_total": bans + kicks + jails + warnings,
+            "user_total": user_total,
             "guild_total": guild_total
         }
 

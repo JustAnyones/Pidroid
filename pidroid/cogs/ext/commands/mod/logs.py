@@ -123,7 +123,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         embed.add_field(name='Kicks', value=data["kicks"])
         embed.add_field(name='Jails', value=data["jails"])
         embed.add_field(name='Warnings', value=data["warnings"])
-        embed.add_field(name='Total', value=data["user_total"])
+        embed.add_field(name='Moderator total', value=data["user_total"])
         embed.add_field(name='Server total', value=data["guild_total"])
         await ctx.reply(embed=embed)
 
