@@ -355,7 +355,7 @@ class Ban(BasePunishment):
             await self._notify_chat(f'{self.user_name} was banned for the following reason: {self.reason}')
             await self._notify_user(f"You have been banned from {self.guild.name} server for the following reason: {self.reason}")
 
-        await self.guild.ban(user=self.user, reason=self.reason) # type: ignore
+        await self.guild.ban(user=self.user, reason=self.reason, delete_message_days=1) # type: ignore
         return self.case
 
     async def revoke(self, reason: str = None) -> None:
