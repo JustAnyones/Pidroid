@@ -127,14 +127,9 @@ class API:
         self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
-    async def connect(self, clear: bool = False) -> None:
+    async def connect(self) -> None:
         self.engine = create_async_engine(self._dsn, echo=self._debug)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
-
-        async with self.engine.begin() as conn:
-            if clear:
-                await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""

@@ -82,7 +82,7 @@ async def migrate():
     postgres_dsn = os.getenv("POSTGRES_DSN")
 
     new_api = API(None, postgres_dsn, True)
-    await new_api.connect(True)
+    await new_api.connect()
     old_api = OldAPI(mongo_dsn)
     print("Migrating")
 

@@ -13,4 +13,7 @@ RUN pip3 install -r requirements.txt
 
 COPY pidroid/ pidroid/
 
+COPY alembic/ alembic/
+COPY alembic.ini alembic.ini
+
 CMD ["python3", "-u", "pidroid/main.py"]
