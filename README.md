@@ -2,16 +2,6 @@
 
 Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [discord.py](https://github.com/Rapptz/discord.py) wrapper.
 
-## Database
-
-You will need PostgreSQL 9.5 or higher and type the following in the psql tool:
-
-```sql
-CREATE ROLE pidroid WITH LOGIN PASSWORD 'your_database_password';
-CREATE DATABASE pidroid OWNER pidroid;
-CREATE EXTENSION pg_trgm;
-```
-
 ## Production use
 
 To use Pidroid in production, first we need to build a [docker](https://www.docker.com) image with this command:
@@ -20,7 +10,9 @@ To use Pidroid in production, first we need to build a [docker](https://www.dock
 docker build . --tag pidroid-bot
 ```
 
-After building the docker image, now we just need to run it in a docker container with the following command:
+After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
+
+After making sure our configuration and database is set up, we just need to run the bot in a docker container with the following command:
 
 ```shell
 docker-compose up -d
@@ -59,7 +51,12 @@ pip install -r requirements.txt
 ```
 
 After installing all required packages, we need to configure the bot. Please check [here](#configuration) on how to do so.
-The bot uses a Postgres database. It accepts the login credentials as a [DSN](https://docs.mongodb.com/manual/reference/connection-string/#standard-connection-string-format). Please check [configuration manual](#configuration) on where to input it.
+The bot uses a Postgres database. It accepts the login credentials as a [DSN](#database). Please check [configuration manual](#configuration) on where to input it.
+
+After setting up the database, we will need to do the database table creation and migrations using alembic:
+```shell
+alembic upgrade head
+```
 
 Lastly, all we have to do is run the bot. You can do so by running this command:
 
@@ -68,6 +65,25 @@ python pidroid/main.py -e config.env
 ```
 
 The -e argument specifies which file to use for the environment variables.
+
+## Database
+
+You will need a PostgreSQL 9.5 database or higher. You will need to type the following in the psql tool:
+
+```sql
+CREATE ROLE pidroid WITH LOGIN PASSWORD 'your_database_password';
+CREATE DATABASE pidroid OWNER pidroid;
+CREATE EXTENSION pg_trgm;
+```
+
+After creating your database, you'll need your DSN string.
+
+```
+postgresql+asyncpg://pidroid:your_database_password@127.0.0.1
+```
+
+postgresql+asyncpg is required to specify sqlalchemy to use asyncpg driver
+You will only need to change the password field and the IP.
 
 ## Configuration
 
@@ -102,6 +118,8 @@ REDDIT_CLIENT_SECRET=
 REDDIT_USERNAME=
 REDDIT_PASSWORD=
 ```
+
+Please note that if your credentials contain a dollar sign, add another dollar sign to make it a literal.
 
 Config options that are yet to be reimplemented
 ```jsonc
