@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from discord import Game
 from discord.ext import commands # type: ignore
 from typing import TYPE_CHECKING
