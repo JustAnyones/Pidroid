@@ -2,6 +2,7 @@ version: "3.7"
 
 services:
   pidroid:
+    restart: always
     image: pidroid-bot:latest
     volumes:
       - ./data:/app/data
