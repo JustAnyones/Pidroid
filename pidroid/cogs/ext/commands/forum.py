@@ -1,18 +1,17 @@
 import re
 
 from discord.ext import commands
-from discord.ext.commands import MissingRequiredArgument # type: ignore
+from discord.ext.commands import MissingRequiredArgument, BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.utils import format_dt
 from types import SimpleNamespace
 
 from pidroid.client import Pidroid
-from pidroid.constants import THEOTOWN_FORUM_URL
+from pidroid.cogs.models.accounts import ForumAccount
 from pidroid.cogs.models.categories import TheoTownCategory
 from pidroid.cogs.utils.decorators import command_checks
-from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed, SuccessEmbed
 from pidroid.cogs.utils.http import Route
-from pidroid.cogs.utils.time import timestamp_to_datetime
 
 class ForumCommands(commands.Cog): # type: ignore
     """This class implements a cog which contains commands for communication via TheoTown forums."""
@@ -31,38 +30,30 @@ class ForumCommands(commands.Cog): # type: ignore
     async def forum_user(self, ctx: Context, *, username: str):
         async with ctx.typing():
             res = await self.client.api.get(Route(
-                "/private/forum/deprecated",
-                {"type": "find", "user": username}
+                "/private/forum/find_account",
+                {"query": username}
             ))
-            if res["success"]:
-                data = res["data"]
-                data = data[0]
-                registered = format_dt(timestamp_to_datetime(int(data["user_regdate"])))
-                last_online_time = int(data["user_lastvisit"])
-                if last_online_time > 0:
-                    last_online = format_dt(timestamp_to_datetime(last_online_time))
-                else:
-                    last_online = 'Never'
-                username = data["username"]
-                user_id = data["user_id"]
-                user_group: str = data["group_name"]
-                if user_group.isupper():
-                    user_group = user_group.replace("_", " ").capitalize()
-                avatar = f'{THEOTOWN_FORUM_URL}/download/file.php?avatar={data["user_avatar"]}'
-                embed = PidroidEmbed(title=f'{username}\'s information')
-                embed.add_field(name='Username', value=username, inline=True)
-                embed.add_field(name='ID', value=f'[{user_id}]({THEOTOWN_FORUM_URL}/memberlist.php?mode=viewprofile&u={user_id})', inline=True)
-                embed.add_field(name='Group', value=user_group, inline=True)
-                embed.add_field(name='Rank', value=data["rank_title"], inline=True)
-                embed.add_field(name='Post count', value=data["user_posts"], inline=True)
-                embed.add_field(name='Reaction count', value=data["user_reactions"], inline=True)
-                embed.add_field(name='Plugins', value=f'[Forum plugins]({THEOTOWN_FORUM_URL}/search.php?author_id={user_id}&fid%5B%5D=43&sc=1&sr=topics&sk=t&sf=firstpost)\n[Plugin store plugins]({THEOTOWN_FORUM_URL}/plugins/list?mode=user&user_id={user_id})', inline=False)
-                embed.add_field(name='Last online', value=last_online, inline=True)
-                embed.add_field(name='Registered', value=registered, inline=True)
-                embed.set_thumbnail(url=avatar)
-                return await ctx.reply(embed=embed)
+            if not res["success"]:
+                raise BadArgument(res["details"])
 
-            await ctx.reply(embed=ErrorEmbed(res["details"]))
+            data = res["data"]
+            account = ForumAccount(data[0])
+            if account.date_latest_login is None:
+                last_online = "Never"
+            else:
+                last_online = format_dt(account.date_latest_login)
+            embed = PidroidEmbed(title=f'{account.name}\'s information')
+            embed.add_field(name='Username', value=account.name, inline=True)
+            embed.add_field(name='ID', value=f'[{account.id}]({account.profile_url})', inline=True)
+            embed.add_field(name='Group', value=account.group_name, inline=True)
+            embed.add_field(name='Rank', value=account.rank, inline=True)
+            embed.add_field(name='Post count', value=account.post_count, inline=True)
+            embed.add_field(name='Reaction count', value=account.reaction_count, inline=True)
+            embed.add_field(name='Plugins', value=f'[Forum plugins]({account.forum_plugin_url})\n[Plugin store plugins]({account.plugin_store_url})', inline=False)
+            embed.add_field(name='Last online', value=last_online, inline=True)
+            embed.add_field(name='Registered', value=format_dt(account.date_registered), inline=True)
+            embed.set_thumbnail(url=account.avatar_url)
+            await ctx.reply(embed=embed)
 
     @commands.command( # type: ignore
         name='forum-gift',
@@ -121,25 +112,7 @@ class ForumCommands(commands.Cog): # type: ignore
             if res["success"]:
                 data = res["data"]
                 return await ctx.reply(f'{amount:,} {item} have been gifted to {data["name"]}!')
-            await ctx.reply(embed=ErrorEmbed(res["details"]))
-
-    @commands.command( # type: ignore
-        name='forum-pm',
-        brief='Send a forum PM to specified user as Pidroid.',
-        usage='<target user ID> <subject> <body>',
-        hidden=True,
-        category=TheoTownCategory
-    )
-    @commands.bot_has_permissions(send_messages=True, manage_messages=True) # type: ignore
-    @command_checks.is_theotown_developer()
-    async def forum_pm(self, ctx: Context, target: int, subject: str, *, text: str):
-        async with ctx.typing():
-            data = await self.client.api.get(Route(
-                "/private/forum/deprecated",
-                {"type": "pm", "author": 10911, "target": target, "subject": subject, "text": text}
-            ))
-            await ctx.message.delete(delay=0)
-            await ctx.reply(data["details"])
+            raise BadArgument(res["details"])
 
     @commands.command( # type: ignore
         name='forum-authorise',
@@ -153,10 +126,12 @@ class ForumCommands(commands.Cog): # type: ignore
     async def forum_authorise(self, ctx: Context, *, user: str):
         async with ctx.typing():
             res = await self.client.api.get(Route(
-                "/private/forum/deprecated",
-                {"type": "authorise", "user": user}
+                "/private/forum/activate_account",
+                {"user": user}
             ))
-            await ctx.reply(res["details"])
+            if res["success"]:
+                return await ctx.reply(embed=SuccessEmbed(res['details']))
+            raise BadArgument(res["details"])
 
 
 async def setup(client: Pidroid) -> None:

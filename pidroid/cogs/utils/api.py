@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import datetime
 
-from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import List, Optional, TYPE_CHECKING
 
 from pidroid.cogs.ext.commands.tags import Tag
 from pidroid.cogs.models.case import Case
 from pidroid.cogs.models.configuration import GuildConfiguration
 from pidroid.cogs.models.plugins import NewPlugin, Plugin
+from pidroid.cogs.models.accounts import TheoTownAccount
 from pidroid.cogs.utils.http import HTTP, Route
 from pidroid.cogs.utils.time import utcnow
 
@@ -36,6 +36,7 @@ class LinkedAccountTable(Base): # type: ignore
     id = Column(BigInteger, primary_key=True)
     user_id = Column(BigInteger)
     forum_id = Column(BigInteger)
+    date_wage_last_redeemed = Column(DateTime(timezone=True), nullable=True)
 
 class PunishmentCounterTable(Base): # type: ignore
     __tablename__ = "PunishmentCounters"
@@ -718,7 +719,73 @@ class API:
             )
         return [{"detected_source_language": r[0].detected_language, "text": r[0].translated_string} for r in result.fetchall()]
 
+    """Linked account related"""
+
+    async def insert_linked_account(self, user_id: int, forum_id: int) -> int:
+        """Creates a linked account entry in the database."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = LinkedAccountTable(
+                    user_id=user_id,
+                    forum_id=forum_id
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
+    async def update_linked_account_by_user_id(
+        self,
+        user_id: int,
+        date_wage_last_redeemed: Optional[datetime.datetime],
+    ) -> None:
+        """Updates a linked account entry by specified user ID."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(LinkedAccountTable).
+                    filter(LinkedAccountTable.user_id == user_id).
+                    values(
+                       date_wage_last_redeemed=date_wage_last_redeemed
+                    )
+                )
+            await session.commit()
+
+    async def fetch_linked_account_by_user_id(self, user_id: int) -> Optional[LinkedAccountTable]:
+        """Fetches and returns a linked account if available."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LinkedAccountTable).
+                filter(LinkedAccountTable.user_id == user_id)
+            )
+        r = result.fetchone()
+        if r:
+            return r[0]
+        return None
+
+    async def fetch_linked_account_by_forum_id(self, forum_id: int) -> Optional[LinkedAccountTable]:
+        """Fetches and returns a linked account if available."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LinkedAccountTable).
+                filter(LinkedAccountTable.forum_id == forum_id)
+            )
+        r = result.fetchone()
+        if r:
+            return r[0]
+        return None
+
     """TheoTown backend related"""
+
+    async def fetch_theotown_account_by_id(self, account_id: int) -> Optional[TheoTownAccount]:
+        """Queries the TheoTown API for new plugins after the specified approval time."""
+        response = await self.get(Route("/private/game/fetch_user", {"forum_id": account_id}))
+        if response["success"]:
+            return TheoTownAccount(response["data"])
+        return None
 
     async def fetch_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""

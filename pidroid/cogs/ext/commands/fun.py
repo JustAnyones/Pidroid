@@ -110,7 +110,7 @@ class FunCommands(commands.Cog): # type: ignore
     @command_checks.is_theotown_developer()
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def happiness(self, ctx: Context):
-        res = await self.client.api.get(Route("/private/review/get"))
+        res = await self.client.api.get(Route("/private/review/fetch_random"))
         data = res["data"]
         embed = PidroidEmbed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
         embed.set_author(name=data['author'])

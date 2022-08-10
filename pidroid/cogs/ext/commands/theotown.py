@@ -1,10 +1,13 @@
+import datetime
 import os
 import random
 
 from contextlib import suppress
 from discord.ext import commands # type: ignore
-from discord.errors import HTTPException
+from discord.errors import HTTPException, Forbidden
+from discord.ext.commands import BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
+from discord.member import Member
 from discord.message import Message
 from typing import List, Optional
 
@@ -12,10 +15,12 @@ from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import TheoTownCategory
 from pidroid.cogs.utils import http
 from pidroid.cogs.utils.decorators import command_checks
-from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed, SuccessEmbed
 from pidroid.cogs.utils.http import Route
 from pidroid.cogs.utils.paginators import PidroidPages, PluginListPaginator
 from pidroid.cogs.utils.parsers import format_version_code
+from pidroid.cogs.utils.time import utcnow
+from pidroid.constants import THEOTOWN_GUILD
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
@@ -306,6 +311,85 @@ class TheoTownCommands(commands.Cog): # type: ignore
             await message.edit(embed=embed)
             with suppress(HTTPException):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
+
+    @commands.command( # type: ignore
+        name='link-account',
+        brief='Links a discord user account to a TheoTown account.',
+        usage='<member> <forum user ID>',
+        category=TheoTownCategory
+    )
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @command_checks.is_theotown_developer()
+    async def link_account(self, ctx: Context, member: Member, forum_id: int):
+        # Check if the discord account is linked to anything
+        linked_acc = await self.client.api.fetch_linked_account_by_user_id(member.id)
+        if linked_acc:
+            raise BadArgument(f"{str(member)} is already linked to a forum account!")
+
+        # Check if the forum account is linked to anything
+        linked_acc = await self.client.api.fetch_linked_account_by_forum_id(forum_id)
+        if linked_acc:
+            raise BadArgument("Specified forum account is already linked to a discord account!")
+
+        account = await self.client.api.fetch_theotown_account_by_id(forum_id)
+        if account is None:
+            raise BadArgument("Specified game account does not exist!")
+
+        await self.client.api.insert_linked_account(member.id, forum_id)
+        await ctx.send(embed=SuccessEmbed(
+            f"Discord account {member.mention} has been linked to [{account.forum_account.name}]({account.forum_account.profile_url}) successfully!"
+        ))
+
+    @commands.command( # type: ignore
+        name='redeem-wage',
+        brief='Links a discord user account to a TheoTown account.',
+        category=TheoTownCategory
+    )
+    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    async def redeem_wage(self, ctx: Context):
+        # Find the linked account
+        linked_acc = await self.client.api.fetch_linked_account_by_user_id(ctx.author.id)
+        if linked_acc is None:
+            raise BadArgument(f"Your discord account is not linked to any TheoTown accounts!")
+
+        # Check if last redeem was not within this month
+        last_wage_date: datetime.datetime = linked_acc.date_wage_last_redeemed
+        if last_wage_date is not None and last_wage_date.month == utcnow().month:
+            raise BadArgument("You've already redeemed the wage for this month!")
+        
+        # Obtain TT guild
+        try:
+            guild = await self.client.fetch_guild(THEOTOWN_GUILD, with_counts=False)
+        except Forbidden:
+            raise BadArgument("Pidroid cannot find the TheoTown server, I cannot determine your wage!")
+
+        # Obtain the member
+        member = await self.client.get_or_fetch_member(guild, ctx.author.id)
+        if member is None:
+            raise BadArgument("You are not a member of the TheoTown server, I cannot determine your wage!")
+
+        # Determine reward by role ID
+        roles = [(r.id, r.name) for r in member.roles]
+
+        print(linked_acc.forum_id)
+        print(roles)
+
+        amount = 1
+
+        # Update last withdrawal date
+        await self.client.api.update_linked_account_by_user_id(member.id, utcnow())
+
+        # Actual transaction
+        # TODO: implement specific endpoint for wages
+        res = await self.client.api.get(Route(
+            "/private/game/gift",
+            {"userid": linked_acc.forum_id, "diamonds": amount}
+        ))
+        if res["success"]:
+            data = res["data"]
+            return await ctx.reply(f'{amount:,} diamonds have been redeemed to {data["name"]}!')
+        raise BadArgument(res["details"])
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommands(client))

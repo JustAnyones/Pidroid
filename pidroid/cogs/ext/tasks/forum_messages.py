@@ -32,7 +32,7 @@ class ForumMessageTask(commands.Cog): # type: ignore
     @tasks.loop(seconds=60)
     async def fetch_messages(self) -> None:
         try:
-            response = await self.client.api.get(Route("/private/forum/get_unread_messages"))
+            response = await self.client.api.get(Route("/private/forum/fetch_unread_messages"))
 
             for message in response["data"]:
 
