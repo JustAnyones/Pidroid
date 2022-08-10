@@ -342,7 +342,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
     @commands.command( # type: ignore
         name='redeem-wage',
-        brief='Links a discord user account to a TheoTown account.',
+        brief='Redeems moderation wage for the linked TheoTown account.',
         category=TheoTownCategory
     )
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
@@ -370,25 +370,23 @@ class TheoTownCommands(commands.Cog): # type: ignore
             raise BadArgument("You are not a member of the TheoTown server, I cannot determine your wage!")
 
         # Determine reward by role ID
-        roles = [(r.id, r.name) for r in member.roles]
+        roles = [r.id for r in member.roles if r.id in [
+            410512375083565066, 368799288127520769, 381899421992091669,
+            710914534394560544, 365482773206532096
+        ]]
 
-        print(linked_acc.forum_id)
-        print(roles)
-
-        amount = 1
-
-        # Update last withdrawal date
-        await self.client.api.update_linked_account_by_user_id(member.id, utcnow())
+        if len(roles) == 0:
+            raise BadArgument("You are not eligible for a wage!")
 
         # Actual transaction
-        # TODO: implement specific endpoint for wages
         res = await self.client.api.get(Route(
-            "/private/game/gift",
-            {"userid": linked_acc.forum_id, "diamonds": amount}
+            "/private/game/redeem_wage",
+            {"forum_id": linked_acc.forum_id, "role_id": roles[-1]}
         ))
         if res["success"]:
             data = res["data"]
-            return await ctx.reply(f'{amount:,} diamonds have been redeemed to {data["name"]}!')
+            await self.client.api.update_linked_account_by_user_id(member.id, utcnow())
+            return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
         raise BadArgument(res["details"])
 
 async def setup(client: Pidroid) -> None:
