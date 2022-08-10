@@ -5,7 +5,6 @@ from discord.guild import Guild
 from discord.role import Role
 
 from pidroid.client import Pidroid
-from pidroid.cogs.utils.checks import is_client_development
 
 class GuildEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
@@ -14,9 +13,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_join(self, guild: Guild):
-        if is_client_development(self.client):
-            return
-
         await self.client.wait_guild_config_cache_ready()
 
         if guild.id in self.client.guild_configuration_guilds:
@@ -27,9 +23,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_remove(self, guild: Guild):
-        if is_client_development(self.client):
-            return
-
         await self.client.wait_guild_config_cache_ready()
 
         config = self.client.get_guild_configuration(guild.id)
@@ -42,9 +35,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
     @commands.Cog.listener() # type: ignore
     async def on_guild_role_delete(self, role: Role) -> None:
         """Handles configuration updates based on role removals."""
-        if is_client_development(self.client):
-            return
-
         await self.client.wait_guild_config_cache_ready()
 
         guild_id = role.guild.id
@@ -66,9 +56,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
         # Only care about text channels, as Pidroid doesn't do anything moderative with
         # voice channels and etc
         if not isinstance(guild_channel, TextChannel):
-            return
-
-        if is_client_development(self.client):
             return
 
         await self.client.wait_guild_config_cache_ready()

@@ -174,7 +174,6 @@ class FunCommands(commands.Cog): # type: ignore
     )
     @commands.cooldown(rate=2, per=6, type=commands.BucketType.user) # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @command_checks.client_is_pidroid()
     async def fact(self, ctx: Context):
         await ctx.reply(random.choice(FACTS)) # nosec
 
