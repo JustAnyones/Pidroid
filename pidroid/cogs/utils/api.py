@@ -30,6 +30,13 @@ if TYPE_CHECKING:
 
 Base = declarative_base()
 
+class LinkedAccountTable(Base): # type: ignore
+    __tablename__ = "LinkedAccounts"
+
+    id = Column(BigInteger, primary_key=True)
+    user_id = Column(BigInteger)
+    forum_id = Column(BigInteger)
+
 class PunishmentCounterTable(Base): # type: ignore
     __tablename__ = "PunishmentCounters"
 
