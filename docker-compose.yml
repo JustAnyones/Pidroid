@@ -4,7 +4,7 @@ services:
   pidroid:
     image: pidroid-bot:latest
     volumes:
-      - ./data:/data
+      - ./data:/app/data
     env_file:
       - config.env
     depends_on:
