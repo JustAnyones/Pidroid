@@ -10,10 +10,10 @@ from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from typing import Optional, Union, List
 
-from client import Pidroid
-from cogs.models.categories import UtilityCategory
-from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import UtilityCategory
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 

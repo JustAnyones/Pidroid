@@ -2,9 +2,9 @@ from discord import NotFound
 from discord.ext import tasks, commands # type: ignore
 from discord.threads import Thread
 
-from client import Pidroid
-from cogs.utils.checks import is_client_pidroid
-from cogs.utils.time import utcnow
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.checks import is_client_pidroid
+from pidroid.cogs.utils.time import utcnow
 
 
 class ThreadTasks(commands.Cog): # type: ignore

@@ -4,9 +4,9 @@ from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from typing import List
 
-from client import Pidroid
-from cogs.utils.decorators import command_checks
-from cogs.utils.http import post
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.http import post
 
 ISSUE_URL = "https://api.github.com/repos/TheoTown-Team/oauth-experiment/issues"
 GH_HEADERS = {"Accept": "application/vnd.github.v3+json"}

@@ -1,13 +1,17 @@
 import asyncio
 import os
+import sys
 import motor.motor_asyncio # type: ignore
 
 from bson.objectid import ObjectId # type: ignore
 from motor.core import AgnosticCollection # type: ignore
 from typing import List
 
-from cogs.utils.api import API
-from cogs.utils.time import timestamp_to_datetime
+# Allows us to not set the Python path
+sys.path.append(os.getcwd())
+
+from pidroid.cogs.utils.api import API
+from pidroid.cogs.utils.time import timestamp_to_datetime
 
 class OldAPI:
 

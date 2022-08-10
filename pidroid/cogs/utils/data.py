@@ -3,7 +3,7 @@ import os
 
 from typing import Dict, Optional
 
-from constants import DATA_FILE_PATH
+from pidroid.constants import DATA_FILE_PATH
 
 PERSISTENT_DATA_FILE = os.path.join(DATA_FILE_PATH, 'data.json')
 

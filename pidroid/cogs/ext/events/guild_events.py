@@ -4,8 +4,8 @@ from discord.ext import commands # type: ignore
 from discord.guild import Guild
 from discord.role import Role
 
-from client import Pidroid
-from cogs.utils.checks import is_client_development
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.checks import is_client_development
 
 class GuildEventHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""

@@ -5,7 +5,7 @@ from discord.role import Role
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
-    from cogs.utils.api import API, GuildConfigurationTable
+    from pidroid.cogs.utils.api import API, GuildConfigurationTable
 
 class GuildConfiguration:
 

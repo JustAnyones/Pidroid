@@ -5,13 +5,13 @@ from discord.channel import TextChannel
 from discord.ext import tasks, commands # type: ignore
 from discord.utils import format_dt
 
-from client import Pidroid
-from constants import THEOTOWN_FORUM_URL
-from cogs.utils.checks import is_client_pidroid
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.http import Route
-from cogs.utils.parsers import truncate_string
-from cogs.utils.time import timestamp_to_datetime
+from pidroid.client import Pidroid
+from pidroid.constants import THEOTOWN_FORUM_URL
+from pidroid.cogs.utils.checks import is_client_pidroid
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.http import Route
+from pidroid.cogs.utils.parsers import truncate_string
+from pidroid.cogs.utils.time import timestamp_to_datetime
 
 class ForumMessageTask(commands.Cog): # type: ignore
     """This class implements a cog for handling forum PMs to Pidroid user."""

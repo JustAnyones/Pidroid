@@ -6,8 +6,8 @@ from contextlib import suppress
 from discord.ext import tasks, commands # type: ignore
 from typing import Union
 
-from client import Pidroid
-from cogs.utils.getters import get_role
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.getters import get_role
 
 class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""

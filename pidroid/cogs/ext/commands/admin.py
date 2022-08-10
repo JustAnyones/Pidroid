@@ -7,10 +7,10 @@ from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.utils import escape_markdown
 from typing import List
 
-from client import Pidroid
-from cogs.models.categories import AdministrationCategory, UtilityCategory
-from cogs.utils.embeds import PidroidEmbed, SuccessEmbed
-from cogs.utils.decorators import command_checks
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import AdministrationCategory, UtilityCategory
+from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.cogs.utils.decorators import command_checks
 
 SETUP_REASON = "Guild jail system setup"
 

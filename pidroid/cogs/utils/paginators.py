@@ -30,8 +30,8 @@ import discord
 from discord.ext import commands
 from typing import List, Optional, Dict, Any
 
-from cogs.models.plugins import Plugin
-from cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.models.plugins import Plugin
+from pidroid.cogs.utils.embeds import PidroidEmbed
 
 
 class PageSource:

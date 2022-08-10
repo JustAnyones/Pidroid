@@ -6,14 +6,14 @@ import os
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 
-from client import Pidroid
-from constants import BEG_FAILURE_RESPONSES, BEG_SUCCESS_RESPONSES
-from cogs.models import exceptions
-from cogs.models.categories import RandomCategory
-from cogs.utils import http
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import ErrorEmbed
-from cogs.utils.time import humanize
+from pidroid.client import Pidroid
+from pidroid.constants import BEG_FAILURE_RESPONSES, BEG_SUCCESS_RESPONSES
+from pidroid.cogs.models import exceptions
+from pidroid.cogs.models.categories import RandomCategory
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import ErrorEmbed
+from pidroid.cogs.utils.time import humanize
 
 COOLDOWN_FILE_PATH = "./data/beg_cooldowns.p"
 BASE_API_URL = 'https://unbelievaboat.com/api/v1/guilds/365478391719264276/users'

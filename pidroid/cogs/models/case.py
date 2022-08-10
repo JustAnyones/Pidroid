@@ -16,14 +16,14 @@ from discord.user import User
 from discord.utils import format_dt
 from typing import TYPE_CHECKING, List, Optional, Union
 
-from ..utils.aliases import GuildTextChannel
-from ..utils.embeds import PidroidEmbed, SuccessEmbed
-from ..utils.file import Resource
-from ..utils.paginators import ListPageSource, PidroidPages
-from ..utils.time import delta_to_datetime, humanize, time_since, utcnow
+from pidroid.cogs.utils.aliases import GuildTextChannel
+from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.cogs.utils.file import Resource
+from pidroid.cogs.utils.paginators import ListPageSource, PidroidPages
+from pidroid.cogs.utils.time import delta_to_datetime, humanize, time_since, utcnow
 
 if TYPE_CHECKING:
-    from ..utils.api import API, PunishmentTable
+    from pidroid.cogs.utils.api import API, PunishmentTable
     DiscordUser = Union[Member, User]
     Moderator = Union[Member, User]
     Length = Union[timedelta, relativedelta]

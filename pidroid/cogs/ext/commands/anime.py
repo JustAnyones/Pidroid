@@ -8,16 +8,16 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import List, Union
 
-from client import Pidroid
-from constants import JESSE_ID, THEOTOWN_GUILD
-from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
-from cogs.utils.paginators import ListPageSource, PidroidPages
-from cogs.utils.parsers import truncate_string
-from cogs.models.categories import RandomCategory
-from cogs.models.exceptions import APIException
-from cogs.utils.file import Resource
-from cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
+from pidroid.client import Pidroid
+from pidroid.constants import JESSE_ID, THEOTOWN_GUILD
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
+from pidroid.cogs.utils.paginators import ListPageSource, PidroidPages
+from pidroid.cogs.utils.parsers import truncate_string
+from pidroid.cogs.models.categories import RandomCategory
+from pidroid.cogs.models.exceptions import APIException
+from pidroid.cogs.utils.file import Resource
+from pidroid.cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [

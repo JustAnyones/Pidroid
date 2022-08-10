@@ -6,8 +6,8 @@ from discord.ext import commands
 from discord.message import Message
 from typing import Union
 
-from client import Pidroid
-from constants import MINECRAFT_LISTENER_CHANNEL, MINECRAFT_LISTENER_GUILD, MINECRAFT_LISTENER_USER
+from pidroid.client import Pidroid
+from pidroid.constants import MINECRAFT_LISTENER_CHANNEL, MINECRAFT_LISTENER_GUILD, MINECRAFT_LISTENER_USER
 
 
 def is_command(text: str) -> bool:

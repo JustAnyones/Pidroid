@@ -2,9 +2,9 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 
-from constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN
-from cogs.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
-from cogs.utils.checks import (
+from pidroid.constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN
+from pidroid.cogs.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
+from pidroid.cogs.utils.checks import (
     TheoTownChecks, can_modify_tags, guild_has_configuration,
     is_channel_bot_commands, is_client_development, is_guild_theotown, is_user_cheese_consumer,
     check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, check_purge_permissions

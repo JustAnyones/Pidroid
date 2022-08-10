@@ -8,10 +8,10 @@ from discord.role import Role
 from discord.utils import escape_markdown, format_dt
 from typing import Union
 
-from client import Pidroid
-from cogs.models.categories import InformationCategory
-from cogs.utils.checks import is_guild_moderator, is_guild_administrator
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import InformationCategory
+from pidroid.cogs.utils.checks import is_guild_moderator, is_guild_administrator
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
 class InfoCommands(commands.Cog): # type: ignore

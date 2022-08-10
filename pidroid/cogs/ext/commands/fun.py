@@ -12,14 +12,14 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.voice_client import VoiceClient
 
-from client import Pidroid
-from constants import FACTS
-from cogs.models.categories import RandomCategory
-from cogs.utils.checks import check_bot_channel_permissions
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.http import get, Route
-from cogs.utils.file import Resource
+from pidroid.client import Pidroid
+from pidroid.constants import FACTS
+from pidroid.cogs.models.categories import RandomCategory
+from pidroid.cogs.utils.checks import check_bot_channel_permissions
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.http import get, Route
+from pidroid.cogs.utils.file import Resource
 
 CLOAKER_LINES = [
     'cloaker_1', 'cloaker_2', 'cloaker_3',

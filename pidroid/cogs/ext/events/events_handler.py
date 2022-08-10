@@ -6,9 +6,9 @@ from discord.ext import commands
 from discord.message import Message
 from discord.raw_models import RawReactionActionEvent
 
-from client import Pidroid
-from constants import EVENTS_CHANNEL
-from cogs.utils.checks import TheoTownChecks as TTChecks, is_client_pidroid, is_guild_moderator, is_guild_theotown
+from pidroid.client import Pidroid
+from pidroid.constants import EVENTS_CHANNEL
+from pidroid.cogs.utils.checks import TheoTownChecks as TTChecks, is_client_pidroid, is_guild_moderator, is_guild_theotown
 
 class EventChannelHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""

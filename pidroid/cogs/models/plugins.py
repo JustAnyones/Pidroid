@@ -4,8 +4,8 @@ from discord.embeds import Embed
 from discord.utils import escape_markdown
 from typing import TYPE_CHECKING, Optional
 
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.parsers import clean_inline_translations, format_version_code, truncate_string
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.parsers import clean_inline_translations, format_version_code, truncate_string
 
 URL_TO_USER = 'https://forum.theotown.com/memberlist.php?mode=viewprofile&u='
 

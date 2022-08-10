@@ -9,12 +9,12 @@ from discord.threads import Thread
 from typing import Dict, List, Union
 from urllib.parse import urlparse
 
-from client import Pidroid
-from cogs.models.case import Timeout
-from cogs.models.configuration import GuildConfiguration
-from cogs.utils.logger import PhishingLog, SuspiciousUserLog
-from cogs.utils.time import utcnow
-from cogs.utils.checks import is_guild_moderator
+from pidroid.client import Pidroid
+from pidroid.cogs.models.case import Timeout
+from pidroid.cogs.models.configuration import GuildConfiguration
+from pidroid.cogs.utils.logger import PhishingLog, SuspiciousUserLog
+from pidroid.cogs.utils.time import utcnow
+from pidroid.cogs.utils.checks import is_guild_moderator
 
 
 def find_swearing(string: str, banned_words: List[str]) -> Union[str, None]:

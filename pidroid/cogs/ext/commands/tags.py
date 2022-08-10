@@ -15,10 +15,10 @@ from discord.utils import escape_markdown, format_dt
 from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
 
-from cogs.models.categories import TagCategory
-from cogs.utils.checks import has_moderator_permissions
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.cogs.models.categories import TagCategory
+from pidroid.cogs.utils.checks import has_moderator_permissions
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = [
@@ -29,8 +29,8 @@ RESERVED_WORDS = [
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
 
 if TYPE_CHECKING:
-    from client import Pidroid
-    from cogs.utils.api import API, TagTable
+    from pidroid.client import Pidroid
+    from pidroid.cogs.utils.api import API, TagTable
 
 
 class Tag:

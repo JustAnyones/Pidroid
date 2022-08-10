@@ -8,11 +8,11 @@ from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
 
-from client import Pidroid
-from constants import ALLOWED_MENTIONS
-from cogs.models.categories import BotCategory
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.time import humanize, timestamp_to_date, utcnow
+from pidroid.client import Pidroid
+from pidroid.constants import ALLOWED_MENTIONS
+from pidroid.cogs.models.categories import BotCategory
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.time import humanize, timestamp_to_date, utcnow
 
 class BotCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands primarily used to diagnose Pidroid."""

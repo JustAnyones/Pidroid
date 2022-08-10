@@ -1,4 +1,5 @@
 import os
+
 from discord.mentions import AllowedMentions
 
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, replied_user=False)

@@ -21,16 +21,16 @@ from discord.utils import get
 from discord.file import File
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
-from client import Pidroid
-from cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_context, remove_jail_from_context, remove_timeout_from_context
-from cogs.models.categories import ModerationCategory
-from cogs.models.exceptions import InvalidDuration, MissingUserPermissions
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.file import Resource
-from cogs.utils.getters import get_role
-from cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
-from cogs.utils.time import duration_string_to_relativedelta, utcnow
+from pidroid.client import Pidroid
+from pidroid.cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_context, remove_jail_from_context, remove_timeout_from_context
+from pidroid.cogs.models.categories import ModerationCategory
+from pidroid.cogs.models.exceptions import InvalidDuration, MissingUserPermissions
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.file import Resource
+from pidroid.cogs.utils.getters import get_role
+from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
+from pidroid.cogs.utils.time import duration_string_to_relativedelta, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
     reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason") # type: ignore

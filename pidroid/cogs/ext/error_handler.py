@@ -12,10 +12,10 @@ from discord.ext.commands.context import Context # type: ignore
 from jishaku.paginators import PaginatorInterface, WrappedPaginator # type: ignore
 from typing import TYPE_CHECKING
 
-from constants import REFUSE_COMMAND_RESPONSES
-from cogs.models import exceptions
-from cogs.utils.embeds import ErrorEmbed as ErrorEmbed
-from cogs.utils.time import humanize
+from pidroid.constants import REFUSE_COMMAND_RESPONSES
+from pidroid.cogs.models import exceptions
+from pidroid.cogs.utils.embeds import ErrorEmbed as ErrorEmbed
+from pidroid.cogs.utils.time import humanize
 
 # Errors which command error handler will ignore
 ignored_exceptions = (
@@ -53,7 +53,7 @@ use_default = (
 
 
 if TYPE_CHECKING:
-    from client import Pidroid
+    from pidroid.client import Pidroid
 
 class Error(commands.Cog): # type: ignore
     """This class implements a cog for handling of unhandled bot command errors and exceptions."""

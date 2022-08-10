@@ -9,10 +9,10 @@ from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 
-from client import Pidroid
-from cogs.models.categories import RandomCategory
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.parsers import truncate_string
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import RandomCategory
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
 UNMARKED_NSFW_SUBREDDITS = [

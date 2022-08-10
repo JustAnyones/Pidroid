@@ -9,11 +9,11 @@ from discord.channel import TextChannel
 from discord.ext import commands
 from discord.utils import escape_markdown
 
-from client import Pidroid
-from cogs.utils import http
-from cogs.utils.checks import is_client_pidroid
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.parsers import clean_inline_translations
+from pidroid.client import Pidroid
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.checks import is_client_pidroid
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.parsers import clean_inline_translations
 
 
 class CronjobTask(commands.Cog): # type: ignore

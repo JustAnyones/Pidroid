@@ -5,7 +5,7 @@ from discord.embeds import Embed
 from discord.types.embed import EmbedType
 from typing import Any, Optional
 
-from constants import EMBED_COLOUR
+from pidroid.constants import EMBED_COLOUR
 
 class PidroidEmbed(Embed):
 

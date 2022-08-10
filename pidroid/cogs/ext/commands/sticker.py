@@ -10,9 +10,9 @@ from discord.message import Message
 from discord.sticker import GuildSticker, StandardSticker, StickerItem
 from io import BytesIO
 
-from client import Pidroid
-from cogs.models.categories import UtilityCategory
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import UtilityCategory
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
 def get_message_stickers(message: Message) -> typing.List[StickerItem]:

@@ -4,7 +4,7 @@ import re
 from dateutil.relativedelta import relativedelta # type: ignore
 from typing import Optional, Union
 
-from cogs.models.exceptions import InvalidDuration
+from pidroid.cogs.models.exceptions import InvalidDuration
 
 DURATION_PATTERN = re.compile(
     r"((?P<years>\d+?) ?(years|year|Y|y) ?)?"

@@ -6,11 +6,11 @@ from discord.message import Message
 from discord.ext import commands # type: ignore
 from random import randint
 
-from client import Pidroid
-from constants import JUSTANYONE_ID
-from cogs.utils.checks import is_client_development, is_guild_theotown
-from cogs.utils.file import Resource
-from cogs.utils.time import utcnow
+from pidroid.client import Pidroid
+from pidroid.constants import JUSTANYONE_ID
+from pidroid.cogs.utils.checks import is_client_development, is_guild_theotown
+from pidroid.cogs.utils.file import Resource
+from pidroid.cogs.utils.time import utcnow
 
 def find_whole_word(word: str, string: str) -> bool:
     """Returns true if specified word is in the string."""

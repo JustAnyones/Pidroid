@@ -2,7 +2,7 @@ import discord
 
 from typing import Optional
 
-from cogs.utils.aliases import GuildChannel
+from pidroid.cogs.utils.aliases import GuildChannel
 
 def get_role(guild: discord.Guild, role_id: Optional[int]) -> Optional[discord.Role]:
     if role_id is None:

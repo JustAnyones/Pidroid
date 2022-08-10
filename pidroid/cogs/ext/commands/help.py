@@ -4,10 +4,10 @@ from discord.ext.commands.core import Command # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from typing import List, Tuple
 
-from client import Pidroid
-from cogs.models.categories import Category, BotCategory, UncategorizedCategory
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.paginators import ListPageSource, PidroidPages
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import Category, BotCategory, UncategorizedCategory
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.paginators import ListPageSource, PidroidPages
 
 
 class HelpCommandPaginator(ListPageSource):

@@ -7,10 +7,10 @@ from discord.channel import TextChannel
 from discord.ext import tasks, commands # type: ignore
 from typing import Optional, List
 
-from client import Pidroid
-from cogs.utils.checks import is_client_pidroid
-from cogs.utils.parsers import truncate_string
-from cogs.utils.time import timedelta_to_datetime
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.checks import is_client_pidroid
+from pidroid.cogs.utils.parsers import truncate_string
+from pidroid.cogs.utils.time import timedelta_to_datetime
 
 class PluginStoreTasks(commands.Cog): # type: ignore
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""

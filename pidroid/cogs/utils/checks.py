@@ -5,12 +5,12 @@ from discord.ext.commands import BotMissingPermissions, MissingPermissions, Cont
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
-from constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
-from cogs.models.exceptions import MissingUserPermissions
-from cogs.utils.aliases import DiscordUser, GuildChannel, GuildTextChannel
+from pidroid.constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
+from pidroid.cogs.models.exceptions import MissingUserPermissions
+from pidroid.cogs.utils.aliases import DiscordUser, GuildChannel, GuildTextChannel
 
 if TYPE_CHECKING:
-    from client import Pidroid
+    from pidroid.client import Pidroid
 
 
 # Generic permission check functions

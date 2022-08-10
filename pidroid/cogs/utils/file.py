@@ -1,6 +1,6 @@
 import os
 
-from constants import RESOURCE_FILE_PATH
+from pidroid.constants import RESOURCE_FILE_PATH
 
 class Resource(str): # All this for type hints
 

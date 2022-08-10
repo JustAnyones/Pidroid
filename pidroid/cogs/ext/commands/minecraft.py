@@ -7,7 +7,7 @@ from discord.utils import escape_markdown
 from mcrcon import MCRcon # type: ignore # TODO: reimplement locally
 from typing import Dict
 
-from client import Pidroid
+from pidroid.client import Pidroid
 
 class MinecraftCommands(commands.Cog): # type: ignore
     """This class implements a cog for interacting with Minecraft servers over RCON using commands."""

@@ -6,13 +6,13 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.utils import format_dt
 from types import SimpleNamespace
 
-from client import Pidroid
-from constants import THEOTOWN_FORUM_URL
-from cogs.models.categories import TheoTownCategory
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.http import Route
-from cogs.utils.time import timestamp_to_datetime
+from pidroid.client import Pidroid
+from pidroid.constants import THEOTOWN_FORUM_URL
+from pidroid.cogs.models.categories import TheoTownCategory
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.http import Route
+from pidroid.cogs.utils.time import timestamp_to_datetime
 
 class ForumCommands(commands.Cog): # type: ignore
     """This class implements a cog which contains commands for communication via TheoTown forums."""

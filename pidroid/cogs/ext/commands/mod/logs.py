@@ -4,13 +4,13 @@ from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from typing import Optional, Union
 
-from client import Pidroid
-from cogs.models.case import CasePaginator
-from cogs.models.categories import ModerationCategory
-from cogs.utils.checks import check_junior_moderator_permissions
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.paginators import PidroidPages
+from pidroid.client import Pidroid
+from pidroid.cogs.models.case import CasePaginator
+from pidroid.cogs.models.categories import ModerationCategory
+from pidroid.cogs.utils.checks import check_junior_moderator_permissions
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.paginators import PidroidPages
 
 
 class ModeratorInfoCommands(commands.Cog): # type: ignore

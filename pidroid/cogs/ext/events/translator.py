@@ -10,12 +10,12 @@ from discord.utils import remove_markdown
 from discord.message import Message
 from typing import List, Optional, Tuple
 
-from client import Pidroid
-from cogs.utils.aliases import GuildChannel
-from cogs.utils.checks import is_client_pidroid
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.http import post
-from cogs.utils.time import utcnow
+from pidroid.client import Pidroid
+from pidroid.cogs.utils.aliases import GuildChannel
+from pidroid.cogs.utils.checks import is_client_pidroid
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.http import post
+from pidroid.cogs.utils.time import utcnow
 
 # https://www.deepl.com/docs-api/translating-text/request/
 LANGUAGE_MAPPING = {

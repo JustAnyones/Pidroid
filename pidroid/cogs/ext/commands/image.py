@@ -10,11 +10,11 @@ from PIL import ImageFont
 from PIL import ImageDraw
 from typing import Tuple
 
-from client import Pidroid
-from cogs.models.categories import RandomCategory
-from cogs.utils import http
-from cogs.utils.embeds import ErrorEmbed
-from cogs.utils.file import Resource
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import RandomCategory
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.embeds import ErrorEmbed
+from pidroid.cogs.utils.file import Resource
 
 COMIC_FONT_PATH = Resource("COMIC.TTF")
 

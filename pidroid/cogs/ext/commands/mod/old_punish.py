@@ -6,14 +6,14 @@ from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from typing import Optional
 
-from client import Pidroid
-from cogs.models.case import Ban, Kick, Mute, Jail, Warning
-from cogs.models.categories import ModerationCategory
-from cogs.utils.converters import Duration, MemberOffender, UserOffender
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import SuccessEmbed, ErrorEmbed
-from cogs.utils.getters import get_role, get_channel
-from cogs.utils.time import datetime_to_duration
+from pidroid.client import Pidroid
+from pidroid.cogs.models.case import Ban, Kick, Mute, Jail, Warning
+from pidroid.cogs.models.categories import ModerationCategory
+from pidroid.cogs.utils.converters import Duration, MemberOffender, UserOffender
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import SuccessEmbed, ErrorEmbed
+from pidroid.cogs.utils.getters import get_role, get_channel
+from pidroid.cogs.utils.time import datetime_to_duration
 
 async def is_banned(ctx: Context, user: typing.Union[discord.Member, discord.User]) -> bool:
     """Returns true if user is in guild's ban list."""

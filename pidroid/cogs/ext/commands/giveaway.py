@@ -9,11 +9,11 @@ from discord.ext.commands.converter import TextChannelConverter # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.message import Message
 
-from client import Pidroid
-from cogs.models.categories import UtilityCategory
-from cogs.utils.converters import Duration
-from cogs.utils.embeds import PidroidEmbed
-from cogs.utils.time import datetime_to_duration
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import UtilityCategory
+from pidroid.cogs.utils.converters import Duration
+from pidroid.cogs.utils.embeds import PidroidEmbed
+from pidroid.cogs.utils.time import datetime_to_duration
 
 GIVEAWAY_TIMEOUT = 180
 

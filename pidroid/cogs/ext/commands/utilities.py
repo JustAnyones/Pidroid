@@ -5,12 +5,12 @@ from discord.ext import commands
 from discord.ext.commands import Context, BadArgument # type: ignore
 from urllib.parse import quote_plus as urlencode
 
-from client import Pidroid
-from cogs.models.categories import UtilityCategory
-from cogs.utils import http
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.parsers import truncate_string
-from cogs.utils.time import timestamp_to_date
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import UtilityCategory
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.parsers import truncate_string
+from pidroid.cogs.utils.time import timestamp_to_date
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')
 

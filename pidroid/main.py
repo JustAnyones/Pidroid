@@ -9,8 +9,11 @@ from argparse import ArgumentParser
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 
-from client import Pidroid
-from constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
+# Allows us to not set the Python path
+sys.path.append(os.getcwd())
+
+from pidroid.client import Pidroid
+from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
 
 # Use uvloop if possible
 try:

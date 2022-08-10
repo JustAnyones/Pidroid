@@ -10,15 +10,15 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import TYPE_CHECKING
 
-from client import Pidroid
-from constants import JUSTANYONE_ID
-from cogs.models.categories import OwnerCategory
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import ErrorEmbed
+from pidroid.client import Pidroid
+from pidroid.constants import JUSTANYONE_ID
+from pidroid.cogs.models.categories import OwnerCategory
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import ErrorEmbed
 
 if TYPE_CHECKING:
-    from cogs.ext.events.initialization import InvocationEventHandler
-    from cogs.ext.tasks.automod import AutomodTask
+    from pidroid.cogs.ext.events.initialization import InvocationEventHandler
+    from pidroid.cogs.ext.tasks.automod import AutomodTask
 
 class OwnerCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""

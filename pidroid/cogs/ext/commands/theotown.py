@@ -8,14 +8,14 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
 from typing import List, Optional
 
-from client import Pidroid
-from cogs.models.categories import TheoTownCategory
-from cogs.utils import http
-from cogs.utils.decorators import command_checks
-from cogs.utils.embeds import PidroidEmbed, ErrorEmbed
-from cogs.utils.http import Route
-from cogs.utils.paginators import PidroidPages, PluginListPaginator
-from cogs.utils.parsers import format_version_code
+from pidroid.client import Pidroid
+from pidroid.cogs.models.categories import TheoTownCategory
+from pidroid.cogs.utils import http
+from pidroid.cogs.utils.decorators import command_checks
+from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.http import Route
+from pidroid.cogs.utils.paginators import PidroidPages, PluginListPaginator
+from pidroid.cogs.utils.parsers import format_version_code
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 

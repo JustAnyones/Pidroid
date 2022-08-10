@@ -18,13 +18,13 @@ from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
-from cogs.models.case import Case
-from cogs.models.categories import get_command_categories
-from cogs.utils.aliases import GuildChannel
-from cogs.utils.api import API
-from cogs.utils.checks import is_client_development
-from cogs.utils.data import PersistentDataManager
-from cogs.utils.logger import BaseLog
+from pidroid.cogs.models.case import Case
+from pidroid.cogs.models.categories import get_command_categories
+from pidroid.cogs.utils.aliases import GuildChannel
+from pidroid.cogs.utils.api import API
+from pidroid.cogs.utils.checks import is_client_development
+from pidroid.cogs.utils.data import PersistentDataManager
+from pidroid.cogs.utils.logger import BaseLog
 
 class VersionInfo(NamedTuple):
     major: int
@@ -37,7 +37,7 @@ class VersionInfo(NamedTuple):
 __VERSION__ = VersionInfo(major=5, minor=0, micro=0, releaselevel='alpha', serial=1)
 
 if TYPE_CHECKING:
-    from cogs.models.configuration import GuildConfiguration
+    from pidroid.cogs.models.configuration import GuildConfiguration
 
 
 class Pidroid(commands.Bot): # type: ignore

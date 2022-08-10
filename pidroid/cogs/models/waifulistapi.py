@@ -9,7 +9,7 @@ from httpx._models import Response
 from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
 from enum import Enum
 
-from cogs.models.exceptions import APIException
+from pidroid.cogs.models.exceptions import APIException
 
 def reformat_value(value) -> Optional[Any]:
     """Fixes any API response values which are empty strings or an integer of 0 to None.

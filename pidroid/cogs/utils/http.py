@@ -6,10 +6,10 @@ from aiohttp.client import ClientTimeout
 from urllib.parse import urlencode
 from typing import Optional, Union, TYPE_CHECKING
 
-from cogs.models.exceptions import APIException
+from pidroid.cogs.models.exceptions import APIException
 
 if TYPE_CHECKING:
-    from client import Pidroid
+    from pidroid.client import Pidroid
 
 DEFAULT_HEADERS = {'User-Agent': 'Pidroid bot by JustAnyone'}
 

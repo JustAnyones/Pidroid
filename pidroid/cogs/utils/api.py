@@ -5,12 +5,12 @@ import datetime
 from discord.ext.commands.errors import BadArgument # type: ignore
 from typing import List, Optional, TYPE_CHECKING
 
-from cogs.ext.commands.tags import Tag
-from cogs.models.case import Case
-from cogs.models.configuration import GuildConfiguration
-from cogs.models.plugins import NewPlugin, Plugin
-from cogs.utils.http import HTTP, Route
-from cogs.utils.time import utcnow
+from pidroid.cogs.ext.commands.tags import Tag
+from pidroid.cogs.models.case import Case
+from pidroid.cogs.models.configuration import GuildConfiguration
+from pidroid.cogs.models.plugins import NewPlugin, Plugin
+from pidroid.cogs.utils.http import HTTP, Route
+from pidroid.cogs.utils.time import utcnow
 
 from sqlalchemy import Column # type: ignore
 from sqlalchemy import DateTime
@@ -26,7 +26,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import sessionmaker
 
 if TYPE_CHECKING:
-    from client import Pidroid
+    from pidroid.client import Pidroid
 
 Base = declarative_base()
 

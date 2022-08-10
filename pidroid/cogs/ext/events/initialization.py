@@ -2,10 +2,9 @@ from discord import Game
 from discord.ext import commands # type: ignore
 from typing import TYPE_CHECKING
 
-from client import Pidroid
-
 if TYPE_CHECKING:
-    from cogs.ext.tasks.automod import AutomodTask
+    from pidroid.client import Pidroid
+    from pidroid.cogs.ext.tasks.automod import AutomodTask
 
 
 class InvocationEventHandler(commands.Cog): # type: ignore
