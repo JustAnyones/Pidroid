@@ -173,22 +173,6 @@ class API:
             await session.commit()
         return entry.id
 
-    async def insert_suggestion2(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str], date_submitted: datetime.datetime) -> int:
-        """Creates a suggestion entry in the database."""
-        async with self.session() as session:
-            assert isinstance(session, AsyncSession)
-            async with session.begin():
-                entry = SuggestionTable(
-                    author_id=author_id,
-                    message_id=message_id,
-                    suggestion=suggestion,
-                    attachments=attachment_urls,
-                    date_submitted=date_submitted
-                )
-                session.add(entry)
-            await session.commit()
-        return entry.id
-
     """Tag related"""
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: List[int]) -> int:
@@ -201,22 +185,6 @@ class API:
                     name=name,
                     content=content,
                     authors=authors
-                )
-                session.add(entry)
-            await session.commit()
-        return entry.id
-
-    async def insert_tag2(self, guild_id: int, name: str, content: str, authors: List[int], date_created: datetime.datetime) -> int:
-        """Creates a tag entry in the database."""
-        async with self.session() as session:
-            assert isinstance(session, AsyncSession)
-            async with session.begin():
-                entry = TagTable(
-                    guild_id=guild_id,
-                    name=name,
-                    content=content,
-                    authors=authors,
-                    date_created=date_created
                 )
                 session.add(entry)
             await session.commit()
@@ -446,45 +414,6 @@ class API:
         case = await self.fetch_case_by_internal_id(entry.id)
         assert case is not None
         return case
-
-    async def insert_punishment_entry2(
-        self,
-        type: str,
-        guild_id: int,
-        user_id: int, user_name: str,
-        moderator_id: int, moderator_name: str,
-        reason: Optional[str],
-        expire_date: Optional[datetime.datetime],
-        issue_date: Optional[datetime.datetime],
-        visible: bool, handled: bool
-    ) -> None:
-        async with self.session() as session:
-            assert isinstance(session, AsyncSession)
-            async with session.begin():
-                insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id, counter=1).on_conflict_do_update(
-                    index_elements=[PunishmentCounterTable.guild_id],
-                    set_=dict(counter=PunishmentCounterTable.counter + 1) # TODO: investigate 
-                ).returning(PunishmentCounterTable.counter)
-
-                res = await session.execute(insert_stmt)
-                counter = res.fetchone()[0]
-
-                entry = PunishmentTable(
-                    case_id=counter,
-                    type=type,
-                    guild_id=guild_id,
-                    user_id=user_id,
-                    user_name=user_name,
-                    moderator_id=moderator_id,
-                    moderator_name=moderator_name,
-                    reason=reason,
-                    issue_date=issue_date,
-                    expire_date=expire_date,
-                    visible=visible,
-                    handled=handled
-                )
-                session.add(entry)
-            await session.commit()
 
     async def fetch_case_by_internal_id(self, id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
