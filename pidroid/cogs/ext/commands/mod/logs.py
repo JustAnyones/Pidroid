@@ -7,7 +7,7 @@ from typing import Optional, Union
 from pidroid.client import Pidroid
 from pidroid.cogs.models.case import CasePaginator
 from pidroid.cogs.models.categories import ModerationCategory
-from pidroid.cogs.utils.checks import check_junior_moderator_permissions
+from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
 from pidroid.cogs.utils.paginators import PidroidPages
@@ -31,6 +31,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
         if reason is not None:
+            check_normal_moderator_permissions(ctx, kick_members=True)
             await case.update_reason(reason)
             return await ctx.reply("Case details updated successfully!")
 
