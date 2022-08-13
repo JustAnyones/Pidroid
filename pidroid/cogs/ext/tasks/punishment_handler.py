@@ -1,6 +1,4 @@
 import discord
-import traceback
-import sys
 
 from contextlib import suppress
 from discord.ext import tasks, commands # type: ignore
@@ -57,9 +55,8 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
                             continue
                         await member.remove_roles(mute_role, reason=f"Mute expired | Case #{punishment.case_id}") # type: ignore
 
-        except Exception as e:
+        except Exception:
             self.client.logger.exception("An exception was encountered while trying to check punishments")
-            traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
 
     @check_punishments.before_loop
     async def before_check_punishments(self) -> None:

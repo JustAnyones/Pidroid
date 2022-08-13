@@ -1,6 +1,3 @@
-import traceback
-import sys
-
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
@@ -75,9 +72,8 @@ class PluginStoreTasks(commands.Cog): # type: ignore
                         )
         except ServerDisconnectedError:
             self.client.logger.exception("An server disconnection was encountered while trying to retrieve and publish new plugin information")
-        except Exception as e:
+        except Exception:
             self.client.logger.exception("An exception was encountered while trying to retrieve and publish new plugin information")
-            traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
 
     @retrieve_new_plugins.before_loop
     async def before_new_plugin_retriever(self) -> None:

@@ -1,6 +1,3 @@
-import sys
-import traceback
-
 from discord.channel import TextChannel
 from discord.ext import tasks, commands # type: ignore
 from discord.utils import format_dt
@@ -52,9 +49,8 @@ class ForumMessageTask(commands.Cog): # type: ignore
                 embed.set_author(name=author_name, icon_url=author_avatar_url, url=author_url)
                 embed.set_footer(text=f"Message ID: {message_id}")
                 await self.message_channel.send(embed=embed)
-        except Exception as e:
+        except Exception:
             self.client.logger.exception("An exception was encountered while trying to fetch Pidroid messages")
-            traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
 
     @fetch_messages.before_loop
     async def before_fetch_messages(self) -> None:

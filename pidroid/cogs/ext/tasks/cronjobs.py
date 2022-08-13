@@ -1,8 +1,6 @@
 import aiocron # type: ignore
 import asyncio
 import calendar
-import traceback
-import sys
 
 from contextlib import suppress
 from discord.channel import TextChannel
@@ -101,9 +99,8 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             await channel.send(embed=initial_embed)
             await channel.send(embed=top_plugins_embed)
             await channel.send(embed=top_creators_embed)
-    except Exception as e:
+    except Exception:
         client.logger.exception("An exception was encountered while trying announce monthly plugin information")
-        traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
 
 
 async def setup(client: Pidroid) -> None:

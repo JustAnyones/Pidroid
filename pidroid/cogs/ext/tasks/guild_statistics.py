@@ -1,6 +1,3 @@
-import traceback
-import sys
-
 from discord.ext import tasks, commands # type: ignore
 
 from pidroid.client import Pidroid
@@ -28,9 +25,8 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
                 "/private/discord/update",
                 {"type": "write", "member_count": guild.member_count}
             ))
-        except Exception as e:
+        except Exception:
             self.client.logger.exception("An exception was encountered while trying to update guild statistics")
-            traceback.print_exception(type(e), e, e.__traceback__, file=sys.stderr)
 
     @update_statistics.before_loop
     async def before_update_statistics(self) -> None:
