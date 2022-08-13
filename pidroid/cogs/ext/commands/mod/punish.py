@@ -29,7 +29,7 @@ from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.utils.getters import get_role
-from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator
+from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator, is_guild_theotown, member_above_bot
 from pidroid.cogs.utils.time import duration_string_to_relativedelta, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
@@ -185,6 +185,16 @@ class JailButton(BasePunishmentButton):
     async def callback(self, interaction: Interaction) -> None:
         assert isinstance(self.view.user, Member)
         self.view._select_type(Jail(self.view.ctx, self.view.user))
+        await self.view.create_reason_selector()
+        await self.view._update_view(interaction)
+
+class KidnapButton(BasePunishmentButton):
+    def __init__(self, enabled: bool = True):
+        super().__init__(ButtonStyle.gray, "Kidnap", enabled)
+
+    async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view.user, Member)
+        self.view._select_type(Jail(self.view.ctx, self.view.user, True))
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
@@ -465,6 +475,8 @@ class PunishmentInteraction(ui.View):
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
             self.add_item(JailButton(is_member and self.jail_role is not None and has_jail_permission))
+            if is_guild_theotown(self.ctx.guild):
+                self.add_item(KidnapButton(is_member and self.jail_role is not None and has_jail_permission))
         else:
             self.add_item(RemoveJailButton(has_jail_permission))
 
@@ -647,6 +659,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         await ctx.channel.purge(limit=1)
         await ctx.send(file=File(Resource('delete_this.png')))
 
+    # TODO: add proper permission checks for both, the bot and the end user (mod)
     @commands.command( # type: ignore
         brief="Open user moderation and punishment menu.",
         usage="<user/member>",
@@ -655,7 +668,6 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
-    #@commands.is_owner() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
         # Check initial permissions
         if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):
@@ -663,6 +675,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
+
+        if isinstance(user, Member) and member_above_bot(ctx.guild, user):
+            raise BadArgument("Specified member is above me!")
 
         if self.is_user_being_punished(ctx.guild.id, user.id):
             raise BadArgument("The punishment menu is already open for the user.")
@@ -685,6 +700,22 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
         message = await ctx.reply(embed=embed, view=view)
         view.set_reply_message(message)
+
+    @commands.command( # type: ignore
+        brief='Suspends member\'s ability to send messages for a week.\nIt is recommended to be used to rapidly stop spam or chat flood.',
+        usage='<member>',
+        category=ModerationCategory
+    )
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
+    @command_checks.is_junior_moderator(moderate_members=True)
+    @command_checks.guild_configuration_exists()
+    @commands.guild_only() # type: ignore
+    async def suspend(self, ctx: Context, *, member: Member):
+        t = Timeout(ctx, member)
+        t.reason = "Suspended communications"
+        t.set_length(timedelta(days=7))
+        await t.issue()
+        await ctx.message.delete(delay=0)
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorCommands(client))

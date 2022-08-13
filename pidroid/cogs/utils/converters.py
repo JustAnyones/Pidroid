@@ -1,11 +1,10 @@
 import datetime
 import discord
-import typing
 
 from dateutil import relativedelta # type: ignore
 from discord.ext.commands import Context, Converter # type: ignore
-from discord.ext.commands.converter import MemberConverter, UserConverter # type: ignore
-from discord.ext.commands.errors import BadArgument, CommandError # type: ignore
+from discord.ext.commands.converter import MemberConverter # type: ignore
+from discord.ext.commands.errors import BadArgument # type: ignore
 
 from pidroid.cogs.models.exceptions import InvalidDuration
 from pidroid.cogs.utils.checks import member_above_bot, is_guild_moderator, member_above_moderator
@@ -85,35 +84,3 @@ class MemberOffender(Converter):
             raise BadArgument("Specified member is above me!")
 
         return member
-
-class UserOffender(Converter):
-
-    async def convert(self, ctx: Context, argument: str) -> typing.Union[discord.Member, discord.User]:
-        command_name = ctx.command.name
-
-        if argument is None:
-            raise BadArgument(f"Please specify someone you are trying to {command_name}!")
-
-        try:
-            user = await MemberConverter().convert(ctx, argument)
-        except CommandError:
-            user = await UserConverter().convert(ctx, argument)
-
-        if user == ctx.message.author:
-            raise BadArgument(f"You cannot {command_name} yourself!")
-
-        if isinstance(user, discord.Member):
-
-            if command_name != "warn":
-                if is_guild_moderator(ctx.guild, ctx.channel, user):
-                    if command_name == 'kidnap':
-                        raise BadArgument("You cannot kidnap one of your own!")
-                    raise BadArgument(f"You cannot {command_name} a moderator!")
-
-            if member_above_moderator(user, ctx.author):
-                raise BadArgument("Specified member is above you!")
-
-            if member_above_bot(ctx.guild, user):
-                raise BadArgument("Specified member is above me!")
-
-        return user

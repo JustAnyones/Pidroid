@@ -216,8 +216,8 @@ class BasePunishment:
         self.guild = guild
         self._channel = channel
 
-        self.set_moderator(moderator)
-        self.set_user(user)
+        self._set_moderator(moderator)
+        self._set_user(user)
 
         self.send_message_to_channel = self._channel is None
 
@@ -299,12 +299,12 @@ class BasePunishment:
         except Exception: # nosec
             pass
 
-    def set_user(self, user: DiscordUser) -> None:
+    def _set_user(self, user: DiscordUser) -> None:
         if isinstance(user, Member):
             self.user = user._user
         self.user = user
 
-    def set_moderator(self, moderator: DiscordUser) -> None:
+    def _set_moderator(self, moderator: DiscordUser) -> None:
         if isinstance(moderator, Member):
             self.moderator = moderator._user
         else:
@@ -395,16 +395,17 @@ class Jail(BasePunishment):
     if TYPE_CHECKING:
         user: Member
 
-    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None) -> None:
+    def __init__(self, ctx: Optional[Context] = None, member: Optional[Member] = None, kidnapping: bool = False) -> None:
         super().__init__(ctx, member)
         self.type = "jail"
+        self._kidnapping = kidnapping
 
-    async def issue(self, role: Role, kidnap: bool = False) -> Case: # type: ignore
+    async def issue(self, role: Role) -> Case: # type: ignore
         """Jails the member."""
         self.case = await self._create_db_entry()
         await self.user.add_roles(role, reason=self.reason) # type: ignore
 
-        if kidnap:
+        if self._kidnapping:
             await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File(Resource('bus.png')))
             if self.reason is None:
                 await self._notify_user(f"You have been kidnapped in {self.guild.name} server!")
