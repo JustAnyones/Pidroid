@@ -34,7 +34,7 @@ class VersionInfo(NamedTuple):
     serial: int
 
 
-__VERSION__ = VersionInfo(major=5, minor=0, micro=0, releaselevel='alpha', serial=1)
+__VERSION__ = VersionInfo(major=5, minor=0, micro=1, releaselevel='alpha', serial=1)
 
 if TYPE_CHECKING:
     from pidroid.cogs.models.configuration import GuildConfiguration
