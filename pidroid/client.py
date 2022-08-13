@@ -71,7 +71,6 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.help',
             'cogs.ext.commands.image',
             'cogs.ext.commands.info',
-            'cogs.ext.commands.minecraft',
             'cogs.ext.commands.owner',
             'cogs.ext.commands.reddit',
             'cogs.ext.commands.sticker',

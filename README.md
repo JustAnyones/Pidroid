@@ -121,23 +121,6 @@ REDDIT_PASSWORD=
 
 Please note that if your credentials contain a dollar sign, add another dollar sign to make it a literal.
 
-Config options that are yet to be reimplemented
-```jsonc
-{
-    // Used for RCON command (OPTIONAL)
-    "minecraft rcon": {
-
-      "server name": {          // Minecraft server name for indexing and accessing
-        "address": "",          // Minecraft server IP address, to specify a port, localhost:5156
-        "password": "",         // RCON protocol password
-        "managers": []          // Snowflake array of allowed server managers, who can use the command
-      }
-
-    }
-  }
-}
-```
-
 ### Useful commands for setup
 
 If you want to access a service on host device through a docker container, you'll need to obtain docker IP.
