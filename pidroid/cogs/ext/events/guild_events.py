@@ -15,7 +15,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
     async def on_guild_join(self, guild: Guild):
         await self.client.wait_guild_config_cache_ready()
 
-        if guild.id in self.client.guild_configuration_guilds:
+        if self.client.get_guild_configuration(guild.id):
             return
 
         config = await self.client.api.insert_guild_configuration(guild.id)
@@ -38,9 +38,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
         await self.client.wait_guild_config_cache_ready()
 
         guild_id = role.guild.id
-        if guild_id not in self.client.guild_configuration_guilds:
-            return
-
         config = self.client.get_guild_configuration(guild_id)
         if config is None:
             return
@@ -61,7 +58,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         await self.client.wait_guild_config_cache_ready()
 
         guild_id = guild_channel.guild.id
-        if guild_id not in self.client.guild_configuration_guilds:
+        if self.client.get_guild_configuration(guild_id):
             return
 
         config = self.client.get_guild_configuration(guild_id)

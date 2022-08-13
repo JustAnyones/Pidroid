@@ -85,19 +85,20 @@ class Pidroid(commands.Bot): # type: ignore
             # Events
             'cogs.ext.events.copypasta',
             'cogs.ext.events.events_handler',
+            'cogs.ext.events.guild_events',
             'cogs.ext.events.initialization',
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
             'cogs.ext.events.translator',
 
             # Tasks
+            'cogs.ext.tasks.archive_threads',
             'cogs.ext.tasks.automod',
             'cogs.ext.tasks.cronjobs',
             'cogs.ext.tasks.forum_messages',
             'cogs.ext.tasks.guild_statistics',
             'cogs.ext.tasks.plugin_store',
             'cogs.ext.tasks.punishment_handler',
-            'cogs.ext.tasks.archive_threads',
 
             # Error handler
             'cogs.ext.error_handler',
@@ -167,11 +168,6 @@ class Pidroid(commands.Bot): # type: ignore
     def guild_configurations(self) -> dict:
         """Returns raw guild configuration dictionary, should not be called."""
         return self._cached_configurations
-
-    @property
-    def guild_configuration_guilds(self) -> List[int]:
-        """Returns guild configuration guild IDs."""
-        return self._cached_configurations.keys() # type: ignore
 
     def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Returns guild configuration for specified guild."""
@@ -266,7 +262,7 @@ class Pidroid(commands.Bot): # type: ignore
         if is_client_development(self):
             return self.prefixes
 
-        if message.guild and message.guild.id in self.guild_configuration_guilds:
+        if message.guild:
             config = self.get_guild_configuration(message.guild.id)
             if config:
                 return config.prefixes or self.prefixes
