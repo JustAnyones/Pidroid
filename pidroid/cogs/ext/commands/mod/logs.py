@@ -89,7 +89,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
-    async def modlogs(self, ctx: Context, *, user: Union[discord.Member, discord.User] = None):
+    async def modlogs(self, ctx: Context, user: Union[discord.Member, discord.User] = None):
         user = user or ctx.author
 
         error_msg = "I could not find any modlogs related to you!"
@@ -116,7 +116,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only() # type: ignore
-    async def modstats(self, ctx: Context, *, member: discord.Member = None):
+    async def modstats(self, ctx: Context, member: discord.Member = None):
         member = member or ctx.author
         data = await self.client.api.fetch_moderation_statistics(ctx.guild.id, member.id)
         embed = PidroidEmbed(title=f'Displaying moderation statistics for {str(member)}')

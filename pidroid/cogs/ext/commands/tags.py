@@ -405,7 +405,7 @@ class TagCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
-    async def transfer(self, ctx: Context, tag_name: Optional[str], *, member: Optional[Member]):
+    async def transfer(self, ctx: Context, tag_name: Optional[str], member: Optional[Member]):
         tag = await self.resolve_tag(ctx, tag_name)
 
         if not has_moderator_permissions(ctx, manage_messages=True):

@@ -27,7 +27,7 @@ class InfoCommands(commands.Cog): # type: ignore
         category=InformationCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def profile_avatar(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
+    async def profile_avatar(self, ctx: Context, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         if isinstance(member, discord.User):
@@ -45,7 +45,7 @@ class InfoCommands(commands.Cog): # type: ignore
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def server_avatar(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
+    async def server_avatar(self, ctx: Context, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
         embed.set_image(url=member.display_avatar.with_size(4096).url)
@@ -60,7 +60,7 @@ class InfoCommands(commands.Cog): # type: ignore
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def user_info(self, ctx: Context, *, member: Union[discord.Member, discord.User] = None):
+    async def user_info(self, ctx: Context, member: Union[discord.Member, discord.User] = None):
         member = member or ctx.author
 
         embed = PidroidEmbed(description=member.mention)

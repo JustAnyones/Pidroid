@@ -710,7 +710,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @command_checks.is_junior_moderator(moderate_members=True)
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
-    async def suspend(self, ctx: Context, *, member: Member):
+    async def suspend(self, ctx: Context, member: Member):
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
 
@@ -718,7 +718,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("Specified member is above me, I cannot suspend them!")
 
         if self.is_user_being_punished(ctx.guild.id, member.id):
-            raise BadArgument("There's a punishment menu is open for the member, I cannot manage them.")
+            raise BadArgument("There's a punishment menu open for the member, I cannot manage them.")
 
         # Generic check to only invoke the menu if author is a moderator
         if is_guild_moderator(ctx.guild, ctx.channel, member):

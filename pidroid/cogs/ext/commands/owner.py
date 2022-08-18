@@ -111,10 +111,10 @@ class OwnerCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.is_owner() # type: ignore
-    async def phising(self, ctx: Context):
+    async def phishing(self, ctx: Context):
         return
 
-    @phising.command(
+    @phishing.command(
         name="update-urls",
         brief="Updates internal phising URL list by calling the database.",
         permissions=["Bot owner"],
@@ -127,7 +127,7 @@ class OwnerCommands(commands.Cog): # type: ignore
         await cog._update_phishing_urls()
         await ctx.reply("Phising URL list has been updated!")
 
-    @phising.command(
+    @phishing.command(
         name="insert-url",
         brief="Updates internal and database phising URL list by adding a new URL.",
         permissions=["Bot owner"],
