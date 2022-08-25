@@ -31,10 +31,10 @@ class VersionInfo(NamedTuple):
     minor: int
     micro: int
     releaselevel: Literal["alpha", "beta", "candidate", "final"]
-    serial: int
+    commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=0, micro=1, releaselevel='alpha', serial=1)
+__VERSION__ = VersionInfo(major=5, minor=0, micro=1, releaselevel='alpha', commit_id="unknown")
 
 if TYPE_CHECKING:
     from pidroid.cogs.models.configuration import GuildConfiguration
@@ -125,7 +125,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         self.persistent_data = PersistentDataManager()
 
-        self.setup_logging()
+        self.setup_logging(logging.DEBUG)
 
     async def setup_hook(self):
         await self.api.connect()
@@ -141,14 +141,14 @@ class Pidroid(commands.Bot): # type: ignore
         """Returns shorthand client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
         if self.client_version.releaselevel != "final":
-            return f"{version_str} {self.client_version.releaselevel}"
+            return f"{version_str}-{self.client_version.commit_id} {self.client_version.releaselevel}"
         return version_str
 
     @property
     def full_version(self) -> str:
         """Returns full client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
-        return f"{version_str} {self.client_version.releaselevel} {self.client_version.serial}"
+        return f"{version_str} {self.client_version.releaselevel} {self.client_version.commit_id}"
 
     async def wait_guild_config_cache_ready(self):
         """Waits until the internal guild configuration cache is ready.
@@ -309,7 +309,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         """proc1 = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         win_user_name = proc1.stdout.read().decode("utf-8").strip()"""
-        proc2 = subprocess.Popen('git config user.name', stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
+        proc2 = subprocess.Popen(['git', 'config', 'user.name'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
         git_user_name = proc2.stdout.read().decode("utf-8").strip()
 
         # We do a miniscule amount of trolling
