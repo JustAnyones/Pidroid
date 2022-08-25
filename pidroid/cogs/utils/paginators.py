@@ -27,12 +27,16 @@ https://github.com/Rapptz/discord-ext-menus/commits/fbb8803779373357e274e1540b36
 import asyncio
 import discord
 
+from contextlib import suppress
+from discord.errors import NotFound
 from discord.ext import commands
-from typing import List, Optional, Dict, Any
+from typing import TYPE_CHECKING, List, Optional, Dict, Any
 
 from pidroid.cogs.models.plugins import Plugin
 from pidroid.cogs.utils.embeds import PidroidEmbed
 
+if TYPE_CHECKING:
+    from pidroid.client import Pidroid
 
 class PageSource:
     """An interface representing a menu page's data source for the actual menu page.
@@ -287,9 +291,12 @@ class PidroidPages(discord.ui.View):
 
     async def on_timeout(self) -> None:
         if self.message:
-            await self.message.edit(view=None)
+            with suppress(NotFound):
+                await self.message.edit(view=None)
 
     async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item) -> None:
+        assert isinstance(self.ctx.bot, Pidroid)
+        self.ctx.bot.logger.exception(error)
         if interaction.response.is_done():
             await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
         else:
@@ -297,8 +304,7 @@ class PidroidPages(discord.ui.View):
 
     async def start(self) -> None:
         if self.check_embeds and not self.ctx.channel.permissions_for(self.ctx.me).embed_links:
-            await self.ctx.send('Bot does not have embed links permission in this channel.')
-            return
+            return await self.ctx.send('Bot does not have embed links permission in this channel.')
 
         await self.source._prepare_once()
         page = await self.source.get_page(0)
@@ -335,7 +341,8 @@ class PidroidPages(discord.ui.View):
     async def stop_pages(self, interaction: discord.Interaction, button: discord.ui.Button):
         """stops the pagination session."""
         await interaction.response.defer()
-        await interaction.delete_original_message()
+        if self.message:
+            await self.message.delete()
         self.stop()
 
 

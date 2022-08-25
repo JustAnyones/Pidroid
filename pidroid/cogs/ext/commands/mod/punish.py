@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 
+from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord import ui, ButtonStyle, Interaction
@@ -9,6 +10,7 @@ from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
 from discord.emoji import Emoji
+from discord.errors import NotFound
 from discord.ext.commands.errors import BadArgument, MissingPermissions # type: ignore
 from discord.member import Member
 from discord.message import Message
@@ -363,7 +365,8 @@ class PunishmentInteraction(ui.View):
     async def _update_view(self, interaction: Optional[Interaction]) -> None:
         if interaction is None:
             assert self._message is not None
-            await self._message.edit(embed=self.embed, view=self)
+            with suppress(NotFound):
+                await self._message.edit(embed=self.embed, view=self)
         else:
             await interaction.response.edit_message(embed=self.embed, view=self)
 
@@ -585,6 +588,15 @@ class PunishmentInteraction(ui.View):
     async def on_timeout(self) -> None:
         """Called when view times out."""
         await self.timeout_interface(None)
+
+    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item) -> None:
+        """Called when view catches an error."""
+        assert isinstance(self.ctx.bot, Pidroid)
+        self.ctx.bot.logger.exception(error)
+        if interaction.response.is_done():
+            await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
+        else:
+            await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Ensure that the interaction is called by the message author.
