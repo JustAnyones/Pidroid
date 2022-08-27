@@ -1,4 +1,6 @@
+import datetime
 import discord
+import pytz # type: ignore
 
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context # type: ignore
@@ -12,6 +14,7 @@ from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import InformationCategory
 from pidroid.cogs.utils.checks import is_guild_moderator, is_guild_administrator
 from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.time import utcnow
 
 
 class InfoCommands(commands.Cog): # type: ignore
@@ -153,6 +156,33 @@ class InfoCommands(commands.Cog): # type: ignore
         embed.add_field(name="Colour", value=str(role.colour))
         embed.add_field(name="Is mentionable", value=role.mentionable)
         embed.set_footer(text="Role created")
+        await ctx.reply(embed=embed)
+
+    @commands.command( # type: ignore
+        brief='Displays time information across the globe.',
+        category=InformationCategory
+    )
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    async def time(self, ctx: Context):
+        def d(date: datetime.datetime):
+            return date.strftime("%d %B %Y %H:%M")
+
+        utc = utcnow()
+        cet = utc.astimezone(pytz.timezone("CET"))
+        pt = utc.astimezone(pytz.timezone("US/Pacific"))
+        ny = utc.astimezone(pytz.timezone("America/New_York"))
+        ist = utc.astimezone(pytz.timezone("Asia/Kolkata"))
+        ja = utc.astimezone(pytz.timezone("Japan"))
+
+        embed = PidroidEmbed(title="Displaying different times across the globe")
+        embed.add_field(name="Pacific Time", value=d(pt))
+        embed.add_field(name="Eastern Standard Time", value=d(ny))
+        embed.add_field(name="Coordinated Universal Time", value=d(utc))
+        embed.add_field(name="Central European Time", value=d(cet))
+        embed.add_field(name="Indian Standard Time", value=d(ist))
+        embed.add_field(name="Japanese Standard Time", value=d(ja))
+
+        embed.add_field(name="Your time", value=format_dt(utc))
         await ctx.reply(embed=embed)
 
 async def setup(client: Pidroid) -> None:
