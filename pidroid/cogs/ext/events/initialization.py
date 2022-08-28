@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import subprocess
-
 from discord import Game
 from discord.ext import commands # type: ignore
 from typing import TYPE_CHECKING
@@ -22,8 +20,6 @@ class InvocationEventHandler(commands.Cog): # type: ignore
     async def on_ready(self) -> None:
         """This notifies the host of the bot that the client is ready to use."""
         self.annoy_erk = self.client.loop.create_task(self.client.annoy_erksmit())
-        self.log.debug("Obtaining HEAD commit ID")
-        await self._obtain_git_hash()
         await self._fill_guild_config_cache()
         self.log.info(f'{self.client.user.name} bot (build {self.client.full_version}) has started with the ID of {self.client.user.id}')
         await self.client.change_presence(activity=Game("TheoTown"))
@@ -31,11 +27,6 @@ class InvocationEventHandler(commands.Cog): # type: ignore
     def cog_unload(self) -> None:
         """Ensure that tasks are cancelled on cog unload."""
         self.annoy_erk.cancel()
-
-    async def _obtain_git_hash(self):
-        proc = subprocess.Popen(['git', 'rev-parse', '--short', 'HEAD'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
-        data = proc.stdout.read().decode("utf-8").strip()
-        self.client.client_version = self.client.client_version._replace(commit_id = data)
 
     async def _fill_guild_config_cache(self):
         self.log.debug("Filling guild configuration cache")

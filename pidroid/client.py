@@ -141,7 +141,7 @@ class Pidroid(commands.Bot): # type: ignore
         """Returns shorthand client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
         if self.client_version.releaselevel != "final":
-            return f"{version_str}-{self.client_version.commit_id} {self.client_version.releaselevel}"
+            return f"{version_str} {self.client_version.releaselevel}"
         return version_str
 
     @property
