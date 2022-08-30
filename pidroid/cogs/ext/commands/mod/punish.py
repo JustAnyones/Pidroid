@@ -31,7 +31,7 @@ from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.utils.getters import get_role
-from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator, is_guild_theotown, member_above_bot
+from pidroid.cogs.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions, has_guild_permission, is_guild_moderator, is_guild_theotown
 from pidroid.cogs.utils.time import duration_string_to_relativedelta, utcnow
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
@@ -688,7 +688,10 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
 
-        if isinstance(user, Member) and member_above_bot(ctx.guild, user):
+        if isinstance(user, Member) and user.top_role >= ctx.message.author.top_role:
+            raise BadArgument("Specified member is above or shares the same role with you!")
+
+        if isinstance(user, Member) and user.top_role >= ctx.guild.me.top_role:
             raise BadArgument("Specified member is above me!")
 
         if self.is_user_being_punished(ctx.guild.id, user.id):
@@ -701,6 +704,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
         # Generic check to only invoke the menu if author is a moderator
         if is_guild_moderator(ctx.guild, ctx.channel, user):
             raise BadArgument("You cannot punish a moderator!")
+
+        if user.bot:
+            raise BadArgument("You cannot punish a bot!")
 
         # Create an embed overview
         embed = PidroidEmbed()
@@ -726,8 +732,11 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
 
-        if member_above_bot(ctx.guild, member):
-            raise BadArgument("Specified member is above me, I cannot suspend them!")
+        if member.top_role >= ctx.message.author.top_role:
+            raise BadArgument("Specified member is above or shares the same role with you, you cannot suspend them!")
+
+        if member.top_role > ctx.guild.me.top_role:
+            raise BadArgument("Specified member is above me, I cannot suspend them!!")
 
         if self.is_user_being_punished(ctx.guild.id, member.id):
             raise BadArgument("There's a punishment menu open for the member, I cannot manage them.")
@@ -735,6 +744,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
         # Generic check to only invoke the menu if author is a moderator
         if is_guild_moderator(ctx.guild, ctx.channel, member):
             raise BadArgument("You cannot suspend a moderator!")
+
+        if member.bot:
+            raise BadArgument("You cannot suspend a bot!")
 
         t = Timeout(ctx, member)
         t.reason = "Suspended communications"
