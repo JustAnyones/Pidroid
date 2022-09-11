@@ -34,7 +34,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=0, micro=1, releaselevel='alpha', commit_id="unknown")
+__VERSION__ = VersionInfo(major=5, minor=0, micro=2, releaselevel='alpha', commit_id="unknown")
 
 if TYPE_CHECKING:
     from pidroid.cogs.models.configuration import GuildConfiguration
