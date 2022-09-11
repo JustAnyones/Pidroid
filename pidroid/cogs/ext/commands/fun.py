@@ -60,7 +60,7 @@ class FunCommands(commands.Cog): # type: ignore
     def tenor_token(self) -> str:
         """Returns TENOR GIF API token."""
         try:
-            return self.client.config['tenor_api_token']
+            return self.client.config['tenor_api_key']
         except KeyError:
             raise BadArgument("Credentials for TENOR GIF API could not be found!")
 

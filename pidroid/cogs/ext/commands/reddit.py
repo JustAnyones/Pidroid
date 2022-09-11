@@ -95,9 +95,9 @@ class RedditCommands(commands.Cog): # type: ignore
             try:
                 subreddit = await self.reddit_instance.subreddit(subreddit_name, fetch=True)
             except ResponseException as e:
-                return await ctx.reply(embed=ErrorEmbed(str(e)))
-            except Exception:
-                return await ctx.reply(embed=ErrorEmbed("I could not find the specified subreddit!"))
+                raise BadArgument(e)
+            except Exception as e:
+                raise BadArgument("I could not find the specified subreddit!")
 
             # Check subreddit for nsfw
             assure_content_rating(ctx, subreddit)

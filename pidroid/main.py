@@ -34,7 +34,7 @@ def load_env_from_file(path: str) -> None:
     with open(path) as f:
         for l in f.readlines():
             key, value = l.split("=", 1)
-            os.environ[key] = value.strip().replace("$$", "$")
+            os.environ[key] = value.strip()
 
 def config_from_env() -> dict:
 
