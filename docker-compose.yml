@@ -4,6 +4,7 @@ services:
   pidroid:
     restart: always
     image: pidroid-bot:latest
+    container_name: pidroid
     volumes:
       - ./data:/app/data
     env_file:
