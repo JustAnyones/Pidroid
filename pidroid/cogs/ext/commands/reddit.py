@@ -4,10 +4,12 @@ import typing
 
 from asyncpraw.models.reddit.submission import Submission # type: ignore
 from asyncpraw.models.reddit.subreddit import Subreddit # type: ignore
+from asyncprawcore import exceptions # type: ignore
 from asyncprawcore.exceptions import ResponseException # type: ignore
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
+from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import RandomCategory
@@ -87,13 +89,15 @@ class RedditCommands(commands.Cog): # type: ignore
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def reddit(self, ctx: Context, subreddit_name: str = None):
+    async def reddit(self, ctx: Context, subreddit_name: Optional[str] = None):
         async with ctx.typing():
             if subreddit_name is None:
                 return await ctx.reply(embed=ErrorEmbed('Please specify a subreddit from which you want to fetch a random post!'))
 
             try:
                 subreddit = await self.reddit_instance.subreddit(subreddit_name, fetch=True)
+            except exceptions.Redirect:
+                raise BadArgument("I am being redirected, are you certain that the specified subreddit exists?")
             except ResponseException as e:
                 raise BadArgument(e)
             except Exception as e:
