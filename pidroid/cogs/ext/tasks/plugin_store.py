@@ -2,7 +2,7 @@ from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands # type: ignore
-from typing import Optional, List
+from typing import List
 
 from pidroid.client import Pidroid
 from pidroid.cogs.utils.checks import is_client_pidroid
@@ -22,20 +22,20 @@ class PluginStoreTasks(commands.Cog): # type: ignore
 
         self.retrieve_new_plugins.start()
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.retrieve_new_plugins.cancel()
-
-    @property
-    def showcase_channel(self) -> Optional[TextChannel]:
-        """Returns plugin showcase channel object."""
-        return self.client.get_channel(640522649033769000)
 
     @tasks.loop(seconds=30)
     async def retrieve_new_plugins(self) -> None:
         """Retrieves new plugin store plugins and publishes them to TheoTown guild channel."""
-        if self.showcase_channel is None:
+        
+        await self.client.fetch_channel(640522649033769000)
+        
+        channel = await self.client.get_or_fetch_channel(640522649033769000)
+        if channel is None:
             return self.client.logger.warning("Showcase channel returned a None!")
+        assert isinstance(channel, TextChannel)
 
         try:
             last_approval_time = self.client.persistent_data.data.get("last plugin approval", -1)
@@ -59,7 +59,7 @@ class PluginStoreTasks(commands.Cog): # type: ignore
                         continue
                     self.new_plugins_cache.append(plugin.id)
 
-                    message = await self.showcase_channel.send(embed=plugin.to_embed())
+                    message = await channel.send(embed=plugin.to_embed())
 
                     if self.add_reactions:
                         await message.add_reaction("👍")

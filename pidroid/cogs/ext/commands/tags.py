@@ -111,14 +111,14 @@ class Tag:
         self._author_ids.remove(author_id)
 
     def _deserialize(self, data: TagTable) -> None:
-        self._id = data.id
-        self.guild_id = data.guild_id
-        self._name = data.name
-        self._content = data.content
-        self._author_ids = data.authors
-        self.aliases = data.aliases
-        self.locked = data.locked
-        self.date_created = data.date_created
+        self._id = data.id # type: ignore
+        self.guild_id = data.guild_id # type: ignore
+        self._name = data.name # type: ignore
+        self._content = data.content # type: ignore
+        self._author_ids = data.authors # type: ignore
+        self.aliases = data.aliases # type: ignore
+        self.locked = data.locked # type: ignore
+        self.date_created = data.date_created # type: ignore
 
     async def create(self) -> None:
         """Creates a tag by inserting a document to the database."""
@@ -215,6 +215,7 @@ class TagCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def list(self, ctx: Context):
+        assert ctx.guild is not None
         guild_tags = await self.client.api.fetch_guild_tags(ctx.guild.id)
         if len(guild_tags) == 0:
             raise BadArgument("This server has no defined tags!")
@@ -275,6 +276,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def create(self, ctx: Context, tag_name: Optional[str], *, content: Optional[str]):
+        assert ctx.guild is not None
         tag = Tag(self.client.api)
         tag.guild_id = ctx.guild.id
         tag.author_id = ctx.author.id
@@ -379,6 +381,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def claim(self, ctx: Context, *, tag_name: Optional[str]):
+        assert ctx.guild is not None
         tag = await self.resolve_tag(ctx, tag_name)
 
         if ctx.author.id == tag.author_id:

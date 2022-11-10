@@ -17,22 +17,18 @@ class ForumMessageTask(commands.Cog): # type: ignore
         self.client = client
         self.fetch_messages.start()
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.fetch_messages.cancel()
-
-    @property
-    def message_channel(self) -> TextChannel:
-        """Returns forum PM channel object."""
-        return self.client.get_channel(707561286820692039)
 
     @tasks.loop(seconds=60)
     async def fetch_messages(self) -> None:
         try:
             response = await self.client.api.get(Route("/private/forum/fetch_unread_messages"))
+            channel = await self.client.get_or_fetch_channel(707561286820692039)
+            assert isinstance(channel, TextChannel)
 
             for message in response["data"]:
-
                 message_id = message["msg_id"]
                 subject = truncate_string(message["message_subject"], 256)
                 text = truncate_string(message["message_text"], 4096)
@@ -48,7 +44,7 @@ class ForumMessageTask(commands.Cog): # type: ignore
                 embed.add_field(name="Time sent", value=format_dt(timestamp_to_datetime(time_sent)))
                 embed.set_author(name=author_name, icon_url=author_avatar_url, url=author_url)
                 embed.set_footer(text=f"Message ID: {message_id}")
-                await self.message_channel.send(embed=embed)
+                await channel.send(embed=embed)
         except Exception:
             self.client.logger.exception("An exception was encountered while trying to fetch Pidroid messages")
 

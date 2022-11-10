@@ -23,9 +23,8 @@ class CronjobTask(commands.Cog): # type: ignore
             self.start_cronjob(monthly_plugin_cronjob, "Monthly plugin")
         )
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that cron job tasks are cancelled on cog unload."""
-        self.shitpost_cronjob.cancel()
         self.monthly_plugin_cronjob.cancel()
 
     async def start_cronjob(self, cronjob: aiocron.Cron, cron_name: str = "Generic", require_pidroid=True) -> None:
@@ -49,7 +48,8 @@ class CronjobTask(commands.Cog): # type: ignore
 async def monthly_plugin_cronjob(client: Pidroid) -> None:
     """Retrieves monthly plugin information and posts it to TheoTown guild channel."""
     try:
-        channel: TextChannel = client.get_channel(640521916943171594)
+        channel = await client.get_or_fetch_channel(640521916943171594)
+        assert isinstance(channel, TextChannel)
         async with await http.get(client, "https://store.theotown.com/get_stats") as response:
             data = await response.json()
 

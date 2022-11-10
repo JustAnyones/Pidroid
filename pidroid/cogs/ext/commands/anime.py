@@ -103,7 +103,6 @@ class AnimeCommands(commands.Cog): # type: ignore
         hidden=True
     )
     @commands.is_owner() # type: ignore
-    @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     async def yourebanned(self, ctx: Context):
         async with ctx.typing():
@@ -122,7 +121,7 @@ class AnimeCommands(commands.Cog): # type: ignore
                 "Please consult the help command."
             ))
 
-    @neko.command(
+    @neko.command( # type: ignore
         name='fact',
         brief='Tells a random fact as provided by the API.',
         category=RandomCategory,
@@ -133,7 +132,7 @@ class AnimeCommands(commands.Cog): # type: ignore
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["fact"]))
 
-    @neko.command(
+    @neko.command( # type: ignore
         name='name',
         brief='Generates a random name from the API.',
         category=RandomCategory
@@ -144,7 +143,7 @@ class AnimeCommands(commands.Cog): # type: ignore
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["name"]))
 
-    @neko.command(
+    @neko.command( # type: ignore
         name='why',
         brief='Questions that make you think as provided by the API.',
         category=RandomCategory,
@@ -155,7 +154,7 @@ class AnimeCommands(commands.Cog): # type: ignore
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["why"]))
 
-    @neko.command(
+    @neko.command( # type: ignore
         name='image',
         brief='Fetches an image for the specified type as provided by the API.',
         usage='[image type]',
@@ -267,7 +266,9 @@ class AnimeCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild, wait=True) # type: ignore
+    @commands.guild_only() # type: ignore
     async def weeb(self, ctx: Context):
+        assert ctx.guild is not None
         if ctx.guild.id == THEOTOWN_GUILD:
             for _ in range(7):
                 await asyncio.sleep(random.randint(2, 5)) # nosec

@@ -1,10 +1,10 @@
+import inspect
 import re
 
 from discord.ext import commands
-from discord.ext.commands import MissingRequiredArgument, BadArgument # type: ignore
+from discord.ext.commands import MissingRequiredArgument, BadArgument, Parameter # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.utils import format_dt
-from types import SimpleNamespace
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.accounts import ForumAccount
@@ -67,7 +67,7 @@ class ForumCommands(commands.Cog): # type: ignore
     async def forum_gift(self, ctx: Context, *args):
         async with ctx.typing():
             if len(args) == 0:
-                raise MissingRequiredArgument(SimpleNamespace(name='item'))
+                raise MissingRequiredArgument(Parameter("item", inspect.Parameter.POSITIONAL_OR_KEYWORD, None, None))
 
             # Join arguments into a single string
             command_args = ' '.join(args[0:])
@@ -86,9 +86,9 @@ class ForumCommands(commands.Cog): # type: ignore
 
             # Raise errors for missing arguments
             if len(parsed_args) == 0:
-                raise MissingRequiredArgument(SimpleNamespace(name='amount'))
+                raise MissingRequiredArgument(Parameter("amount", inspect.Parameter.POSITIONAL_OR_KEYWORD, None, None))
             if len(parsed_args) == 1:
-                raise MissingRequiredArgument(SimpleNamespace(name='user'))
+                raise MissingRequiredArgument(Parameter("user", inspect.Parameter.POSITIONAL_OR_KEYWORD, None, None))
 
             # Parse the arguments for API
             item = command_args[pos[0]:pos[1]].lower()

@@ -197,9 +197,11 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # Try to cache the channel object
         if self.channel is None:
-            self.channel = await self.client.get_or_fetch_channel(message.guild, FEED_CHANNEL)
-            if self.channel is None:
+            channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL)
+            if channel is None:
                 self.client.logger.warning("Translation output channel is None!")
+            assert isinstance(channel, TextChannel)
+            self.channel = channel
 
         # Reset used chars counter
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:

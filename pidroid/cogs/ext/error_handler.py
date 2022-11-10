@@ -10,7 +10,7 @@ from discord.errors import HTTPException
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from jishaku.paginators import PaginatorInterface, WrappedPaginator # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from pidroid.constants import REFUSE_COMMAND_RESPONSES
 from pidroid.cogs.models import exceptions
@@ -61,13 +61,12 @@ class Error(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid):
         self.client = client
 
-    async def notify(self, ctx: Context, message: str, delete_after: int = None):
+    async def notify(self, ctx: Context, message: str, delete_after: Optional[int] = None):
         with suppress(discord.errors.Forbidden):
             await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
     @commands.Cog.listener() # type: ignore
     async def on_command_error(self, ctx: Context, error):  # noqa: C901
-
         # Prevents commands with local error handling being handled here
         if hasattr(ctx.command, 'on_error'):
             return
@@ -75,6 +74,10 @@ class Error(commands.Cog): # type: ignore
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
         # If nothing is found. We keep the exception passed to on_command_error.
         error = getattr(error, 'original', error)
+
+        # If error does not exist?
+        if error is None:
+            return
 
         # Resets command cooldown on command error
         if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown): # type: ignore
@@ -86,7 +89,7 @@ class Error(commands.Cog): # type: ignore
 
         # Do not modify specified errors
         if isinstance(error, use_default):
-            return await self.notify(ctx, error)
+            return await self.notify(ctx, str(error))
 
         # Extensive logging for NotFound and Forbidden errors
         if isinstance(error, discord.errors.NotFound):

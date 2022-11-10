@@ -14,7 +14,7 @@ class ThreadTasks(commands.Cog): # type: ignore
         self.client = client
         self.archive_threads.start()
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.archive_threads.cancel()
 
@@ -25,7 +25,8 @@ class ThreadTasks(commands.Cog): # type: ignore
         for thread_entry in threads_to_archive:
 
             try:
-                thread: Thread = await self.client.fetch_channel(thread_entry.thread_id)
+                thread = await self.client.fetch_channel(thread_entry.thread_id) # type: ignore
+                assert isinstance(thread, Thread)
             except Exception as e:
                 self.client.logger.exception(f"Failure to look up a thread, ID is {thread_entry.thread_id}\nException: {e}")
 
@@ -33,12 +34,12 @@ class ThreadTasks(commands.Cog): # type: ignore
                     # If thread channel was deleted completely
                     if e.code == 10003:
                         self.client.logger.info("Thread channel does not exist, deleting from the database")
-                        await self.client.api.delete_expiring_thread(thread_entry.id)
+                        await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
                 continue
 
             await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
             await thread.edit(archived=True, locked=True)
-            await self.client.api.delete_expiring_thread(thread_entry.id)
+            await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
 
     @archive_threads.before_loop
     async def before_archive_threads(self) -> None:

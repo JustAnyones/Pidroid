@@ -28,6 +28,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @command_checks.is_junior_moderator(kick_members=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def case(self, ctx: Context, case_id: int, *, reason: Optional[str]):
+        assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
         if reason is not None:
@@ -48,6 +49,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @command_checks.is_senior_moderator(manage_guild=True)
     @commands.guild_only() # type: ignore
     async def invalidatewarning(self, ctx: Context, case_id: int):
+        assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
         await case.invalidate()
         await ctx.reply('Warning invalidated successfully!')
@@ -61,6 +63,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def warnings(self, ctx: Context, user: Union[discord.Member, discord.User] = None, amount: str = 'none'):
+        assert ctx.guild is not None
         user = user or ctx.author
 
         error_msg = "I could not find any warnings for you!"
@@ -90,6 +93,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def modlogs(self, ctx: Context, user: Union[discord.Member, discord.User] = None):
+        assert ctx.guild is not None
         user = user or ctx.author
 
         error_msg = "I could not find any modlogs related to you!"
@@ -117,6 +121,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only() # type: ignore
     async def modstats(self, ctx: Context, member: discord.Member = None):
+        assert ctx.guild is not None
         member = member or ctx.author
         data = await self.client.api.fetch_moderation_statistics(ctx.guild.id, member.id)
         embed = PidroidEmbed(title=f'Displaying moderation statistics for {str(member)}')

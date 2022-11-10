@@ -164,12 +164,12 @@ def timestamp_to_datetime(timestamp: int) -> datetime.datetime:
     """Converts a timestamp to a UTC datetime object."""
     return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
-def timestamp_to_date(timestamp: int, style: str = "default", custom_format: str = None) -> str:
+def timestamp_to_date(timestamp: int, style: str = "default", custom_format: Optional[str] = None) -> str:
     """Converts a timestamp to a UTC human readable date string."""
     datetime = timestamp_to_datetime(timestamp)
     return datetime_to_date(datetime, style, custom_format)
 
-def datetime_to_date(datetime: datetime.datetime, style="default", custom_format: str = None) -> str:
+def datetime_to_date(datetime: datetime.datetime, style="default", custom_format: Optional[str] = None) -> str:
     """Converts a datetime object to a UTC human readable date string."""
     if style == 'custom' and custom_format is not None:
         style = custom_format

@@ -14,7 +14,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         self.client = client
         self.check_punishments.start()
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.check_punishments.stop()
 

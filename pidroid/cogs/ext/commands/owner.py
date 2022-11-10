@@ -66,7 +66,8 @@ class OwnerCommands(commands.Cog): # type: ignore
     async def stop(self, ctx: Context):
         user = self.client.get_user(JUSTANYONE_ID)
         print(f'Kill request received by {ctx.message.author}')
-        await user.send(f'The bot was manually shut down by {ctx.message.author}')
+        if user:
+            await user.send(f'The bot was manually shut down by {ctx.message.author}')
         await ctx.reply('Shutting down!')
         # Thank you, windows, very kool
         if sys.platform == 'win32':

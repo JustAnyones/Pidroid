@@ -36,7 +36,10 @@ class ReactionEventHandler(commands.Cog): # type: ignore
         if not payload.member:
             return
 
-        channel: TextChannel = self.client.get_channel(payload.channel_id)
+        channel = self.client.get_or_fetch_channel(payload.channel_id)
+        if not isinstance(channel, TextChannel):
+            return
+        
         try:
             message: Message = await channel.fetch_message(payload.message_id)
         except discord.NotFound:

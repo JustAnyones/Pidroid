@@ -12,7 +12,7 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
         self.client = client
         self.update_statistics.start()
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.update_statistics.cancel()
 

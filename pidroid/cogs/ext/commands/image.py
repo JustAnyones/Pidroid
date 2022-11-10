@@ -64,9 +64,8 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
     async def bonk(self, ctx: Context, member: discord.Member = None):
         if member is None:
-            await ctx.reply(embed=ErrorEmbed('Please specify a member which you want to bonk!'))
             self.bonk.reset_cooldown(ctx)
-            return
+            raise BadArgument("Please specify a member which you want to bonk!")
 
         async with ctx.channel.typing():
             output_file = BytesIO()

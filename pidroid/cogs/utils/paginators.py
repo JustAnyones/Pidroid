@@ -302,7 +302,7 @@ class PidroidPages(discord.ui.View):
         else:
             await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
 
-    async def start(self) -> None:
+    async def start(self):
         if self.check_embeds and not self.ctx.channel.permissions_for(self.ctx.me).embed_links:
             return await self.ctx.send('Bot does not have embed links permission in this channel.')
 
