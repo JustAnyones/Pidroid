@@ -20,7 +20,6 @@ class GuildConfiguration:
         mute_role: Optional[int]
         log_channel: Optional[int]
 
-        strict_anti_phishing: bool
         public_tags: bool
 
         suspicious_usernames: List[str]
@@ -31,20 +30,19 @@ class GuildConfiguration:
 
     def _deserialize(self, c: GuildConfigurationTable) -> None:
         """Creates a GuildConfiguration object from a table object."""
-        self._id = c.id
-        self.guild_id = c.guild_id
+        self._id = c.id # type: ignore
+        self.guild_id = c.guild_id # type: ignore
 
-        self.prefixes = c.prefixes
+        self.prefixes = c.prefixes # type: ignore
 
-        self.jail_channel = c.jail_channel
-        self.jail_role = c.jail_role
-        self.mute_role = c.mute_role
-        self.log_channel = c.log_channel
+        self.jail_channel = c.jail_channel # type: ignore
+        self.jail_role = c.jail_role # type: ignore
+        self.mute_role = c.mute_role # type: ignore
+        self.log_channel = c.log_channel # type: ignore
 
-        self.public_tags = c.public_tags
-        self.strict_anti_phishing = c.strict_anti_phishing
+        self.public_tags = c.public_tags # type: ignore
 
-        self.suspicious_usernames = c.suspicious_usernames
+        self.suspicious_usernames = c.suspicious_usernames # type: ignore
 
     async def _update(self) -> None:
         await self.api.update_guild_configuration(
@@ -54,18 +52,12 @@ class GuildConfiguration:
             self.log_channel,
             self.prefixes,
             self.suspicious_usernames,
-            self.public_tags,
-            self.strict_anti_phishing
+            self.public_tags
         )
 
     async def update_public_tag_permission(self, allow_public: bool) -> None:
         """Updates public tag permission."""
         self.public_tags = allow_public
-        await self._update()
-
-    async def update_anti_phising_permission(self, strict: bool) -> None:
-        """Updates strict anti-phising permission."""
-        self.strict_anti_phishing = strict
         await self._update()
 
     async def update_prefixes(self, prefix: str) -> None:

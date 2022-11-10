@@ -29,6 +29,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def configuration(self, ctx: Context):
+        assert ctx.guild is not None
         if ctx.invoked_subcommand is None:
             guild = ctx.guild
             data = self.client.get_guild_configuration(guild.id)
@@ -58,10 +59,9 @@ class AdminCommands(commands.Cog): # type: ignore
                 embed.add_field(name='Log channel', value=log_channel.mention)
 
             embed.add_field(name="Everyone can create tags?", value=data.public_tags)
-            embed.add_field(name="Strict phishing protection?", value=data.strict_anti_phishing)
 
             embed.set_footer(text=f'To edit the configuration, view the available administration commands with {prefixes[0]}help administration.')
-        await ctx.reply(embed=embed)
+            await ctx.reply(embed=embed)
 
     @configuration.command(
         brief='Sets up server jail system automatically.\nConfiguration consists out of creating a jail channel, role and setting up the permissions.\nCan be used to automatically set channel permissions.\nRequires administrator permissions.',
@@ -73,6 +73,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setupjail(self, ctx: Context):
+        assert ctx.guild is not None
         # Create empty array where we will store setup log
         action_log: List[str] = []
         async with ctx.typing():
@@ -144,6 +145,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setjailchannel(self, ctx: Context, channel: discord.TextChannel):
+        assert ctx.guild is not None
         config = self.client.get_guild_configuration(ctx.guild.id)
         assert config is not None
         await config.update_jail_channel(channel)
@@ -160,6 +162,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setjailrole(self, ctx: Context, role: discord.Role):
+        assert ctx.guild is not None
         config = self.client.get_guild_configuration(ctx.guild.id)
         assert config is not None
         await config.update_jail_role(role)
@@ -176,6 +179,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setlogchannel(self, ctx: Context, channel: discord.TextChannel):
+        assert ctx.guild is not None
         config = self.client.get_guild_configuration(ctx.guild.id)
         assert config is not None
         await config.update_log_channel(channel)
@@ -192,6 +196,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setprefix(self, ctx: Context, prefix: str):
+        assert ctx.guild is not None
         if len(prefix) > 1:
             raise BadArgument("Prefix cannot be longer than a single character!")
 
@@ -216,7 +221,8 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
-    async def toggle_tags(self, ctx: Context, allow_public: bool = None):
+    async def toggle_tags(self, ctx: Context, allow_public: bool = False):
+        assert ctx.guild is not None
         config = self.client.get_guild_configuration(ctx.guild.id)
         assert config is not None
 
@@ -228,32 +234,6 @@ class AdminCommands(commands.Cog): # type: ignore
             return await ctx.reply(embed=SuccessEmbed('Everyone can now create tags!'))
         await ctx.reply(embed=SuccessEmbed('Only members with manage messages permission can create tags now!'))
 
-    @configuration.command(
-        name="toggle-strict-protection",
-        brief=(
-            "Enable or disable strict anti-phishing protection.\n"
-            "Strict means that exceeding a certain amount of anti-phishing violations will result in a 24 hour time-out."
-        ),
-        usage='<true/false>',
-        category=AdministrationCategory
-    )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore# type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
-    @commands.guild_only() # type: ignore
-    async def toggle_strict_protection(self, ctx: Context, strict: bool = None):
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
-
-        if not strict:
-            strict = not config.strict_anti_phishing
-        await config.update_anti_phising_permission(strict)
-
-        if strict:
-            return await ctx.reply(embed=SuccessEmbed("Strict anti-phishing protection enabled!"))
-        await ctx.reply(embed=SuccessEmbed("Strict anti-phishing protection disabled!"))
-
     @commands.command( # type: ignore
         brief='Returns current server bot prefix.',
         category=UtilityCategory
@@ -262,6 +242,7 @@ class AdminCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def prefix(self, ctx: Context):
+        assert ctx.guild is not None
         config = self.client.get_guild_configuration(ctx.guild.id)
         assert config is not None
 

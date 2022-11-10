@@ -3,11 +3,11 @@ from __future__ import annotations
 import httpx
 import urllib.parse
 
+from enum import Enum
 from io import StringIO
 from lxml import etree # type: ignore # nosec
 from httpx._models import Response
 from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
-from enum import Enum
 
 from pidroid.cogs.models.exceptions import APIException
 

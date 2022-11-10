@@ -18,7 +18,6 @@ from pidroid.cogs.utils.embeds import ErrorEmbed
 
 if TYPE_CHECKING:
     from pidroid.cogs.ext.events.initialization import InvocationEventHandler
-    from pidroid.cogs.ext.tasks.automod import AutomodTask
 
 class OwnerCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
@@ -103,48 +102,6 @@ class OwnerCommands(commands.Cog): # type: ignore
         cog: InvocationEventHandler = self.client.get_cog("InvocationEventHandler")
         await cog._fill_guild_config_cache()
         await ctx.reply("Internal guild cache updated!")
-
-    @commands.group( # type: ignore
-        brief="Command group used to interact with phising protection related system.",
-        permissions=["Bot owner"],
-        category=OwnerCategory,
-        invoke_without_command=True
-    )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.is_owner() # type: ignore
-    async def phishing(self, ctx: Context):
-        return
-
-    @phishing.command(
-        name="update-urls",
-        brief="Updates internal phising URL list by calling the database.",
-        permissions=["Bot owner"],
-        category=OwnerCategory
-    )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.is_owner() # type: ignore
-    async def updateurls(self, ctx: Context):
-        cog: AutomodTask = self.client.get_cog("AutomodTask")
-        await cog._update_phishing_urls()
-        await ctx.reply("Phising URL list has been updated!")
-
-    @phishing.command(
-        name="insert-url",
-        brief="Updates internal and database phising URL list by adding a new URL.",
-        permissions=["Bot owner"],
-        aliases=["add-url"],
-        category=OwnerCategory
-    )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.is_owner() # type: ignore
-    async def inserturl(self, ctx: Context, url: str):
-        url = url.lower()
-        cog: AutomodTask = self.client.get_cog("AutomodTask")
-        if url in cog.phising_urls:
-            raise BadArgument("Phising URL is already in the list!")
-        await self.client.api.insert_phishing_url(url)
-        cog.phising_urls.append(url)
-        await ctx.reply("New phising URL has been added!")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommands(client))

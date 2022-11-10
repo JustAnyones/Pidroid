@@ -19,7 +19,7 @@ class HTTP:
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    async def request(self, method: str, route: Route, headers: dict = None, data: dict = None):
+    async def request(self, method: str, route: Route, headers: Optional[dict] = None, data: Optional[dict] = None):
         # Deal with headers
         new_headers = DEFAULT_HEADERS.copy()
         if headers:
@@ -90,17 +90,17 @@ def get_filename(cd: str) -> str:
     """Returns filename from content disposition header."""
     return re.findall(r'filename\*?=[\'"]?(?:UTF-\d[\'"]*)?([^;\r\n"\']*)[\'"]?;?', cd)[0]
 
-async def get(client: Pidroid, url: str, headers: dict = None, cookies: dict = None, timeout: int = 30):
+async def get(client: Pidroid, url: str, headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
     """Sends a GET request to the specified URL."""
     assert client.session is not None
     return client.session.get(url, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def post(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
+async def post(client: Pidroid, url: str, data: Union[dict, str], headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
     """Sends a POST request to the specified URL."""
     assert client.session is not None
     return client.session.post(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: dict = None, cookies: dict = None, timeout: int = 30):
+async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
     """Sends a PATCH request to the specified URL."""
     assert client.session is not None
     return client.session.patch(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))

@@ -66,7 +66,6 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.emoji',
             'cogs.ext.commands.forum',
             'cogs.ext.commands.fun',
-            'cogs.ext.commands.github',
             'cogs.ext.commands.giveaway',
             'cogs.ext.commands.help',
             'cogs.ext.commands.image',
@@ -77,6 +76,8 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.tags',
             'cogs.ext.commands.theotown',
             'cogs.ext.commands.utilities',
+            
+            # Moderation related commands
             'cogs.ext.commands.mod.punish',
             'cogs.ext.commands.mod.old_punish',
             'cogs.ext.commands.mod.logs',
@@ -197,7 +198,7 @@ class Pidroid(commands.Bot): # type: ignore
         if not config.log_channel:
             return
 
-        channel = await self.get_or_fetch_channel(guild, config.log_channel)
+        channel = await self.get_or_fetch_guild_channel(guild, config.log_channel)
         if channel is not None:
             assert isinstance(channel, TextChannel)
             await channel.send(embed=log.as_embed())
@@ -237,12 +238,20 @@ class Pidroid(commands.Bot): # type: ignore
                 return await self.fetch_user(user_id)
         return user
 
-    async def get_or_fetch_channel(self, guild: Guild, channel_id: int) -> Optional[GuildChannel]:
+    async def get_or_fetch_guild_channel(self, guild: Guild, channel_id: int):
         """Attempts to resolve guild channel from channel_id by any means. Returns None if everything failed."""
         channel = guild.get_channel(channel_id)
         if channel is None:
             with suppress(discord.HTTPException):
                 return await guild.fetch_channel(channel_id)
+        return channel
+
+    async def get_or_fetch_channel(self, channel_id: int):
+        """Attempts to resolve a channel from channel_id by any means. Returns None if everything failed."""
+        channel = self.get_channel(channel_id)
+        if channel is None:
+            with suppress(discord.HTTPException):
+                return await self.fetch_channel(channel_id)
         return channel
 
     def setup_logging(self, logging_level: int = logging.WARNING):

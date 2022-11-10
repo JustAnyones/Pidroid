@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from typing import Optional
+
 class Category:
-    def __init__(self, title: str, description: str, emote: str = None):
+    def __init__(self, title: str, description: str, emote: Optional[str] = None):
         self.title = title
         self.description = description
         self.emote = emote or ""

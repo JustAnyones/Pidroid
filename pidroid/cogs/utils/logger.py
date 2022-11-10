@@ -3,11 +3,7 @@ import discord
 from discord.embeds import Embed
 from discord.member import Member
 from discord.user import User
-from typing import Union
-
-from discord.message import Message
-from discord.utils import escape_markdown
-
+from typing import Union, Optional
 
 class BaseLog:
 
@@ -33,7 +29,7 @@ class BaseLog:
         """Adds an embed field."""
         self.embed.add_field(name=name, value=value, inline=inline)
 
-    def set_footer(self, text: str = None, icon_url: str = None) -> None:
+    def set_footer(self, text: Optional[str] = None, icon_url: Optional[str] = None) -> None:
         """Sets embed footer."""
         self.embed.set_footer(text=text, icon_url=icon_url)
 
@@ -41,7 +37,7 @@ class BaseLog:
         """Sets log type. An alias for set_title."""
         self.set_title(log_type)
 
-    def set_author(self, name: str, icon_url: str = None) -> None:
+    def set_author(self, name: str, icon_url: Optional[str] = None) -> None:
         """Sets embed author."""
         self.embed.set_author(name=name, icon_url=icon_url)
 
@@ -65,25 +61,3 @@ class SuspiciousUserLog(BaseLog):
             "Due to a possibility of accidentally punishing an innocent user, you must decide the applicable action yourself.\n"
             f"This message has been triggered by the following word in the member's username: '{trigger_word}'"
         )
-
-class PhishingLog(BaseLog):
-
-    def __init__(self, message: Message, url: str = None) -> None:
-        super().__init__()
-        self.set_type("Phishing detected")
-        self.put_author(message.author)
-        self.set_footer(f"User ID: {message.author.id} | False positive? Create an issue in the Pidroid Github repository")
-        if url is not None:
-            self.set_description(f"```{escape_markdown(message.content)}```")
-            self.add_field("Blacklisted URL:", url)
-        else:
-            self.set_description("Phising dynamically detected inside the embed of the message")
-
-class BannedWordLog(BaseLog):
-
-    def __init__(self, message: Message, trigger_word: str) -> None:
-        super().__init__()
-        self.set_type("Banned word")
-        self.put_author(message.author)
-        self.set_description(f"```{escape_markdown(message.content)}```")
-        self.add_field("Blacklisted word:", trigger_word)

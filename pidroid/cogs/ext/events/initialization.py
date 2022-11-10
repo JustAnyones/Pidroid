@@ -44,10 +44,6 @@ class InvocationEventHandler(commands.Cog): # type: ignore
                 self.client._update_guild_configuration(guild.id, config)
                 self.log.warn(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
 
-        # Also update phishing URLS
-        cog: AutomodTask = self.client.get_cog("AutomodTask")
-        await cog._update_phishing_urls()
-
         self.client._guild_config_ready.set()
         self.log.debug("Guild configuration cache filled")
 

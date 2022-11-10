@@ -7,6 +7,7 @@ import sys
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.message import Message
+from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import ALLOWED_MENTIONS
@@ -46,7 +47,7 @@ class BotCommands(commands.Cog): # type: ignore
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def info(self, ctx: Context, mode: str = None):
+    async def info(self, ctx: Context, mode: Optional[str] = None):
         async with ctx.typing():
             # Fetch data from config file
             version = self.client.version
@@ -56,7 +57,7 @@ class BotCommands(commands.Cog): # type: ignore
             if app_info.team is not None:
                 owner_name, owner_id = (app_info.team.name, app_info.team.id)
             else:
-                owner_name, owner_id = (app_info.owner, app_info.owner.id)
+                owner_name, owner_id = (str(app_info.owner), app_info.owner.id)
 
             # Fetch process information
             process_id = os.getpid()
@@ -70,12 +71,16 @@ class BotCommands(commands.Cog): # type: ignore
             current_timestamp = utcnow().timestamp()
 
             uptime = humanize(current_timestamp - start_time, False, max_units=3)
+            
+            assert self.client.user is not None
 
-            if mode == "extended" and await self.client.is_owner(ctx.author):
+            if mode == "extended" and await self.client.is_owner(ctx.author): # type: ignore
                 total_memory = round(psutil.virtual_memory().total / 1024 / 1024, 2)
                 extended_message = (
                     f'```{self.client.user.name} ({self.client.user.id}) build {version} information\n\n'
-                    f'* The bot (PID {process_id}) is running on {process.num_threads()} threads on {platform.system()} ({platform.release()} {platform.version()}) which was started on {timestamp_to_date(psutil.boot_time(), "hybrid")}\n'
+                    f'* The bot (PID {process_id}) is running on {process.num_threads()}'
+                    f' threads on {platform.system()} ({platform.release()} {platform.version()})'
+                    f' which was started on {timestamp_to_date(int(psutil.boot_time()), "hybrid")}\n'
                     f'* Python version: {sys.version}\n'
                     f'* Discord.py version: {discord.__version__}\n'
                     f'* Bot uptime: {uptime} started on {timestamp_to_date(int(start_time), "hybrid")}\n'
@@ -83,8 +88,7 @@ class BotCommands(commands.Cog): # type: ignore
                     f'* CPU usage: {process.cpu_percent(interval=1.0)}%\n'
                     f'* RAM usage: {used_memory}/{total_memory} MB ({round(process.memory_percent(), 2)}%)```'
                 )
-                await ctx.reply(extended_message)
-                return
+                return await ctx.reply(extended_message)
 
             embed = PidroidEmbed(title=f'{self.client.user.name} status', description=f'{self.client.user.name} is a custom made discord bot by JustAnyone, designed to be used inside the official TheoTown discord.')
             embed.add_field(name='Uptime', value=uptime, inline=True)
