@@ -132,7 +132,7 @@ class Error(commands.Cog): # type: ignore
 
         # All other errors get returned here with traceback
         else:
-            if await self.client.is_owner(ctx.message.author):
+            if await self.client.is_owner(ctx.message.author): # type: ignore
 
                 # Create a wrapped paginator which will keep our exception message
                 paginator = WrappedPaginator(

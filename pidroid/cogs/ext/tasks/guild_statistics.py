@@ -21,6 +21,8 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
         """Updates TheoTown API with guild member count."""
         try:
             guild = self.client.get_guild(THEOTOWN_GUILD)
+            if guild is None:
+                return self.client.logger.warn("Unable to update discord server member count, TheoTown guild was not found")
             await self.client.api.get(Route(
                 "/private/discord/update",
                 {"type": "write", "member_count": guild.member_count}

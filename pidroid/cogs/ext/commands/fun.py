@@ -4,13 +4,14 @@ import random
 
 from datetime import datetime
 from discord import AllowedMentions
-from discord.channel import VoiceChannel
+from discord.channel import VoiceChannel, StageChannel
 from discord.colour import Color, Colour
 from discord.embeds import Embed
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.voice_client import VoiceClient
+from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import FACTS
@@ -71,7 +72,7 @@ class FunCommands(commands.Cog): # type: ignore
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def color(self, ctx: Context, hex_str: str = None):
+    async def color(self, ctx: Context, hex_str: Optional[str]):        
         if hex_str is not None:
             try:
                 color = colour_from_hex(hex_str)
@@ -188,23 +189,26 @@ class FunCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     @command_checks.is_cheese_consumer()
     async def cloaker(self, ctx: Context, member: discord.Member):
+        assert isinstance(ctx.author, discord.Member)
         voice = ctx.author.voice
         if voice is None:
-            return await ctx.reply(embed=ErrorEmbed('You are not in a voice channel!'))
+            raise BadArgument("You are not in a voice channel!")
 
-        channel: VoiceChannel = voice.channel
+        channel = voice.channel
+        assert isinstance(channel, (VoiceChannel, StageChannel))
         if member not in channel.members:
-            return await ctx.reply(embed=ErrorEmbed('Specified user is not in the voice channel!'))
+            raise BadArgument("Specified user is not in the voice channel!")
 
         if self.client.user in channel.members:
-            return await ctx.reply(embed=ErrorEmbed('Bro, I am already in that channel. What do you want me to do?'))
+            raise BadArgument("Bro, I am already in that channel. What do you want me to do?")
 
+        assert isinstance(ctx.me, discord.Member)
         check_bot_channel_permissions(channel, ctx.me, move_members=True, speak=True, connect=True)
 
         try:
             vc: VoiceClient = await channel.connect(reconnect=False)
         except discord.errors.ClientException:
-            return await ctx.reply(embed=ErrorEmbed('I\'m already inside a voice channel!'))
+            raise BadArgument("I\'m already inside a voice channel!")
 
         audio_source = discord.FFmpegPCMAudio(Resource('cloaked.mp3'))
         

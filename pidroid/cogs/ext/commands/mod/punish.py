@@ -6,6 +6,8 @@ from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord import ui, ButtonStyle, Interaction
+from discord.channel import TextChannel
+from discord.guild import Guild
 from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
@@ -24,7 +26,7 @@ from discord.file import File
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 from pidroid.client import Pidroid
-from pidroid.cogs.models.case import Ban, Kick, Timeout, Jail, Warning, remove_ban_from_context, remove_jail_from_context, remove_timeout_from_context
+from pidroid.cogs.models.case import Ban, Kick, Timeout, Jail, Warning
 from pidroid.cogs.models.categories import ModerationCategory
 from pidroid.cogs.models.exceptions import InvalidDuration, MissingUserPermissions
 from pidroid.cogs.utils.decorators import command_checks
@@ -149,13 +151,33 @@ class BasePunishmentButton(ui.Button):
 
     def __init__(self, style: ButtonStyle, label: str, enabled: bool = True, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
         super().__init__(style=style, label=label, disabled=not enabled, emoji=emoji)
+    
+    @property
+    def api(self):
+        return self.view._api
+    
+    @property
+    def guild(self):
+        return self.view.guild
+    
+    @property
+    def channel(self):
+        return self.view.channel
+    
+    @property
+    def moderator(self):
+        return self.view.moderator
+    
+    @property
+    def user(self):
+        return self.view.user
 
 class BanButton(BasePunishmentButton):
     def __init__(self, enabled: bool = True):
         super().__init__(ButtonStyle.red, "Ban", enabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
-        self.view._select_type(Ban(self.view.ctx, self.view.user))
+        self.view.punishment = Ban(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.create_length_selector()
         await self.view._update_view(interaction)
 
@@ -164,19 +186,18 @@ class UnbanButton(BasePunishmentButton):
         super().__init__(ButtonStyle.red, "Unban", enabled, "🔨")
 
     async def callback(self, interaction: Interaction) -> None:
-        await remove_ban_from_context(
-            self.view.ctx, self.view.user,
-            f"Unbanned by {str(self.view.ctx.author)}"
-        )
-        await self.view.finish(interaction)
+        self.view.punishment = Ban(self.api, self.guild, self.channel, self.moderator, self.user)
+        await self.view.punishment.revoke(f"Unbanned by {str(self.moderator)}")
+        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
+        await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class KickButton(BasePunishmentButton):
     def __init__(self, enabled: bool = True):
         super().__init__(ButtonStyle.gray, "Kick", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        self.view._select_type(Kick(self.view.ctx, self.view.user))
+        assert isinstance(self.user, Member)
+        self.view.punishment = Kick(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
@@ -185,8 +206,8 @@ class JailButton(BasePunishmentButton):
         super().__init__(ButtonStyle.gray, "Jail", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        self.view._select_type(Jail(self.view.ctx, self.view.user))
+        assert isinstance(self.user, Member)
+        self.view.punishment = Jail(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
@@ -195,8 +216,8 @@ class KidnapButton(BasePunishmentButton):
         super().__init__(ButtonStyle.gray, "Kidnap", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        self.view._select_type(Jail(self.view.ctx, self.view.user, True))
+        assert isinstance(self.user, Member)
+        self.view.punishment = Jail(self.api, self.guild, self.channel, self.moderator, self.user, True)
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
@@ -205,22 +226,20 @@ class RemoveJailButton(BasePunishmentButton):
         super().__init__(ButtonStyle.gray, "Release from jail", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
+        assert isinstance(self.user, Member)
         assert self.view.jail_role is not None
-        await remove_jail_from_context(
-            self.view.ctx, self.view.user,
-            self.view.jail_role,
-            f"Released by {str(self.view.ctx.author)}"
-        )
-        await self.view.finish(interaction)
+        self.view.punishment = Jail(self.api, self.guild, self.channel, self.moderator, self.user)
+        await self.view.punishment.revoke(self.view.jail_role, f"Released by {str(self.moderator)}")
+        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
+        await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class TimeoutButton(BasePunishmentButton):
     def __init__(self, enabled: bool = True):
         super().__init__(ButtonStyle.gray, "Time-out", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        self.view._select_type(Timeout(self.view.ctx, self.view.user))
+        assert isinstance(self.user, Member)
+        self.view.punishment = Timeout(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.create_length_selector()
         await self.view._update_view(interaction)
 
@@ -229,20 +248,19 @@ class RemoveTimeoutButton(BasePunishmentButton):
         super().__init__(ButtonStyle.gray, "Remove time-out", enabled)
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        await remove_timeout_from_context(
-            self.view.ctx, self.view.user,
-            f"Removed by {str(self.view.ctx.author)}"
-        )
-        await self.view.finish(interaction)
+        assert isinstance(self.user, Member)
+        self.view.punishment = Timeout(self.api, self.guild, self.channel, self.moderator, self.user)
+        await self.view.punishment.revoke(f"Time out removed by {str(self.moderator)}")
+        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
+        await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class WarnButton(BasePunishmentButton):
     def __init__(self, enabled: bool = True):
         super().__init__(ButtonStyle.gray, "Warn", enabled, "⚠️")
 
     async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view.user, Member)
-        self.view._select_type(Warning(self.view.ctx, self.view.user))
+        assert isinstance(self.user, Member)
+        self.view.punishment = Warning(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.create_reason_selector()
         await self.view._update_view(interaction)
 
@@ -314,10 +332,19 @@ class PunishmentInteraction(ui.View):
 
     def __init__(self, cog: ModeratorCommands, ctx: Context, user: Union[Member, User], embed: Embed):
         super().__init__(timeout=300)
-        self.cog = cog
-        self.ctx = ctx
+        assert ctx.guild is not None
+        assert isinstance(ctx.channel, (TextChannel))
+        self._cog = cog
+        self._ctx = ctx
+        self._api = cog.client.api
+        self._client = cog.client
+
+        self.guild = ctx.guild
+        self.channel = ctx.channel
+        self.moderator = ctx.author
         self.user = user
-        self.embed = embed
+        
+        self._embed = embed
         self._message = None
 
         self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
@@ -325,25 +352,31 @@ class PunishmentInteraction(ui.View):
         self.jail_role: Optional[Role] = None
 
     async def initialize(self):
-        client = self.ctx.bot
+        client = self._ctx.bot
         assert isinstance(client, Pidroid)
-        c = client.get_guild_configuration(self.ctx.guild.id)
+        c = client.get_guild_configuration(self.guild.id)
         assert c is not None
-        role = get_role(self.ctx.guild, c.jail_role)
+        role = get_role(self.guild, c.jail_role)
         if role is not None:
             self.jail_role = role
 
         # Lock the punishment menu with a semaphore
-        await self.cog.lock_punishment_menu(self.ctx.guild.id, self.user.id)
+        await self._cog.lock_punishment_menu(self.guild.id, self.user.id)
 
     def set_reply_message(self, message: Message) -> None:
         """Sets the reply message to which this interaction belongs to."""
         self._message = message
 
     """Private utility methods"""
-
-    def _select_type(self, instance):
-        self.embed.description = f"Type: {str(instance)}"
+    
+    @property
+    def punishment(self):
+        """The punishment instance, if available."""
+        return self._punishment
+    
+    @punishment.setter
+    def punishment(self, instance):
+        self._embed.description = f"Type: {str(instance)}"
         self._punishment = instance
 
     def _select_length(self, length: Union[int, timedelta, relativedelta]):
@@ -353,29 +386,30 @@ class PunishmentInteraction(ui.View):
 
         assert self._punishment is not None
         self._punishment.set_length(length)
-        assert isinstance(self.embed.description, str)
-        self.embed.description += f"\nLength: {self._punishment.length_as_string}"
+        assert isinstance(self._embed.description, str)
+        self._embed.description += f"\nLength: {self._punishment.length_as_string}"
 
     def _select_reason(self, reason: str):
-        assert isinstance(self.embed.description, str)
-        self.embed.description += f"\nReason: {reason}"
+        assert isinstance(self._embed.description, str)
+        self._embed.description += f"\nReason: {reason}"
         assert self._punishment is not None
         self._punishment.reason = reason
 
     async def _update_view(self, interaction: Optional[Interaction]) -> None:
+        """Updates the original interaction response message."""
         if interaction is None:
             assert self._message is not None
             with suppress(NotFound):
-                await self._message.edit(embed=self.embed, view=self)
+                await self._message.edit(embed=self._embed, view=self)
         else:
-            await interaction.response.edit_message(embed=self.embed, view=self)
+            await interaction.response.edit_message(embed=self._embed, view=self)
 
     """Checks"""
 
     async def is_user_banned(self) -> bool:
         """Returns true if user is currently banned."""
         try:
-            await self.ctx.guild.fetch_ban(self.user)
+            await self.guild.fetch_ban(self.user) # type: ignore
             return True
         except Exception:
             return False
@@ -384,10 +418,10 @@ class PunishmentInteraction(ui.View):
         """Returns true if user is currently jailed."""
         if isinstance(self.user, User) or self.jail_role is None:
             return False
-        client: Pidroid = self.ctx.bot
+        client: Pidroid = self._ctx.bot
         return (
-            get(self.ctx.guild.roles, id=self.jail_role.id) in self.user.roles
-            and await client.api.is_currently_jailed(self.ctx.guild.id, self.user.id)
+            get(self.guild.roles, id=self.jail_role.id) in self.user.roles
+            and await client.api.is_currently_jailed(self.guild.id, self.user.id)
         )
 
     async def is_user_timed_out(self) -> bool:
@@ -402,21 +436,21 @@ class PunishmentInteraction(ui.View):
 
     def is_junior_moderator(self, **perms) -> bool:
         try:
-            check_junior_moderator_permissions(self.ctx, **perms)
+            check_junior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
     def is_normal_moderator(self, **perms) -> bool:
         try:
-            check_normal_moderator_permissions(self.ctx, **perms)
+            check_normal_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
     def is_senior_moderator(self, **perms) -> bool:
         try:
-            check_senior_moderator_permissions(self.ctx, **perms)
+            check_senior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
@@ -446,25 +480,27 @@ class PunishmentInteraction(ui.View):
         return modal.length_input.value, modal.interaction, timed_out
 
     async def create_type_selector(self):
-        self.embed.set_footer(text="Select the punishment type")
+        self._embed.set_footer(text="Select the punishment type")
         self.clear_items()
         is_member = isinstance(self.user, Member)
+
+        assert isinstance(self._ctx.me, Member)
 
         # Store permission checks here
         has_ban_permission = (
             self.is_normal_moderator(ban_members=True)
-            and has_guild_permission(self.ctx.me, "ban_members")
+            and has_guild_permission(self._ctx.me, "ban_members")
         )
         has_unban_permission = (
             self.is_senior_moderator(ban_members=True)
-            and has_guild_permission(self.ctx.me, "ban_members")
+            and has_guild_permission(self._ctx.me, "ban_members")
         )
         has_kick_permission = (
             self.is_junior_moderator(kick_members=True)
-            and has_guild_permission(self.ctx.me, "kick_members")
+            and has_guild_permission(self._ctx.me, "kick_members")
         )
-        has_timeout_permission = has_guild_permission(self.ctx.me, "moderate_members")
-        has_jail_permission = has_guild_permission(self.ctx.me, "manage_roles")
+        has_timeout_permission = has_guild_permission(self._ctx.me, "moderate_members")
+        has_jail_permission = has_guild_permission(self._ctx.me, "manage_roles")
 
         # Add ban/unban buttons
         if not await self.is_user_banned():
@@ -478,7 +514,7 @@ class PunishmentInteraction(ui.View):
         # Add jail/unjail buttons
         if not await self.is_user_jailed():
             self.add_item(JailButton(is_member and self.jail_role is not None and has_jail_permission))
-            if is_guild_theotown(self.ctx.guild):
+            if is_guild_theotown(self._ctx.guild):
                 self.add_item(KidnapButton(is_member and self.jail_role is not None and has_jail_permission))
         else:
             self.add_item(RemoveJailButton(has_jail_permission))
@@ -496,7 +532,7 @@ class PunishmentInteraction(ui.View):
 
     async def create_length_selector(self):
         # Acquire mapping for lengths for punishment types
-        mapping: List[ValueButton] = LENGTH_MAPPING.get(str(self._punishment), None)
+        mapping = LENGTH_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
             return await self.create_reason_selector()
 
@@ -504,11 +540,11 @@ class PunishmentInteraction(ui.View):
         for button in mapping:
             self.add_item(button)
         self.add_item(CancelButton())
-        self.embed.set_footer(text="Select the punishment length")
+        self._embed.set_footer(text="Select the punishment length")
 
     async def create_reason_selector(self):
         # Acquire mapping for lengths for punishment types
-        mapping: List[ValueButton] = REASON_MAPPING.get(str(self._punishment), None)
+        mapping = REASON_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
             return await self.create_confirmation_selector()
 
@@ -516,31 +552,29 @@ class PunishmentInteraction(ui.View):
         for button in mapping:
             self.add_item(button)
         self.add_item(CancelButton())
-        self.embed.set_footer(text="Select reason for the punishment")
+        self._embed.set_footer(text="Select reason for the punishment")
 
     async def create_confirmation_selector(self):
         self.clear_items()
         self.add_item(ConfirmButton())
         self.add_item(CancelButton())
-        self.embed.set_footer(text="Confirm or cancel the punishment")
+        self._embed.set_footer(text="Confirm or cancel the punishment")
 
     """Handle selections"""
 
     async def _handle_confirmation(self, interaction: Interaction, confirmed: bool):
-        self.embed.remove_footer()
-
-        # If moderator confirmed the action
+        # If moderator confirmed the action, issue the punishmend and send notifications
         if confirmed:
-            assert self._punishment is not None
-            if self._punishment.type == "jail":
-                assert isinstance(self._punishment, Jail)
+            assert self.punishment is not None
+            # Jail also requires a special jail role
+            if isinstance(self.punishment, Jail):
                 assert self.jail_role is not None
-                await self._punishment.issue(self.jail_role)
+                await self.punishment.issue(self.jail_role)
             else:
-                assert isinstance(self._punishment, (Ban, Kick, Timeout, Warning))
-                await self._punishment.issue()
-            self.remove_items()
-            return await self.finish(interaction)
+                await self.punishment.issue()
+            # Regardless, send out the notifications
+            await self.send_notification_to_user(self.punishment.private_message_issue_embed)
+            return await self.finish_interface(interaction, self.punishment.public_message_issue_embed)
 
         # Otherwise, cancel the interaction
         await self.cancel_interface(interaction)
@@ -548,42 +582,45 @@ class PunishmentInteraction(ui.View):
     """Clean up related methods"""
 
     async def timeout_interface(self, interaction: Optional[Interaction]) -> None:
-        self.embed.set_footer(text="Punishment creation has timed out")
-        self.embed.colour = Colour.red()
-        self.remove_items()
-        await self._update_view(interaction)
-        self.stop()
-        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
+        self._embed.set_footer(text="Punishment creation has timed out")
+        self._embed.colour = Colour.red()
+        await self.finish_interface(interaction)
 
     async def cancel_interface(self, interaction: Interaction) -> None:
-        self.embed.set_footer(text="Punishment creation has been cancelled")
-        self.embed.colour = Colour.red()
-        self.remove_items()
-        await self._update_view(interaction)
-        self.stop()
-        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
+        self._embed.set_footer(text="Punishment creation has been cancelled")
+        self._embed.colour = Colour.red()
+        await self.finish_interface(interaction)
+            
+    async def finish_interface(self, interaction: Optional[Interaction], embed: Optional[Embed] = None) -> None:
+        """Removes all buttons and updates the interface. No more calls can be done to the interface."""
+        self.remove_items() # Remove all buttons
+        # If embed is provided, update it
+        if embed:
+            self._embed = embed
+        await self._update_view(interaction) # Update message with latest information
+        self.stop() # Stop responding to any interaction
+        self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
+
+    async def send_notification_to_user(self, embed: Embed) -> None:
+        """Tries to send a direct message to the user containing the punishment details."""
+        try:
+            await self.user.send(embed=embed)
+        except Exception: # nosec
+            pass
+
+    """Utility"""
 
     def remove_items(self) -> None:
         """Removes all items from the view."""
         for child in self.children.copy():
             self.remove_item(child)
 
-    async def finish(self, interaction: Interaction) -> None:
-        """Causes the view to remove itself and stop listening to interactions."""
-        # Stop responding to interactions
-        self.stop()
-        # Unlock semaphore
-        self.cog.unlock_punishment_menu(self.ctx.guild.id, self.user.id)
-        # Respond to defer
-        await interaction.response.defer()
-        # Delete original message if it exists
-        if interaction.message:
-            await interaction.message.delete()
-
     def stop(self) -> None:
-        """Stops listening to all interactions for this view."""
+        """Stops listening to all and any interactions for this view."""
         self.remove_items()
         return super().stop()
+
+    """Event listeners"""
 
     async def on_timeout(self) -> None:
         """Called when view times out."""
@@ -591,22 +628,21 @@ class PunishmentInteraction(ui.View):
 
     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item) -> None:
         """Called when view catches an error."""
-        assert isinstance(self.ctx.bot, Pidroid)
-        self.ctx.bot.logger.exception(error)
+        self._client.logger.exception(error)
         if interaction.response.is_done():
             await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
         else:
             await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
+        self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Ensure that the interaction is called by the message author.
 
         Moderator, in this case."""
-        if interaction.user and interaction.user.id == self.ctx.author.id:
+        if interaction.user and interaction.user.id == self.moderator.id:
             return True
         await interaction.response.send_message('This menu cannot be controlled by you, sorry!', ephemeral=True)
         return False
-
 
 class ModeratorCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for moderation."""
@@ -681,6 +717,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
+        assert ctx.guild is not None
+
         # Check initial permissions
         if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):
             raise BadArgument("You need to be a moderator to run this command!")
@@ -688,11 +726,14 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             raise BadArgument("Please specify the member or the user you are trying to punish!")
 
+        if isinstance(user, Member) and user.top_role > ctx.guild.me.top_role:
+            raise BadArgument("Specified member is above me!")
+
+        if isinstance(user, Member) and user.top_role == ctx.guild.me.top_role:
+            raise BadArgument("Specified member shares the same role as I do, I cannot punish them!")
+
         if isinstance(user, Member) and user.top_role >= ctx.message.author.top_role:
             raise BadArgument("Specified member is above or shares the same role with you!")
-
-        if isinstance(user, Member) and user.top_role >= ctx.guild.me.top_role:
-            raise BadArgument("Specified member is above me!")
 
         if self.is_user_being_punished(ctx.guild.id, user.id):
             raise BadArgument("The punishment menu is already open for the user.")
@@ -703,7 +744,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
         # Generic check to only invoke the menu if author is a moderator
         if is_guild_moderator(ctx.guild, ctx.channel, user):
-            raise BadArgument("You cannot punish a moderator!")
+            raise BadArgument("You are not allowed to punish a moderator!")
 
         if user.bot:
             raise BadArgument("You cannot punish a bot!")
@@ -729,6 +770,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def suspend(self, ctx: Context, member: Member):
+        assert ctx.guild is not None
+        
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
 
@@ -748,7 +791,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if member.bot:
             raise BadArgument("You cannot suspend a bot!")
 
-        t = Timeout(ctx, member)
+        t = Timeout(self.client.api, ctx.guild, ctx.channel, ctx.author, member)
         t.reason = "Suspended communications"
         t.set_length(timedelta(days=7))
         await t.issue()

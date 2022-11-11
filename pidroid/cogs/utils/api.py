@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 
-from typing import List, Optional, TYPE_CHECKING
+from typing import List, Optional, TYPE_CHECKING, Any, Coroutine, Dict, Set
 
 from pidroid.cogs.ext.commands.tags import Tag
 from pidroid.cogs.models.case import Case
@@ -119,12 +119,6 @@ class TranslationTable(Base): # type: ignore
     detected_language = Column(String)
     translated_string = Column(String)
 
-class PhishingUrlTable(Base): # type: ignore
-    __tablename__ = "PhishingUrls"
-
-    id = Column(BigInteger, primary_key=True)
-    url = Column(String)
-
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
@@ -135,6 +129,24 @@ class API:
         self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
+        self._listeners: Dict[str, Set[Coroutine]] = {}  
+
+    def add_listener(self, event: str, listener: Coroutine):
+        if not self._listeners.get(event, None):
+            self._listeners[event] = {listener}
+        else:
+            self._listeners[event].add(listener)
+
+    def remove_listener(self, event: str, listener: Coroutine):
+        self._listeners[event].remove(listener)
+        if len(self._listeners[event]) == 0:
+            del self._listeners[event]
+    
+    def emit(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        listeners = self._listeners.get(event_name, set())
+        for listener in listeners:
+            self.client.loop.create_task(listener(*args, **kwargs))
+
     async def connect(self) -> None:
         self.engine = create_async_engine(self._dsn, echo=self._debug)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
@@ -143,24 +155,9 @@ class API:
         """Sends a GET request to the TheoTown API."""
         return await self._http.request("GET", route)
 
-    async def insert_phishing_url(self, url: str) -> None:
-        """Inserts a phishing link to the database."""
-        async with self.session() as session:
-            assert isinstance(session, AsyncSession)
-            async with session.begin():
-                session.add(PhishingUrlTable(url=url))
-            await session.commit()
-
-    async def fetch_phishing_urls(self) -> List[str]:
-        """Fetches a list of known phishing links and urls."""
-        async with self.session() as session:
-            assert isinstance(session, AsyncSession)
-            result: ChunkedIteratorResult = await session.execute(select(PhishingUrlTable.url))
-        return [r[0] for r in result.fetchall()]
-
     async def insert_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str] = []) -> int:
         """Creates a suggestion entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = SuggestionTable(
@@ -171,13 +168,13 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        return entry.id
+        return entry.id # type: ignore
 
     """Tag related"""
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: List[int]) -> int:
         """Creates a tag entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = TagTable(
@@ -188,11 +185,11 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        return entry.id
+        return entry.id # type: ignore
 
     async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
         """Returns a guild tag for the appropriate name."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(TagTable).
@@ -206,7 +203,7 @@ class API:
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
         """Returns all guild tags matching the appropriate name."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(TagTable).
@@ -217,7 +214,7 @@ class API:
 
     async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
         """Returns a list of all tags defined in the guild."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(TagTable).
@@ -228,7 +225,7 @@ class API:
 
     async def update_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
         """Updates a tag entry by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -245,7 +242,7 @@ class API:
 
     async def delete_tag(self, row_id: int) -> None:
         """Removes a tag by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(TagTable).filter(TagTable.id == row_id))
@@ -260,7 +257,7 @@ class API:
         log_channel: Optional[int] = None
     ) -> GuildConfiguration:
         """Inserts a minimal guild configuration entry to the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = GuildConfigurationTable(
@@ -271,13 +268,13 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        config = await self.fetch_guild_configuration_by_id(entry.id)
+        config = await self.fetch_guild_configuration_by_id(entry.id) # type: ignore
         assert config is not None
         return config
 
     async def fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
         """Fetches and returns a deserialized guild configuration if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(GuildConfigurationTable).
@@ -290,7 +287,7 @@ class API:
 
     async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Fetches and returns a deserialized guild configuration if available for the specified guild."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(GuildConfigurationTable).
@@ -303,7 +300,7 @@ class API:
 
     async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
         """Returns a list of all guild configuration entries in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(GuildConfigurationTable)
@@ -318,10 +315,10 @@ class API:
         log_channel: Optional[int],
         prefixes: List[str],
         suspicious_usernames: List[str],
-        public_tags: bool, strict_anti_phishing: bool
+        public_tags: bool
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -334,15 +331,14 @@ class API:
                         log_channel=log_channel,
                         prefixes=prefixes,
                         suspicious_usernames=suspicious_usernames,
-                        public_tags=public_tags,
-                        strict_anti_phishing=strict_anti_phishing
+                        public_tags=public_tags
                     )
                 )
             await session.commit()
 
     async def delete_guild_configuration(self, row_id: int) -> None:
         """Removes a guild configuration entry by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(GuildConfigurationTable).filter(GuildConfigurationTable.id == row_id))
@@ -351,7 +347,7 @@ class API:
     """Expiring thread related"""
 
     async def insert_expiring_thread(self, thread_id: int, expiration_date: datetime.datetime) -> None:
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 session.add(ExpiringThreadTable(thread_id=thread_id, expiration_date=expiration_date))
@@ -359,7 +355,7 @@ class API:
 
     async def fetch_expired_threads(self, expiration_date: datetime.datetime) -> List[ExpiringThreadTable]:
         """Returns a list of active threads which require archiving."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(ExpiringThreadTable).
@@ -369,7 +365,7 @@ class API:
 
     async def delete_expiring_thread(self, row_id: int) -> None:
         """Removes an expiring thread entry from the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(ExpiringThreadTable).filter(ExpiringThreadTable.id == row_id))
@@ -386,7 +382,7 @@ class API:
         reason: Optional[str],
         expire_date: Optional[datetime.datetime]
     ) -> Case:
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id).on_conflict_do_update(
@@ -411,13 +407,13 @@ class API:
                 session.add(entry)
             await session.commit()
 
-        case = await self.fetch_case_by_internal_id(entry.id)
+        case = await self.fetch_case_by_internal_id(entry.id) # type: ignore
         assert case is not None
         return case
 
     async def fetch_case_by_internal_id(self, id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
@@ -432,7 +428,7 @@ class API:
 
     async def fetch_case(self, guild_id: int, case_id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
@@ -447,7 +443,7 @@ class API:
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Fetches and returns a list of deserialized cases."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
@@ -486,7 +482,7 @@ class API:
         handled: bool
     ) -> None:
         """Updates a case entry by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -507,7 +503,7 @@ class API:
         guild_id: int, user_id: int
     ) -> None:
         """Revokes a case entry by making it expired using the specified type, user ID and guild ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -523,7 +519,7 @@ class API:
     async def fetch_moderation_statistics(self, guild_id: int, moderator_id: int) -> dict:
         """Fetches and returns a dictionary containing the general moderation statistics."""
         bans = kicks = jails = warnings = user_total = guild_total = 0
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable.type).
@@ -561,7 +557,7 @@ class API:
 
     async def is_currently_punished(self, punishment_type: str, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently punished in a guild for the specified punishment type."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(func.count(PunishmentTable.type)).
@@ -592,7 +588,7 @@ class API:
         
         Additionally, warnings, timeouts, jails and kicks are excluded from this list
         as Pidroid doesn't have anything else to do."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
@@ -627,7 +623,7 @@ class API:
 
     async def insert_translation_entry(self, original_str: str, detected_lang: str, translated_str: str) -> None:
         """Inserts a new translation entry to the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = TranslationTable(
@@ -640,7 +636,7 @@ class API:
 
     async def fetch_translations(self, original_str: str) -> List[dict]:
         """Returns a list of translations for specified string."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(TranslationTable).
@@ -652,7 +648,7 @@ class API:
 
     async def insert_linked_account(self, user_id: int, forum_id: int) -> int:
         """Creates a linked account entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = LinkedAccountTable(
@@ -661,7 +657,7 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        return entry.id
+        return entry.id  # type: ignore
 
     async def update_linked_account_by_user_id(
         self,
@@ -669,7 +665,7 @@ class API:
         date_wage_last_redeemed: Optional[datetime.datetime],
     ) -> None:
         """Updates a linked account entry by specified user ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -683,7 +679,7 @@ class API:
 
     async def fetch_linked_account_by_user_id(self, user_id: int) -> Optional[LinkedAccountTable]:
         """Fetches and returns a linked account if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(LinkedAccountTable).
@@ -696,7 +692,7 @@ class API:
 
     async def fetch_linked_account_by_forum_id(self, forum_id: int) -> Optional[LinkedAccountTable]:
         """Fetches and returns a linked account if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(LinkedAccountTable).

@@ -49,9 +49,12 @@ class EventChannelHandler(commands.Cog): # type: ignore
         if not payload.member:
             return
 
-        channel: TextChannel = self.client.get_channel(payload.channel_id)
+        channel = self.client.get_or_fetch_channel(payload.channel_id)
+        if not isinstance(channel, TextChannel):
+            return
+
         try:
-            message: Message = await channel.fetch_message(payload.message_id)
+            message = await channel.fetch_message(payload.message_id)
         except discord.NotFound:
             return
 
@@ -65,7 +68,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
         # Remove votes from unauthorised users in events channel
         if message.attachments and not payload.member.bot and (not TTChecks.is_event_voter(payload.member) or payload.member.id == message.author.id):
             with suppress(discord.NotFound):
-                await message.remove_reaction("👍", payload.member)
+                await message.remove_reaction("👍", payload.member) # type: ignore
 
 
 async def setup(client: Pidroid) -> None:

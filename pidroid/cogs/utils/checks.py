@@ -1,17 +1,16 @@
 from __future__ import annotations
 
-from discord import Member, Thread, User, TextChannel, Guild, VoiceChannel
+from discord import Member, Thread, User, TextChannel, Guild, VoiceChannel, StageChannel
 from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context # type: ignore
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
 from pidroid.constants import DEVELOPMENT_BOTS, THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, JUSTANYONE_ID, PIDROID_ID, CHEESE_EATERS, BOT_COMMANDS_CHANNEL
 from pidroid.cogs.models.exceptions import MissingUserPermissions
-from pidroid.cogs.utils.aliases import DiscordUser, GuildChannel, GuildTextChannel
+from pidroid.cogs.utils.aliases import DiscordUser, GuildChannel, GuildTextChannel, AllChannels
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
-
 
 # Generic permission check functions
 def member_has_role(member: Member, role_id: int):
@@ -44,7 +43,7 @@ def check_permissions(ctx: Context, **perms):
         raise MissingPermissions(missing)
     return True
 
-def check_bot_channel_permissions(channel: Union[TextChannel, VoiceChannel], member: Member, **perms):
+def check_bot_channel_permissions(channel: Union[TextChannel, VoiceChannel, StageChannel], member: Member, **perms):
     permissions = channel.permissions_for(member)
 
     missing = [perm for perm, value in perms.items() if getattr(permissions, perm) != value]
@@ -62,17 +61,19 @@ def is_user_justanyone(user: Union[Member, User]) -> bool:
 
 def is_client_development(client: Pidroid) -> bool:
     """Returns true if client user is one of the development bots."""
+    assert client.user is not None
     return client.user.id in DEVELOPMENT_BOTS
 
 def is_client_pidroid(client: Pidroid) -> bool:
     """Returns true if client user is Pidroid."""
+    assert client.user is not None
     return client.user.id == PIDROID_ID
 
 def is_user_cheese_consumer(user: Union[Member, User]) -> bool:
     """Returns true if specified user is part of cheese eaters."""
     return user.id in CHEESE_EATERS
 
-def is_channel_bot_commands(channel: TextChannel) -> bool:
+def is_channel_bot_commands(channel: AllChannels) -> bool:
     return channel.id == BOT_COMMANDS_CHANNEL
 
 def is_guild_theotown(guild: Optional[Guild]) -> bool:
@@ -141,7 +142,7 @@ def is_guild_administrator(guild: Guild, channel: GuildChannel, member: DiscordU
         )
     return False
 
-def is_guild_moderator(guild: Guild, channel: GuildTextChannel, member: DiscordUser):
+def is_guild_moderator(guild: Guild, channel: AllChannels, member: DiscordUser):
     if get(guild.members, id=member.id):
         assert isinstance(member, Member)
         if is_guild_theotown(guild):

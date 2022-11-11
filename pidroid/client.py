@@ -79,7 +79,6 @@ class Pidroid(commands.Bot): # type: ignore
             
             # Moderation related commands
             'cogs.ext.commands.mod.punish',
-            'cogs.ext.commands.mod.old_punish',
             'cogs.ext.commands.mod.logs',
 
             # Events
@@ -90,6 +89,8 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.events.minecraft',
             'cogs.ext.events.reaction_handler',
             'cogs.ext.events.translator',
+            
+            'cogs.ext.events.audit_log_handler',
 
             # Tasks
             'cogs.ext.tasks.archive_threads',

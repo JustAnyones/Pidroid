@@ -45,6 +45,8 @@ class command_checks:
     def guild_configuration_exists():
         """Checks whether the command is invoked in a guild with Pidroid configuration."""
         async def predicate(ctx: Context):
+            if not ctx.guild:
+                return False
             if not guild_has_configuration(ctx.bot, ctx.guild):
                 raise BadArgument('Server does not have a guild configuration! If you\'re seeing this, something went very wrong.')
             return True
