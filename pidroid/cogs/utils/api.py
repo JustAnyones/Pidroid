@@ -48,8 +48,8 @@ class PunishmentCounterTable(Base): # type: ignore
 class PunishmentTable(Base): # type: ignore
     __tablename__ = "Punishments"
 
-    id = Column(BigInteger, primary_key=True)
-    case_id = Column(BigInteger)
+    id = Column(BigInteger, primary_key=True) # global ID
+    case_id = Column(BigInteger) # guild specific ID
 
     type = Column(Text)
     guild_id = Column(BigInteger)
@@ -62,8 +62,8 @@ class PunishmentTable(Base): # type: ignore
 
     reason = Column(Text, nullable=True)
 
-    issue_date = Column(DateTime(timezone=True), default=func.now())
-    expire_date = Column(DateTime(timezone=True), nullable=True)
+    issue_date = Column(DateTime(timezone=True), default=func.now()) # date of issue
+    expire_date = Column(DateTime(timezone=True), nullable=True) # date when punishment expires, null means never
 
     handled = Column(Boolean, server_default="false")
     visible = Column(Boolean, server_default="true")

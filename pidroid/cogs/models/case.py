@@ -225,7 +225,7 @@ class BasePunishment:
         """Returns moderator name."""
         return str(self.moderator)
 
-    def set_length(self, length: Optional[Union[timedelta, relativedelta]]):
+    def set_length(self, length: Optional[Union[timedelta, relativedelta, None]]):
         """Sets punishment length."""
         if length is None:
             self._expiration_date = None
@@ -268,12 +268,6 @@ class BasePunishment:
         await self._api.revoke_cases_by_type(type, self.guild.id, self.user.id)
 
     """Would rather stick these user notification features into an event listener of sorts."""
-    async def _notify_user(self, message: str):
-        try:
-            await self.user.send(message)
-        except Exception: # nosec
-            pass
-
     async def _notify_chat(self, message: str, image_file: Optional[File] = None):
         if self.send_message_to_channel or self._channel is None:
             return
@@ -324,26 +318,32 @@ class BasePunishment:
     def private_message_issue_embed(self) -> Embed:
         if self.case is None:
             raise BadArgument("Case object was not retrieved")
-        embed = Embed(title=f"New case [{self.case.type} #{self.case.case_id}]", color=discord.Color.red())
+        embed = Embed(title=f"New punishment received [case #{self.case.case_id}]", color=discord.Color.red())
+        embed.add_field(name='Type', value=self.case.type.capitalize())
         embed.add_field(name="Reason", value=self.reason or "No reason specified")
-        if self.case.has_expired:
-            duration = "Expired."
-        elif self.case.date_expires is None:
-            duration = "∞"
+        if self.case.date_expires is None:
+            duration = "Never"
         else:
-            duration = humanize(self.case.date_expires, max_units=3)
-        embed.add_field(name='Duration', value=duration)
+            duration = format_dt(self.case.date_expires)
+        embed.add_field(name='Expires in', value=duration)
         embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
         return embed
 
     @property
     def private_message_revoke_embed(self) -> Embed:
-        embed = Embed(title=f"Punishment revoken [{self.type}]", color=discord.Color.green())
-        embed.add_field(name="Reason", value=self.reason or "No reason specified")
+        embed = Embed(title=f"Punishment revoken", color=discord.Color.green())
+        embed.add_field(name='Type', value=self.type.capitalize())
+        embed.add_field(name='Reason', value=self.reason or "No reason specified")
         embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
         return embed
 
+    async def create_entry(self) -> Case:
+        raise NotImplementedError
+
     async def issue(self) -> Case:
+        raise NotImplementedError
+
+    async def revoke_entry(self) -> None:
         raise NotImplementedError
 
     async def revoke(self) -> None:
@@ -402,19 +402,30 @@ class Ban(BasePunishment):
         embed.description = f"{self.user_name} was unbanned"
         return embed
 
-    async def issue(self) -> Case:
-        """Bans the user."""
-        await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
+    async def create_entry(self) -> Case:
+        """Creates new database entry for the case."""
         await self._revoke_punishment_db_entry("jail")
         await self._revoke_punishment_db_entry("mute")
         await self._revoke_punishment_db_entry("timeout")
-        self.case = await self._create_db_entry()
+        return await self._create_db_entry()
+
+    async def issue(self) -> Case:
+        """Bans the user and creates new database entry."""
+        await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
+        self.case = await self.create_entry()
+        self._api.emit("on_ban_issued", self)
         return self.case
 
+    async def revoke_entry(self) -> None:
+        """Revokes ban in the database."""
+        await self._revoke_punishment_db_entry("ban")
+
     async def revoke(self, reason: Optional[str] = None) -> None:
+        """Unbans the user and updates database entry."""
         self.reason = reason
         await self.guild.unban(self.user, reason=self.audit_log_revoke_reason) # type: ignore
-        await self._revoke_punishment_db_entry("ban")
+        await self.revoke_entry()
+        self._api.emit("on_ban_revoked", self)
 
 class Kick(BasePunishment):
 
@@ -448,12 +459,16 @@ class Kick(BasePunishment):
             embed.description += f" for the following reason: {self.reason}"
         return embed
 
-    async def issue(self) -> Case:
-        await self.user.kick(reason=self.audit_log_issue_reason)
+    async def create_entry(self) -> Case:
         await self._revoke_punishment_db_entry('jail')
         await self._revoke_punishment_db_entry('mute')
         await self._revoke_punishment_db_entry('timeout')
-        self.case = await self._create_db_entry()
+        return await self._create_db_entry()
+
+    async def issue(self) -> Case:
+        await self.user.kick(reason=self.audit_log_issue_reason)
+        self.case = await self.create_entry()
+        self._api.emit("on_kick_issued", self)
         return self.case
 
 class Jail(BasePunishment):
@@ -498,8 +513,10 @@ class Jail(BasePunishment):
     @property
     def public_message_issue_embed(self) -> Embed:
         embed = super().public_message_issue_embed
-        # TODO: check whether this is a kidnapping
-        embed.description = f"{self.user_name} was jailed"
+        if self._kidnapping:
+            embed.description = f"{self.user_name} was kidnapped"
+        else:
+            embed.description = f"{self.user_name} was jailed"
         if self.reason:
             embed.description += f" for the following reason: {self.reason}"
         if self.expiration_date:
@@ -512,25 +529,34 @@ class Jail(BasePunishment):
         embed.description = f"{self.user_name} was released from jail"
         return embed
 
+    @property
+    def is_kidnapping(self) -> bool:
+        return self._kidnapping
+
+    async def create_entry(self) -> Case:
+        return await self._create_db_entry()
+
     async def issue(self, role: Role) -> Case: # type: ignore
         """Jails the member."""
         await self.user.add_roles(role, reason=self.audit_log_issue_reason) # type: ignore
-        self.case = await self._create_db_entry()
+        self.case = await self.create_entry()
+
+        self._api.emit("on_jail_issued", self)
         
         # TODO: remove
         if self._kidnapping:
             await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File(Resource('bus.png')))
-            if self.reason is None:
-                await self._notify_user(f"You have been kidnapped in {self.guild.name} server!")
-                return self.case
-            await self._notify_user(f"You have been kidnapped in {self.guild.name} server for the following reason: {self.reason}")
             return self.case
         return self.case
+
+    async def revoke_entry(self) -> None:
+        await self._revoke_punishment_db_entry("jail")
 
     async def revoke(self, role: Role, reason: Optional[str] = None) -> None: # type: ignore
         self.reason = reason
         await self.user.remove_roles(role, reason=self.audit_log_revoke_reason) # type: ignore
-        await self._revoke_punishment_db_entry("jail")
+        await self.revoke_entry()
+        self._api.emit("on_jail_revoked", self)
 
 class Warning(BasePunishment):
 
@@ -555,11 +581,15 @@ class Warning(BasePunishment):
         embed.description = f"{self.user_name} has been warned: {self.reason}"
         return embed
 
+    async def create_entry(self) -> Case:
+        return await self._create_db_entry()
+
     async def issue(self) -> Case:
         """Warns the member."""
         if self.expiration_date is None:
             self.set_length(timedelta(days=90))
-        self.case = await self._create_db_entry()
+        self.case = await self.create_entry()
+        self._api.emit("on_warning_issued", self)
         return self.case
 
 class Timeout(BasePunishment):
@@ -615,12 +645,20 @@ class Timeout(BasePunishment):
         embed.description = f"Timeout for {self.user_name} was removed"
         return embed
 
+    async def create_entry(self) -> Case:
+        return await self._create_db_entry()
+
     async def issue(self) -> Case:
         await self.user.timeout(self.expiration_date, reason=self.audit_log_issue_reason)
-        self.case = await self._create_db_entry()
+        self.case = await self.create_entry()
+        self._api.emit("on_timeout_issued", self)
         return self.case
+
+    async def revoke_entry(self) -> None:
+        await self._revoke_punishment_db_entry("timeout")
 
     async def revoke(self, reason: Optional[str] = None) -> None:
         self.reason = reason
         await self.user.edit(timed_out_until=None, reason=self.audit_log_revoke_reason)
-        await self._revoke_punishment_db_entry("timeout")
+        await self.revoke_entry()
+        self._api.emit("on_timeout_revoked", self)

@@ -188,7 +188,6 @@ class UnbanButton(BasePunishmentButton):
     async def callback(self, interaction: Interaction) -> None:
         self.view.punishment = Ban(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.punishment.revoke(f"Unbanned by {str(self.moderator)}")
-        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
         await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class KickButton(BasePunishmentButton):
@@ -230,7 +229,6 @@ class RemoveJailButton(BasePunishmentButton):
         assert self.view.jail_role is not None
         self.view.punishment = Jail(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.punishment.revoke(self.view.jail_role, f"Released by {str(self.moderator)}")
-        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
         await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class TimeoutButton(BasePunishmentButton):
@@ -251,7 +249,6 @@ class RemoveTimeoutButton(BasePunishmentButton):
         assert isinstance(self.user, Member)
         self.view.punishment = Timeout(self.api, self.guild, self.channel, self.moderator, self.user)
         await self.view.punishment.revoke(f"Time out removed by {str(self.moderator)}")
-        await self.view.send_notification_to_user(self.view.punishment.private_message_revoke_embed)
         await self.view.finish_interface(interaction, self.view.punishment.public_message_revoke_embed)
 
 class WarnButton(BasePunishmentButton):
@@ -379,15 +376,15 @@ class PunishmentInteraction(ui.View):
         self._embed.description = f"Type: {str(instance)}"
         self._punishment = instance
 
-    def _select_length(self, length: Union[int, timedelta, relativedelta]):
+    def _select_length(self, length: Union[timedelta, relativedelta, None]):
         # Special case
         if length == -1:
             length = None
 
-        assert self._punishment is not None
-        self._punishment.set_length(length)
+        assert self.punishment is not None
+        self.punishment.set_length(length)
         assert isinstance(self._embed.description, str)
-        self._embed.description += f"\nLength: {self._punishment.length_as_string}"
+        self._embed.description += f"\nLength: {self.punishment.length_as_string}"
 
     def _select_reason(self, reason: str):
         assert isinstance(self._embed.description, str)
@@ -572,8 +569,7 @@ class PunishmentInteraction(ui.View):
                 await self.punishment.issue(self.jail_role)
             else:
                 await self.punishment.issue()
-            # Regardless, send out the notifications
-            await self.send_notification_to_user(self.punishment.private_message_issue_embed)
+            # Regardless, we clean up
             return await self.finish_interface(interaction, self.punishment.public_message_issue_embed)
 
         # Otherwise, cancel the interaction
@@ -600,13 +596,6 @@ class PunishmentInteraction(ui.View):
         await self._update_view(interaction) # Update message with latest information
         self.stop() # Stop responding to any interaction
         self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
-
-    async def send_notification_to_user(self, embed: Embed) -> None:
-        """Tries to send a direct message to the user containing the punishment details."""
-        try:
-            await self.user.send(embed=embed)
-        except Exception: # nosec
-            pass
 
     """Utility"""
 
@@ -644,6 +633,7 @@ class PunishmentInteraction(ui.View):
         await interaction.response.send_message('This menu cannot be controlled by you, sorry!', ephemeral=True)
         return False
 
+
 class ModeratorCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for moderation."""
 
@@ -651,6 +641,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         self.client = client
         # GUILD_ID: {USER_ID: Semaphore}
         self.user_semaphores: Dict[int, Dict[int, asyncio.Semaphore]] = {}
+        self.allow_moderator_on_themselves: bool = True
 
     def _create_semaphore_if_not_exist(self, guild_id: int, user_id: int) -> asyncio.Semaphore:
         if self.user_semaphores.get(guild_id) is None:
@@ -679,15 +670,18 @@ class ModeratorCommands(commands.Cog): # type: ignore
             return False
         return sem.locked()
 
+    def is_pidroid(self, message: Message) -> bool:
+        return message.author.id == self.client.user.id
+
     @commands.command( # type: ignore
         brief='Removes a specified amount of messages from the channel.',
-        usage='<amount>',
+        usage='<amount> [delete pidroid messages: true/False]',
         category=ModerationCategory
     )
     @commands.bot_has_permissions(manage_messages=True, send_messages=True) # type: ignore
     @command_checks.can_purge()
     @commands.guild_only() # type: ignore
-    async def purge(self, ctx: Context, amount: int = 0):
+    async def purge(self, ctx: Context, amount: int = 0, delete_pidroid: bool = False):
         if amount <= 0:
             raise BadArgument("Please specify the amount of messages to delete!")
 
@@ -695,7 +689,10 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if amount > 1000:
             raise BadArgument("Max amount of messages I can purge at once is 1000!")
 
-        await ctx.channel.purge(limit=amount + 1)
+        if delete_pidroid:
+            await ctx.channel.purge(limit=amount + 1, check=not self.is_pidroid)
+        else:
+            await ctx.channel.purge(limit=amount + 1)
         await ctx.send(f'{amount} messages have been purged!', delete_after=1.5)
 
     @commands.command(hidden=True) # type: ignore
@@ -707,7 +704,6 @@ class ModeratorCommands(commands.Cog): # type: ignore
         await ctx.channel.purge(limit=1)
         await ctx.send(file=File(Resource('delete_this.png')))
 
-    # TODO: add proper permission checks for both, the bot and the end user (mod)
     @commands.command( # type: ignore
         brief="Open user moderation and punishment menu.",
         usage="<user/member>",
@@ -732,19 +728,21 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if isinstance(user, Member) and user.top_role == ctx.guild.me.top_role:
             raise BadArgument("Specified member shares the same role as I do, I cannot punish them!")
 
-        if isinstance(user, Member) and user.top_role >= ctx.message.author.top_role:
-            raise BadArgument("Specified member is above or shares the same role with you!")
+        if not self.allow_moderator_on_themselves:
+
+            if isinstance(user, Member) and user.top_role >= ctx.message.author.top_role:
+                raise BadArgument("Specified member is above or shares the same role with you!")
+
+            # Prevent moderator from punishing himself
+            if self.allow_moderator_on_themselves and user.id == ctx.message.author.id:
+                raise BadArgument("You cannot punish yourself! That's what PHP is for.")
+
+            # Generic check to only invoke the menu if author is a moderator
+            if is_guild_moderator(ctx.guild, ctx.channel, user):
+                raise BadArgument("You are not allowed to punish a moderator!")
 
         if self.is_user_being_punished(ctx.guild.id, user.id):
             raise BadArgument("The punishment menu is already open for the user.")
-
-        # Prevent moderator from punishing himself
-        if user.id == ctx.message.author.id:
-            raise BadArgument("You cannot punish yourself! That's what PHP is for.")
-
-        # Generic check to only invoke the menu if author is a moderator
-        if is_guild_moderator(ctx.guild, ctx.channel, user):
-            raise BadArgument("You are not allowed to punish a moderator!")
 
         if user.bot:
             raise BadArgument("You cannot punish a bot!")

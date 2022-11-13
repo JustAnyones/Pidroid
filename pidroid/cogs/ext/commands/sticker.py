@@ -39,6 +39,7 @@ class StickerCommands(commands.Cog): # type: ignore
     @commands.has_permissions(manage_emojis_and_stickers=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def steal_sticker(self, ctx: Context, message: typing.Optional[Message]):
+        assert ctx.guild is not None
         if ctx.message.reference:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 

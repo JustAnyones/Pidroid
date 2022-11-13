@@ -158,7 +158,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user) # type: ignore
-    async def findplugin(self, ctx: Context, *, query: str = None): # noqa
+    async def findplugin(self, ctx: Context, *, query: Optional[str]): # noqa
         async with ctx.typing():
             if query is None:
                 await ctx.reply(embed=ErrorEmbed('I could not find a query to find a plugin.'))

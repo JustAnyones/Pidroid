@@ -1,4 +1,3 @@
-import discord
 import re
 
 from discord.emoji import Emoji
@@ -61,9 +60,9 @@ class EmojiCommands(commands.Cog): # type: ignore
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def emoji(self, ctx: Context, *, emoji: discord.PartialEmoji = None):
+    async def emoji(self, ctx: Context, *, emoji: Optional[PartialEmoji]):
         if emoji is None:
-            return await ctx.reply(embed=ErrorEmbed("Please specify a custom emoji you want to view!"))
+            raise BadArgument('Please specify a custom emoji you want to view!')
 
         embed = PidroidEmbed(title=get_emoji_name(emoji))
         embed.set_image(url=emoji.url)
