@@ -110,6 +110,7 @@ class GuildConfigurationTable(Base): # type: ignore
     suspicious_usernames = Column(ARRAY(Text), server_default="{}")
     public_tags = Column(Boolean, server_default="false")
     strict_anti_phishing = Column(Boolean, server_default="false")
+    punishing_moderators = Column(Boolean, server_default="false")
 
 class TranslationTable(Base): # type: ignore
     __tablename__ = "Translations"
