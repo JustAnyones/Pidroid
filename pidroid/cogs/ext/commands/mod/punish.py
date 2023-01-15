@@ -714,6 +714,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def punish(self, ctx: Context, user: Union[Member, User] = None):
         assert ctx.guild is not None
+        
+        conf = self.client.get_guild_configuration(ctx.guild.id)
+        assert conf is not None
 
         # Check initial permissions
         if not is_guild_moderator(ctx.guild, ctx.channel, ctx.message.author):
@@ -738,7 +741,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
                 raise BadArgument("You cannot punish yourself! That's what PHP is for.")
 
             # Generic check to only invoke the menu if author is a moderator
-            if is_guild_moderator(ctx.guild, ctx.channel, user):
+            if not conf.allow_punishing_moderators and is_guild_moderator(ctx.guild, ctx.channel, user):
                 raise BadArgument("You are not allowed to punish a moderator!")
 
         if self.is_user_being_punished(ctx.guild.id, user.id):
@@ -770,6 +773,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
     async def suspend(self, ctx: Context, member: Member):
         assert ctx.guild is not None
         
+        conf = self.client.get_guild_configuration(ctx.guild.id)
+        assert conf is not None
+        
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
 
@@ -783,7 +789,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("There's a punishment menu open for the member, I cannot manage them.")
 
         # Generic check to only invoke the menu if author is a moderator
-        if is_guild_moderator(ctx.guild, ctx.channel, member):
+        if not conf.allow_punishing_moderators and is_guild_moderator(ctx.guild, ctx.channel, member):
             raise BadArgument("You cannot suspend a moderator!")
 
         if member.bot:

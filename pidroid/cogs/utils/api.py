@@ -85,6 +85,25 @@ class SuggestionTable(Base): # type: ignore
     date_submitted = Column(DateTime(timezone=True), default=func.now())
     attachments = Column(ARRAY(Text), server_default="{}")
 
+class LevelRewardsTable(Base): # type: ignore
+    __tablename__ = "LevelRewards"
+    
+    id = Column(BigInteger, primary_key=True)
+    guild_id = Column(BigInteger)
+    level = Column(Integer)
+    role_id = Column(BigInteger)
+    
+class UserLevelsTable(Base): # type: ignore
+    __tablename__ = "UserLevels"
+    
+    id = Column(BigInteger, primary_key=True)
+    guild_id = Column(BigInteger)
+    user_id = Column(BigInteger)
+    total_xp = Column(BigInteger)
+    current_xp = Column(BigInteger)
+    messages_sent = Column(BigInteger)
+    level = Column(BigInteger)
+
 class TagTable(Base): # type: ignore
     __tablename__ = "Tags"
 
@@ -109,8 +128,15 @@ class GuildConfigurationTable(Base): # type: ignore
     prefixes = Column(ARRAY(Text), server_default="{}")
     suspicious_usernames = Column(ARRAY(Text), server_default="{}")
     public_tags = Column(Boolean, server_default="false")
-    strict_anti_phishing = Column(Boolean, server_default="false")
     punishing_moderators = Column(Boolean, server_default="false")
+    
+    # Leveling system related
+    xp_system_active = Column(Boolean, server_default="false")
+    xp_per_message_min = Column(BigInteger, server_default="15")
+    xp_per_message_max = Column(BigInteger, server_default="25")
+    xp_multiplier = Column(BigInteger, server_default="1")
+    xp_exempt_roles = Column(ARRAY(BigInteger), server_default="{}")
+    xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}")
 
 class TranslationTable(Base): # type: ignore
     __tablename__ = "Translations"
@@ -316,7 +342,8 @@ class API:
         log_channel: Optional[int],
         prefixes: List[str],
         suspicious_usernames: List[str],
-        public_tags: bool
+        public_tags: bool,
+        punishing_moderators: bool
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
         async with self.session() as session: # type: ignore
@@ -332,7 +359,8 @@ class API:
                         log_channel=log_channel,
                         prefixes=prefixes,
                         suspicious_usernames=suspicious_usernames,
-                        public_tags=public_tags
+                        public_tags=public_tags,
+                        punishing_moderators=punishing_moderators,
                     )
                 )
             await session.commit()
@@ -703,6 +731,24 @@ class API:
         if r:
             return r[0]
         return None
+    
+    """Leveling system related"""
+    async def fetch_top100_guild_levels(self):
+        pass
+    
+    async def fetch_guild_level_rewards(self, guild_id: int):
+        pass
+    
+    async def fetch_guild_level_reward(self, guild_id: int, level: int):
+        pass
+    
+    async def fetch_member_level(self, guild_id: int, user_id: int):
+        pass
+    
+    async def increase_member_level(self, guild_id: int, user_id: int, amount: int):
+        config = self.client.get_guild_configuration(guild_id)
+        
+        pass
 
     """TheoTown backend related"""
 

@@ -21,6 +21,7 @@ class GuildConfiguration:
         log_channel: Optional[int]
 
         public_tags: bool
+        allow_punishing_moderators: bool
 
         suspicious_usernames: List[str]
 
@@ -37,12 +38,12 @@ class GuildConfiguration:
 
         self.jail_channel = c.jail_channel # type: ignore
         self.jail_role = c.jail_role # type: ignore
-        self.mute_role = c.mute_role # type: ignore
         self.log_channel = c.log_channel # type: ignore
 
         self.public_tags = c.public_tags # type: ignore
+        self.allow_punishing_moderators = c.punishing_moderators # type: ignore
 
-        self.suspicious_usernames = c.suspicious_usernames # type: ignore
+        self.suspicious_usernames = c.suspicious_usernames # type: ignore     
 
     async def _update(self) -> None:
         await self.api.update_guild_configuration(
@@ -52,12 +53,18 @@ class GuildConfiguration:
             self.log_channel,
             self.prefixes,
             self.suspicious_usernames,
-            self.public_tags
+            self.public_tags,
+            self.allow_punishing_moderators
         )
 
     async def update_public_tag_permission(self, allow_public: bool) -> None:
         """Updates public tag permission."""
         self.public_tags = allow_public
+        await self._update()
+        
+    async def update_moderator_punishing_permission(self, allow_punishing: bool) -> None:
+        """Updates moderator punishing permission."""
+        self.allow_punishing_moderators = allow_punishing
         await self._update()
 
     async def update_prefixes(self, prefix: str) -> None:
@@ -79,14 +86,6 @@ class GuildConfiguration:
             self.jail_role = None
         else:
             self.jail_role = role.id
-        await self._update()
-
-    async def update_mute_role(self, role: Optional[Role]) -> None:
-        """Updates the guild mute role."""
-        if role is None:
-            self.mute_role = None
-        else:
-            self.mute_role = role.id
         await self._update()
 
     async def update_log_channel(self, channel: Optional[TextChannel]) -> None:

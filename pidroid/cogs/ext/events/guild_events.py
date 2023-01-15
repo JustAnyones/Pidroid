@@ -44,8 +44,6 @@ class GuildEventHandler(commands.Cog): # type: ignore
 
         if config.jail_role == role.id:
             await config.update_jail_role(None)
-        elif config.mute_role == role.id:
-            await config.update_mute_role(None)
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_channel_delete(self, guild_channel: GuildChannel) -> None:

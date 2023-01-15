@@ -70,8 +70,10 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.help',
             'cogs.ext.commands.image',
             'cogs.ext.commands.info',
+            'cogs.ext.commands.levels',
             'cogs.ext.commands.owner',
             'cogs.ext.commands.reddit',
+            'cogs.ext.commands.slash',
             'cogs.ext.commands.sticker',
             'cogs.ext.commands.tags',
             'cogs.ext.commands.theotown',
@@ -152,6 +154,14 @@ class Pidroid(commands.Bot): # type: ignore
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
         return f"{version_str} {self.client_version.releaselevel} {self.client_version.commit_id}"
 
+    async def wait_until_guild_configurations_loaded(self):
+        """Waits until the internal guild configuration cache is ready.
+
+        It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()
+        is no longer needed.
+        """
+        await self._guild_config_ready.wait()
+
     async def wait_guild_config_cache_ready(self):
         """Waits until the internal guild configuration cache is ready.
 
@@ -175,6 +185,21 @@ class Pidroid(commands.Bot): # type: ignore
         config = self.guild_configurations.get(guild_id)
         if config is None:
             self.logger.error(f"Failure acquiring guild configuration for {guild_id}")
+        return config
+    
+    async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
+        config = await self.api.fetch_guild_configuration(guild_id)
+        if config is None:
+            self.logger.warn(f"Could not fetch guild configuration for {guild_id}")
+            config = await self.api.insert_guild_configuration(guild_id)
+            self._update_guild_configuration(guild_id, config)
+        return config
+    
+    async def get_or_fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
+        await self.wait_until_guild_configurations_loaded()
+        config = self.guild_configurations.get(guild_id)
+        if config is None:
+            raise BadArgument(f"Failure acquiring guild configuration for {guild_id}")
         return config
 
     def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:

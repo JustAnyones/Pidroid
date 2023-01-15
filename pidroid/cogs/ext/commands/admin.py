@@ -50,10 +50,6 @@ class AdminCommands(commands.Cog): # type: ignore
             if jail_channel is not None:
                 embed.add_field(name='Jail channel', value=jail_channel.mention)
 
-            mute_role = guild.get_role(data.mute_role)
-            if mute_role is not None:
-                embed.add_field(name='Mute role (deprecated)', value=mute_role.mention)
-
             log_channel = guild.get_channel(data.log_channel)
             if log_channel is not None:
                 embed.add_field(name='Log channel', value=log_channel.mention)
