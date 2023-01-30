@@ -146,6 +146,7 @@ The following is an example of how a command may fall back to using the message
 author for the member argument, if it could not be resolved.
 
 ```py
+@commands.command()
 async def command(self, ctx: Context, member: Member = None):
     member = member or ctx.author
     ...
@@ -153,6 +154,7 @@ async def command(self, ctx: Context, member: Member = None):
 
 Linters and static analysis tools might suggest you to update typehinting to something like
 ```py
+@commands.command()
 async def command(self, ctx: Context, member: Optional[Member] = None):
     member = member or ctx.author
     ...
@@ -164,7 +166,10 @@ to myriad of unexpected issues.
 Henceforth, it is preferable to use Annotated type like so
 
 ```py
-command(self, ctx: Context, user: Annotated[Optional[User], User] = None)
+@commands.command()
+async def command(self, ctx: Context, member: Annotated[Optional[Member], Member] = None):
+    member = member or ctx.author
+    ...
 ```
 
 The first argument of Annotated is for the linters, the second argument is used by discord.py
