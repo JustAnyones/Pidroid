@@ -30,6 +30,7 @@ if sys.platform == 'win32':
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
 def load_env_from_file(path: str) -> None:
+    # TODO: replace with logging
     print("Loading environment from a file")
     with open(path) as f:
         for l in f.readlines():
