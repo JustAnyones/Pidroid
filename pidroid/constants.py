@@ -11,11 +11,6 @@ JUSTANYONE_ID = 333871512496898059
 ERKSMIT_ID = 308903727928967169
 JESSE_ID = 272477590663462922
 
-DEVELOPMENT_BOTS = [
-    762365831018577980, # Pidroid Beta
-    785986836065288202  # Pidroid Development
-]
-
 THEOTOWN_DEVELOPERS = [
     JUSTANYONE_ID,
     LOBBY_ID
@@ -78,13 +73,6 @@ FACTS = [
     'The name of DSA agency has no meaning.',
     'The name Theo comes from a previous developer of the game named theotheoderich.',
     'Ever wanted to reset your in-game progress and get an achievement for that? Just open the developer console of the game and run ``rm -rf /theotown``'
-]
-
-AUTOMODERATOR_RESPONSES = [
-    '%user%, can you be more responsible with your dictionary?',
-    'Looks like you\'re going to the shadow realm for that language, %user%',
-    '%user%, watch your language!',
-    '%user%, please refrain from using such language!'
 ]
 
 # Used for responding to suggest command outside of bot-commands channel

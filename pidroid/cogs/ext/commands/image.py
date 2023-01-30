@@ -62,11 +62,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    async def bonk(self, ctx: Context, member: discord.Member = None):
-        if member is None:
-            self.bonk.reset_cooldown(ctx)
-            raise BadArgument("Please specify a member which you want to bonk!")
-
+    async def bonk(self, ctx: Context, member: discord.Member):
         async with ctx.channel.typing():
             output_file = BytesIO()
             img = Image.open(Resource('bonk.jpg'))

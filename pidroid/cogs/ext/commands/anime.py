@@ -3,20 +3,23 @@ import discord
 import random
 import re
 
+from discord.channel import DMChannel, GroupChannel, PartialMessageable
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import List, Union
+from discord.ext.commands.errors import BadArgument, MissingRequiredArgument # type: ignore
+from typing import List, Union, Optional
 
 from pidroid.client import Pidroid
-from pidroid.constants import JESSE_ID, THEOTOWN_GUILD
+from pidroid.constants import JESSE_ID
+from pidroid.cogs.ext.error_handler import notify
+from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils import http
 from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
+from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.utils.paginators import ListPageSource, PidroidPages
 from pidroid.cogs.utils.parsers import truncate_string
 from pidroid.cogs.models.categories import RandomCategory
 from pidroid.cogs.models.exceptions import APIException
-from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 
 NEKO_API = "https://nekos.life/api/v2"
@@ -56,11 +59,13 @@ class WaifuCommandPaginator(ListPageSource):
 
     async def format_page(self, menu: PidroidPages, waifu: Union[Waifu, WaifuSearchResult]):
         self.embed.clear_fields()
+        assert not isinstance(menu.ctx.channel, PartialMessageable)
         if isinstance(waifu, WaifuSearchResult):
             waifu = await waifu.fetch_waifu()
         if waifu.is_nsfw:
+            show_nsfw = isinstance(menu.ctx.channel, (DMChannel, GroupChannel)) or menu.ctx.channel.is_nsfw()
             self.embed.title = waifu.name + " [NSFW]"
-            if not menu.ctx.channel.is_nsfw():
+            if not show_nsfw:
                 self.embed.set_image(url="")
                 self.embed.description = 'This waifu is tagged as NSFW. In order to view the waifu, please use the command in an age-restricted channel.'
                 self.embed.url = None
@@ -161,7 +166,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko_image(self, ctx: Context, endpoint: str = None):
+    async def neko_image(self, ctx: Context, endpoint: Optional[str]):
         if endpoint is None:
             endpoint = random.choice(NEKO_ENDPOINTS) # nosec
 
@@ -184,13 +189,18 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def owo(self, ctx: Context, *, text: str = None):
-        if text is None:
-            raise BadArgument("UwU, what do you want to owoify?") # I apologize
+    async def owo(self, ctx: Context, *, text: str):
         owo = get_owo(text)
         if len(owo) > 4096:
             raise BadArgument('The text is too long!')
         await ctx.reply(embed=SuccessEmbed(owo))
+
+    @owo.error
+    async def on_owo_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "text":
+                return await notify(ctx, "UwU, what do you want to owoify?")
+        setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
         brief='Returns a random waifu from MyWaifuList.',
@@ -202,7 +212,7 @@ class AnimeCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    async def waifu(self, ctx: Context, *, selection: str = None):
+    async def waifu(self, ctx: Context, *, selection: Optional[str]):
         api = self.waifu_list_api
 
         waifus = []
@@ -242,16 +252,16 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def anime_media(self, ctx: Context, endpoint: str = None):
-        if endpoint is not None:
-            endpoint = endpoint.lower().strip()
-            if endpoint not in WAIFU_PICS_ENDPOINTS:
-                raise BadArgument((
-                    'Wrong media type specified. '
-                    'The allowed types are: `' + ', '.join(WAIFU_PICS_ENDPOINTS) + '`.'
-                ))
-        else:
+    async def anime_media(self, ctx: Context, endpoint: Optional[str]):
+        if endpoint is None:
             endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
+
+        endpoint = endpoint.lower().strip()
+        if endpoint not in WAIFU_PICS_ENDPOINTS:
+            raise BadArgument((
+                'Wrong media type specified. '
+                'The allowed types are: `' + ', '.join(WAIFU_PICS_ENDPOINTS) + '`.'
+            ))
         async with await http.get(self.client, f"{WAIFU_PICS_API}/{endpoint}") as r:
             data = await r.json()
 
@@ -266,13 +276,12 @@ class AnimeCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild, wait=True) # type: ignore
+    @command_checks.is_theotown_guild()
     @commands.guild_only() # type: ignore
     async def weeb(self, ctx: Context):
-        assert ctx.guild is not None
-        if ctx.guild.id == THEOTOWN_GUILD:
-            for _ in range(7):
-                await asyncio.sleep(random.randint(2, 5)) # nosec
-                await ctx.send(f"<@{JESSE_ID}>, you asked for it")
+        for _ in range(7):
+            await asyncio.sleep(random.randint(2, 5)) # nosec
+            await ctx.send(f"<@{JESSE_ID}>, you asked for it")
 
 
 async def setup(client: Pidroid):

@@ -39,7 +39,7 @@ class ResultType(Enum):
     MOVIE = "Movie"
     ONA = "ONA"
     SPECIAL = "Special"
-    UNKNOWN = None
+    UNKNOWN: None = None
 
 class Birthday:
     """This class represents birthday of a waifu."""

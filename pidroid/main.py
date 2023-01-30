@@ -61,9 +61,6 @@ def config_from_env() -> dict:
         "unbelievaboat_api_key": os.environ.get("UNBELIEVABOAT_API_KEY"),
         "github_token": os.environ.get("GITHUB_TOKEN"),
 
-        "bitly_login": os.environ.get("BITLY_LOGIN"),
-        "bitly_api_key": os.environ.get("BITLY_API_KEY"),
-
         "reddit_client_id": os.environ.get("REDDIT_CLIENT_ID"),
         "reddit_client_secret": os.environ.get("REDDIT_CLIENT_SECRET"),
         "reddit_username": os.environ.get("REDDIT_USERNAME"),

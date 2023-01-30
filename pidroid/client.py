@@ -19,10 +19,10 @@ from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from pidroid.cogs.models.case import Case
-from pidroid.cogs.models.categories import get_command_categories
+from pidroid.cogs.models.categories import get_command_categories, Category, UncategorizedCategory
 from pidroid.cogs.utils.aliases import GuildChannel
 from pidroid.cogs.utils.api import API
-from pidroid.cogs.utils.checks import is_client_development
+from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.data import PersistentDataManager
 from pidroid.cogs.utils.logger import BaseLog
 
@@ -34,7 +34,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=0, micro=2, releaselevel='alpha', commit_id="unknown")
+__VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id="unknown")
 
 if TYPE_CHECKING:
     from pidroid.cogs.models.configuration import GuildConfiguration
@@ -51,7 +51,7 @@ class Pidroid(commands.Bot): # type: ignore
         intents.presences = False
         allowed_mentions = AllowedMentions(everyone=False, replied_user=False)
         super().__init__(
-            command_prefix=None, help_command=None,
+            command_prefix="P", help_command=None,
             intents=intents, allowed_mentions=allowed_mentions,
             case_insensitive=True
         )
@@ -80,8 +80,8 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.utilities',
             
             # Moderation related commands
-            'cogs.ext.commands.mod.punish',
-            'cogs.ext.commands.mod.logs',
+            'cogs.ext.commands.moderation.punishment',
+            'cogs.ext.commands.moderation.information',
 
             # Events
             'cogs.ext.events.copypasta',
@@ -185,6 +185,7 @@ class Pidroid(commands.Bot): # type: ignore
         config = self.guild_configurations.get(guild_id)
         if config is None:
             self.logger.error(f"Failure acquiring guild configuration for {guild_id}")
+            raise BadArgument("Failed to obtain guild configuration, if you're seeing this, something went very wrong!")
         return config
     
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
@@ -280,6 +281,16 @@ class Pidroid(commands.Bot): # type: ignore
                 return await self.fetch_channel(channel_id)
         return channel
 
+    async def get_or_fetch_role(self, guild: Guild, role_id: int):
+        """Attempts to resolve a role from role_id by any means. Returns None if everything failed."""
+        role = guild.get_role(role_id)
+        if role is None:
+            for r in await guild.fetch_roles():
+                if r.id == role_id:
+                    return r
+        return role
+
+
     def setup_logging(self, logging_level: int = logging.WARNING):
         """Sets up client logging module."""
         self.logger = logging.getLogger('Pidroid')
@@ -293,7 +304,7 @@ class Pidroid(commands.Bot): # type: ignore
 
     def get_prefixes(self, message: Message) -> List[str]:
         """Returns a string list of prefixes for a message using message's context."""
-        if is_client_development(self):
+        if not is_client_pidroid(self):
             return self.prefixes
 
         if message.guild:
@@ -315,6 +326,7 @@ class Pidroid(commands.Bot): # type: ignore
             await self.unload_extension(ext)
         for ext in self.extensions_to_load:
             await self.load_extension(ext)
+        await self.generate_help_documentation()
 
     async def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
@@ -325,11 +337,56 @@ class Pidroid(commands.Bot): # type: ignore
                 self.logger.debug(f"Successfully loaded {ext}.")
             except Exception:
                 self.logger.exception(f"Failed to load {ext}.")
+        await self.generate_help_documentation()
 
     async def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
         self.logger.info("Starting the bot")
         await self.load_all_extensions()
+
+    async def generate_help_documentation(self):
+        # TODO: implement
+        self.logger.warning("DOCUMENTATION GENERATION IS YET TO BE IMPLEMENTED")
+
+        commands = [c for c in self.walk_commands()]
+        categories = self.command_categories
+
+        mapping = {}
+
+        def get_full_command_name(command) -> str:
+            """Returns full command name including any command groups."""
+            name = ''
+            if len(command.parents) > 0:
+                for parent in reversed(command.parents):
+                    name += f'{parent.name} '
+            return name + command.name
+
+        for command in commands:
+            # Ignore commands that are hidden
+            if command.hidden:
+                continue
+
+            command_name = get_full_command_name(command)
+            # Ignore jishaku commands
+            if command_name.startswith("jishaku"):
+                continue
+
+            category = command.__original_kwargs__.get("category", UncategorizedCategory)
+
+            mapping[command_name] = {
+                "description": command.brief,
+                "aliases": command.aliases,
+                "category": category
+            }
+            #print(command)
+
+        #for command in mapping:
+        #    print(command, mapping[command])
+
+        #def get_commands_in_category(mapping: dict, category: Category):
+        #    return [command for command in mapping if isinstance(mapping['category'], category)]
+
+
 
     async def annoy_erksmit(self):
         if sys.platform != "win32":

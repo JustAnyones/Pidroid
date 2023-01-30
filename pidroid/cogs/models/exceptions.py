@@ -23,6 +23,14 @@ class ClientIsNotPidroid(CheckFailure):
     def __init__(self):
         super().__init__("Client user is not Pidroid!")
 
+class GenericPidroidError(CheckFailure):
+    def __init__(self):
+        super().__init__("Generic Pidroid error raised!")
+
+class GeneralCommandError(BadArgument):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class APIException(BadArgument):
     """Called when TheoTown API error is encountered"""
     def __init__(self, status: int, message: Optional[str] = None):

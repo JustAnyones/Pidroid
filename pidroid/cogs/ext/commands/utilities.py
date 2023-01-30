@@ -1,4 +1,3 @@
-import bitly_api # type: ignore
 import re
 
 from discord.ext import commands
@@ -51,12 +50,8 @@ class UtilityCommands(commands.Cog): # type: ignore
     )
     @commands.is_owner() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def urban(self, ctx: Context, *, query: str = None):
+    async def urban(self, ctx: Context, *, query: str):
         async with ctx.typing():
-            if query is None:
-                await ctx.reply(embed=ErrorEmbed("You didn't mention a term to look up!"))
-                return
-
             url = "https://api.urbandictionary.com/v0/define?term=" + urlencode(query)
             async with await http.get(self.client, url) as response:
                 data = await response.json()
@@ -77,29 +72,6 @@ class UtilityCommands(commands.Cog): # type: ignore
             embed.add_field(name='Rating', value=f"{definition['thumbs_up']:,} 👍 | {definition['thumbs_down']:,} 👎", inline=False)
             embed.set_footer(text=f"Written on {definition['written_on']} by {definition['author']}")
             await ctx.reply(embed=embed)
-
-    @commands.command( # type: ignore
-        brief="Generates a bitly link from an URL.",
-        usage="<url>",
-        permissions=["Bot owner"],
-        category=UtilityCategory
-    )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def bitly(self, ctx: Context, url: str = None):
-        async with ctx.typing():
-            if url is None:
-                raise BadArgument("Please specify the URL you want to shorten!")
-
-            try:
-                config = self.client.config
-            except KeyError:
-                raise BadArgument("I could not find bitly credentials to use the API!")
-
-            bitly = bitly_api.Connection(config['bitly_login'], config['bitly_api_key'])
-            response = bitly.shorten(url)
-            shortened_url = response["url"]
-            await ctx.reply(f"URL shortened: {shortened_url}")
 
     @commands.command( # type: ignore
         brief="Displays the coronavirus statistics for the specified place.",

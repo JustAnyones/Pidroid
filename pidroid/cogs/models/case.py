@@ -393,7 +393,7 @@ class Ban(BasePunishment):
         if self.reason:
             embed.description += f" for the following reason: {self.reason}"
         if self.expiration_date:
-            embed.description += f"\nExpires in {format_dt(self.expiration_date, style='R')}."
+            embed.description += f"\nExpires {format_dt(self.expiration_date, style='R')}."
         return embed
     
     @property
@@ -520,7 +520,7 @@ class Jail(BasePunishment):
         if self.reason:
             embed.description += f" for the following reason: {self.reason}"
         if self.expiration_date:
-            embed.description += f"\nExpires in {format_dt(self.expiration_date, 'R')}."
+            embed.description += f"\nExpires {format_dt(self.expiration_date, 'R')}."
         return embed
     
     @property
@@ -636,7 +636,7 @@ class Timeout(BasePunishment):
         if self.reason:
             embed.description += f" for the following reason: {self.reason}"
         if self.expiration_date:
-            embed.description += f"\nExpires in {format_dt(self.expiration_date, 'R')}."
+            embed.description += f"\nExpires {format_dt(self.expiration_date, 'R')}."
         return embed
     
     @property

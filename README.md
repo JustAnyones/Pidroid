@@ -12,6 +12,8 @@ docker build . --tag pidroid-bot
 
 After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
 
+Pidroid uses a Postgres database to store its information. You can read about setting it up [here](#database).
+
 After making sure our configuration and database is set up, we just need to run the bot in a docker container with the following command:
 
 ```shell
@@ -26,20 +28,20 @@ To begin, you'll need to install Python. Pidroid requires **Python 3.8** or abov
 python --version
 ```
 
-After installing Python, we need to create a virtual environment where we'll install the project dependencies.
+After installing Python, you need to create a virtual environment where you'll install the project dependencies.
 
 ```shell
 python -m venv venv
 ```
 
-And activate the said virtual environment like so.
+You then activate the said virtual environment like so:
 
-Linux:
+On Linux:
 ```shell
 source venv/bin/activate
 ```
 
-Windows:
+On Windows:
 ```shell
 venv\Scripts\activate
 ```
@@ -50,15 +52,16 @@ Pidroid requires a few Python Packages as dependencies. You can install them by 
 pip install -r requirements.txt
 ```
 
-After installing all required packages, we need to configure the bot. Please check [here](#configuration) on how to do so.
-The bot uses a Postgres database. It accepts the login credentials as a [DSN](#database). Please check [configuration manual](#configuration) on where to input it.
+After installing all the required packages, we need to configure the bot itself. Please check out the [configuration manual](#configuration) on how to do so.
+The bot uses a Postgres database. It accepts the login credentials as a [DSN](#database) string. Please check [configuration manual](#configuration) on where to input it.
 
-After setting up the database, we will need to do the database table creation and migrations using alembic:
+After setting up the database, you will need to do the database table creation and migrations using alembic:
+
 ```shell
 alembic upgrade head
 ```
 
-Lastly, all we have to do is run the bot. You can do so by running this command:
+Lastly, all you have to do is run the bot. You can do so by running this command:
 
 ```shell
 python pidroid/main.py -e config.env
@@ -82,7 +85,7 @@ After creating your database, you'll need your DSN string.
 postgresql+asyncpg://pidroid:your_database_password@127.0.0.1
 ```
 
-postgresql+asyncpg is required to specify sqlalchemy to use asyncpg driver
+postgresql+asyncpg is required to specify sqlalchemy to use asyncpg driver.
 You will only need to change the password field and the IP.
 
 ## Configuration
@@ -109,9 +112,6 @@ DEEPL_API_KEY=
 UNBELIEVABOAT_API_KEY=
 # Tenor API key for gifs
 TENOR_API_KEY=
-# Bitly credentials for bitly command
-BITLY_LOGIN=
-BITLY_API_KEY=
 # Reddit related credentials for reddit command
 REDDIT_CLIENT_ID=
 REDDIT_CLIENT_SECRET=
@@ -119,7 +119,7 @@ REDDIT_USERNAME=
 REDDIT_PASSWORD=
 ```
 
-Please note that if your credentials contain a dollar sign, add another dollar sign to make it a literal.
+Please note that if your credentials contain a dollar sign, you need to add another dollar sign to make it a literal.
 
 ### Useful commands for setup
 
@@ -136,3 +136,95 @@ For the most part Pidroid uses a modified semantic versioning scheme.
 | 1.0.0 |Major update        |Contains major incompatible changes with previous version.|
 | 0.1.0 |Minor update        |Contains major new features or minor incompatibilies.     |
 | 0.0.1 |Bugfix/patch update |Contains a hotfix or a bugfix.                            |
+
+
+## For development
+
+### Converters
+
+The following is an example of how a command may fall back to using the message
+author for the member argument, if it could not be resolved.
+
+```py
+async def command(self, ctx: Context, member: Member = None):
+    member = member or ctx.author
+    ...
+```
+
+Linters and static analysis tools might suggest you to update typehinting to something like
+```py
+async def command(self, ctx: Context, member: Optional[Member] = None):
+    member = member or ctx.author
+    ...
+```
+However, Optional has a special meaning in discord.py for special discord types such as
+Member, User, etc. It suppresses conversion errors which is not always preferable and can lead
+to myriad of unexpected issues.
+
+Henceforth, it is preferable to use Annotated type like so
+
+```py
+command(self, ctx: Context, user: Annotated[Optional[User], User] = None)
+```
+
+The first argument of Annotated is for the linters, the second argument is used by discord.py
+
+### Decorators
+
+discord.py evaluates all decorators in an ascending order.
+
+For clarity sake, all commands that are supposed to be executed inside guilds, require a guild_only check decorator.
+
+The same applies for custom Pidroid decorators that check for specific channel or guild,
+they require that you also use in-built guild_only check.
+
+### Fancy command argument error handling
+
+Sometimes you might want to provide a custom error message for your command.
+Usually, it's in the case of a user not providing the required argument.
+
+In the old days, you would make that argument optional with the default value as None.
+And then you would just handle that value with an if statement.
+However, that can sometimes lead to unexpected behaviour.
+
+Moreover, with the new hybrid commands, making certain arguments optional is bad
+user experience.
+
+Henceforth, the following is an example of a new way of handling missing argument errors nicely:
+
+```py
+    @commands.command()
+    async def role_info(self, ctx: Context, role: Role): # Role is a required argument here
+        embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
+        if role.icon:
+            embed.set_thumbnail(url=role.icon.with_size(4096).url) # type: ignore
+        embed.add_field(name="Name", value=role.name)
+        embed.add_field(name="ID", value=role.id)
+        embed.add_field(name="Position", value=role.position)
+        embed.add_field(name="Colour", value=str(role.colour))
+        embed.add_field(name="Is mentionable", value=role.mentionable)
+        embed.set_footer(text="Role created")
+        await ctx.reply(embed=embed)
+
+    # We define a new async method to handle role_info command errors
+    @role_info.error
+    async def on_role_info_command_error(self, ctx: Context, error): # These arguments are required
+        # We check if our error is of MissingRequiredArgument
+        if isinstance(error, MissingRequiredArgument):
+            # With that, we check what argument it is for
+            if error.param.name == "role":
+                # And we return a custom error message
+                return await notify(ctx, "Please specify the role to view the information for")
+
+        # This is a special call to notify the generic error handler
+        # that the error was not handled and it should be done on
+        # its side.
+        # This must be at the end of the method.
+        setattr(error, 'unhandled', True)
+```
+
+## Features in the works
+- Level reward subsystem
+- Support for slash commands
+- Reaction role selection subsystem
+- Refactoring of the help system to make it more lenient and less janky

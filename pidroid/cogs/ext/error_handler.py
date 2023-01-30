@@ -39,7 +39,7 @@ use_default = (
     commands.BadArgument, # type: ignore
     commands.BadUnionArgument, # type: ignore
     commands.TooManyArguments, # type: ignore
-    commands.MissingRequiredArgument, # type: ignore
+    #commands.MissingRequiredArgument, # type: ignore
     exceptions.InvalidDuration,
 
     # API errors
@@ -51,6 +51,9 @@ use_default = (
     commands.ExpectedClosingQuoteError # type: ignore
 )
 
+async def notify(ctx: Context, message: str, delete_after: Optional[int] = None):
+    with suppress(discord.errors.Forbidden):
+            await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -61,15 +64,15 @@ class Error(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid):
         self.client = client
 
-    async def notify(self, ctx: Context, message: str, delete_after: Optional[int] = None):
-        with suppress(discord.errors.Forbidden):
-            await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
-
     @commands.Cog.listener() # type: ignore
     async def on_command_error(self, ctx: Context, error):  # noqa: C901
-        # Prevents commands with local error handling being handled here
+        # Prevents commands with local error handling being handled here twice
         if hasattr(ctx.command, 'on_error'):
-            return
+            unhandled = getattr(error, 'unhandled')
+            # If value is not set or is set to False, we consider that
+            # the local error handler handled it
+            if not unhandled:
+                return
 
         # Allows us to check for original exceptions raised and sent to CommandInvokeError.
         # If nothing is found. We keep the exception passed to on_command_error.
@@ -89,7 +92,9 @@ class Error(commands.Cog): # type: ignore
 
         # Do not modify specified errors
         if isinstance(error, use_default):
-            return await self.notify(ctx, str(error))
+            return await notify(ctx, str(error))
+
+        assert ctx.command is not None
 
         # Extensive logging for NotFound and Forbidden errors
         if isinstance(error, discord.errors.NotFound):
@@ -111,24 +116,40 @@ class Error(commands.Cog): # type: ignore
 
         # Handle specific errors
         elif isinstance(error, commands.NotOwner):
-            await self.notify(ctx, "The command can only be used by the bot owner")
+            await notify(ctx, "The command can only be used by the bot owner")
 
         elif isinstance(error, commands.PrivateMessageOnly):
-            await self.notify(ctx, "The command can only be used in Private Messages")
+            await notify(ctx, "The command can only be used in Private Messages")
 
         elif isinstance(error, commands.NoPrivateMessage):
-            await self.notify(ctx, "The command can not be used in Private Messages")
+            await notify(ctx, "The command can not be used in Private Messages")
+
+        elif isinstance(error, commands.MissingRequiredArgument):
+            #print("Name:", error.param.name)
+            #print("Description:", error.param.description or "")
+            #print("Annotation:", error.param.annotation)
+            #print("Converter:", error.param.converter)
+
+            parameter_type = ""
+            if isinstance(error.param.annotation, int):
+                parameter_type = "number"
+            elif isinstance(error.param.annotation, str):
+                parameter_type = "text"
+
+            if parameter_type != "":
+                return await notify(ctx, f"{error.param.name} is a required {parameter_type} argument that is missing.")
+            return await notify(ctx, f"{error.param.name} is a required argument that is missing.")
 
         elif isinstance(error, commands.CommandOnCooldown):
             if error.cooldown.per <= 5:
-                return await self.notify(ctx, "Woah, slow down!", delete_after=3)
-            await self.notify(ctx, f"You're on cooldown, try again in {humanize(error.retry_after, False, max_units=2)}.", delete_after=3)
+                return await notify(ctx, "Woah, slow down!", delete_after=3)
+            await notify(ctx, f"You're on cooldown, try again in {humanize(error.retry_after, False, max_units=2)}.", delete_after=3)
 
         elif isinstance(error, exceptions.InvalidChannel):
-            await self.notify(ctx, random.choice(REFUSE_COMMAND_RESPONSES)) # nosec
+            await notify(ctx, random.choice(REFUSE_COMMAND_RESPONSES)) # nosec
 
         elif isinstance(error, commands.NSFWChannelRequired):
-            await self.notify(ctx, "The command can only be used inside NSFW channel")
+            await notify(ctx, "The command can only be used inside NSFW channel")
 
         # All other errors get returned here with traceback
         else:

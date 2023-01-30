@@ -34,7 +34,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
         if message.channel.id == EVENTS_CHANNEL:
             assert isinstance(message.channel, TextChannel)
 
-            if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.guild, message.channel, message.author):
+            if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.author):
                 if message.attachments:
                     await message.add_reaction("👍")
                     return

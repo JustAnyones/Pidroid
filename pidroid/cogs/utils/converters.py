@@ -1,13 +1,10 @@
 import datetime
-import discord
 
 from dateutil import relativedelta # type: ignore
 from discord.ext.commands import Context, Converter # type: ignore
-from discord.ext.commands.converter import MemberConverter # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 
 from pidroid.cogs.models.exceptions import InvalidDuration
-from pidroid.cogs.utils.checks import member_above_bot, is_guild_moderator, member_above_moderator
 from pidroid.cogs.utils.time import duration_to_relativedelta, utcnow
 
 class DurationDelta(Converter):
@@ -57,30 +54,3 @@ class Duration(DurationDelta):
             return utcnow() + delta
         except (ValueError, OverflowError):
             raise BadArgument(f"`{duration}` results in a datetime outside the supported range.")
-
-class MemberOffender(Converter):
-
-    async def convert(self, ctx: Context, argument: str) -> discord.Member:
-        command_name = ctx.command.name
-
-        if argument is None:
-            raise BadArgument(f"Please specify someone you are trying to {command_name}!")
-
-        member = await MemberConverter().convert(ctx, argument)
-
-        if member == ctx.message.author:
-            raise BadArgument(f"You cannot {command_name} yourself!")
-
-        if command_name != "warn":
-            if is_guild_moderator(ctx.guild, ctx.channel, member):
-                if command_name == 'kidnap':
-                    raise BadArgument("You cannot kidnap one of your own!")
-                raise BadArgument(f"You cannot {command_name} a moderator!")
-
-        if member_above_moderator(member, ctx.author):
-            raise BadArgument("Specified member is above you!")
-
-        if member_above_bot(ctx.guild, member):
-            raise BadArgument("Specified member is above me!")
-
-        return member

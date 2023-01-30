@@ -3,17 +3,18 @@ import os
 import random
 
 from contextlib import suppress
+from discord.channel import TextChannel
 from discord.ext import commands # type: ignore
 from discord.errors import HTTPException, Forbidden
 from discord.ext.commands import BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.member import Member
-from discord.message import Message
 from typing import List, Optional
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import TheoTownCategory
 from pidroid.cogs.utils import http
+from pidroid.cogs.utils.checks import check_bot_channel_permissions
 from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed, SuccessEmbed
 from pidroid.cogs.utils.http import Route
@@ -24,7 +25,10 @@ from pidroid.constants import THEOTOWN_GUILD
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
-def handle_wrong_gallery_modes(query: str) -> Optional[str]:
+def resolve_gallery_mode(query: Optional[str]) -> Optional[str]:
+    if query is None:
+        return None
+    query = query.lower()
     if query in ["trending", "hot", "trends"]:
         return "trends"
     if query in ["new", "recent", "latest"]:
@@ -113,29 +117,29 @@ class TheoTownCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user) # type: ignore
-    async def gallery(self, ctx: Context, mode: str = 'recent', number: int = None):
+    async def gallery(self, ctx: Context, mode: Optional[str] = 'recent', number: Optional[int] = None):
+        selected_mode = resolve_gallery_mode(mode)
+
+        if selected_mode not in SUPPORTED_GALLERY_MODES:
+            self.gallery.reset_cooldown(ctx)
+            return await ctx.reply(embed=ErrorEmbed(
+                'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
+            ))
+
+        if number is None:
+            number = random.randint(1, 200) # nosec
+
+        try:
+            number = int(number)
+        except Exception:
+            self.gallery.reset_cooldown(ctx)
+            return await ctx.reply(embed=ErrorEmbed('Your specified position is incorrect.'))
+
+        if number not in range(1, 201):
+            self.gallery.reset_cooldown(ctx)
+            return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
+        
         async with ctx.typing():
-            selected_mode = handle_wrong_gallery_modes(mode.lower())
-
-            if selected_mode not in SUPPORTED_GALLERY_MODES:
-                self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=ErrorEmbed(
-                    'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
-                ))
-
-            if number is None:
-                number = random.randint(1, 200) # nosec
-
-            try:
-                number = int(number)
-            except Exception:
-                self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=ErrorEmbed('Your specified position is incorrect.'))
-
-            if number not in range(1, 201):
-                self.gallery.reset_cooldown(ctx)
-                return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
-
             res = await self.client.api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
             if not res["success"]:
                 return await ctx.reply(embed=ErrorEmbed("Unable to retrieve gallery data!"))
@@ -158,14 +162,10 @@ class TheoTownCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user) # type: ignore
-    async def findplugin(self, ctx: Context, *, query: Optional[str]): # noqa
+    async def findplugin(self, ctx: Context, query: str): # noqa
         async with ctx.typing():
-            if query is None:
-                await ctx.reply(embed=ErrorEmbed('I could not find a query to find a plugin.'))
-                self.findplugin.reset_cooldown(ctx)
-                return
-
             is_id = query.startswith("#")
+            pl_id = None
             if is_id:
                 try:
                     pl_id = int(query.replace("#", ""))
@@ -193,7 +193,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
             plugin_count = len(plugin_list)
             if plugin_count == 0:
-                return await ctx.reply(embed=ErrorEmbed('No plugin could be found by your query.'))
+                raise BadArgument('No plugin could be found by your query.')
 
             index = 0
             if plugin_count > 1:
@@ -220,22 +220,15 @@ class TheoTownCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
-    async def downloadplugin(self, ctx: Context, *, plugin_id: int = None):
+    async def downloadplugin(self, ctx: Context, plugin_id: int):
         async with ctx.typing():
-            if plugin_id is None:
-                await ctx.reply(embed=ErrorEmbed('I could not find an ID of the plugin to download!'))
-                self.downloadplugin.reset_cooldown(ctx)
-                return
-
             plugins = await self.api.fetch_plugin_by_id(plugin_id, True)
             if len(plugins) == 0:
-                return await ctx.reply(embed=ErrorEmbed("I could not find any plugins to download by the specified ID!"))
+                raise BadArgument("I could not find any plugins to download by the specified ID!")
 
             plugin = plugins[0]
             if plugin.download_url is None:
-                return await ctx.reply(embed=ErrorEmbed(
-                    f"Failure encountered while trying to retrieve the plugin file for '{plugin.clean_title}'!"
-                ))
+                raise BadArgument(f"Failure encountered while trying to retrieve the plugin file for '{plugin.clean_title}'!")
 
             await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
             await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
@@ -245,18 +238,19 @@ class TheoTownCommands(commands.Cog): # type: ignore
         usage='<suggestion>',
         category=TheoTownCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True, add_reactions=True) # type: ignore # permissions kind of obsolete
     @command_checks.is_bot_commands()
     @command_checks.is_theotown_guild()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
     @command_checks.client_is_pidroid()
-    async def suggest(self, ctx: Context, *, suggestion: str = None): # noqa C901
-        async with ctx.typing():
-            if suggestion is None:
-                await ctx.reply(embed=ErrorEmbed('Your suggestion cannot be empty!'))
-                self.suggest.reset_cooldown(ctx)
-                return
+    async def suggest(self, ctx: Context, *, suggestion: str):
+        assert isinstance(ctx.me, Member)
 
+        channel = self.client.get_channel(409800607466258445)
+        assert isinstance(channel, TextChannel)
+
+        check_bot_channel_permissions(ctx.me, channel, send_messages=True, attach_files=True, add_reactions=True)
+
+        async with ctx.typing():
             if len(suggestion) < 4:
                 await ctx.reply(embed=ErrorEmbed('Your suggestion is too short!'))
                 self.suggest.reset_cooldown(ctx)
@@ -268,12 +262,10 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 self.suggest.reset_cooldown(ctx)
                 return
 
-            attachment_url = None
-            channel = self.client.get_channel(409800607466258445)
-            file = None
-
             embed = PidroidEmbed(description=suggestion)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
+
+            file = None
             attachments = ctx.message.attachments
             if attachments:
 
@@ -290,7 +282,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
                 filename = attachment.filename
                 extension = os.path.splitext(filename)[1]
-                if extension.lower() not in ['.png', '.jpg', '.jpeg']:
+                if extension.lower() not in ['.png', '.jpg', '.jpeg', '.gif']:
                     await ctx.reply(embed=ErrorEmbed('Could not submit a suggestion: unsupported file extension. Only image files are supported!'))
                     self.suggest.reset_cooldown(ctx)
                     return
@@ -298,7 +290,10 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 file = await attachment.to_file()
                 embed.set_image(url=f'attachment://{filename}')
 
-            message: Message = await channel.send(embed=embed, file=file)
+            if file:
+                message = await channel.send(embed=embed, file=file)
+            else:
+                message = await channel.send(embed=embed)
             await message.add_reaction("✅")
             await message.add_reaction("❌")
             await message.add_reaction("❗")
@@ -354,8 +349,8 @@ class TheoTownCommands(commands.Cog): # type: ignore
             raise BadArgument(f"Your discord account is not linked to any TheoTown accounts!")
 
         # Check if last redeem was not within this month
-        last_wage_date: datetime.datetime = linked_acc.date_wage_last_redeemed
-        if last_wage_date is not None and last_wage_date.month == utcnow().month:
+        last_wage_date: datetime.datetime = linked_acc.date_wage_last_redeemed # type: ignore
+        if last_wage_date is not None and last_wage_date.month == utcnow().month: # type: ignore
             raise BadArgument("You've already redeemed the wage for this month!")
         
         # Obtain TT guild

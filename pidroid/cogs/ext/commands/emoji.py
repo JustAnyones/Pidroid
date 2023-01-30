@@ -79,7 +79,7 @@ class EmojiCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def steal_emoji(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         assert ctx.guild is not None
-        if ctx.message.reference:
+        if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
         message = message or ctx.message
@@ -117,7 +117,7 @@ class EmojiCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def get_emojis(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
-        if ctx.message.reference:
+        if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
         message = message or ctx.message

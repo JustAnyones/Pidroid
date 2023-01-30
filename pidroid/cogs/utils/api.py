@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 
-from typing import List, Optional, TYPE_CHECKING, Any, Coroutine, Dict, Set
+from typing import TYPE_CHECKING, List, Dict, Set, Any, Optional, Coroutine, Callable
 
 from pidroid.cogs.ext.commands.tags import Tag
 from pidroid.cogs.models.case import Case
@@ -156,25 +156,29 @@ class API:
         self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
-        self._listeners: Dict[str, Set[Coroutine]] = {}  
+        self._listeners: Dict[str, Set[Callable[[Any], Coroutine[Any, Any, None]]]] = {}  
 
-    def add_listener(self, event: str, listener: Coroutine):
+    def add_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
         if not self._listeners.get(event, None):
             self._listeners[event] = {listener}
         else:
             self._listeners[event].add(listener)
 
-    def remove_listener(self, event: str, listener: Coroutine):
+    def remove_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
         self._listeners[event].remove(listener)
         if len(self._listeners[event]) == 0:
             del self._listeners[event]
     
     def emit(self, event_name: str, *args: Any, **kwargs: Any) -> None:
+        """Calls the specified event to be handled by event listeners.
+        
+        First argument is the event name, the rest are optional arguments for the event handler."""
         listeners = self._listeners.get(event_name, set())
         for listener in listeners:
             self.client.loop.create_task(listener(*args, **kwargs))
 
     async def connect(self) -> None:
+        """Creates a postgresql database connection."""
         self.engine = create_async_engine(self._dsn, echo=self._debug)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
@@ -225,7 +229,7 @@ class API:
             )
         row = result.fetchone()
         if row:
-            return Tag(self, row[0])
+            return Tag(self.client, row[0])
         return None
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
@@ -237,7 +241,7 @@ class API:
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
                 order_by(TagTable.name.asc())
             )
-        return [Tag(self, r[0]) for r in result.fetchall()]
+        return [Tag(self.client, r[0]) for r in result.fetchall()]
 
     async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
         """Returns a list of all tags defined in the guild."""
@@ -248,7 +252,7 @@ class API:
                 filter(TagTable.guild_id == guild_id).
                 order_by(TagTable.name.asc())
             )
-        return [Tag(self, r[0]) for r in result.fetchall()]
+        return [Tag(self.client, r[0]) for r in result.fetchall()]
 
     async def update_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
         """Updates a tag entry by specified row ID."""
@@ -416,7 +420,7 @@ class API:
             async with session.begin():
                 insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id).on_conflict_do_update(
                     index_elements=[PunishmentCounterTable.guild_id],
-                    set_=dict(counter=PunishmentCounterTable.counter + 1) # TODO: investigate 
+                    set_=dict(counter=PunishmentCounterTable.counter + 1)
                 ).returning(PunishmentCounterTable.counter)
 
                 res = await session.execute(insert_stmt)

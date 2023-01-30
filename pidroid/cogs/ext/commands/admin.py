@@ -1,6 +1,6 @@
 import discord
 
-from discord import AllowedMentions
+from discord import AllowedMentions, TextChannel
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
@@ -42,17 +42,20 @@ class AdminCommands(commands.Cog): # type: ignore
             prefixes = data.prefixes or self.client.prefixes
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
-            jail_role = guild.get_role(data.jail_role)
-            if jail_role is not None:
-                embed.add_field(name='Jail role', value=jail_role.mention)
+            if data.jail_role:
+                jail_role = await self.client.get_or_fetch_role(guild, data.jail_role)
+                if jail_role is not None:
+                    embed.add_field(name='Jail role', value=jail_role.mention)
 
-            jail_channel = guild.get_channel(data.jail_channel)
-            if jail_channel is not None:
-                embed.add_field(name='Jail channel', value=jail_channel.mention)
-
-            log_channel = guild.get_channel(data.log_channel)
-            if log_channel is not None:
-                embed.add_field(name='Log channel', value=log_channel.mention)
+            if data.jail_channel:
+                jail_channel = await self.client.get_or_fetch_guild_channel(guild, data.jail_channel)
+                if jail_channel is not None:
+                    embed.add_field(name='Jail channel', value=jail_channel.mention)
+            
+            if data.log_channel:
+                log_channel = await self.client.get_or_fetch_guild_channel(guild, data.log_channel)
+                if log_channel is not None:
+                    embed.add_field(name='Log channel', value=log_channel.mention)
 
             embed.add_field(name="Everyone can create tags?", value=data.public_tags)
 
@@ -91,7 +94,12 @@ class AdminCommands(commands.Cog): # type: ignore
 
             # Do the same for jail channel
             existing_jail_channel = discord.utils.get(ctx.guild.channels, name="jail")
-            if existing_jail_channel is None:
+            if existing_jail_channel and isinstance(existing_jail_channel, TextChannel):
+                jail_channel = existing_jail_channel
+                action_log.append(f"Reused already existing {existing_jail_channel.mention} channel")
+
+            # If jail text channel not found, create it
+            else:
                 jail_channel = await ctx.guild.create_text_channel(
                     'jail',
                     overwrites={
@@ -101,9 +109,6 @@ class AdminCommands(commands.Cog): # type: ignore
                     reason=SETUP_REASON
                 )
                 action_log.append(f"Created {jail_channel.mention} channel")
-            else:
-                jail_channel = existing_jail_channel
-                action_log.append(f"Reused already existing {existing_jail_channel.mention} channel")
 
             # Update permissions
             cnt = 0

@@ -40,7 +40,7 @@ class StickerCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def steal_sticker(self, ctx: Context, message: typing.Optional[Message]):
         assert ctx.guild is not None
-        if ctx.message.reference:
+        if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
         message = message or ctx.message
@@ -78,7 +78,7 @@ class StickerCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def get_sticker(self, ctx: Context, message: typing.Optional[Message]):
-        if ctx.message.reference:
+        if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
         message = message or ctx.message

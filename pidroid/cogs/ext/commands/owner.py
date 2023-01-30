@@ -5,23 +5,16 @@ import os
 import typing
 import sys
 
-from typing import Literal, Optional
-from discord.ext import commands
-from discord.ext.commands import Greedy, Context # or a subclass of yours
-
 from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.context import Context  # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID
 from pidroid.cogs.models.categories import OwnerCategory
 from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils.embeds import ErrorEmbed
-
-if TYPE_CHECKING:
-    from pidroid.cogs.ext.events.initialization import InvocationEventHandler
 
 class OwnerCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
@@ -32,7 +25,6 @@ class OwnerCommands(commands.Cog): # type: ignore
         brief="Sends a message to a specified guild channel as the bot.",
         usage="<channel> <message>",
         aliases=["say"],
-        permissions=["Bot owner"],
         category=OwnerCategory,
         hidden=True
     )
@@ -49,7 +41,6 @@ class OwnerCommands(commands.Cog): # type: ignore
         brief="Set the bot's playing game status to the specified game.",
         usage="<game>",
         aliases=["setgame", "play"],
-        permissions=["Bot owner"],
         category=OwnerCategory
     )
     @commands.is_owner() # type: ignore
@@ -61,7 +52,6 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.command( # type: ignore
         brief="Stops the bot by killing the process with a SIGKILL signal.",
         aliases=["pulltheplug", "shutdown"],
-        permissions=["Bot owner"],
         category=OwnerCategory
     )
     @command_checks.can_shutdown_bot()
@@ -89,28 +79,13 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.is_owner() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def dm(self, ctx: Context, user: typing.Union[discord.Member, discord.User], *, message: str):
-        try:
-            await user.send(message)
-            await ctx.reply(f"Message to {user.name}#{user.discriminator} was sent succesfully")
-        except Exception as e:
-            await ctx.reply(embed=ErrorEmbed(f"Message was not sent\n```{e}```"))
-
-    @commands.command( # type: ignore
-        name="update-guild-cache",
-        brief="Forcefully updates the internal guild configuration cache.\nShould only be called when desynced on development versions.",
-        category=OwnerCategory
-    )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def updateguildcache(self, ctx: Context):
-        cog: InvocationEventHandler = self.client.get_cog("InvocationEventHandler")
-        await cog._fill_guild_config_cache()
-        await ctx.reply("Internal guild cache updated!")
+        await user.send(message)
+        await ctx.reply(f"Message to {user.name}#{user.discriminator} was sent succesfully")
 
     @commands.command()
     @commands.guild_only()
     @commands.is_owner()
-    async def sync(self, ctx: Context, guilds: Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
+    async def sync(self, ctx: Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
         if not guilds:
             if spec == "~":
                 synced = await ctx.bot.tree.sync(guild=ctx.guild)

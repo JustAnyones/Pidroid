@@ -8,7 +8,7 @@ from random import randint
 
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID
-from pidroid.cogs.utils.checks import is_client_development, is_guild_theotown
+from pidroid.cogs.utils.checks import is_guild_theotown
 from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.utils.time import utcnow
 
@@ -105,7 +105,7 @@ class CopypastaEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message): # noqa: C901
-        if is_client_development(self.client) or message.author.bot or not message.guild or not is_guild_theotown(message.guild):
+        if message.author.bot or not message.guild or not is_guild_theotown(message.guild):
             return
 
         content = message.clean_content.lower()

@@ -5,7 +5,6 @@ from discord.ext import tasks, commands # type: ignore
 from typing import Union
 
 from pidroid.client import Pidroid
-from pidroid.cogs.utils.getters import get_role
 
 class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""
@@ -54,7 +53,10 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         c = self.client.get_guild_configuration(member.guild.id)
         assert c is not None
 
-        jail_role = get_role(member.guild, c.jail_role)
+        if c.jail_role is None:
+            return
+
+        jail_role = await self.client.get_or_fetch_role(member.guild, c.jail_role)
         if jail_role is not None:
             if await self.client.api.is_currently_jailed(member.guild.id, member.id):
                 await member.add_roles(jail_role, reason="Jailed automatically as punishment evasion was detected.") # type: ignore

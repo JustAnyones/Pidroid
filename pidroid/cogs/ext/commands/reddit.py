@@ -6,10 +6,11 @@ from asyncpraw.models.reddit.submission import Submission # type: ignore
 from asyncpraw.models.reddit.subreddit import Subreddit # type: ignore
 from asyncprawcore import exceptions # type: ignore
 from asyncprawcore.exceptions import ResponseException # type: ignore
+from discord.channel import DMChannel, GroupChannel, PartialMessageable
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import Optional
+from typing import Optional, Union
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import RandomCategory
@@ -25,8 +26,15 @@ async def get_random_submission(subreddit: Subreddit, limit: int = 50) -> Submis
     """Returns a random submission from hot subreddit submissions."""
     return random.choice([s async for s in subreddit.hot(limit=limit)]) # nosec
 
-def assure_content_rating(ctx: Context, content: typing.Union[Submission, Subreddit]) -> None:
+def assure_content_rating(ctx: Context, content: Union[Submission, Subreddit]) -> None:
     """This function assures that the content is safe for consumption in accordance to channel NSFW level."""
+    assert not isinstance(ctx.channel, PartialMessageable)
+
+    # Allow it by default in DMs and groups
+    if isinstance(ctx.channel, (DMChannel, GroupChannel)):
+        return
+
+    # Allow it in channels with NSFW option turned on
     if ctx.channel.is_nsfw():
         return
 
@@ -78,7 +86,7 @@ class RedditCommands(commands.Cog): # type: ignore
             user_agent="Pidroid bot by u/RealJustAnyone"
         )
 
-    def cog_unload(self) -> None:
+    def cog_unload(self):
         # Logout from reddit session
         if self.reddit_instance is not None:
             self.client.loop.create_task(self.reddit_instance.close())  # Just so I don't get asyncio unclosed loop errors
@@ -92,14 +100,14 @@ class RedditCommands(commands.Cog): # type: ignore
     async def reddit(self, ctx: Context, subreddit_name: Optional[str] = None):
         async with ctx.typing():
             if subreddit_name is None:
-                return await ctx.reply(embed=ErrorEmbed('Please specify a subreddit from which you want to fetch a random post!'))
+                raise BadArgument('Please specify a subreddit from which you want to fetch a random post!')
 
             try:
                 subreddit = await self.reddit_instance.subreddit(subreddit_name, fetch=True)
             except exceptions.Redirect:
                 raise BadArgument("I am being redirected, are you certain that the specified subreddit exists?")
             except ResponseException as e:
-                raise BadArgument(e)
+                raise BadArgument(str(e))
             except Exception as e:
                 raise BadArgument("I could not find the specified subreddit!")
 

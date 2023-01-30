@@ -203,7 +203,7 @@ class FunCommands(commands.Cog): # type: ignore
             raise BadArgument("Bro, I am already in that channel. What do you want me to do?")
 
         assert isinstance(ctx.me, discord.Member)
-        check_bot_channel_permissions(channel, ctx.me, move_members=True, speak=True, connect=True)
+        check_bot_channel_permissions(ctx.me, channel, move_members=True, speak=True, connect=True)
 
         try:
             vc: VoiceClient = await channel.connect(reconnect=False)

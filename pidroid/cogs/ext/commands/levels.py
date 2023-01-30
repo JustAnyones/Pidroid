@@ -5,15 +5,14 @@ import os
 import typing
 import sys
 
-from typing import Literal, Optional, Annotated
-from discord.ext import commands
+from discord.ext import commands # type: ignore
+from discord.member import Member
 from discord.message import Message
 from discord.ext.commands import Greedy, Context # or a subclass of yours
-
-from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID
@@ -40,7 +39,7 @@ class LevelCommands(commands.Cog): # type: ignore
         
         pass
 
-    @commands.hybrid_command(name="level")
+    #@commands.hybrid_command(name="level")
     #@commands.command( # type: ignore
     #    name="level",
     #    brief="Sends a message to a specified guild channel as the bot.",
@@ -51,12 +50,12 @@ class LevelCommands(commands.Cog): # type: ignore
     #    hidden=True
     #)
     #@commands.is_owner() # type: ignore
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    async def level_command(self, ctx: Context, member: Annotated[discord.Member, discord.Member] = None):
-        member = member or ctx.author
-        await ctx.send(f"Querying level for {member}")
+    #@commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    #async def level_command(self, ctx: Context, member: Annotated[Optional[Member], Member] = None):
+    #    member = member or ctx.author
+    #    await ctx.send(f"Querying level for {member}")
         
-    @commands.hybrid_command(name="leaderboard")
+    #@commands.hybrid_command(name="leaderboard")
     #@commands.command( # type: ignore
     #    name="level",
     #    brief="Sends a message to a specified guild channel as the bot.",
@@ -67,9 +66,9 @@ class LevelCommands(commands.Cog): # type: ignore
     #    hidden=True
     #)
     #@commands.is_owner() # type: ignore
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    async def leaderboard_command(self, ctx: Context):
-        await ctx.send(f"Querying server leaderboard")
+    #@commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    #async def leaderboard_command(self, ctx: Context):
+    #    await ctx.send(f"Querying server leaderboard")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LevelCommands(client))

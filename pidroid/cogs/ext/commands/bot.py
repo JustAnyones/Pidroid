@@ -47,7 +47,7 @@ class BotCommands(commands.Cog): # type: ignore
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def info(self, ctx: Context, mode: Optional[str] = None):
+    async def info(self, ctx: Context, mode: Optional[str]):
         async with ctx.typing():
             # Fetch data from config file
             version = self.client.version

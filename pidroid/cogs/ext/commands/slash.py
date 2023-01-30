@@ -19,17 +19,6 @@ class MyCog(commands.Cog):
         if ctx.interaction:
             return await ctx.send(message)
         await ctx.reply(message)
-   
-    @commands.hybrid_group(name="parent")
-    async def parent_command(self, ctx: commands.Context) -> None:
-        pass
-    
-    @parent_command.command(name="subcommand")
-    async def sub_command(self, ctx: commands.Context, argument: str) -> None:
-        # Sub
-        #This subcommand can now be invoked with `?parent sub <arg>` or `/parent sub <arg>` (once synced).
-
-        await ctx.send(f"Hello, you sent {argument}!", ephemeral=True)
     
 async def setup(bot: commands.Bot) -> None:
   await bot.add_cog(MyCog(bot))

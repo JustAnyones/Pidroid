@@ -1,8 +1,9 @@
 from discord.embeds import Embed
 from discord.ext import commands # type: ignore
 from discord.ext.commands.core import Command # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from typing import List, Tuple
+from discord.ext.commands.context import Context
+from discord.ext.commands.errors import BadArgument
+from typing import List, Optional, Tuple
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import Category, BotCategory, UncategorizedCategory
@@ -79,7 +80,9 @@ class HelpCommand(commands.Cog): # type: ignore
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def help(self, ctx: Context, *, search_string: str = None):
+    async def help(self, ctx: Context, *, search_string: Optional[str] = None):
+        assert self.client.user is not None
+
         prefix = self.client.get_prefixes(ctx.message)[0]
         # Would ideally want to cache these
         command_object_list = [c for c in self.client.walk_commands()]
@@ -104,7 +107,7 @@ class HelpCommand(commands.Cog): # type: ignore
         if query in command_name_list:
             command: Command = command_object_list[command_name_list.index(query)]
             if command.hidden:
-                return await ctx.reply(embed=ErrorEmbed("I could not find any commands by the specified query!"))
+                raise BadArgument("I could not find any commands by the specified query!")
 
             embed = PidroidEmbed(
                 title=f"{get_full_command_name(command)}",

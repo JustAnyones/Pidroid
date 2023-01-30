@@ -44,7 +44,8 @@ LANGUAGE_MAPPING = {
     "SV": "Swedish",
     "ZH": "Chinese",
     "ID": "Indonesian",
-    "TR": "Turkish"
+    "TR": "Turkish",
+    "UK": "Ukrainian"
 }
 
 FEED_CHANNEL = 943920969637040140
@@ -57,7 +58,7 @@ BASE64_PATTERN = re.compile(r'^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+
 def remove_emojis(string: str) -> str:
     """Removes all emojis from a string."""
     stripped = re.sub(CUSTOM_EMOJI_PATTERN, "", string)
-    return emoji.get_emoji_regexp().sub("", stripped)
+    return emoji.get_emoji_regexp().sub("", stripped) # type: ignore
 
 def remove_urls(string: str) -> str:
     """Removes URLs from a string."""
@@ -73,8 +74,8 @@ class ParserFlags:
 
 FLAG_FOOTERS = {
     ParserFlags.LOWERCASED: "Text has been lowercased",
-    ParserFlags.BASE64: "Text has been converted from base64",
-    ParserFlags.FAIL: "Failed parsing a base64 string"
+    ParserFlags.BASE64: "Text has been converted from supposed base64",
+    ParserFlags.FAIL: "Failed parsing a supposed base64 string"
 }
 
 class TextParser:
@@ -104,11 +105,11 @@ class TextParser:
                 decoded_string = base64.b64decode(self.text).decode("utf-8")
             except UnicodeDecodeError:
                 return ParserFlags.BASE64, None
-            return ParserFlags.BASE64, decoded_string
+            return ParserFlags.FAIL, decoded_string
 
-        # If 30% of all characters are uppercase, lowercase the entire string
+        # If 50% of all characters are uppercase, lowercase the entire string
         #print("Value of capitalized letters in string", sum(1 for c in self.text if c.isupper()) / len(self.text))
-        if not self.text.isupper() and sum(1 for c in self.text if c.isupper()) / len(self.text) >= 0.30:
+        if not self.text.isupper() and sum(1 for c in self.text if c.isupper()) / len(self.text) >= 0.50:
             return ParserFlags.LOWERCASED, self.text.lower()
 
         # Otherwise, just return normal string
