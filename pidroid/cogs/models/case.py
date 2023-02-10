@@ -181,7 +181,12 @@ class CasePaginator(ListPageSource):
                     f"**Reason:** {case.clean_reason.capitalize()}"
                 )
             self.embed.add_field(name=name, value=value, inline=False)
-        self.embed.set_footer(text=f'{len(self.entries)} entry(-ies)')
+        
+        entry_count = len(self.entries)
+        if entry_count == 1:
+            self.embed.set_footer(text=f'{entry_count} entry')
+        else:
+            self.embed.set_footer(text=f'{entry_count:,} entries')
         return self.embed
 
 class BasePunishment:
