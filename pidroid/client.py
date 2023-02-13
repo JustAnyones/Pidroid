@@ -56,8 +56,13 @@ class Pidroid(commands.Bot): # type: ignore
             case_insensitive=True
         )
 
+        # Load configuration
+        self.config = config
+        self.debugging = config["debugging"]
+        self.prefixes = config["prefixes"]
+
         # This defines hot-reloadable cogs and various files
-        self.extensions_to_load = [
+        self._extensions_to_load = [
             # Commands
             'cogs.ext.commands.admin',
             'cogs.ext.commands.anime',
@@ -120,16 +125,13 @@ class Pidroid(commands.Bot): # type: ignore
 
         self.version_cache: Dict[str, Optional[str]] = {}
 
-        self.config = config
-        self.prefixes = self.config['prefixes']
-
         self.session = None
 
-        self.api = API(self, self.config["postgres_dsn"], False)
+        self.api = API(self, self.config["postgres_dsn"])
 
         self.persistent_data = PersistentDataManager()
 
-        self.setup_logging(logging.DEBUG)
+        self.logger = logging.getLogger('Pidroid') # backwards compatibility
 
     async def setup_hook(self):
         await self.api.connect()
@@ -291,17 +293,6 @@ class Pidroid(commands.Bot): # type: ignore
         return role
 
 
-    def setup_logging(self, logging_level: int = logging.WARNING):
-        """Sets up client logging module."""
-        self.logger = logging.getLogger('Pidroid')
-        self.logger.setLevel(logging_level)
-        if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
-            self.logger.setLevel(logging.DEBUG)
-        ch = logging.StreamHandler()
-        formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
-
     def get_prefixes(self, message: Message) -> List[str]:
         """Returns a string list of prefixes for a message using message's context."""
         if not is_client_pidroid(self):
@@ -315,22 +306,22 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def get_prefix(self, message: Message):
         """Returns a prefix for client to respond to."""
-        await self.wait_guild_config_cache_ready()
+        await self.wait_until_guild_configurations_loaded()
         return commands.when_mentioned_or(*self.get_prefixes(message))(self, message) # type: ignore
 
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
         self.logger.critical("Reloading bot configuration data and all cogs")
-        for ext in self.extensions_to_load:
+        for ext in self._extensions_to_load:
             await self.unload_extension(ext)
-        for ext in self.extensions_to_load:
+        for ext in self._extensions_to_load:
             await self.load_extension(ext)
         await self.generate_help_documentation()
 
     async def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
-        for ext in self.extensions_to_load:
+        for ext in self._extensions_to_load:
             self.logger.debug(f"Loading {ext}.")
             try:
                 await self.load_extension(ext)
@@ -341,7 +332,7 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
-        self.logger.info("Starting the bot")
+        self.logger.info("Loading extensions")
         await self.load_all_extensions()
 
     async def generate_help_documentation(self):
@@ -402,6 +393,8 @@ class Pidroid(commands.Bot): # type: ignore
         """proc1 = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         win_user_name = proc1.stdout.read().decode("utf-8").strip()"""
         proc2 = subprocess.Popen(['git', 'config', 'user.name'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
+        if proc2.stdout is None:
+            return
         git_user_name = proc2.stdout.read().decode("utf-8").strip()
 
         # We do a miniscule amount of trolling

@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
-    from pidroid.cogs.ext.tasks.automod import AutomodTask
 
 
 class InvocationEventHandler(commands.Cog): # type: ignore
@@ -34,7 +33,7 @@ class InvocationEventHandler(commands.Cog): # type: ignore
         raw_configs = await self.client.api.fetch_guild_configurations()
         for config in raw_configs:
             self.client._update_guild_configuration(config.guild_id, config)
-        self.log.debug("Cache filled")
+        self.log.debug("Guild configuration cache filled")
 
         # Generate configurations for guilds that do not already have it
         for guild in self.client.guilds:
@@ -45,7 +44,7 @@ class InvocationEventHandler(commands.Cog): # type: ignore
                 self.log.warn(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
 
         self.client._guild_config_ready.set()
-        self.log.debug("Guild configuration cache filled")
+        self.log.debug("Guild configuration cache ready")
 
 
 async def setup(client: Pidroid) -> None:

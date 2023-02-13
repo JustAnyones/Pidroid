@@ -149,10 +149,9 @@ class TranslationTable(Base): # type: ignore
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
-    def __init__(self, client: Pidroid, dsn: str, debug: bool = False) -> None:
+    def __init__(self, client: Pidroid, dsn: str) -> None:
         self.client = client
         self._dsn = dsn
-        self._debug = debug
         self._http = HTTP(client)
         self.engine: Optional[AsyncEngine] = None
 
@@ -179,7 +178,7 @@ class API:
 
     async def connect(self) -> None:
         """Creates a postgresql database connection."""
-        self.engine = create_async_engine(self._dsn, echo=self._debug)
+        self.engine = create_async_engine(self._dsn, echo=self.client.debugging)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
 
     async def get(self, route: Route) -> dict:

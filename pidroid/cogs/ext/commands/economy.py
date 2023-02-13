@@ -1,21 +1,18 @@
-import dill # type: ignore # nosec
 import json
 import random
-import os
 
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument
 
 from pidroid.client import Pidroid
 from pidroid.constants import BEG_FAILURE_RESPONSES, BEG_SUCCESS_RESPONSES
-from pidroid.cogs.models import exceptions
 from pidroid.cogs.models.categories import RandomCategory
 from pidroid.cogs.utils import http
+from pidroid.cogs.utils.cooldowns import load_command_cooldowns, save_command_cooldowns
 from pidroid.cogs.utils.decorators import command_checks
-from pidroid.cogs.utils.embeds import ErrorEmbed
 from pidroid.cogs.utils.time import humanize
 
-COOLDOWN_FILE_PATH = "./data/beg_cooldowns.p"
 BASE_API_URL = 'https://unbelievaboat.com/api/v1/guilds/365478391719264276/users'
 
 CURRENCY_SYMBOL = "<:theon:658301468637528095>"
@@ -23,21 +20,15 @@ CURRENCY_SYMBOL = "<:theon:658301468637528095>"
 def get_currency(money_amount: int):
     return f"{CURRENCY_SYMBOL}{money_amount:,}"
 
-
 class EconomyCommands(commands.Cog): # type: ignore
     """This class implements a cog which contains interactions with unbelievaboat bot API."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        if os.path.exists(COOLDOWN_FILE_PATH):
-            self.client.logger.info("Restoring cooldown buckets of beg command")
-            with open(COOLDOWN_FILE_PATH, "rb") as f:
-                self.beg._buckets._cache = dill.load(f) # nosec
+        load_command_cooldowns(self.beg, "beg.dill")
 
     def cog_unload(self):
-        self.client.logger.info("Saving cooldown buckets of beg command")
-        with open(COOLDOWN_FILE_PATH, "wb") as f:
-            dill.dump(self.beg._buckets._cache, f)
+        save_command_cooldowns(self.beg, "beg.dill")
 
     @commands.command( # type: ignore
         brief='Beg Pidroid to print some money for you.',
@@ -52,7 +43,7 @@ class EconomyCommands(commands.Cog): # type: ignore
             token = self.client.config['unbelievaboat_api_key']
             headers = {'Authorization': token}
         except KeyError:
-            return await ctx.reply(embed=ErrorEmbed('I could not find an API token for unbelievaboat!'))
+            raise BadArgument("I could not find an API token for unbelievaboat!")
 
         if random.randint(1, 100) >= 75: # nosec 25 %
             cash = random.randint(9410, 78450)
@@ -73,14 +64,12 @@ class EconomyCommands(commands.Cog): # type: ignore
         await ctx.reply(random.choice(BEG_FAILURE_RESPONSES)) # nosec
 
     @beg.error
-    async def clear_error(self, ctx: Context, e):
-        if isinstance(e, commands.CommandOnCooldown): # type: ignore
-            await ctx.reply(f'Quit begging, you may ask me for money again in {humanize(e.retry_after, False, max_units=2)}.')
-        elif isinstance(e, exceptions.ClientIsNotPidroid):
-            self.beg.reset_cooldown(ctx)
-            return
-        else:
-            await ctx.reply(embed=ErrorEmbed(e))
+    async def beg_command_error(self, ctx: Context, error):
+        if isinstance(error, commands.CommandOnCooldown): # type: ignore
+            return await ctx.reply(
+                f'Quit begging, you may ask me for money again in {humanize(error.retry_after, False, max_units=2)}.'
+            )
+        setattr(error, 'unhandled', True)
 
 
 async def setup(client: Pidroid) -> None:

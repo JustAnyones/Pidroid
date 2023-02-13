@@ -4,6 +4,7 @@ import aiohttp
 import asyncio
 import os
 import sys
+import logging
 
 from argparse import ArgumentParser
 from discord.ext import commands
@@ -12,7 +13,7 @@ from discord.ext.commands.context import Context # type: ignore
 # Allows us to not set the Python path
 sys.path.append(os.getcwd())
 
-from pidroid.client import Pidroid
+from pidroid.client import Pidroid, __VERSION__
 from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
 
 # Use uvloop if possible
@@ -29,9 +30,20 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
+# Setup Pidroid level logging
+logger = logging.getLogger("Pidroid")
+logger.setLevel(logging.WARNING)
+if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
+    logger.setLevel(logging.DEBUG)
+ch = logging.StreamHandler()
+formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
+ch.setFormatter(formatter)
+logger.addHandler(ch)
+
+
 def load_env_from_file(path: str) -> None:
-    # TODO: replace with logging
-    print("Loading environment from a file")
+    """Load environment values from the specified file."""
+    logger.info(f"Loading environment from {path} file")
     with open(path) as f:
         for l in f.readlines():
             key, value = l.split("=", 1)
@@ -48,8 +60,16 @@ def config_from_env() -> dict:
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
     prefixes = [p.strip() for p in prefix_string.split(",")]
+    
+    debugging = False
+    if os.environ.get("DEBUGGING", "0").lower() in ['1', 'true']:
+        debugging = True
+        logger.info("Debugging mode is enabled")
+        logger.setLevel(logging.DEBUG)
 
     return {
+        "debugging": debugging,
+        
         "token": os.environ["TOKEN"],
         "prefixes": prefixes,
 
