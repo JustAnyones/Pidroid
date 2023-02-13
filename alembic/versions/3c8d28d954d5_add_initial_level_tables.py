@@ -1,4 +1,4 @@
-"""AAA
+"""Add initial level tables
 
 Revision ID: 3c8d28d954d5
 Revises: e4ab9de39520
