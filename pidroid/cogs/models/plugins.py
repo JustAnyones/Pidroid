@@ -96,6 +96,7 @@ class Plugin:
         self._preview_file = p['preview_file']
         self.min_version = p['min_version']
         self._platforms = p['platforms']
+        self._demonetized = p['demonetized'] == 1    
         # Only available when fetched with API.fetch_plugin_by_id
         if "download_url" in p:
             self._download_url = p["download_url"]
@@ -110,6 +111,8 @@ class Plugin:
             price = "🎁 Free"
         else:
             price = f'{self.price:,} <:diamond:423898110293704724>'
+            if self._demonetized:
+                price += " 🚫"
         footer = f'#{self.id}:{self.version} [{self.revision_id}]'
 
         embed = PidroidEmbed(title=name, url=self.url)
