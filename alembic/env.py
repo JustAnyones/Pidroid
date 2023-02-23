@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from alembic import context
 
+from pidroid.main import get_postgres_dsn
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -32,9 +34,7 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
-dsn = os.getenv("POSTGRES_DSN", None)
-if dsn is None:
-    raise RuntimeError("POSTGRES_DSN environment variable was not set")
+dsn = get_postgres_dsn()
 
 config.file_config.set("alembic", "sqlalchemy.url", dsn)
 

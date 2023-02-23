@@ -64,7 +64,7 @@ class EconomyCommands(commands.Cog): # type: ignore
         await ctx.reply(random.choice(BEG_FAILURE_RESPONSES)) # nosec
 
     @beg.error
-    async def beg_command_error(self, ctx: Context, error):
+    async def on_beg_command_error(self, ctx: Context, error):
         if isinstance(error, commands.CommandOnCooldown): # type: ignore
             return await ctx.reply(
                 f'Quit begging, you may ask me for money again in {humanize(error.retry_after, False, max_units=2)}.'

@@ -12,3 +12,6 @@ data/*
 
 # Virtual environment
 venv/*
+
+# DB files
+db_data/*

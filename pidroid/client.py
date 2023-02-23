@@ -19,8 +19,7 @@ from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from pidroid.cogs.models.case import Case
-from pidroid.cogs.models.categories import get_command_categories, Category, UncategorizedCategory
-from pidroid.cogs.utils.aliases import GuildChannel
+from pidroid.cogs.models.categories import get_command_categories, UncategorizedCategory
 from pidroid.cogs.utils.api import API
 from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.data import PersistentDataManager

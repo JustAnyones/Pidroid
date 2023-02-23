@@ -146,6 +146,15 @@ class TranslationTable(Base): # type: ignore
     detected_language = Column(String)
     translated_string = Column(String)
 
+class GuildReactionRoleTable(Base): # type: ignore
+    __tablename__ = "GuildReactionRoles"
+    
+    id = Column(Integer, primary_key=True)
+    guild_id = Column(BigInteger)
+    
+    role_id = Column(BigInteger)
+    reaction = Column(Text)
+
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
@@ -180,6 +189,9 @@ class API:
         """Creates a postgresql database connection."""
         self.engine = create_async_engine(self._dsn, echo=self.client.debugging)
         self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
+        # Checks if actual connection can be made
+        a = await self.engine.connect()
+        await a.close()
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""

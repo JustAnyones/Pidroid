@@ -4,7 +4,7 @@ Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [d
 
 ## Production use
 
-To use Pidroid in production, first we need to build a [docker](https://www.docker.com) image with this command:
+To use Pidroid in production, first we need to build a Pidroid [docker](https://www.docker.com) image with this command:
 
 ```shell
 docker build . --tag pidroid-bot
@@ -14,11 +14,13 @@ After building the docker image, we need to make sure we have a the configuratio
 
 Pidroid uses a Postgres database to store its information. You can read about setting it up [here](#database).
 
-After making sure our configuration and database is set up, we just need to run the bot in a docker container with the following command:
+After making sure our configuration is complete, we just need to run the bot in a docker container with the following command:
 
 ```shell
 docker-compose up -d
 ```
+
+It will automatically start a postgres database and then run the bot.
 
 ## Development setup
 
@@ -69,7 +71,7 @@ python pidroid/main.py -e config.env
 
 The -e argument specifies which file to use for the environment variables.
 
-## Database
+### Database
 
 You will need a PostgreSQL 9.5 database or higher. You will need to type the following in the psql tool:
 
@@ -100,8 +102,20 @@ This is done to be compatible with Docker containers.
 PREFIXES=
 # Discord bot token
 TOKEN=
-# Postgres DSN string
+
+# DEPRECATED, a postgres DSN string, usually used for connecting to services outside
+# of a docker container.
+# If you are running Pidroid in a docker container, DO NOT SET THIS VARIABLE
 POSTGRES_DSN=
+
+# Pidroid user postgres credentials
+# This is the default configuration for pidroid database
+# on a docker container.
+POSTGRES_USER=pidroid
+POSTGRES_PASSWORD=supersecretpassword
+POSTGRES_DB=pidroid
+POSTGRES_HOST=127.0.0.1
+
 # Github token for making issues on TT repo, optional
 GITHUB_TOKEN=
 # TheoTown API key to interact with backend TheoTown API

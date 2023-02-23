@@ -49,14 +49,33 @@ def load_env_from_file(path: str) -> None:
             key, value = l.split("=", 1)
             os.environ[key] = value.strip()
 
+def get_postgres_dsn() -> str:
+    postgres_dsn = os.environ.get("POSTGRES_DSN", None)
+    if postgres_dsn is None:
+        logger.info("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
+        
+        user = os.environ.get("APOSTGRES_USER", None)
+        password = os.environ.get("APOSTGRES_PASSWORD", None)
+        host = os.environ.get("APOSTGRES_HOST", "127.0.0.1")
+        
+        if user is None or password is None:
+            logger.critical(
+                """Unable to create a postgres DSN string.\n
+                POSTGRES_USER or POSTGRES_PASSWORD environment variable is missing.
+            """)
+            exit()
+        
+        #postgresql+asyncpg://pidroid:1234@127.0.0.1
+        postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
+    logger.debug(postgres_dsn)
+    return postgres_dsn
+
 def config_from_env() -> dict:
 
     if os.environ.get("TOKEN", None) is None:
         exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
     
-
-    if os.environ.get("POSTGRES_DSN", None) is None:
-        exit("No Postgres DSN was specified. Please specify it using the POSTGRES_DSN environment variable.")
+    postgres_dsn = get_postgres_dsn()
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
     prefixes = [p.strip() for p in prefix_string.split(",")]
@@ -73,8 +92,7 @@ def config_from_env() -> dict:
         "token": os.environ["TOKEN"],
         "prefixes": prefixes,
 
-        "mongo_dsn": os.environ["MONGO_DSN"],
-        "postgres_dsn": os.environ.get("POSTGRES_DSN"),
+        "postgres_dsn": postgres_dsn,
 
         "tt_api_key": os.environ.get("TT_API_KEY"),
         "deepl_api_key": os.environ.get("DEEPL_API_KEY"),
