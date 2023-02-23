@@ -1,4 +1,4 @@
-import dill # nosec
+import dill # type: ignore # nosec 
 import logging
 import os
 

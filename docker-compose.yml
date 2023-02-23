@@ -11,12 +11,11 @@ services:
       - config.env
     depends_on:
       - migration
-      - db
 
   migration:
     build: .
     image: pidroid-bot:latest
-    command: alembic upgrade head
+    command: bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; alembic upgrade head'
     env_file:
       - config.env
     depends_on:
@@ -28,6 +27,8 @@ services:
     restart: always
     env_file:
       - config.env
+    environment:
+      - POSTGRES_PASSWORD=postgres
     expose:
       - "5432"
     volumes: 

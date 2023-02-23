@@ -52,22 +52,19 @@ def load_env_from_file(path: str) -> None:
 def get_postgres_dsn() -> str:
     postgres_dsn = os.environ.get("POSTGRES_DSN", None)
     if postgres_dsn is None:
-        logger.info("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
+        logger.debug("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
         
-        user = os.environ.get("APOSTGRES_USER", None)
-        password = os.environ.get("APOSTGRES_PASSWORD", None)
-        host = os.environ.get("APOSTGRES_HOST", "127.0.0.1")
+        user = os.environ.get("DB_USER", None)
+        password = os.environ.get("DB_PASSWORD", None)
+        host = os.environ.get("DB_HOST", "127.0.0.1")
         
         if user is None or password is None:
             logger.critical(
                 """Unable to create a postgres DSN string.\n
-                POSTGRES_USER or POSTGRES_PASSWORD environment variable is missing.
+                DB_USER or DB_PASSWORD environment variable is missing.
             """)
             exit()
-        
-        #postgresql+asyncpg://pidroid:1234@127.0.0.1
         postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
-    logger.debug(postgres_dsn)
     return postgres_dsn
 
 def config_from_env() -> dict:

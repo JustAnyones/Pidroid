@@ -186,7 +186,7 @@ class Pidroid(commands.Bot): # type: ignore
         config = self.guild_configurations.get(guild_id)
         if config is None:
             self.logger.error(f"Failure acquiring guild configuration for {guild_id}")
-            raise BadArgument("Failed to obtain guild configuration, if you're seeing this, something went very wrong!")
+            #raise BadArgument("Failed to obtain guild configuration, if you're seeing this, something went very wrong!")
         return config
     
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:

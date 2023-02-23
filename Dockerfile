@@ -4,7 +4,7 @@ FROM python:3.8-slim-buster
 
 RUN apt-get update && \
     apt-get upgrade -y && \
-    apt-get install -y git
+    apt-get install -y git ffmpeg
 
 WORKDIR /app
 

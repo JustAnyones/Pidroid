@@ -13,6 +13,7 @@ docker build . --tag pidroid-bot
 After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
 
 Pidroid uses a Postgres database to store its information. You can read about setting it up [here](#database).
+By default, running in the docker container will also run the Pidroid postgres database.
 
 After making sure our configuration is complete, we just need to run the bot in a docker container with the following command:
 
@@ -90,6 +91,8 @@ postgresql+asyncpg://pidroid:your_database_password@127.0.0.1
 postgresql+asyncpg is required to specify sqlalchemy to use asyncpg driver.
 You will only need to change the password field and the IP.
 
+**Do note that this is automatically done for you if you're using docker in production mode.**
+
 ## Configuration
 
 Pidroid used to use a `config.json` file at its `./bot` path for its configuration.
@@ -111,10 +114,10 @@ POSTGRES_DSN=
 # Pidroid user postgres credentials
 # This is the default configuration for pidroid database
 # on a docker container.
-POSTGRES_USER=pidroid
-POSTGRES_PASSWORD=supersecretpassword
-POSTGRES_DB=pidroid
-POSTGRES_HOST=127.0.0.1
+DB_USER=pidroid
+DB_PASSWORD=supersecretpassword
+DB_NAME=pidroid
+DB_HOST=db
 
 # Github token for making issues on TT repo, optional
 GITHUB_TOKEN=
