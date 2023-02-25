@@ -26,9 +26,7 @@ class AutomodTask(commands.Cog): # type: ignore
             return
 
         await self.client.wait_until_guild_configurations_loaded()
-        config = self.client.get_guild_configuration(member.guild.id)
-        if config is None:
-            return
+        config = await self.client.fetch_guild_configuration(member.guild.id)
 
         await self.handle_suspicious_member(config, member)
 

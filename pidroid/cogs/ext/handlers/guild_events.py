@@ -15,22 +15,19 @@ class GuildEventHandler(commands.Cog): # type: ignore
     async def on_guild_join(self, guild: Guild):
         await self.client.wait_until_guild_configurations_loaded()
 
-        if self.client.get_guild_configuration(guild.id):
-            return
-
-        config = await self.client.api.insert_guild_configuration(guild.id)
-        self.client._update_guild_configuration(guild.id, config)
+        # Fetching guild configuration will ensure that the
+        # configuration is created, if it didn't exist
+        # and get cached
+        await self.client.fetch_guild_configuration(guild.id)
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_remove(self, guild: Guild):
         await self.client.wait_until_guild_configurations_loaded()
 
-        config = self.client.get_guild_configuration(guild.id)
-        if config is None:
-            return
-
-        await self.client.api.delete_guild_configuration(config._id)
-        self.client._remove_guild_configuration(guild.id)
+        config = await self.client.api.fetch_guild_configuration(guild.id)
+        if config:
+            await self.client.api.delete_guild_configuration(config._id)
+            self.client._remove_guild_configuration(guild.id)
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_role_delete(self, role: Role) -> None:
@@ -38,10 +35,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         await self.client.wait_until_guild_configurations_loaded()
 
         guild_id = role.guild.id
-        config = self.client.get_guild_configuration(guild_id)
-        if config is None:
-            return
-
+        config = await self.client.fetch_guild_configuration(guild_id)
         if config.jail_role == role.id:
             await config.update_jail_role(None)
 
@@ -56,12 +50,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         await self.client.wait_until_guild_configurations_loaded()
 
         guild_id = guild_channel.guild.id
-        if self.client.get_guild_configuration(guild_id):
-            return
-
-        config = self.client.get_guild_configuration(guild_id)
-        if config is None:
-            return
+        config = await self.client.fetch_guild_configuration(guild_id)
         if config.jail_channel == guild_channel.id:
             await config.update_jail_channel(None)
 

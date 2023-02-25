@@ -30,7 +30,7 @@ class LevelCommands(commands.Cog): # type: ignore
         
         assert message.guild is not None
         
-        config = self.client.get_guild_configuration(message.guild.id)
+        config = await self.client.fetch_guild_configuration(message.guild.id)
         
         
         await self.client.api.increase_member_level(message.guild.id, message.author.id, 0)

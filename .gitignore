@@ -1,4 +1,4 @@
-# Bot configuration file
+# Bot configuration files
 *.env
 
 # Python cache
@@ -12,6 +12,3 @@ data/*
 
 # Virtual environment
 venv/*
-
-# DB files
-db_data/*

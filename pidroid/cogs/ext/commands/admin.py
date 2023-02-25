@@ -10,7 +10,6 @@ from typing import List
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import AdministrationCategory, UtilityCategory
 from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.cogs.utils.decorators import command_checks
 
 SETUP_REASON = "Guild jail system setup"
 
@@ -26,16 +25,12 @@ class AdminCommands(commands.Cog): # type: ignore
         invoke_without_command=True
     )
     @commands.has_permissions(administrator=True) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def configuration(self, ctx: Context):
         assert ctx.guild is not None
         if ctx.invoked_subcommand is None:
             guild = ctx.guild
-            data = self.client.get_guild_configuration(guild.id)
-
-            if data is None:
-                raise BadArgument('No configuration was found for the server. Something went horribly wrong.')
+            data = await self.client.fetch_guild_configuration(guild.id)
 
             embed = PidroidEmbed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
 
@@ -62,14 +57,13 @@ class AdminCommands(commands.Cog): # type: ignore
             embed.set_footer(text=f'To edit the configuration, view the available administration commands with {prefixes[0]}help administration.')
             await ctx.reply(embed=embed)
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         brief='Sets up server jail system automatically.\nConfiguration consists out of creating a jail channel, role and setting up the permissions.\nCan be used to automatically set channel permissions.\nRequires administrator permissions.',
         category=AdministrationCategory
     )
     @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True) # type: ignore
     @commands.has_permissions(administrator=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setupjail(self, ctx: Context):
         assert ctx.guild is not None
@@ -126,8 +120,7 @@ class AdminCommands(commands.Cog): # type: ignore
                 action_log.append(f"Set to deny read messages permission for {jail_role.mention} in {cnt} channels")
 
             # Acquire config and submit changes to the database
-            config = self.client.get_guild_configuration(ctx.guild.id)
-            assert config is not None
+            config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
             config.jail_role = jail_role.id
             config.jail_channel = jail_channel.id
@@ -135,7 +128,7 @@ class AdminCommands(commands.Cog): # type: ignore
 
         await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         brief='Sets server jail channel.\nRequires administrator permissions.',
         usage='<jail channel>',
         category=AdministrationCategory
@@ -143,16 +136,14 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setjailchannel(self, ctx: Context, channel: discord.TextChannel):
         assert ctx.guild is not None
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
         await config.update_jail_channel(channel)
         await ctx.reply(f'Jail channel set to {channel.mention}')
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         brief='Sets server jail role.\nRequires administrator permissions.',
         usage='<jail role>',
         category=AdministrationCategory
@@ -160,16 +151,14 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setjailrole(self, ctx: Context, role: discord.Role):
         assert ctx.guild is not None
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
         await config.update_jail_role(role)
         await ctx.reply(f'Jail role set to {role.mention}', allowed_mentions=AllowedMentions(roles=False))
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         brief='Sets server log channel.\nRequires manage server permissions.',
         usage='<log channel>',
         category=AdministrationCategory
@@ -177,16 +166,14 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setlogchannel(self, ctx: Context, channel: discord.TextChannel):
         assert ctx.guild is not None
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
         await config.update_log_channel(channel)
         await ctx.reply(f'Log channel set to {channel.mention}')
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         brief='Sets server bot prefix.\nRequires manage server permission.',
         usage='<prefix>',
         category=AdministrationCategory
@@ -194,7 +181,6 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def setprefix(self, ctx: Context, prefix: str):
         assert ctx.guild is not None
@@ -204,14 +190,13 @@ class AdminCommands(commands.Cog): # type: ignore
         if prefix == "\\":
             raise BadArgument("Prefix cannot be a forbidden character!")
 
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         await config.update_prefixes(prefix)
 
         await ctx.reply(embed=SuccessEmbed(f'My prefix set to \'{prefix}\''))
 
-    @configuration.command(
+    @configuration.command( # type: ignore
         name="toggle-tags",
         brief='Allow or deny everyone from creating tags.\nRequires manage server permission.',
         usage='<true/false>',
@@ -220,12 +205,10 @@ class AdminCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_guild=True) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def toggle_tags(self, ctx: Context, allow_public: bool = False):
         assert ctx.guild is not None
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         if not allow_public:
             allow_public = not config.public_tags
@@ -240,12 +223,10 @@ class AdminCommands(commands.Cog): # type: ignore
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def prefix(self, ctx: Context):
         assert ctx.guild is not None
-        config = self.client.get_guild_configuration(ctx.guild.id)
-        assert config is not None
+        config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         prefixes = config.prefixes or self.client.prefixes
         prefix_str = '**, **'.join(prefixes)

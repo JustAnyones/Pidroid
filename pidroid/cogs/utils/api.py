@@ -761,7 +761,7 @@ class API:
         pass
     
     async def increase_member_level(self, guild_id: int, user_id: int, amount: int):
-        config = self.client.get_guild_configuration(guild_id)
+        config = await self.client.fetch_guild_configuration(guild_id)
         
         pass
 

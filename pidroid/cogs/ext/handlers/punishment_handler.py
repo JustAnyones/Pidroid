@@ -50,8 +50,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         """Handles role-based punishment revocation for new members."""
         await self.client.wait_until_guild_configurations_loaded()
 
-        c = self.client.get_guild_configuration(member.guild.id)
-        assert c is not None
+        c = await self.client.fetch_guild_configuration(member.guild.id)
 
         if c.jail_role is None:
             return
@@ -77,8 +76,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         if changed_roles is None:
             return
 
-        c = self.client.get_guild_configuration(guild_id)
-        assert c is not None
+        c = await self.client.fetch_guild_configuration(guild_id)
 
         if changed_roles[0].id == c.jail_role:
             if await self.client.api.is_currently_jailed(guild_id, after.id):

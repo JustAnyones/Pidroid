@@ -6,7 +6,7 @@ from discord.member import Member
 from pidroid.constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN, CHEESE_EATERS
 from pidroid.cogs.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
 from pidroid.cogs.utils.checks import (
-    TheoTownChecks, guild_has_configuration,
+    TheoTownChecks,
     is_client_pidroid, is_guild_theotown,
     check_can_modify_tags,
     check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
@@ -85,16 +85,6 @@ class command_checks:
         return commands.check(predicate)
 
     @staticmethod
-    def guild_configuration_exists():
-        """Checks whether the command is invoked in a guild with Pidroid configuration."""
-        async def predicate(ctx: Context):
-            assert ctx.guild is not None
-            if not guild_has_configuration(ctx.bot, ctx.guild):
-                raise BadArgument('Server does not have a guild configuration! If you\'re seeing this, something went very wrong.')
-            return True
-        return commands.check(predicate)
-
-    @staticmethod
     def is_junior_moderator(**perms):
         """Checks whether the command is invoked by a junior moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context):
@@ -132,5 +122,5 @@ class command_checks:
     def can_modify_tags():
         """Checks whether the command is invoked by a member who can manage tags."""
         async def predicate(ctx: Context):
-            return check_can_modify_tags(ctx)
+            return await check_can_modify_tags(ctx)
         return commands.check(predicate)

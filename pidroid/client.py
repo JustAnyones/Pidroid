@@ -77,7 +77,6 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.levels',
             'cogs.ext.commands.owner',
             'cogs.ext.commands.reddit',
-            'cogs.ext.commands.slash',
             'cogs.ext.commands.sticker',
             'cogs.ext.commands.tags',
             'cogs.ext.commands.theotown',
@@ -163,46 +162,33 @@ class Pidroid(commands.Bot): # type: ignore
         is no longer needed.
         """
         await self._guild_config_ready.wait()
-
-    @property
-    def guild_config_cache_ready(self) -> bool:
-        """Returns true if the internal guild configuration cache is ready."""
-        return self._guild_config_ready.is_set()
-
-    @property
-    def guild_configurations(self) -> dict:
-        """Returns raw guild configuration dictionary, should not be called."""
-        return self._cached_configurations
-
-    def get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
-        """Returns guild configuration for specified guild."""
-        config = self.guild_configurations.get(guild_id)
-        if config is None:
-            self.logger.error(f"Failure acquiring guild configuration for {guild_id}")
-            #raise BadArgument("Failed to obtain guild configuration, if you're seeing this, something went very wrong!")
-        return config
     
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
+        """Returns the latest available guild configuration from the database.
+
+        If there was no guild configuration found, new configuration will be created and returned.
+
+        The internal guild configuration is also updated.
+        """
         config = await self.api.fetch_guild_configuration(guild_id)
         if config is None:
-            self.logger.warn(f"Could not fetch guild configuration for {guild_id}")
+            self.logger.warn(f"Could not fetch guild configuration for {guild_id}, create new configuration")
             config = await self.api.insert_guild_configuration(guild_id)
-            self._update_guild_configuration(guild_id, config)
+        self._update_guild_configuration(guild_id, config)
         return config
-    
-    async def get_or_fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
-        await self.wait_until_guild_configurations_loaded()
-        config = self.guild_configurations.get(guild_id)
-        if config is None:
-            raise BadArgument(f"Failure acquiring guild configuration for {guild_id}")
-        return config
+
+    def _get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
+        """Returns guild configuration from internal cache."""
+        return self._cached_configurations.get(guild_id)
 
     def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
-        self.guild_configurations[guild_id] = config
-        return self.get_guild_configuration(guild_id) # type: ignore
+        """Updates guild configuration in the internal cache and returns its object."""
+        self._cached_configurations[guild_id] = config
+        return self._get_guild_configuration(guild_id) # type: ignore
 
     def _remove_guild_configuration(self, guild_id: int) -> None:
-        self.guild_configurations.pop(guild_id)
+        """Removes guild configuration from internal cache."""
+        self._cached_configurations.pop(guild_id)
 
     async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
@@ -212,10 +198,7 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def dispatch_log(self, guild: Guild, log: BaseLog):
         """Dispatches a Pidroid log to a guild channel, if applicable."""
-        config = self.get_guild_configuration(guild.id)
-        if config is None:
-            return
-
+        config = await self.fetch_guild_configuration(guild.id)
         if not config.log_channel:
             return
 
@@ -285,13 +268,13 @@ class Pidroid(commands.Bot): # type: ignore
         return role
 
 
-    def get_prefixes(self, message: Message) -> List[str]:
+    async def get_prefixes(self, message: Message) -> List[str]:
         """Returns a string list of prefixes for a message using message's context."""
         if not is_client_pidroid(self):
             return self.prefixes
 
         if message.guild:
-            config = self.get_guild_configuration(message.guild.id)
+            config = self._get_guild_configuration(message.guild.id)
             if config:
                 return config.prefixes or self.prefixes
         return self.prefixes
@@ -299,7 +282,7 @@ class Pidroid(commands.Bot): # type: ignore
     async def get_prefix(self, message: Message):
         """Returns a prefix for client to respond to."""
         await self.wait_until_guild_configurations_loaded()
-        return commands.when_mentioned_or(*self.get_prefixes(message))(self, message) # type: ignore
+        return commands.when_mentioned_or(*await self.get_prefixes(message))(self, message) # type: ignore
 
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.

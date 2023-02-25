@@ -65,7 +65,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
 
 
     # Due to limitation with discord's slash commands, this is hidden
-    @commands.hybrid_group(
+    @commands.hybrid_group( # type: ignore
         name="warnings",
         hidden=True,
         disabled=True
@@ -75,7 +75,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     async def warnings_command(self, ctx: Context):
         pass
 
-    @warnings_command.command(
+    @warnings_command.command( # type: ignore
         name="active",
         brief="Displays active warnings for the specified user.",
         usage="[user]",
@@ -107,7 +107,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         )
         await pages.start()
 
-    @warnings_command.command(
+    @warnings_command.command( # type: ignore
         name="all",
         brief="Displays all warnings ever issued for the specified user.",
         usage="[user]",
@@ -140,7 +140,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         await pages.start()
 
 
-    @commands.hybrid_command(
+    @commands.hybrid_command( # type: ignore
         name="modlogs",
         brief='Displays all moderation logs for the specified user.',
         usage='[user]',

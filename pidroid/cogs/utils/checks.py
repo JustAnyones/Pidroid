@@ -105,10 +105,6 @@ def check_bot_channel_permissions(bot: Member, channel: GuildChannel, **perms) -
 
 
 
-def guild_has_configuration(client: Pidroid, guild: Guild) -> bool:
-    """Returns true if the specified guild has a Pidroid guild configuration."""
-    return client.get_guild_configuration(guild.id) is not None
-
 def is_client_pidroid(client: Pidroid) -> bool:
     """Returns true if the current client user is Pidroid."""
     assert client.user is not None
@@ -229,7 +225,7 @@ def has_moderator_guild_permissions(ctx: Context, **perms) -> bool:
 
 
 
-def check_can_modify_tags(ctx: Context):
+async def check_can_modify_tags(ctx: Context):
     """Checks whether author has the permission to modify tags.
 
     It first checks if public can edit tags,
@@ -240,8 +236,8 @@ def check_can_modify_tags(ctx: Context):
     assert isinstance(ctx.author, Member)
 
     client: Pidroid = ctx.bot
-    conf = client.get_guild_configuration(ctx.guild.id)
-    if conf and conf.public_tags:
+    conf = await client.fetch_guild_configuration(ctx.guild.id)
+    if conf.public_tags:
         return True
 
     if is_guild_theotown(ctx.guild):

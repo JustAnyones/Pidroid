@@ -37,7 +37,7 @@ class InvocationEventHandler(commands.Cog): # type: ignore
 
         # Generate configurations for guilds that do not already have it
         for guild in self.client.guilds:
-            config = self.client.get_guild_configuration(guild.id)
+            config = self.client._get_guild_configuration(guild.id)
             if config is None:
                 config = await self.client.api.insert_guild_configuration(guild.id)
                 self.client._update_guild_configuration(guild.id, config)

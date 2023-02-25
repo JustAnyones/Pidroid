@@ -201,7 +201,7 @@ class TagCommands(commands.Cog): # type: ignore
         return attachment.url
 
 
-    @commands.hybrid_group(
+    @commands.hybrid_group( # type: ignore
         name="tag",
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
@@ -235,7 +235,7 @@ class TagCommands(commands.Cog): # type: ignore
             return await ctx.reply(message_content, allowed_mentions=ALLOWED_MENTIONS)
 
 
-    @tag_command.command(
+    @tag_command.command( # type: ignore
         name="list",
         brief="Returns a list of available server tags.",
         category=TagCategory
@@ -255,7 +255,7 @@ class TagCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=embed)
 
 
-    @tag_command.command(
+    @tag_command.command( # type: ignore
         name="info",
         brief='Returns information about a server tag.',
         usage='<tag name>',
@@ -283,7 +283,7 @@ class TagCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=embed)
 
 
-    @tag_command.command(
+    @tag_command.command( # type: ignore
         name="raw",
         brief='Returns raw tag content.',
         usage='<tag name>',
@@ -300,7 +300,7 @@ class TagCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}"), file=file)
 
 
-    @tag_command.command(
+    @tag_command.command( # type: ignore
         name="create",
         brief="Create a server tag.",
         usage="<tag name> <tag content>",
@@ -329,7 +329,7 @@ class TagCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
 
 
-    @tag_command.command(
+    @tag_command.command( # type: ignore
         name="edit",
         brief="Edit a server tag.",
         usage="<tag name> <tag content>",

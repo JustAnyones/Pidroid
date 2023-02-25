@@ -83,7 +83,8 @@ class HelpCommand(commands.Cog): # type: ignore
     async def help(self, ctx: Context, *, search_string: Optional[str] = None):
         assert self.client.user is not None
 
-        prefix = self.client.get_prefixes(ctx.message)[0]
+        prefixes = await self.client.get_prefixes(ctx.message)
+        prefix = prefixes[0]
         # Would ideally want to cache these
         command_object_list = [c for c in self.client.walk_commands()]
         category_object_list = self.client.command_categories

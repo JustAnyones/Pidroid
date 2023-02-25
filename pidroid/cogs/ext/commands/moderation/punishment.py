@@ -355,13 +355,10 @@ class PunishmentInteraction(ui.View):
         self.jail_role: Optional[Role] = None
 
     async def initialize(self):
-        client = self._ctx.bot
-        assert isinstance(client, Pidroid)
-        c = client.get_guild_configuration(self.guild.id)
-        assert c is not None
+        config = await self._client.fetch_guild_configuration(self.guild.id)
 
-        if c.jail_role is not None:
-            role = await self._client.get_or_fetch_role(self.guild, c.jail_role)
+        if config.jail_role is not None:
+            role = await self._client.get_or_fetch_role(self.guild, config.jail_role)
             if role is not None:
                 self.jail_role = role
 
@@ -741,7 +738,6 @@ class ModeratorCommands(commands.Cog): # type: ignore
     )
     @app_commands.describe(user="Member or user you are trying to punish.")
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def moderation_menu_command(
         self,
@@ -751,8 +747,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         assert isinstance(ctx.message.author, Member)
         
-        conf = self.client.get_guild_configuration(ctx.guild.id)
-        assert conf is not None
+        conf = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         # Check initial permissions
         if not is_guild_moderator(ctx.message.author):
@@ -810,7 +805,6 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @app_commands.describe(member="Member you are trying to suspend.")
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
     @command_checks.is_junior_moderator(moderate_members=True)
-    @command_checks.guild_configuration_exists()
     @commands.guild_only() # type: ignore
     async def suspend_command(
         self,
@@ -821,8 +815,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         assert isinstance(ctx.message.author, Member)
         assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable))
         
-        conf = self.client.get_guild_configuration(ctx.guild.id)
-        assert conf is not None
+        conf = await self.client.fetch_guild_configuration(ctx.guild.id)
         
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
