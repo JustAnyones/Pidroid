@@ -25,7 +25,7 @@ class AutomodTask(commands.Cog): # type: ignore
         if member.bot:
             return
 
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
         config = self.client.get_guild_configuration(member.guild.id)
         if config is None:
             return

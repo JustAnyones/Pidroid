@@ -84,7 +84,7 @@ class NoIdea(commands.Cog): # type: ignore
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
         now = utcnow()
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
         
         # Detect timeout
         if not before.is_timed_out() and after.is_timed_out():
@@ -107,7 +107,7 @@ class NoIdea(commands.Cog): # type: ignore
     @commands.Cog.listener()
     async def on_raw_member_remove(self, payload: RawMemberRemoveEvent):
         now = utcnow()
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
         audit_log = await self.find_recent_audit_log(payload.guild_id, payload.user.id, AuditLogAction.kick, now)
         if audit_log is None:
             return
@@ -127,7 +127,7 @@ class NoIdea(commands.Cog): # type: ignore
     @commands.Cog.listener()
     async def on_member_ban(self, guild: Guild, user: Union[Member, User]):
         now = utcnow()
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
         audit_log = await self.find_recent_audit_log(guild.id, user.id, AuditLogAction.ban, now)
         if audit_log is None:
             return
@@ -143,7 +143,7 @@ class NoIdea(commands.Cog): # type: ignore
     @commands.Cog.listener()
     async def on_member_unban(self, guild: Guild, user: User):
         now = utcnow()
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
         audit_log = await self.find_recent_audit_log(guild.id, user.id, AuditLogAction.unban, now)
         if audit_log is None:
             return

@@ -87,28 +87,27 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.commands.moderation.punishment',
             'cogs.ext.commands.moderation.information',
 
-            # Events
-            'cogs.ext.events.copypasta',
-            'cogs.ext.events.events_handler',
-            'cogs.ext.events.guild_events',
-            'cogs.ext.events.initialization',
-            'cogs.ext.events.minecraft',
-            'cogs.ext.events.reaction_handler',
-            'cogs.ext.events.translator',
-            
-            'cogs.ext.events.audit_log_handler',
+            # Extensions related to handling or responding
+            # to certain events and running tasks
+            'cogs.ext.handlers.audit_log_handler',
+            'cogs.ext.handlers.automod',
+            'cogs.ext.handlers.guild_events',
+            'cogs.ext.handlers.initialization',
+            'cogs.ext.handlers.punishment_handler',
+            'cogs.ext.handlers.thread_archiver',
 
-            # Tasks
-            'cogs.ext.tasks.archive_threads',
-            'cogs.ext.tasks.automod',
-            'cogs.ext.tasks.cronjobs',
-            'cogs.ext.tasks.forum_messages',
-            'cogs.ext.tasks.guild_statistics',
-            'cogs.ext.tasks.plugin_store',
-            'cogs.ext.tasks.punishment_handler',
+            # TheoTown specific handler extensions
+            'cogs.ext.handlers.theotown.chat_translator',
+            'cogs.ext.handlers.theotown.copypasta',
+            'cogs.ext.handlers.theotown.cronjobs',
+            'cogs.ext.handlers.theotown.event_channel_handler',
+            'cogs.ext.handlers.theotown.forum_message_handler',
+            'cogs.ext.handlers.theotown.guild_statistics',
+            'cogs.ext.handlers.theotown.plugin_store',
+            'cogs.ext.handlers.theotown.reaction_handler',
 
-            # Error handler
-            'cogs.ext.error_handler',
+            # Load the error handler last
+            'cogs.ext.handlers.error_handler',
 
             # Debugging tool jishaku
             'jishaku'
@@ -156,14 +155,6 @@ class Pidroid(commands.Bot): # type: ignore
         return f"{version_str} {self.client_version.releaselevel} {self.client_version.commit_id}"
 
     async def wait_until_guild_configurations_loaded(self):
-        """Waits until the internal guild configuration cache is ready.
-
-        It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()
-        is no longer needed.
-        """
-        await self._guild_config_ready.wait()
-
-    async def wait_guild_config_cache_ready(self):
         """Waits until the internal guild configuration cache is ready.
 
         It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()

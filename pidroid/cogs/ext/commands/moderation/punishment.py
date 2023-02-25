@@ -25,7 +25,7 @@ from discord.file import File
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, TypedDict
 
 from pidroid.client import Pidroid
-from pidroid.cogs.ext.error_handler import notify
+from pidroid.cogs.ext.handlers.error_handler import notify
 from pidroid.cogs.models.case import Ban, Kick, Timeout, Jail, Warning
 from pidroid.cogs.models.categories import ModerationCategory
 from pidroid.cogs.models.exceptions import InvalidDuration, MissingUserPermissions

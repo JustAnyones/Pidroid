@@ -43,12 +43,12 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
     @check_punishments.before_loop
     async def before_check_punishments(self) -> None:
         """Runs before check_punishment task to ensure that the task is allowed to run."""
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
     @commands.Cog.listener() # type: ignore
     async def on_member_join(self, member: discord.Member) -> None:
         """Handles role-based punishment revocation for new members."""
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         c = self.client.get_guild_configuration(member.guild.id)
         assert c is not None
@@ -70,7 +70,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
     @commands.Cog.listener() # type: ignore
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
         """Handles jail and mute role removal."""
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         guild_id = before.guild.id
         changed_roles = list(set(before.roles) - set(after.roles)) or None

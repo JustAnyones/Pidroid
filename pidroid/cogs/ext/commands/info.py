@@ -14,7 +14,7 @@ from typing import Union, Optional
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
-from pidroid.cogs.ext.error_handler import notify
+from pidroid.cogs.ext.handlers.error_handler import notify
 from pidroid.cogs.models.categories import InformationCategory
 from pidroid.cogs.utils.checks import is_guild_moderator, is_guild_administrator
 from pidroid.cogs.utils.embeds import PidroidEmbed

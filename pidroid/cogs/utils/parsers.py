@@ -27,10 +27,3 @@ def truncate_string(string: str, max_length: int = 2048, replace_value: str = '.
     if len(string) > max_length:
         return string[:max_length - len(replace_value)] + replace_value
     return string
-
-
-def setup(client):
-    pass
-
-def teardown(client):
-    pass

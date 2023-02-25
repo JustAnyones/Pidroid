@@ -116,7 +116,7 @@ class TextParser:
         return ParserFlags.NORMAL, self.text
 
 class TranslationEventHandler(commands.Cog): # type: ignore
-    """This class implements a cog for event handling related to TheoTown translations."""
+    """This class implements a cog for handling TheoTown guild chat translations."""
 
     def __init__(self, client: Pidroid):
         self.client = client

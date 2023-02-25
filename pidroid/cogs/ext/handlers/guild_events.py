@@ -13,7 +13,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_join(self, guild: Guild):
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         if self.client.get_guild_configuration(guild.id):
             return
@@ -23,7 +23,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_remove(self, guild: Guild):
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         config = self.client.get_guild_configuration(guild.id)
         if config is None:
@@ -35,7 +35,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
     @commands.Cog.listener() # type: ignore
     async def on_guild_role_delete(self, role: Role) -> None:
         """Handles configuration updates based on role removals."""
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         guild_id = role.guild.id
         config = self.client.get_guild_configuration(guild_id)
@@ -53,7 +53,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         if not isinstance(guild_channel, TextChannel):
             return
 
-        await self.client.wait_guild_config_cache_ready()
+        await self.client.wait_until_guild_configurations_loaded()
 
         guild_id = guild_channel.guild.id
         if self.client.get_guild_configuration(guild_id):

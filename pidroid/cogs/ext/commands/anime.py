@@ -11,7 +11,7 @@ from typing import List, Union, Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import JESSE_ID
-from pidroid.cogs.ext.error_handler import notify
+from pidroid.cogs.ext.handlers.error_handler import notify
 from pidroid.cogs.utils.decorators import command_checks
 from pidroid.cogs.utils import http
 from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed

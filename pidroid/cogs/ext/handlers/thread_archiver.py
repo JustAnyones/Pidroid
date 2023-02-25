@@ -8,7 +8,7 @@ from pidroid.cogs.utils.time import utcnow
 
 
 class ThreadTasks(commands.Cog): # type: ignore
-    """This class implements a cog for handling of Threads that get archived after some time."""
+    """This class implements a cog for automatic handling of threads that get archived after some time."""
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
