@@ -9,6 +9,8 @@ from pidroid.cogs.utils.http import Route
 from pidroid.cogs.utils.parsers import truncate_string
 from pidroid.cogs.utils.time import timestamp_to_datetime
 
+MESSAGE_FEED_CHANNEL_ID = 707561286820692039
+
 class ForumMessageTask(commands.Cog): # type: ignore
     """This class implements a cog for handling forum PMs to Pidroid user."""
 
@@ -24,7 +26,7 @@ class ForumMessageTask(commands.Cog): # type: ignore
     async def fetch_messages(self) -> None:
         try:
             response = await self.client.api.get(Route("/private/forum/fetch_unread_messages"))
-            channel = await self.client.get_or_fetch_channel(707561286820692039)
+            channel = await self.client.get_or_fetch_channel(MESSAGE_FEED_CHANNEL_ID)
             assert isinstance(channel, TextChannel)
 
             for message in response["data"]:

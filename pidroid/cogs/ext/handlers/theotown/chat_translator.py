@@ -48,8 +48,8 @@ LANGUAGE_MAPPING = {
     "UK": "Ukrainian"
 }
 
-FEED_CHANNEL = 943920969637040140
-SOURCE_CHANNEL = 692830641728782336
+FEED_CHANNEL_ID = 943920969637040140
+SOURCE_CHANNEL_ID = 692830641728782336
 
 CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
@@ -161,7 +161,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
             and self.auth_key is not None
             and message.guild is not None
             and not message.author.bot
-            and message.channel.id == SOURCE_CHANNEL
+            and message.channel.id == SOURCE_CHANNEL_ID
         )
 
     async def translate_message(self, message: Message, clean_text: str) -> List[dict]:
@@ -198,7 +198,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # Try to cache the channel object
         if self.channel is None:
-            channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL)
+            channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL_ID)
             if channel is None:
                 self.client.logger.warning("Translation output channel is None!")
             assert isinstance(channel, TextChannel)

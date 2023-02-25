@@ -7,8 +7,9 @@ from discord.message import Message
 from discord.raw_models import RawReactionActionEvent
 
 from pidroid.client import Pidroid
-from pidroid.constants import EVENTS_CHANNEL
 from pidroid.cogs.utils.checks import TheoTownChecks as TTChecks, is_guild_moderator, is_guild_theotown
+
+EVENTS_CHANNEL_ID = 371731826601099264
 
 class EventChannelHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
@@ -26,7 +27,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
         assert message.guild is not None
         assert message.channel is not None
 
-        if message.channel.id != EVENTS_CHANNEL:
+        if message.channel.id != EVENTS_CHANNEL_ID:
             return
 
         if isinstance(message.author, discord.User):
@@ -47,7 +48,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
             return
 
         # Ignore if outside of events channel
-        if payload.channel_id != EVENTS_CHANNEL:
+        if payload.channel_id != EVENTS_CHANNEL_ID:
             return
 
         channel = self.client.get_or_fetch_channel(payload.channel_id)

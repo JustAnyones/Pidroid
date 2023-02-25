@@ -14,7 +14,6 @@ from discord.voice_client import VoiceClient
 from typing import Optional
 
 from pidroid.client import Pidroid
-from pidroid.constants import FACTS
 from pidroid.cogs.models.categories import RandomCategory
 from pidroid.cogs.utils.checks import check_bot_channel_permissions
 from pidroid.cogs.utils.decorators import command_checks
@@ -34,6 +33,30 @@ PINGU_RESPONSES = [
     ('NOOT NOOT!', Resource('pingunoot.gif')),
     ('Spotify premium be like:', Resource('pingumusic.gif')),
     ('NOOT NOOT',  Resource('pingu.png'))
+]
+
+FUN_FACTS = [
+    'Javascript isn\'t the greatest programming language in the world, but at least it counts its arrays from 0 unlike some other languages...',
+    'RemainsStay is a lovely sloth administrator of TheoTown server.',
+    'Ene7 is our detective pingu.',
+    'Evan? Oh, you mean that helpful firetruck. Yeah, he\'s awesome.',
+    'Lobby is an entranceway or foyer in a building. What? That\'s not what Lobby is?',
+    'I\'ve heard a user by the name of The26 likes ducks. I suggest you send them a duck picture.',
+    'Yo, Q||_REMOVED_||02, do you know where I can get some of them wide monitors you have?',
+    'KolaKattz? Nope, never heard of him. Have you?',
+    'I have multiple brothers, one of them is named Pidroid Beta. Perhaps you\'ve met him already?',
+    'This bot is built using discord.py wrapper made by an awesome guy called Rapptz.',
+    'Man, the other day I was searching for some medic bags and I couldn\'t find any. They are all gone!',
+    'Yes, *kentucky* fried chicken is indeed my good friend',
+    'Did I ever tell you the definition of insanity? No? Welp, I can\'t just do it now!',
+    'Lucas King is a great musician with the great soundtrack he made for the game.',
+    'NOLOGIC? ah, it is a secret gamemode which is broken in every way possible. It very familiar to sandbox mode.',
+    'This fact feature was introduced in version 2.8.0 of Pidroid, with later versions expanding the facts.',
+    'January 15th is Fire Truck Appreciation Day!',
+    'Jesse does indeed like to talk, he doesn\'t like starting the conversation though.',
+    'The name of DSA agency has no meaning.',
+    'The name Theo comes from a previous developer of the game named theotheoderich.',
+    'Ever wanted to reset your in-game progress and get an achievement for that? Just open the developer console of the game and run ``rm -rf /theotown``'
 ]
 
 def colour_from_hex(hex_str: str) -> Colour:
@@ -176,7 +199,7 @@ class FunCommands(commands.Cog): # type: ignore
     @commands.cooldown(rate=2, per=6, type=commands.BucketType.user) # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def fact(self, ctx: Context):
-        await ctx.reply(random.choice(FACTS)) # nosec
+        await ctx.reply(random.choice(FUN_FACTS)) # nosec
 
     @commands.command( # type: ignore
         brief='Calls a cloaker to kickdrop your friends in a voice channel.',
