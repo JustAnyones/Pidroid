@@ -49,18 +49,3 @@ REFUSE_COMMAND_RESPONSES = [
     'You may not run your command here.',
     'Sorry, I cannot do that here.'
 ]
-
-# Used for beg command of the economy cog
-BEG_SUCCESS_RESPONSES = [
-    'Ugh, fine, I guess you are my little pogchamp, come here, I\'ll give you %cash%.',
-    'I am feeling nice today, so here, have a handsome sum of %cash%!',
-    'Pssst, have some %cash%, because you\'re so nice to talk to!',
-    'Your prayers have been answered. You may now have %cash%!'
-]
-
-BEG_FAILURE_RESPONSES = [
-    'I wish I could give you some shinies, but I won\'t.',
-    'Congratulations, you did beg me for the shiny theons, however I do not feel generous this time.',
-    'I apologize, I gave my funds to someone else. Maybe next time?',
-    'Uh, oh, I have an important meeting to attend. Sorry, I\'ll catch you later.'
-]

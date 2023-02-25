@@ -305,9 +305,15 @@ class Pidroid(commands.Bot): # type: ignore
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
         self.logger.critical("Reloading bot configuration data and all cogs")
+        is_pidroid = is_client_pidroid(self)
         for ext in self._extensions_to_load:
+            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+                continue
             await self.unload_extension(ext)
         for ext in self._extensions_to_load:
+            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+                self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
+                continue
             await self.load_extension(ext)
         await self.generate_help_documentation()
 
