@@ -3,7 +3,6 @@ from discord.ext import tasks, commands # type: ignore
 from discord.threads import Thread
 
 from pidroid.client import Pidroid
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.time import utcnow
 
 
@@ -33,7 +32,7 @@ class ThreadTasks(commands.Cog): # type: ignore
                 if isinstance(e, NotFound):
                     # If thread channel was deleted completely
                     if e.code == 10003:
-                        self.client.logger.info("Thread channel does not exist, deleting from the database")
+                        self.client.logger.warning("Thread channel does not exist, deleting entry from the database")
                         await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
                 continue
 
@@ -43,10 +42,8 @@ class ThreadTasks(commands.Cog): # type: ignore
 
     @archive_threads.before_loop
     async def before_archive_threads(self) -> None:
-        """Runs before archive_threads task to ensure that the task is allowed to run."""
+        """Runs before archive_threads task to ensure that the task is ready to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
-            self.archive_threads.cancel()
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(ThreadTasks(client))

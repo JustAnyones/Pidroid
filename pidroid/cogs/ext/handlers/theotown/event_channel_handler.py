@@ -8,7 +8,7 @@ from discord.raw_models import RawReactionActionEvent
 
 from pidroid.client import Pidroid
 from pidroid.constants import EVENTS_CHANNEL
-from pidroid.cogs.utils.checks import TheoTownChecks as TTChecks, is_client_pidroid, is_guild_moderator, is_guild_theotown
+from pidroid.cogs.utils.checks import TheoTownChecks as TTChecks, is_guild_moderator, is_guild_theotown
 
 class EventChannelHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
@@ -18,9 +18,6 @@ class EventChannelHandler(commands.Cog): # type: ignore
     @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message):
         """Add reactions to new messages in the events channel."""
-        if not is_client_pidroid(self.client):
-            return
-
         if message.author.bot:
             return
 
@@ -46,9 +43,6 @@ class EventChannelHandler(commands.Cog): # type: ignore
     @commands.Cog.listener() # type: ignore
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
         """Removes reactions from users which are not allowed to vote on submissions."""
-        if not is_client_pidroid(self.client):
-            return
-
         if not payload.member:
             return
 

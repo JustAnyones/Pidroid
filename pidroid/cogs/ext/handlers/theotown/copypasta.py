@@ -57,7 +57,10 @@ AMONG_US_COPYPASTA: str = (
 )
 
 class CopypastaEventHandler(commands.Cog): # type: ignore
-    """This class implements a cog for handling invocation of copypastas and other memes invoked by events like on_message."""
+    """
+    This class implements a cog for handling invocation of copypastas and other memes
+    invoked by events like on_message in the TheoTown guild.
+    """
 
     def __init__(self, client: Pidroid):
         self.client = client

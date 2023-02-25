@@ -5,7 +5,6 @@ from discord.ext import tasks, commands # type: ignore
 from typing import List
 
 from pidroid.client import Pidroid
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.parsers import truncate_string
 from pidroid.cogs.utils.time import timedelta_to_datetime
 
@@ -77,10 +76,8 @@ class PluginStoreTasks(commands.Cog): # type: ignore
 
     @retrieve_new_plugins.before_loop
     async def before_new_plugin_retriever(self) -> None:
-        """Runs before retrieve_new_plugins task to ensure that the task is allowed to run."""
+        """Runs before retrieve_new_plugins task to ensure that the task is ready to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
-            self.retrieve_new_plugins.cancel()
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(PluginStoreTasks(client))

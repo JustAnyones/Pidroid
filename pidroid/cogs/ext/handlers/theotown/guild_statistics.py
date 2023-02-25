@@ -2,7 +2,6 @@ from discord.ext import tasks, commands # type: ignore
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.http import Route
 
 class GuildStatisticsTask(commands.Cog): # type: ignore
@@ -32,10 +31,8 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
 
     @update_statistics.before_loop
     async def before_update_statistics(self) -> None:
-        """Runs before update_statistics task to ensure that the task is allowed to run."""
+        """Runs before update_statistics task to ensure that the task is ready to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
-            self.update_statistics.cancel()
 
 
 async def setup(client: Pidroid) -> None:

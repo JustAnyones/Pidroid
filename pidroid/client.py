@@ -97,6 +97,8 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
+            # NOTE: these handlers are not loaded if current
+            # client ID is not Pidroid.
             'cogs.ext.handlers.theotown.chat_translator',
             'cogs.ext.handlers.theotown.copypasta',
             'cogs.ext.handlers.theotown.cronjobs',
@@ -311,8 +313,14 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
+        # By now, we should be logged in
+        is_pidroid = is_client_pidroid(self)
+
         for ext in self._extensions_to_load:
             self.logger.debug(f"Loading {ext}.")
+            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+                self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
+                continue
             try:
                 await self.load_extension(ext)
                 self.logger.debug(f"Successfully loaded {ext}.")

@@ -4,7 +4,6 @@ from discord.utils import format_dt
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_FORUM_URL
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.http import Route
 from pidroid.cogs.utils.parsers import truncate_string
@@ -50,10 +49,8 @@ class ForumMessageTask(commands.Cog): # type: ignore
 
     @fetch_messages.before_loop
     async def before_fetch_messages(self) -> None:
-        """Runs before archive_threads task to ensure that the task is allowed to run."""
+        """Runs before archive_threads task to ensure that the task is ready to run."""
         await self.client.wait_until_ready()
-        if not is_client_pidroid(self.client):
-            self.fetch_messages.cancel()
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(ForumMessageTask(client))

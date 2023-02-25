@@ -9,7 +9,6 @@ from discord.utils import escape_markdown
 
 from pidroid.client import Pidroid
 from pidroid.cogs.utils import http
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.parsers import clean_inline_translations
 
@@ -27,12 +26,9 @@ class CronjobTask(commands.Cog): # type: ignore
         """Ensure that cron job tasks are cancelled on cog unload."""
         self.monthly_plugin_cronjob.cancel()
 
-    async def start_cronjob(self, cronjob: aiocron.Cron, cron_name: str = "Generic", require_pidroid=True) -> None:
+    async def start_cronjob(self, cronjob: aiocron.Cron, cron_name: str = "Generic") -> None:
         """Creates a new cronjob task with specified parameters."""
         await self.client.wait_until_ready()
-
-        if require_pidroid and not is_client_pidroid(self.client):
-            return
 
         try:
             self.client.logger.info(f"{cron_name} cron job task started")
