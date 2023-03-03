@@ -88,11 +88,11 @@ class Pidroid(commands.Bot): # type: ignore
 
             # Extensions related to handling or responding
             # to certain events and running tasks
-            'cogs.ext.handlers.audit_log_handler',
             'cogs.ext.handlers.automod',
             'cogs.ext.handlers.guild_events',
             'cogs.ext.handlers.initialization',
             'cogs.ext.handlers.punishment_handler',
+            'cogs.ext.handlers.punishment_listener',
             'cogs.ext.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
