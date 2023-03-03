@@ -397,16 +397,16 @@ class PunishmentInteraction(ui.View):
         assert self._punishment is not None
         self._punishment.reason = reason
 
-    async def _update_view(self, interaction: Optional[Interaction]) -> None:
+    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []) -> None:
         """Updates the original interaction response message.
         
         If interaction object is not provided, then the message itself will be edited."""
         if interaction is None:
             assert self._message is not None
             with suppress(NotFound):
-                await self._message.edit(embed=self._embed, view=self)
+                await self._message.edit(embed=self._embed, view=self, attachments=attachments)
         else:
-            await interaction.response.edit_message(embed=self._embed, view=self)
+            await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
 
     """Checks"""
 
@@ -578,7 +578,11 @@ class PunishmentInteraction(ui.View):
             else:
                 await self.punishment.issue()
             # Regardless, we clean up
-            return await self.finish_interface(interaction, self.punishment.public_message_issue_embed)
+            return await self.finish_interface(
+                interaction,
+                self.punishment.public_message_issue_embed,
+                self.punishment.public_message_issue_file
+            )
 
         # Otherwise, cancel the interaction
         await self.cancel_interface(interaction)
@@ -600,13 +604,21 @@ class PunishmentInteraction(ui.View):
         self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
-    async def finish_interface(self, interaction: Optional[Interaction], embed: Optional[Embed] = None) -> None:
+    async def finish_interface(
+        self,
+        interaction: Optional[Interaction],
+        embed: Optional[Embed] = None,
+        file: Optional[File] = None
+    ) -> None:
         """Removes all buttons and updates the interface. No more calls can be done to the interface."""
         self.remove_items() # Remove all buttons
         # If embed is provided, update it
         if embed:
             self._embed = embed
-        await self._update_view(interaction) # Update message with latest information
+        files = []
+        if file:
+            files.append(file)            
+        await self._update_view(interaction, files) # Update message with latest information
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
 

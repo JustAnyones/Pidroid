@@ -6,7 +6,6 @@ import discord
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord.embeds import Embed
-from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.file import File
 from discord.guild import Guild
@@ -14,11 +13,10 @@ from discord.member import Member
 from discord.role import Role
 from discord.user import User
 from discord.utils import format_dt
-from discord import AuditLogEntry
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from pidroid.cogs.utils.aliases import GuildTextChannel
-from pidroid.cogs.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.file import Resource
 from pidroid.cogs.utils.paginators import ListPageSource, PidroidPages
 from pidroid.cogs.utils.time import delta_to_datetime, humanize, time_since, utcnow
@@ -272,23 +270,6 @@ class BasePunishment:
         """Removes all punishments of specified type for the current user."""
         await self._api.revoke_cases_by_type(type, self.guild.id, self.user.id)
 
-    """Would rather stick these user notification features into an event listener of sorts."""
-    async def _notify_chat(self, message: str, image_file: Optional[File] = None):
-        if self.send_message_to_channel or self._channel is None:
-            return
-
-        embed = SuccessEmbed(message)
-        if self.case:
-            embed.title = f"Case #{self.case.case_id}"
-
-        try:
-            if image_file is not None:
-                embed.set_image(url=f"attachment://{image_file.filename}")
-                return await self._channel.send(embed=embed, file=image_file)
-            await self._channel.send(embed=embed)
-        except Exception: # nosec
-            pass
-
     def _set_user(self, user: DiscordUser) -> None:
         if isinstance(user, Member):
             self.user = user._user
@@ -314,6 +295,10 @@ class BasePunishment:
             raise BadArgument("Case object was not retrieved")
         embed = Embed(title=f"Case #{self.case.case_id}", color=discord.Color.green())
         return embed
+    
+    @property
+    def public_message_issue_file(self) -> Optional[File]:
+        return None
     
     @property
     def public_message_revoke_embed(self) -> Embed:
@@ -520,6 +505,7 @@ class Jail(BasePunishment):
         embed = super().public_message_issue_embed
         if self._kidnapping:
             embed.description = f"{self.user_name} was kidnapped"
+            embed.set_image(url=f"attachment://bus.png")
         else:
             embed.description = f"{self.user_name} was jailed"
         if self.reason:
@@ -527,6 +513,10 @@ class Jail(BasePunishment):
         if self.expiration_date:
             embed.description += f"\nExpires {format_dt(self.expiration_date, 'R')}."
         return embed
+    
+    @property
+    def public_message_issue_file(self) -> File:
+        return File(Resource('bus.png'))
     
     @property
     def public_message_revoke_embed(self) -> Embed:
@@ -545,13 +535,7 @@ class Jail(BasePunishment):
         """Jails the member."""
         await self.user.add_roles(role, reason=self.audit_log_issue_reason) # type: ignore
         self.case = await self.create_entry()
-
         self._api.emit("on_jail_issued", self)
-        
-        # TODO: remove
-        if self._kidnapping:
-            await self._notify_chat(f"{self.user_name} was kidnapped!", image_file=discord.File(Resource('bus.png')))
-            return self.case
         return self.case
 
     async def revoke_entry(self) -> None:
