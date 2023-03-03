@@ -85,25 +85,6 @@ class SuggestionTable(Base): # type: ignore
     date_submitted = Column(DateTime(timezone=True), default=func.now())
     attachments = Column(ARRAY(Text), server_default="{}")
 
-class LevelRewardsTable(Base): # type: ignore
-    __tablename__ = "LevelRewards"
-    
-    id = Column(BigInteger, primary_key=True)
-    guild_id = Column(BigInteger)
-    level = Column(Integer)
-    role_id = Column(BigInteger)
-    
-class UserLevelsTable(Base): # type: ignore
-    __tablename__ = "UserLevels"
-    
-    id = Column(BigInteger, primary_key=True)
-    guild_id = Column(BigInteger)
-    user_id = Column(BigInteger)
-    total_xp = Column(BigInteger)
-    current_xp = Column(BigInteger)
-    messages_sent = Column(BigInteger)
-    level = Column(BigInteger)
-
 class TagTable(Base): # type: ignore
     __tablename__ = "Tags"
 
@@ -129,6 +110,7 @@ class GuildConfigurationTable(Base): # type: ignore
     suspicious_usernames = Column(ARRAY(Text), server_default="{}")
     public_tags = Column(Boolean, server_default="false")
     punishing_moderators = Column(Boolean, server_default="false")
+    appeal_url = Column(String, nullable=True)
     
     # Leveling system related
     xp_system_active = Column(Boolean, server_default="false")
@@ -138,6 +120,33 @@ class GuildConfigurationTable(Base): # type: ignore
     xp_exempt_roles = Column(ARRAY(BigInteger), server_default="{}")
     xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}")
 
+class LevelRewardsTable(Base): # type: ignore
+    __tablename__ = "LevelRewards"
+    
+    id = Column(BigInteger, primary_key=True)
+    guild_id = Column(BigInteger)
+    level = Column(Integer)
+    role_id = Column(BigInteger)
+    
+class UserLevelsTable(Base): # type: ignore
+    __tablename__ = "UserLevels"
+    
+    id = Column(BigInteger, primary_key=True)
+    guild_id = Column(BigInteger)
+    user_id = Column(BigInteger)
+    total_xp = Column(BigInteger)
+    current_xp = Column(BigInteger)
+    messages_sent = Column(BigInteger)
+    level = Column(BigInteger)
+
+class PersistentRoleTable():
+    __tablename__ = "PersistentRoles"
+    
+    id = Column(BigInteger, primary_key=True)
+    guild_id = Column(BigInteger)
+    user_id = Column(BigInteger)
+    role_id = Column(BigInteger)
+
 class TranslationTable(Base): # type: ignore
     __tablename__ = "Translations"
 
@@ -145,15 +154,6 @@ class TranslationTable(Base): # type: ignore
     original_content = Column(String)
     detected_language = Column(String)
     translated_string = Column(String)
-
-class GuildReactionRoleTable(Base): # type: ignore
-    __tablename__ = "GuildReactionRoles"
-    
-    id = Column(Integer, primary_key=True)
-    guild_id = Column(BigInteger)
-    
-    role_id = Column(BigInteger)
-    reaction = Column(Text)
 
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
