@@ -19,6 +19,18 @@ from pidroid.constants import JUSTANYONE_ID
 from pidroid.cogs.models.categories import OwnerCategory
 from pidroid.cogs.utils.decorators import command_checks
 
+def get_total_xp(level: int) -> float:
+    return 5 / 6 * level * (2 * level * level + 27 * level + 91)
+
+def get_desired_level(xp: int) -> float:
+    total_xp = 0.0
+    level = 0
+    while total_xp < xp:
+        level += 1
+        total_xp = get_total_xp(level)
+    previous_lvl_xp = get_total_xp(level - 1)
+    return level - 1 + (xp - previous_lvl_xp) / (total_xp - previous_lvl_xp)
+
 class LevelCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
     def __init__(self, client: Pidroid) -> None:
