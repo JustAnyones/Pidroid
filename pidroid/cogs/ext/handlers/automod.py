@@ -2,7 +2,7 @@ from discord import Member
 from discord.ext import commands # type: ignore
 
 from pidroid.client import Pidroid
-from pidroid.cogs.models.configuration import GuildConfiguration
+from pidroid.cogs.models.guild_configuration import GuildConfiguration
 from pidroid.cogs.utils.logger import SuspiciousUserLog
 
 class AutomodTask(commands.Cog): # type: ignore

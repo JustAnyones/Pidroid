@@ -205,6 +205,8 @@ class BasePunishment:
         _expiration_date: Optional[datetime.datetime]
         _reason: Optional[str]
 
+        _appeal_url: Optional[str]
+
     def __init__(self, api: API, guild: Guild) -> None:
         # Only used internally, we initialize them here
         self.type = "unknown"
@@ -214,6 +216,8 @@ class BasePunishment:
 
         self._api = api
         self.guild = guild
+
+        self._appeal_url = None
 
     def __str__(self) -> str:
         return self.type
@@ -316,19 +320,22 @@ class BasePunishment:
         else:
             duration = format_dt(self.case.date_expires)
         embed.add_field(name='Expires in', value=duration)
+        if self._appeal_url:
+            embed.add_field(name='You can appeal the punishment here:', value=self._appeal_url)
         embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
         return embed
 
     @property
     def private_message_revoke_embed(self) -> Embed:
-        embed = Embed(title=f"Punishment revoken", color=discord.Color.green())
+        embed = Embed(title=f"Punishment revoked", color=discord.Color.green())
         embed.add_field(name='Type', value=self.type.capitalize())
         embed.add_field(name='Reason', value=self.reason or "No reason specified")
         embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
         return embed
 
-    async def create_entry(self) -> Case:
-        raise NotImplementedError
+    async def create_entry(self):
+        config = await self._api.client.fetch_guild_configuration(self.guild.id)
+        self._appeal_url = config.appeal_url
 
     async def issue(self) -> Case:
         raise NotImplementedError
@@ -394,6 +401,7 @@ class Ban(BasePunishment):
 
     async def create_entry(self) -> Case:
         """Creates new database entry for the case."""
+        await super().create_entry()
         await self._revoke_punishment_db_entry("jail")
         await self._revoke_punishment_db_entry("mute")
         await self._revoke_punishment_db_entry("timeout")
@@ -450,6 +458,7 @@ class Kick(BasePunishment):
         return embed
 
     async def create_entry(self) -> Case:
+        await super().create_entry()
         await self._revoke_punishment_db_entry('jail')
         await self._revoke_punishment_db_entry('mute')
         await self._revoke_punishment_db_entry('timeout')
@@ -529,6 +538,7 @@ class Jail(BasePunishment):
         return self._kidnapping
 
     async def create_entry(self) -> Case:
+        await super().create_entry()
         return await self._create_db_entry()
 
     async def issue(self, role: Role) -> Case: # type: ignore
@@ -571,6 +581,7 @@ class Warning(BasePunishment):
         return embed
 
     async def create_entry(self) -> Case:
+        await super().create_entry()
         return await self._create_db_entry()
 
     async def issue(self) -> Case:
@@ -635,6 +646,7 @@ class Timeout(BasePunishment):
         return embed
 
     async def create_entry(self) -> Case:
+        await super().create_entry()
         return await self._create_db_entry()
 
     async def issue(self) -> Case:

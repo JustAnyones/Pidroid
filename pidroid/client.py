@@ -36,7 +36,7 @@ class VersionInfo(NamedTuple):
 __VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id="unknown")
 
 if TYPE_CHECKING:
-    from pidroid.cogs.models.configuration import GuildConfiguration
+    from pidroid.cogs.models.guild_configuration import GuildConfiguration
 
 
 class Pidroid(commands.Bot): # type: ignore

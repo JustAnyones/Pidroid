@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Dict, Set, Any, Optional, Coroutine, Cal
 
 from pidroid.cogs.ext.commands.tags import Tag
 from pidroid.cogs.models.case import Case
-from pidroid.cogs.models.configuration import GuildConfiguration
+from pidroid.cogs.models.guild_configuration import GuildConfiguration
 from pidroid.cogs.models.plugins import NewPlugin, Plugin
 from pidroid.cogs.models.accounts import TheoTownAccount
 from pidroid.cogs.utils.http import HTTP, Route
@@ -104,7 +104,6 @@ class GuildConfigurationTable(Base): # type: ignore
     guild_id = Column(BigInteger)
     jail_channel = Column(BigInteger, nullable=True)
     jail_role = Column(BigInteger, nullable=True)
-    mute_role = Column(BigInteger, nullable=True) # Deprecated, only used for backwards compatibility
     log_channel = Column(BigInteger, nullable=True)
     prefixes = Column(ARRAY(Text), server_default="{}")
     suspicious_usernames = Column(ARRAY(Text), server_default="{}")
@@ -353,12 +352,12 @@ class API:
         self,
         row_id: int,
         jail_channel: Optional[int], jail_role: Optional[int],
-        mute_role: Optional[int],
         log_channel: Optional[int],
         prefixes: List[str],
         suspicious_usernames: List[str],
         public_tags: bool,
-        punishing_moderators: bool
+        punishing_moderators: bool,
+        appeal_url: Optional[str]
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
         async with self.session() as session: # type: ignore
@@ -370,12 +369,12 @@ class API:
                     values(
                         jail_channel=jail_channel,
                         jail_role=jail_role,
-                        mute_role=mute_role,
                         log_channel=log_channel,
                         prefixes=prefixes,
                         suspicious_usernames=suspicious_usernames,
                         public_tags=public_tags,
                         punishing_moderators=punishing_moderators,
+                        appeal_url=appeal_url
                     )
                 )
             await session.commit()

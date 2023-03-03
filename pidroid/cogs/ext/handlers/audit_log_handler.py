@@ -1,5 +1,6 @@
 import datetime
 import discord
+import logging
 
 from contextlib import suppress
 from discord import Object
@@ -13,7 +14,9 @@ from typing import Optional, Union
 
 from pidroid.client import Pidroid
 from pidroid.cogs.utils.time import utcnow
-from pidroid.cogs.models.case import Case, Ban, Warning, Jail, Kick, Timeout
+from pidroid.cogs.models.case import Ban, Warning, Jail, Kick, Timeout
+
+logger = logging.getLogger("Pidroid")
 
 def _is_timed_out(diff: AuditLogDiff) -> bool:
     if diff.timed_out_until is not None:
@@ -54,7 +57,6 @@ class NoIdea(commands.Cog): # type: ignore
             AuditLogAction.unban: self.on_audit_log_unban
         }
         
-        self.client.logger.info("???")
         # According to the docs, https://discordpy.readthedocs.io/en/stable/api.html#discord.AuditLogAction
         # entry.target is either a Object, or any specific type.
         assert entry.target is not None
@@ -66,17 +68,19 @@ class NoIdea(commands.Cog): # type: ignore
     async def on_audit_log_member_update(self, entry: AuditLogEntry):
         assert isinstance(entry.target, (Object, Member, User))
         user = await self.client.get_or_fetch_user(entry.target.id)
-        
+        if user is None:
+            return logger.debug(f"on_audit_log_member_update could not resolve user for {entry.target.id}")
+
         before = entry.before
         after = entry.after
         
         # Detect timeout
         if not _is_timed_out(before) and _is_timed_out(after):
-            print(user, "was timed out by", entry.user, "for the following reason:", entry.reason)
+            logger.info(f"{user} was timed out by {entry.user} for the following reason: {entry.reason}")
 
         # Detect timeout removal
         if _is_timed_out(before) and not _is_timed_out(after):
-            print(user, "time out removed by", entry.user, "for the following reason:", entry.reason)
+            logger.info(f"{user} time out removed by {entry.user} for the following reason: {entry.reason}")
 
         
         # DETECT ROLE CHANGES
@@ -84,29 +88,44 @@ class NoIdea(commands.Cog): # type: ignore
         
     
     async def on_audit_log_kick(self, entry: AuditLogEntry):
+        """Called when there is an audit log entry for a member kick."""
         assert isinstance(entry.target, (Object, User))
         user = await self.client.get_or_fetch_user(entry.target.id)
-        self.client.logger.info(f'{user} was kicked by {entry.user} for the following reason: {entry.reason}')
+        if user is None:
+            return logger.debug(f"on_audit_log_kick could not resolve user for {entry.target.id}")
+
         kick = Kick(self.client.api, entry.guild, None, entry.user, user)
         kick.reason = entry.reason
         await kick.create_entry()
+
+        logger.info(f'{user} was kicked by {entry.user} for the following reason: {entry.reason}')
     
     
     async def on_audit_log_ban(self, entry: AuditLogEntry):
+        """Called when there is an audit log entry for a member ban."""
         assert isinstance(entry.target, (Object, User))
         user = await self.client.get_or_fetch_user(entry.target.id)
-        self.client.logger.info(f'{user} was banned by {entry.user} for the following reason: {entry.reason}')
+        if user is None:
+            return logger.debug(f"on_audit_log_ban could not resolve user for {entry.target.id}")
+
         ban = Ban(self.client.api, entry.guild, None, entry.user, user)
         ban.reason = entry.reason
         await ban.create_entry()
+
+        logger.info(f'{user} was banned by {entry.user} for the following reason: {entry.reason}')
     
     async def on_audit_log_unban(self, entry: AuditLogEntry):
+        """Called when there is an audit log entry for a member unban."""
         assert isinstance(entry.target, (Object, User))
         user = await self.client.get_or_fetch_user(entry.target.id)
-        self.client.logger.info(f'{user} was unbanned by {entry.user} for the following reason: {entry.reason}')
+        if user is None:
+            return logger.debug(f"on_audit_log_unban could not resolve user for {entry.target.id}")
+
         ban = Ban(self.client.api, entry.guild, None, entry.user, user)
         ban.reason = entry.reason
         await ban.revoke_entry()
+
+        logger.info(f'{user} was unbanned by {entry.user} for the following reason: {entry.reason}')
         
     async def find_recent_audit_log(
         self,

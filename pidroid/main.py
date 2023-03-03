@@ -59,10 +59,10 @@ def get_postgres_dsn() -> str:
         host = os.environ.get("DB_HOST", "127.0.0.1")
         
         if user is None or password is None:
-            logger.critical(
-                """Unable to create a postgres DSN string.\n
-                DB_USER or DB_PASSWORD environment variable is missing.
-            """)
+            logger.critical((
+                "Unable to create a postgres DSN string. "
+                "DB_USER or DB_PASSWORD environment variable is missing."
+            ))
             exit()
         postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
     return postgres_dsn
