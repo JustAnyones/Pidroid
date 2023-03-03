@@ -2,19 +2,23 @@ import datetime
 import discord
 
 from contextlib import suppress
+from discord import Object
 from discord.member import Member
 from discord.user import User
 from discord.guild import Guild
 from discord.embeds import Embed
-from discord import RawMemberRemoveEvent
-from discord import File, AuditLogAction, AuditLogEntry
-from discord.message import Message
+from discord import File, AuditLogAction, AuditLogEntry, AuditLogDiff
 from discord.ext import commands # type: ignore
 from typing import Optional, Union
 
 from pidroid.client import Pidroid
 from pidroid.cogs.utils.time import utcnow
 from pidroid.cogs.models.case import Case, Ban, Warning, Jail, Kick, Timeout
+
+def _is_timed_out(diff: AuditLogDiff) -> bool:
+    if diff.timed_out_until is not None:
+        return utcnow() < diff.timed_out_until
+    return False
 
 class NoIdea(commands.Cog): # type: ignore
     """This class implements a cog for handling invocation of copypastas and other memes invoked by events like on_message."""
@@ -40,6 +44,69 @@ class NoIdea(commands.Cog): # type: ignore
             with suppress(discord.HTTPException):
                 return await self.client.fetch_guild(guild_id, with_counts=False)
         return guild
+    
+    async def on_audit_log_entry_create(self, entry: AuditLogEntry):
+        await self.client.wait_until_guild_configurations_loaded()
+        meths = {
+            AuditLogAction.member_update: self.on_audit_log_member_update,
+            AuditLogAction.kick: self.on_audit_log_kick,
+            AuditLogAction.ban: self.on_audit_log_ban,
+            AuditLogAction.unban: self.on_audit_log_unban
+        }
+        
+        self.client.logger.info("???")
+        # According to the docs, https://discordpy.readthedocs.io/en/stable/api.html#discord.AuditLogAction
+        # entry.target is either a Object, or any specific type.
+        assert entry.target is not None
+        coroutine = meths.get(entry.action, None)
+        if coroutine is None:
+            return
+        return await coroutine(entry)
+    
+    async def on_audit_log_member_update(self, entry: AuditLogEntry):
+        assert isinstance(entry.target, (Object, Member, User))
+        user = await self.client.get_or_fetch_user(entry.target.id)
+        
+        before = entry.before
+        after = entry.after
+        
+        # Detect timeout
+        if not _is_timed_out(before) and _is_timed_out(after):
+            print(user, "was timed out by", entry.user, "for the following reason:", entry.reason)
+
+        # Detect timeout removal
+        if _is_timed_out(before) and not _is_timed_out(after):
+            print(user, "time out removed by", entry.user, "for the following reason:", entry.reason)
+
+        
+        # DETECT ROLE CHANGES
+        pass
+        
+    
+    async def on_audit_log_kick(self, entry: AuditLogEntry):
+        assert isinstance(entry.target, (Object, User))
+        user = await self.client.get_or_fetch_user(entry.target.id)
+        self.client.logger.info(f'{user} was kicked by {entry.user} for the following reason: {entry.reason}')
+        kick = Kick(self.client.api, entry.guild, None, entry.user, user)
+        kick.reason = entry.reason
+        await kick.create_entry()
+    
+    
+    async def on_audit_log_ban(self, entry: AuditLogEntry):
+        assert isinstance(entry.target, (Object, User))
+        user = await self.client.get_or_fetch_user(entry.target.id)
+        self.client.logger.info(f'{user} was banned by {entry.user} for the following reason: {entry.reason}')
+        ban = Ban(self.client.api, entry.guild, None, entry.user, user)
+        ban.reason = entry.reason
+        await ban.create_entry()
+    
+    async def on_audit_log_unban(self, entry: AuditLogEntry):
+        assert isinstance(entry.target, (Object, User))
+        user = await self.client.get_or_fetch_user(entry.target.id)
+        self.client.logger.info(f'{user} was unbanned by {entry.user} for the following reason: {entry.reason}')
+        ban = Ban(self.client.api, entry.guild, None, entry.user, user)
+        ban.reason = entry.reason
+        await ban.revoke_entry()
         
     async def find_recent_audit_log(
         self,
@@ -83,76 +150,12 @@ class NoIdea(commands.Cog): # type: ignore
     #timeout
     @commands.Cog.listener()
     async def on_member_update(self, before: Member, after: Member):
-        now = utcnow()
         await self.client.wait_until_guild_configurations_loaded()
-        
-        # Detect timeout
-        if not before.is_timed_out() and after.is_timed_out():
-            log = await self.find_recent_audit_log(after.guild.id, after.id, AuditLogAction.member_update, now)
-            if log:
-                print(after, "was timed out by", log.user, "for the following reason:", log.reason)
-
-        # Detect timeout removal
-        if before.is_timed_out() and not after.is_timed_out():
-            log = await self.find_recent_audit_log(after.guild.id, after.id, AuditLogAction.member_update, now)
-            if log:
-                print(after, "time out removed by", log.user, "for the following reason:", log.reason)
         
         # Detect whether roles got changed
         if set(before.roles) == set(after.roles):
             return
         print("Roles have changed:", before.roles, "->", after.roles)
-    
-    # If user is kicked manually, we just need to store the kick entry to the database
-    @commands.Cog.listener()
-    async def on_raw_member_remove(self, payload: RawMemberRemoveEvent):
-        now = utcnow()
-        await self.client.wait_until_guild_configurations_loaded()
-        audit_log = await self.find_recent_audit_log(payload.guild_id, payload.user.id, AuditLogAction.kick, now)
-        if audit_log is None:
-            return
-        
-        # We need guild object
-        guild = await self._get_or_fetch_guild(payload.guild_id)
-        if guild is None:
-            return
-
-        assert audit_log.user is not None
-        self.client.logger.info(f'{payload.user} was kicked by {audit_log.user} for the following reason: {audit_log.reason}')
-        kick = Kick(self.client.api, guild, None, audit_log.user, payload.user)
-        kick.reason = audit_log.reason
-        await kick.create_entry()
-    
-    # If user is banned manually, it would make sense to create a ban entry in the database as well
-    @commands.Cog.listener()
-    async def on_member_ban(self, guild: Guild, user: Union[Member, User]):
-        now = utcnow()
-        await self.client.wait_until_guild_configurations_loaded()
-        audit_log = await self.find_recent_audit_log(guild.id, user.id, AuditLogAction.ban, now)
-        if audit_log is None:
-            return
-        
-        assert audit_log.user is not None
-        self.client.logger.info(f'{user} was banned by {audit_log.user} for the following reason: {audit_log.reason}')
-        ban = Ban(self.client.api, guild, None, audit_log.user, user)
-        ban.reason = audit_log.reason
-        await ban.create_entry()
-
-    
-    # If user is unbanned manually, it would make sense to revoke it in the database as well
-    @commands.Cog.listener()
-    async def on_member_unban(self, guild: Guild, user: User):
-        now = utcnow()
-        await self.client.wait_until_guild_configurations_loaded()
-        audit_log = await self.find_recent_audit_log(guild.id, user.id, AuditLogAction.unban, now)
-        if audit_log is None:
-            return
-
-        assert audit_log.user is not None
-        self.client.logger.info(f'{user} was unbanned by {audit_log.user} for the following reason: {audit_log.reason}')
-        ban = Ban(self.client.api, guild, None, audit_log.user, user)
-        ban.reason = audit_log.reason
-        await ban.revoke_entry()
 
     async def _message_user(self, user: Union[Member, User], embed: Embed):
         try:
