@@ -327,7 +327,7 @@ class BasePunishment:
 
     @property
     def private_message_revoke_embed(self) -> Embed:
-        embed = Embed(title=f"Punishment revoked", color=discord.Color.green())
+        embed = Embed(title='Punishment revoked', color=discord.Color.green())
         embed.add_field(name='Type', value=self.type.capitalize())
         embed.add_field(name='Reason', value=self.reason or "No reason specified")
         embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
@@ -514,7 +514,7 @@ class Jail(BasePunishment):
         embed = super().public_message_issue_embed
         if self._kidnapping:
             embed.description = f"{self.user_name} was kidnapped"
-            embed.set_image(url=f"attachment://bus.png")
+            embed.set_image(url='attachment://bus.png')
         else:
             embed.description = f"{self.user_name} was jailed"
         if self.reason:

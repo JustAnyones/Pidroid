@@ -13,8 +13,8 @@ from discord.ext.commands.context import Context # type: ignore
 # Allows us to not set the Python path
 sys.path.append(os.getcwd())
 
-from pidroid.client import Pidroid, __VERSION__
-from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
+from pidroid.client import Pidroid, __VERSION__ # noqa: E402
+from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH # noqa: E402
 
 # Use uvloop if possible
 try:
@@ -45,8 +45,8 @@ def load_env_from_file(path: str) -> None:
     """Load environment values from the specified file."""
     logger.info(f"Loading environment from {path} file")
     with open(path) as f:
-        for l in f.readlines():
-            key, value = l.split("=", 1)
+        for line in f.readlines():
+            key, value = line.split("=", 1)
             os.environ[key] = value.strip()
 
 def get_postgres_dsn() -> str:

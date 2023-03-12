@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 
-from discord import app_commands
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore

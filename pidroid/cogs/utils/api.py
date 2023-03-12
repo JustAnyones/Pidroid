@@ -475,7 +475,11 @@ class API:
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
-                filter(PunishmentTable.case_id == case_id, PunishmentTable.guild_id == guild_id, PunishmentTable.visible == True)
+                filter(
+                    PunishmentTable.case_id == case_id,
+                    PunishmentTable.guild_id == guild_id,
+                    PunishmentTable.visible is True
+                )
             )
         r = result.fetchone()
         if r:
@@ -490,7 +494,11 @@ class API:
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
                 select(PunishmentTable).
-                filter(PunishmentTable.guild_id == guild_id, PunishmentTable.user_id == user_id, PunishmentTable.visible == True).
+                filter(
+                    PunishmentTable.guild_id == guild_id,
+                    PunishmentTable.user_id == user_id,
+                    PunishmentTable.visible is True
+                ).
                 order_by(PunishmentTable.issue_date.desc())
             )
         case_list = []
@@ -569,7 +577,7 @@ class API:
                 filter(
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.moderator_id == moderator_id,
-                    PunishmentTable.visible == True
+                    PunishmentTable.visible is True
                 )
             )
 
@@ -587,7 +595,7 @@ class API:
                 select(func.count(PunishmentTable.type)).
                 filter(
                     PunishmentTable.guild_id == guild_id,
-                    PunishmentTable.visible == True
+                    PunishmentTable.visible is True
                 )
             )
             guild_total = result.fetchone()[0]
@@ -608,7 +616,7 @@ class API:
                     PunishmentTable.type == punishment_type,
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.user_id == user_id,
-                    PunishmentTable.visible == True
+                    PunishmentTable.visible is True
                 ).
                 filter(
                     (PunishmentTable.expire_date.is_(None))
@@ -644,7 +652,7 @@ class API:
                     PunishmentTable.expire_date.is_not(None),
 
                     # Explicit statement to know if case was already handled
-                    PunishmentTable.handled == False,
+                    PunishmentTable.handled is False,
 
                     # Ignore things that cannot expire or Pidroid does not care
                     PunishmentTable.type != 'warning',
@@ -652,7 +660,7 @@ class API:
                     PunishmentTable.type != 'jail',
                     PunishmentTable.type != 'kick',
 
-                    PunishmentTable.visible == True
+                    PunishmentTable.visible is True
                 )
             )
         case_list = []
