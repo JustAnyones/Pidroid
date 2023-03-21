@@ -49,7 +49,7 @@ class Plugin:
     @property
     def preview(self) -> str:
         """Returns a plugin preview image URL."""
-        return f"https://store.theotown.com/get_file?name={self._preview_file}"
+        return f"https://api.theotown.com/store/get_file?name={self._preview_file}"
 
     @property
     def url(self) -> str:
