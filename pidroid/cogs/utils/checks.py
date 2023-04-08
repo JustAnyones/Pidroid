@@ -281,4 +281,3 @@ def check_senior_moderator_permissions(ctx: Context, **perms) -> bool:
             raise MissingUserPermissions('You need to be at least a senior moderator to run this command!')
         return True
     return check_channel_permissions(ctx, **perms)
-
