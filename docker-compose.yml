@@ -11,6 +11,7 @@ services:
       - config.env
     depends_on:
       - migration
+      - db
 
   migration:
     build: .
