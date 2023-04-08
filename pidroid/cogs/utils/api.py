@@ -577,14 +577,14 @@ class API:
                 filter(
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.moderator_id == moderator_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
 
             # Tally moderator specific data
             for r in result.fetchall():
                 user_total += 1
-                p_val = r
+                p_val = r[0]
                 if p_val == 'ban': bans += 1         # noqa: E701
                 if p_val == 'kick': kicks += 1       # noqa: E701
                 if p_val == 'jail': jails += 1       # noqa: E701
@@ -595,10 +595,10 @@ class API:
                 select(func.count(PunishmentTable.type)).
                 filter(
                     PunishmentTable.guild_id == guild_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
-            guild_total = result.fetchone()
+            guild_total = result.fetchone()[0]
 
         return {
             "bans": bans, "kicks": kicks, "jails": jails, "warnings": warnings,
