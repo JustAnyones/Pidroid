@@ -51,7 +51,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
         if payload.channel_id != EVENTS_CHANNEL_ID:
             return
 
-        channel = self.client.get_or_fetch_channel(payload.channel_id)
+        channel = await self.client.get_or_fetch_channel(payload.channel_id)
         if not isinstance(channel, TextChannel):
             return
 

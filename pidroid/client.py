@@ -99,7 +99,6 @@ class Pidroid(commands.Bot): # type: ignore
             # NOTE: these handlers are not loaded if current client ID is not Pidroid.
             'cogs.ext.handlers.theotown.chat_translator',
             'cogs.ext.handlers.theotown.copypasta',
-            'cogs.ext.handlers.theotown.cronjobs',
             'cogs.ext.handlers.theotown.event_channel_handler',
             'cogs.ext.handlers.theotown.forum_message_handler',
             'cogs.ext.handlers.theotown.guild_statistics',

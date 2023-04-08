@@ -33,7 +33,7 @@ class ReactionEventHandler(commands.Cog): # type: ignore
         if not payload.member:
             return
 
-        channel = self.client.get_or_fetch_channel(payload.channel_id)
+        channel = await self.client.get_or_fetch_channel(payload.channel_id)
         if not isinstance(channel, TextChannel):
             return
         
