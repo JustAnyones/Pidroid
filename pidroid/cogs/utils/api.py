@@ -239,7 +239,7 @@ class API:
             )
         row = result.fetchone()
         if row:
-            return Tag(self.client, row[0])
+            return Tag(self.client, row[0]) # type: ignore
         return None
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
@@ -251,7 +251,7 @@ class API:
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
                 order_by(TagTable.name.asc())
             )
-        return [Tag(self.client, r[0]) for r in result.fetchall()]
+        return [Tag(self.client, r[0]) for r in result.fetchall()] # type: ignore
 
     async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
         """Returns a list of all tags defined in the guild."""
@@ -262,7 +262,7 @@ class API:
                 filter(TagTable.guild_id == guild_id).
                 order_by(TagTable.name.asc())
             )
-        return [Tag(self.client, r[0]) for r in result.fetchall()]
+        return [Tag(self.client, r[0]) for r in result.fetchall()] # type: ignore
 
     async def update_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
         """Updates a tag entry by specified row ID."""
@@ -323,7 +323,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return GuildConfiguration(self, r[0])
+            return GuildConfiguration(self, r[0]) # type: ignore
         return None
 
     async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
@@ -336,7 +336,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return GuildConfiguration(self, r[0])
+            return GuildConfiguration(self, r[0]) # type: ignore
         return None
 
     async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
@@ -346,7 +346,7 @@ class API:
             result: ChunkedIteratorResult = await session.execute(
                 select(GuildConfigurationTable)
             )
-        return [GuildConfiguration(self, r[0]) for r in result.fetchall()]
+        return [GuildConfiguration(self, r[0]) for r in result.fetchall()] # type: ignore
 
     async def update_guild_configuration(
         self,
@@ -404,7 +404,7 @@ class API:
                 select(ExpiringThreadTable).
                 filter(ExpiringThreadTable.expiration_date <= expiration_date)
             )
-        return [r[0] for r in result.fetchall()]
+        return [r[0] for r in result.fetchall()] # type: ignore
 
     async def delete_expiring_thread(self, row_id: int) -> None:
         """Removes an expiring thread entry from the database."""
@@ -464,7 +464,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            c = Case(self, r[0])
+            c = Case(self, r[0]) # type: ignore
             await c._fetch_users()
             return c
         return None
@@ -478,12 +478,12 @@ class API:
                 filter(
                     PunishmentTable.case_id == case_id,
                     PunishmentTable.guild_id == guild_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
         r = result.fetchone()
         if r:
-            c = Case(self, r[0])
+            c = Case(self, r[0]) # type: ignore
             await c._fetch_users()
             return c
         return None
@@ -497,13 +497,13 @@ class API:
                 filter(
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.user_id == user_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 ).
                 order_by(PunishmentTable.issue_date.desc())
             )
         case_list = []
         for r in result.fetchall():
-            c = Case(self, r[0])
+            c = Case(self, r[0]) # type: ignore
             await c._fetch_users()
             case_list.append(c)
         return case_list
@@ -598,7 +598,7 @@ class API:
                     PunishmentTable.visible == True
                 )
             )
-            guild_total = result.fetchone()[0]
+            guild_total = result.fetchone()[0] # type: ignore
 
         return {
             "bans": bans, "kicks": kicks, "jails": jails, "warnings": warnings,
@@ -616,14 +616,14 @@ class API:
                     PunishmentTable.type == punishment_type,
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.user_id == user_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 ).
                 filter(
                     (PunishmentTable.expire_date.is_(None))
                     | (PunishmentTable.expire_date > utcnow())
                 )
             )
-            return result.fetchone()[0] > 0
+            return result.fetchone()[0] > 0 # type: ignore
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
@@ -652,7 +652,7 @@ class API:
                     PunishmentTable.expire_date.is_not(None),
 
                     # Explicit statement to know if case was already handled
-                    PunishmentTable.handled is False,
+                    PunishmentTable.handled == False,
 
                     # Ignore things that cannot expire or Pidroid does not care
                     PunishmentTable.type != 'warning',
@@ -660,12 +660,12 @@ class API:
                     PunishmentTable.type != 'jail',
                     PunishmentTable.type != 'kick',
 
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
         case_list = []
         for r in result.fetchall():
-            c = Case(self, r[0])
+            c = Case(self, r[0]) # type: ignore
             await c._fetch_users()
             case_list.append(c)
         return case_list
@@ -693,7 +693,9 @@ class API:
                 select(TranslationTable).
                 filter(TranslationTable.original_content == original_str)
             )
-        return [{"detected_source_language": r[0].detected_language, "text": r[0].translated_string} for r in result.fetchall()]
+        return [
+            {"detected_source_language": r[0].detected_language, "text": r[0].translated_string} for r in result.fetchall()
+        ]
 
     """Linked account related"""
 
@@ -738,7 +740,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return r[0]
+            return r[0] # type: ignore
         return None
 
     async def fetch_linked_account_by_forum_id(self, forum_id: int) -> Optional[LinkedAccountTable]:
@@ -751,7 +753,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return r[0]
+            return r[0] # type: ignore
         return None
     
     """Leveling system related"""
