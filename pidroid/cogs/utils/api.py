@@ -577,7 +577,7 @@ class API:
                 filter(
                     PunishmentTable.guild_id == guild_id,
                     PunishmentTable.moderator_id == moderator_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
 
@@ -595,7 +595,7 @@ class API:
                 select(func.count(PunishmentTable.type)).
                 filter(
                     PunishmentTable.guild_id == guild_id,
-                    PunishmentTable.visible is True
+                    PunishmentTable.visible == True
                 )
             )
             guild_total = result.fetchone()[0]
