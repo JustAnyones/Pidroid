@@ -14,7 +14,7 @@ from typing import Optional, Union
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import RandomCategory
-from pidroid.cogs.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.parsers import truncate_string
 
 BASE_REDDIT_URL = 'https://www.reddit.com'
@@ -108,7 +108,7 @@ class RedditCommands(commands.Cog): # type: ignore
                 raise BadArgument("I am being redirected, are you certain that the specified subreddit exists?")
             except ResponseException as e:
                 raise BadArgument(str(e))
-            except Exception as e:
+            except Exception:
                 raise BadArgument("I could not find the specified subreddit!")
 
             # Check subreddit for nsfw

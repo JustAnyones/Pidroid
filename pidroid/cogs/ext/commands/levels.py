@@ -8,10 +8,9 @@ import sys
 from discord.ext import commands # type: ignore
 from discord.member import Member
 from discord.message import Message
-from discord.ext.commands import Greedy, Context # or a subclass of yours
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands import Greedy, Context
 from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, TypedDict
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
@@ -20,9 +19,10 @@ from pidroid.cogs.models.categories import OwnerCategory
 from pidroid.cogs.utils.decorators import command_checks
 
 def get_total_xp(level: int) -> float:
+    """Returns the total amount of XP required to reach the specified level."""
     return 5 / 6 * level * (2 * level * level + 27 * level + 91)
 
-def get_desired_level(xp: int) -> float:
+def get_level_from_xp(xp: int) -> float:
     total_xp = 0.0
     level = 0
     while total_xp < xp:
@@ -31,10 +31,20 @@ def get_desired_level(xp: int) -> float:
     previous_lvl_xp = get_total_xp(level - 1)
     return level - 1 + (xp - previous_lvl_xp) / (total_xp - previous_lvl_xp)
 
+class LevelHolder(TypedDict):
+    pass
+
 class LevelCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
     def __init__(self, client: Pidroid) -> None:
         self.client = client
+        self.x = {
+            "guild_id": {
+                "user_id": {
+                    
+                }
+            }
+        }
         
     async def try_earn_level(self, message: Message):
         # TODO: do some time checking, to avoid spam,

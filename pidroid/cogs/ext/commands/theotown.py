@@ -346,7 +346,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
         # Find the linked account
         linked_acc = await self.client.api.fetch_linked_account_by_user_id(ctx.author.id)
         if linked_acc is None:
-            raise BadArgument(f"Your discord account is not linked to any TheoTown accounts!")
+            raise BadArgument("Your discord account is not linked to any TheoTown accounts!")
 
         # Check if last redeem was not within this month
         last_wage_date: datetime.datetime = linked_acc.date_wage_last_redeemed # type: ignore

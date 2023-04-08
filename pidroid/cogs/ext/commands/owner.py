@@ -7,8 +7,6 @@ import sys
 
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context  # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import TYPE_CHECKING, Literal, Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID
@@ -81,39 +79,6 @@ class OwnerCommands(commands.Cog): # type: ignore
     async def dm(self, ctx: Context, user: typing.Union[discord.Member, discord.User], *, message: str):
         await user.send(message)
         await ctx.reply(f"Message to {user.name}#{user.discriminator} was sent succesfully")
-
-    @commands.command()
-    @commands.guild_only()
-    @commands.is_owner()
-    async def sync(self, ctx: Context, guilds: commands.Greedy[discord.Object], spec: Optional[Literal["~", "*", "^"]] = None) -> None:
-        if not guilds:
-            if spec == "~":
-                synced = await ctx.bot.tree.sync(guild=ctx.guild)
-            elif spec == "*":
-                ctx.bot.tree.copy_global_to(guild=ctx.guild)
-                synced = await ctx.bot.tree.sync(guild=ctx.guild)
-            elif spec == "^":
-                ctx.bot.tree.clear_commands(guild=ctx.guild)
-                await ctx.bot.tree.sync(guild=ctx.guild)
-                synced = []
-            else:
-                synced = await ctx.bot.tree.sync()
-
-            await ctx.send(
-                f"Synced {len(synced)} commands {'globally' if spec is None else 'to the current guild.'}"
-            )
-            return
-
-        ret = 0
-        for guild in guilds:
-            try:
-                await ctx.bot.tree.sync(guild=guild)
-            except discord.HTTPException:
-                pass
-            else:
-                ret += 1
-
-        await ctx.send(f"Synced the tree to {ret}/{len(guilds)}.")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommands(client))
