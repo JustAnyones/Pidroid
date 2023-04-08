@@ -33,7 +33,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id="unknown")
+__VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id='unknown') # TODO: figure out how to reliably provide
 
 if TYPE_CHECKING:
     from pidroid.cogs.models.guild_configuration import GuildConfiguration
@@ -96,8 +96,7 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.ext.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
-            # NOTE: these handlers are not loaded if current
-            # client ID is not Pidroid.
+            # NOTE: these handlers are not loaded if current client ID is not Pidroid.
             'cogs.ext.handlers.theotown.chat_translator',
             'cogs.ext.handlers.theotown.copypasta',
             'cogs.ext.handlers.theotown.cronjobs',
