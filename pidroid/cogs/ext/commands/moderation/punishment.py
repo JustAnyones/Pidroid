@@ -203,6 +203,7 @@ class ModerationMenu(ui.View):
 
     if TYPE_CHECKING:
         _message: Optional[Message]
+        _embed: Embed
 
     def __init__(
         self,
@@ -223,44 +224,33 @@ class ModerationMenu(ui.View):
         assert isinstance(ctx.cog, ModeratorCommands)
         self._cog = ctx.cog
 
-        # Acquire the client instance
+        # Acquire the client and API instance
         self._client = self._cog.client
+        self._api = self._client.api
 
-
-
-
-
+        # Aqcuire guild, channel and users from the context
         assert ctx.guild is not None
         assert isinstance(ctx.channel, (TextChannel))
-
-        #self._api = cog.client.api
-        self._api = self._client.api
 
         self.guild = ctx.guild
         self.channel = ctx.channel
         self.moderator = ctx.author
         self.user = user
         
+        # Initialize variables
         self._message = None
-
         self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
-
-        self.jail_role: Optional[Role] = None
-
+        self._jail_role: Optional[Role] = None
         self._punishing_moderator = punishing_moderator
 
-    @property
-    def embed(self) -> Embed:
-        """Returns the embed object associated with the current menu status."""
-        return self._embed
-
-    async def initialize(self):
+    async def _init(self):
+        """Acquires the guild configuration and related items."""
         config = await self._client.fetch_guild_configuration(self.guild.id)
 
         if config.jail_role is not None:
             role = await self._client.get_or_fetch_role(self.guild, config.jail_role)
             if role is not None:
-                self.jail_role = role
+                self._jail_role = role
 
         if self._cog.is_semaphore_locked(self.guild.id, self.user.id):
             raise BadArgument("Semaphore is already locked")
@@ -268,9 +258,16 @@ class ModerationMenu(ui.View):
         # Lock the punishment menu with a semaphore
         await self._cog.lock_punishment_menu(self.guild.id, self.user.id, self._ctx.message.jump_url)
 
-    def set_reply_message(self, message: Message) -> None:
-        """Sets the reply message to which this interaction belongs to."""
-        self._message = message
+    @property
+    def embed(self) -> Embed:
+        """Returns the embed object associated with the current menu status."""
+        return self._embed
+
+    async def display(self):
+        """Creates the response message and begins the menu."""
+        await self._init()
+        await self.show_type_selection_menu()
+        self._message = await self._ctx.reply(embed=self.embed, view=self)
 
     """Private utility methods"""
     
@@ -281,6 +278,7 @@ class ModerationMenu(ui.View):
     
     @punishment.setter
     def punishment(self, instance):
+        """Sets the punishment instance."""
         self._embed.description = f"Type: {str(instance)}"
         self._punishment = instance
 
@@ -300,17 +298,6 @@ class ModerationMenu(ui.View):
         assert self._punishment is not None
         self._punishment.reason = reason
 
-    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []) -> None:
-        """Updates the original interaction response message.
-        
-        If interaction object is not provided, then the message itself will be edited."""
-        if interaction is None:
-            assert self._message is not None
-            with suppress(NotFound):
-                await self._message.edit(embed=self._embed, view=self, attachments=attachments)
-        else:
-            await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
-
     """Checks"""
 
     async def is_user_banned(self) -> bool:
@@ -323,11 +310,11 @@ class ModerationMenu(ui.View):
 
     async def is_user_jailed(self) -> bool:
         """Returns true if user is currently jailed."""
-        if isinstance(self.user, User) or self.jail_role is None:
+        if isinstance(self.user, User) or self._jail_role is None:
             return False
         client: Pidroid = self._ctx.bot
         return (
-            get(self.guild.roles, id=self.jail_role.id) in self.user.roles
+            get(self.guild.roles, id=self._jail_role.id) in self.user.roles
             and await client.api.is_currently_jailed(self.guild.id, self.user.id)
         )
 
@@ -440,14 +427,15 @@ class ModerationMenu(ui.View):
         )
 
     def update_allowed_types(self):
+        """Updates the allowed punishment type button status."""
         is_member = isinstance(self.user, Member)
 
         self.on_type_ban_button.disabled = not self.can_ban
         self.on_type_unban_button.disabled = not self.can_unban
         self.on_type_kick_button.disabled = not (is_member and self.can_kick)
         # Jail related
-        self.on_type_jail_button.disabled = not (is_member and self.jail_role is not None and self.can_jail)
-        self.on_type_kidnap_button.disabled = not (is_member and self.jail_role is not None and self.can_jail)
+        self.on_type_jail_button.disabled = not (is_member and self._jail_role is not None and self.can_jail)
+        self.on_type_kidnap_button.disabled = not (is_member and self._jail_role is not None and self.can_jail)
         self.on_type_unjail_button.disabled = not self.can_jail
         # Timeout related
         self.on_type_timeout_button.disabled = not (is_member and self.can_timeout)
@@ -494,6 +482,7 @@ class ModerationMenu(ui.View):
         self.add_item(self.on_cancel_button)
 
     async def show_length_selection_menu(self) -> None:
+        """Shows the punishment length selection menu."""
         # Acquire mapping for lengths for punishment types
         mapping = LENGTH_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
@@ -506,7 +495,8 @@ class ModerationMenu(ui.View):
         self._embed.set_footer(text="Select the punishment length")
 
     async def show_reason_selection_menu(self):
-        # Acquire mapping for lengths for punishment types
+        """Shows the punishment reason selection menu."""
+        # Acquire mapping for reasons for punishment types
         mapping = REASON_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
             return await self.show_confirmation_menu()
@@ -518,6 +508,7 @@ class ModerationMenu(ui.View):
         self._embed.set_footer(text="Select reason for the punishment")
 
     async def show_confirmation_menu(self):
+        """Shows the punishment confirmation menu."""
         self.clear_items()
         self.add_item(self.on_confirm_button)
         self.add_item(self.on_cancel_button)
@@ -530,8 +521,8 @@ class ModerationMenu(ui.View):
         assert self.punishment is not None
         # Jail also requires a special jail role
         if isinstance(self.punishment, Jail):
-                assert self.jail_role is not None
-                await self.punishment.issue(self.jail_role)
+                assert self._jail_role is not None
+                await self.punishment.issue(self._jail_role)
         # Otherwise
         else:
             await self.punishment.issue()
@@ -592,9 +583,9 @@ class ModerationMenu(ui.View):
     async def on_type_unjail_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """Reacts to the unjail type button."""
         assert isinstance(self.user, Member)
-        assert self.jail_role is not None
+        assert self._jail_role is not None
         self.punishment = Jail(self._api, self.guild, self.channel, self.moderator, self.user)
-        await self.punishment.revoke(self.jail_role, f"Released by {str(self.moderator)}")
+        await self.punishment.revoke(self._jail_role, f"Released by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Time-out', style=discord.ButtonStyle.gray)
@@ -658,6 +649,17 @@ class ModerationMenu(ui.View):
         await self._update_view(interaction, files) # Update message with latest information
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
+
+    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []) -> None:
+        """Updates the original interaction response message.
+        
+        If interaction object is not provided, then the message itself will be edited."""
+        if interaction is None:
+            assert self._message is not None
+            with suppress(NotFound):
+                await self._message.edit(embed=self._embed, view=self, attachments=attachments)
+        else:
+            await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
 
     """Utility"""
 
@@ -833,14 +835,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user.bot:
             raise BadArgument("You cannot punish a bot!")
 
-        # Create an embed overview
-
         menu = ModerationMenu(ctx, user, is_moderator)
-        await menu.initialize()
-        await menu.show_type_selection_menu()
-
-        message = await ctx.reply(embed=menu.embed, view=menu)
-        menu.set_reply_message(message)
+        await menu.display()
 
     @moderation_menu_command.error
     async def handle_moderation_menu_command_error(self, ctx: Context, error):
