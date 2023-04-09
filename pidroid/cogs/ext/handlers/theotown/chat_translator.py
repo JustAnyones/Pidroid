@@ -163,17 +163,21 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
     async def translate_message(self, message: Message, clean_text: str) -> List[dict]:
         # Await previous translation jobs to finish
+        self.client.logger.debug('Waiting for translation queue')
         await self._translating.wait()
+        self.client.logger.debug('Translation allowed')
 
         # Check if daily limit is not reached, if it is, stop translating
         if len(clean_text) + self.used_chars > self.daily_char_limit:
-            self.client.logger.critical("Failure translating encountered, the daily character limit was exceeded")
+            self.client.logger.warning("Failure translating encountered, the daily character limit was exceeded")
             return []
         self.used_chars += len(clean_text)
 
         # Check if text was already translated
         c_key = clean_text.lower()
+        self.client.logger.debug("Fetching translation from database")
         translations = await self.client.api.fetch_translations(c_key)
+        self.client.logger.debug("Translation acquired")
         if len(translations) == 0:
             translations = await self.translate(clean_text)
             for t in translations:
@@ -214,7 +218,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if channel is None:
             return self.client.logger.warning("Translation output channel is None!")
         assert isinstance(channel, TextChannel)
-        self.client.logger.info(f"Dispatching translation: {translations}")
+        self.client.logger.debug(f"Dispatching translation: {translations}")
         await self.dispatch_translation(channel, message, translations, flag)
 
     async def dispatch_translation(self, channel: TextChannel, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
