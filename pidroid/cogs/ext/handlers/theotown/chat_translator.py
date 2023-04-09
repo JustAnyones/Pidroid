@@ -104,8 +104,8 @@ class TextParser:
             try:
                 decoded_string = base64.b64decode(self.text).decode("utf-8")
             except UnicodeDecodeError:
-                return ParserFlags.BASE64, None
-            return ParserFlags.FAIL, decoded_string
+                return ParserFlags.FAIL, None
+            return ParserFlags.BASE64, decoded_string
 
         # If 50% of all characters are uppercase, lowercase the entire string
         #print("Value of capitalized letters in string", sum(1 for c in self.text if c.isupper()) / len(self.text))
@@ -154,6 +154,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         return data
 
     def is_valid(self, message: Message) -> bool:
+        self.client.logger.info(f'{self.auth_key} {message.guild} {message.author.bot} {message.channel.id} {SOURCE_CHANNEL_ID}')
         return (
             self.auth_key is not None
             and message.guild is not None
