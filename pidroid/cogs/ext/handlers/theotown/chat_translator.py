@@ -199,13 +199,16 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:
             self.used_chars = 0
             self.last_reset = utcnow()
+        self.client.logger.debug(f'Translating {message.clean_content}')
         await self.handle(message)
 
     async def handle(self, message: Message):
+        self.client.logger.debug("Initializing TextParser")
         parser = TextParser(message.clean_content)
         translations = []
         flag = ParserFlags.BYPASSED
         if parser.should_translate:
+            self.client.logger.debug('Message should be translated')
             flag, text = parser.get_parsed_text()
             if text is None and flag == ParserFlags.FAIL:
                 self.client.logger.warn(f"Failed parsing of base64 text for '{parser.original}'")
