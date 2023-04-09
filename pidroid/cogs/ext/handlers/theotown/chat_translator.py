@@ -55,10 +55,18 @@ CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
 BASE64_PATTERN = re.compile(r'^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$')
 
+# from https://carpedm20.github.io/emoji/docs/#regular-expression
+def get_emoji_regexp():
+    # Sort emoji by length to make sure multi-character emojis are
+    # matched first
+    emojis = sorted(emoji.EMOJI_DATA, key=len, reverse=True)
+    pattern = u'(' + u'|'.join(re.escape(u) for u in emojis) + u')'
+    return re.compile(pattern)
+
 def remove_emojis(string: str) -> str:
     """Removes all emojis from a string."""
     stripped = re.sub(CUSTOM_EMOJI_PATTERN, "", string)
-    return emoji.get_emoji_regexp().sub("", stripped) # type: ignore
+    return get_emoji_regexp().sub("", stripped) # type: ignore
 
 def remove_urls(string: str) -> str:
     """Removes URLs from a string."""
@@ -163,9 +171,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
     async def translate_message(self, message: Message, clean_text: str) -> List[dict]:
         # Await previous translation jobs to finish
-        self.client.logger.debug('Waiting for translation queue')
         await self._translating.wait()
-        self.client.logger.debug('Translation allowed')
 
         # Check if daily limit is not reached, if it is, stop translating
         if len(clean_text) + self.used_chars > self.daily_char_limit:
@@ -175,9 +181,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # Check if text was already translated
         c_key = clean_text.lower()
-        self.client.logger.debug("Fetching translation from database")
         translations = await self.client.api.fetch_translations(c_key)
-        self.client.logger.debug("Translation acquired")
         if len(translations) == 0:
             translations = await self.translate(clean_text)
             for t in translations:
@@ -199,16 +203,13 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:
             self.used_chars = 0
             self.last_reset = utcnow()
-        self.client.logger.debug(f'Translating {message.clean_content}')
         await self.handle(message)
 
     async def handle(self, message: Message):
-        self.client.logger.debug("Initializing TextParser")
         parser = TextParser(message.clean_content)
         translations = []
         flag = ParserFlags.BYPASSED
         if parser.should_translate:
-            self.client.logger.debug('Message should be translated')
             flag, text = parser.get_parsed_text()
             if text is None and flag == ParserFlags.FAIL:
                 self.client.logger.warn(f"Failed parsing of base64 text for '{parser.original}'")
@@ -221,7 +222,6 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if channel is None:
             return self.client.logger.warning("Translation output channel is None!")
         assert isinstance(channel, TextChannel)
-        self.client.logger.debug(f"Dispatching translation: {translations}")
         await self.dispatch_translation(channel, message, translations, flag)
 
     async def dispatch_translation(self, channel: TextChannel, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
