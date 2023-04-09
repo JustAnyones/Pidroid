@@ -130,8 +130,6 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         self.used_chars = 0
         self.last_reset = utcnow()
 
-        self.channel: Optional[TextChannel] = None
-
     async def translate(self, text: str) -> List[dict]:
         self._translating.clear()
         try:
@@ -157,8 +155,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
     def is_valid(self, message: Message) -> bool:
         return (
-            is_client_pidroid(self.client)
-            and self.auth_key is not None
+            self.auth_key is not None
             and message.guild is not None
             and not message.author.bot
             and message.channel.id == SOURCE_CHANNEL_ID
@@ -192,17 +189,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
     async def on_message(self, message: Message):
         # Check whether message is valid for further processing
         if not self.is_valid(message):
-            return
-
-        assert message.guild is not None
-
-        # Try to cache the channel object
-        if self.channel is None:
-            channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL_ID)
-            if channel is None:
-                self.client.logger.warning("Translation output channel is None!")
-            assert isinstance(channel, TextChannel)
-            self.channel = channel
+            return self.client.logger.info("Translation request is not valid")
+        self.client.logger.info("Translation request is valid")
 
         # Reset used chars counter
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:
@@ -222,10 +210,14 @@ class TranslationEventHandler(commands.Cog): # type: ignore
                 flag = ParserFlags.FAIL
             translations = await self.translate_message(message, text or parser.text)
 
-        if self.channel:
-            await self.dispatch_translation(message, translations, flag)
+        assert message.guild is not None
+        channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL_ID)
+        if channel is None:
+            return self.client.logger.warning("Translation output channel is None!")
+        assert isinstance(channel, TextChannel)
+        await self.dispatch_translation(channel, message, translations, flag)
 
-    async def dispatch_translation(self, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
+    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
         # If message contains a reply, track down the reference author
         action = None
         if message.reference:
@@ -276,8 +268,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
                 if footer is not None:
                     embed.set_footer(text=f"{footer} | {embed.footer.text}")
 
-        assert self.channel is not None
-        await self.channel.send(embeds=embeds)
+        await channel.send(embeds=embeds)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TranslationEventHandler(client))
