@@ -154,7 +154,6 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         return data
 
     def is_valid(self, message: Message) -> bool:
-        self.client.logger.info(f'{self.auth_key} {message.guild} {message.author.bot} {message.channel.id} {SOURCE_CHANNEL_ID}')
         return (
             self.auth_key is not None
             and message.guild is not None
@@ -190,8 +189,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
     async def on_message(self, message: Message):
         # Check whether message is valid for further processing
         if not self.is_valid(message):
-            return self.client.logger.info("Translation request is not valid")
-        self.client.logger.info("Translation request is valid")
+            return
 
         # Reset used chars counter
         if utcnow().timestamp() - self.last_reset.timestamp() > 60 * 60 * 24:
@@ -216,6 +214,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         if channel is None:
             return self.client.logger.warning("Translation output channel is None!")
         assert isinstance(channel, TextChannel)
+        self.client.logger.info(f"Dispatching translation: {translations}")
         await self.dispatch_translation(channel, message, translations, flag)
 
     async def dispatch_translation(self, channel: TextChannel, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
