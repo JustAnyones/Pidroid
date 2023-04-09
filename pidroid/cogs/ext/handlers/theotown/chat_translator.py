@@ -55,18 +55,10 @@ CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
 BASE64_PATTERN = re.compile(r'^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$')
 
-# from https://carpedm20.github.io/emoji/docs/#regular-expression
-def get_emoji_regexp():
-    # Sort emoji by length to make sure multi-character emojis are
-    # matched first
-    emojis = sorted(emoji.EMOJI_DATA, key=len, reverse=True)
-    pattern = u'(' + u'|'.join(re.escape(u) for u in emojis) + u')'
-    return re.compile(pattern)
-
 def remove_emojis(string: str) -> str:
     """Removes all emojis from a string."""
     stripped = re.sub(CUSTOM_EMOJI_PATTERN, "", string)
-    return get_emoji_regexp().sub("", stripped) # type: ignore
+    return emoji.replace_emoji(stripped, '')
 
 def remove_urls(string: str) -> str:
     """Removes URLs from a string."""
