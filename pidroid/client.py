@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from pidroid.cogs.models.case import Case
 from pidroid.cogs.models.categories import get_command_categories, UncategorizedCategory
+from pidroid.cogs.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.cogs.utils.api import API
 from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.data import PersistentDataManager
@@ -133,6 +134,10 @@ class Pidroid(commands.Bot): # type: ignore
     async def setup_hook(self):
         await self.api.connect()
         await self.load_cogs()
+        self.add_persistent_views()
+
+    def add_persistent_views(self):
+        self.add_view(PersistentSuggestionDeletionView())
 
     @property
     def token(self) -> str:

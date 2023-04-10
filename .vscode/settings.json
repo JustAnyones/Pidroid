@@ -2,7 +2,7 @@
     "files.exclude": {
         "**/venv": true
     },
-    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.typeCheckingMode": "off",
     "python.linting.mypyEnabled": true,
     "python.linting.enabled": true
 }

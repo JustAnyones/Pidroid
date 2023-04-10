@@ -11,8 +11,6 @@ from discord.message import Message
 from typing import List, Optional, Tuple
 
 from pidroid.client import Pidroid
-from pidroid.cogs.utils.aliases import GuildChannel
-from pidroid.cogs.utils.checks import is_client_pidroid
 from pidroid.cogs.utils.embeds import PidroidEmbed
 from pidroid.cogs.utils.http import post
 from pidroid.cogs.utils.time import utcnow
@@ -30,10 +28,13 @@ LANGUAGE_MAPPING = {
     "FI": "Finnish",
     "FR": "French",
     "HU": "Hungarian",
+    "ID": "Indonesian",
     "IT": "Italian",
     "JA": "Japanese",
+    "KO": "Korean",
     "LT": "Lithuanian",
     "LV": "Latvian",
+    "NB": "Norwegian (Bokmål)",
     "NL": "Dutch",
     "PL": "Polish",
     "PT": "Portuguese",
@@ -42,10 +43,9 @@ LANGUAGE_MAPPING = {
     "SK": "Slovak",
     "SL": "Slovenian",
     "SV": "Swedish",
-    "ZH": "Chinese",
-    "ID": "Indonesian",
     "TR": "Turkish",
-    "UK": "Ukrainian"
+    "UK": "Ukrainian",
+    "ZH": "Chinese"
 }
 
 FEED_CHANNEL_ID = 943920969637040140

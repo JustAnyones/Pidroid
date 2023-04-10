@@ -13,6 +13,7 @@ from typing import List, Optional
 
 from pidroid.client import Pidroid
 from pidroid.cogs.models.categories import TheoTownCategory
+from pidroid.cogs.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.cogs.utils import http
 from pidroid.cogs.utils.checks import check_bot_channel_permissions
 from pidroid.cogs.utils.decorators import command_checks
@@ -297,13 +298,12 @@ class TheoTownCommands(commands.Cog): # type: ignore
             await message.add_reaction("✅")
             await message.add_reaction("❌")
             await message.add_reaction("❗")
-            await message.add_reaction("⛔")
             suggestion_attachments: List[str] = []
             if message.embeds[0].image.url is not None:
                 suggestion_attachments.append(message.embeds[0].image.url)
             s_id = await self.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
             embed.set_footer(text=f'✅ I like this idea; ❌ I hate this idea; ❗ Already possible.\n#{s_id}')
-            await message.edit(embed=embed)
+            await message.edit(embed=embed, view=PersistentSuggestionDeletionView())
             with suppress(HTTPException):
                 await ctx.reply('Your suggestion has been submitted to <#409800607466258445> channel successfully!')
 

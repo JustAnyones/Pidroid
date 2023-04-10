@@ -30,6 +30,9 @@ class ReactionEventHandler(commands.Cog): # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
+        """Lgeacy way of removing suggestions based on the reaction, to be removed eventually.
+        
+        This is left as backwards compatibility."""
         if not payload.member:
             return
 

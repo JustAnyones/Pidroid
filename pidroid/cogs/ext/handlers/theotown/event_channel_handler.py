@@ -10,11 +10,32 @@ from pidroid.client import Pidroid
 from pidroid.cogs.utils.checks import TheoTownChecks as TTChecks, is_guild_moderator, is_guild_theotown
 
 EVENTS_CHANNEL_ID = 371731826601099264
+EVENTS_FORUM_CHANNEL_ID = 1085224525924417617
 
 class EventChannelHandler(commands.Cog): # type: ignore
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
         self.client = client
+
+    def is_in_events_forum_channel(self, message: Message) -> bool:
+        """Returns true if the message belongs inside a events forum channel."""
+        if message.guild is None:
+            return False
+
+        if message.author.bot:
+            return False
+
+        if not is_guild_theotown(message.guild):
+            return False
+
+        if not hasattr(message.channel, 'parent'):
+            return False
+
+        parent = message.channel.parent
+        if parent is None:
+            return False
+
+        return parent.id == EVENTS_FORUM_CHANNEL_ID
 
     @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message):
@@ -24,6 +45,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
 
         if not is_guild_theotown(message.guild):
             return
+
         assert message.guild is not None
         assert message.channel is not None
 
@@ -33,13 +55,26 @@ class EventChannelHandler(commands.Cog): # type: ignore
         if isinstance(message.author, discord.User):
             return
 
-        assert isinstance(message.channel, TextChannel)
-
         if not TTChecks.is_event_manager(message.author) and not is_guild_moderator(message.author):
             if message.attachments:
                 return await message.add_reaction("👍")
 
             await message.delete(delay=0)
+
+    #@commands.Cog.listener() # type: ignore
+    #async def on_message2(self, message: Message):
+    #    """Add reactions to new messages in the events forum channel."""
+    #    if not self.is_in_events_forum_channel(message):
+    #        return
+
+    #    assert isinstance(message.author, discord.Member)
+
+    #    # Disallow event managers and guild moderators to participate
+    #    if not (TTChecks.is_event_manager(message.author) or is_guild_moderator(message.author)):
+    #        if message.attachments:
+    #            return await message.add_reaction("👍")
+
+    #        await message.delete(delay=0)
 
     @commands.Cog.listener() # type: ignore
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
