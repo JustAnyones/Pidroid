@@ -12,7 +12,7 @@ from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import GeneralCommandError
 from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.paginators import PidroidPages
 
 
@@ -61,7 +61,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
         await case.invalidate()
-        await ctx.reply('Warning invalidated successfully!')
+        await ctx.reply(embed=SuccessEmbed('Warning invalidated successfully!'))
 
 
     # Due to limitation with discord's slash commands, this is hidden
