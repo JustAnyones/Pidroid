@@ -890,7 +890,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         t.reason = "Suspended communications"
         t.set_length(timedelta(days=7))
         await t.issue()
-        await ctx.message.delete(delay=0)
+        await ctx.reply(embed=t.public_message_issue_embed)
 
 
 async def setup(client: Pidroid):
