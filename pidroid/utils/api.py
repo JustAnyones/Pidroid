@@ -10,12 +10,13 @@ from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.accounts import TheoTownAccount
 from pidroid.utils.http import HTTP, Route
+from pidroid.utils.levels import LevelInformation
 from pidroid.utils.time import utcnow
 
 from sqlalchemy import Column # type: ignore
 from sqlalchemy import DateTime
 from sqlalchemy import func, delete, select, update
-from sqlalchemy import Integer, BigInteger, Text, ARRAY, Boolean
+from sqlalchemy import Integer, BigInteger, Text, ARRAY, Boolean, Float
 from sqlalchemy import String
 from sqlalchemy.dialects.postgresql import insert as pg_insert # type: ignore
 from sqlalchemy.engine.result import ChunkedIteratorResult # type: ignore
@@ -115,35 +116,28 @@ class GuildConfigurationTable(Base): # type: ignore
     xp_system_active = Column(Boolean, server_default="false")
     xp_per_message_min = Column(BigInteger, server_default="15")
     xp_per_message_max = Column(BigInteger, server_default="25")
-    xp_multiplier = Column(BigInteger, server_default="1")
+    xp_multiplier = Column(Float, server_default="1.0")
     xp_exempt_roles = Column(ARRAY(BigInteger), server_default="{}")
     xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}")
+    stack_level_rewards = Column(Boolean, server_default="true")
 
-class LevelRewardsTable(Base): # type: ignore
-    __tablename__ = "LevelRewards"
-    
-    id = Column(BigInteger, primary_key=True)
-    guild_id = Column(BigInteger)
-    level = Column(Integer)
-    role_id = Column(BigInteger)
-    
 class UserLevelsTable(Base): # type: ignore
     __tablename__ = "UserLevels"
     
     id = Column(BigInteger, primary_key=True)
     guild_id = Column(BigInteger)
     user_id = Column(BigInteger)
-    total_xp = Column(BigInteger)
-    current_xp = Column(BigInteger)
-    messages_sent = Column(BigInteger)
-    level = Column(BigInteger)
+    total_xp = Column(BigInteger, server_default="0")
+    current_xp = Column(BigInteger, server_default="0")
+    xp_to_next_level = Column(BigInteger, server_default="100")
+    level = Column(BigInteger, server_default="0")
 
-class PersistentRoleTable():
-    __tablename__ = "PersistentRoles"
+class LevelRewardsTable(Base): # type: ignore
+    __tablename__ = "LevelRewards"
     
     id = Column(BigInteger, primary_key=True)
     guild_id = Column(BigInteger)
-    user_id = Column(BigInteger)
+    level = Column(BigInteger)
     role_id = Column(BigInteger)
 
 class TranslationTable(Base): # type: ignore
@@ -757,22 +751,113 @@ class API:
         return None
     
     """Leveling system related"""
-    async def fetch_top100_guild_levels(self):
-        pass
+
+    async def fetch_guild_levels(self, guild_id: int, start: int = 0, limit: int = 10) -> List[LevelInformation]:
+        """Returns a list of guild levels."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(
+                    UserLevelsTable,
+                    func.rank().over(order_by=UserLevelsTable.total_xp.desc()).label("rank")
+                ).
+                filter(UserLevelsTable.guild_id == guild_id).
+                order_by(UserLevelsTable.total_xp.desc()).
+                limit(limit).
+                offset(start)
+            )
+        info = []
+        for r in result.fetchall():
+            info.append(LevelInformation(self, r[0], r[1]))
+        return info
     
-    async def fetch_guild_level_rewards(self, guild_id: int):
+    async def fetch_guild_level_rewards(self, guild_id: int, level: int):
         pass
-    
-    async def fetch_guild_level_reward(self, guild_id: int, level: int):
-        pass
-    
-    async def fetch_member_level(self, guild_id: int, user_id: int):
-        pass
-    
-    async def increase_member_level(self, guild_id: int, user_id: int, amount: int):
-        config = await self.client.fetch_guild_configuration(guild_id)
-        
-        pass
+
+    async def insert_member_level_info(
+        self,
+        guild_id: int,
+        user_id: int
+    ) -> LevelInformation:
+        """Inserts an empty member level information entry to the database."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = UserLevelsTable(
+                    guild_id=guild_id,
+                    user_id=user_id
+                )
+                session.add(entry)
+            await session.commit()
+        info = await self.fetch_member_level_info(guild_id, user_id)
+        assert info is not None
+        return info
+
+    async def fetch_member_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
+        """Returns the member level information."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(
+                    UserLevelsTable,
+                    func.rank().over(order_by=UserLevelsTable.total_xp.desc()).label("rank")
+                ).
+                filter(
+                    UserLevelsTable.guild_id == guild_id,
+                    UserLevelsTable.user_id == user_id
+                )
+            )
+        r = result.fetchone()
+        if r:
+            return LevelInformation(self, r[0], r[1])
+        return None
+
+    async def increment_member_xp(self, guild_id: int, user_id: int, amount: int):
+        """Increments the member XP by the specified amount."""
+
+        # Acquire the level information before leveling up
+        info = await self.fetch_member_level_info(guild_id, user_id)
+        if info is None:
+            info = await self.insert_member_level_info(guild_id, user_id)
+
+        # Get the current information
+        current_xp = info.current_xp
+        current_level = info.current_level
+        xp_to_next_level = info.xp_to_level_up
+
+        calculated_xp = current_xp + amount # TODO: limit max amount to 100 or create a method to deal with consecutive level up
+
+        # If the new xp is above xp required to reach next level
+        if calculated_xp >= xp_to_next_level:
+            calculated_level = current_level + 1
+            # https://github.com/Mee6/Mee6-documentation/blob/master/docs/levels_xp.md
+            calculated_xp_to_next_level = 5 * (calculated_level ** 2) + (50 * calculated_level) + 100
+            calculated_xp = calculated_xp - xp_to_next_level
+
+        else:
+            calculated_xp_to_next_level = xp_to_next_level
+            calculated_level = current_level
+
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(UserLevelsTable).
+                    filter(
+                        UserLevelsTable.guild_id == guild_id,
+                        UserLevelsTable.user_id == user_id
+                    ).values(
+                        current_xp=calculated_xp,
+                        xp_to_next_level=calculated_xp_to_next_level,
+                        total_xp=UserLevelsTable.total_xp + amount,
+                        level=calculated_level
+                    )
+                )
+            await session.commit()
+
+        if calculated_level != current_level:
+            # TODO: announce level up
+            pass
 
     """TheoTown backend related"""
 

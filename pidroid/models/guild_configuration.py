@@ -48,6 +48,16 @@ class GuildConfiguration:
 
         self._appeal_url = c.appeal_url # type: ignore
 
+        # XP system related information
+        self.__xp_system_active = c.xp_system_active
+        self.__xp_multiplier = c.xp_multiplier
+        self.__xp_per_message_min = c.xp_per_message_min
+        self.__xp_per_message_max = c.xp_per_message_max
+        self.__xp_exempt_roles = c.xp_exempt_roles
+        self.__xp_exempt_channels = c.xp_exempt_channels
+        self.__stack_level_rewards = c.stack_level_rewards
+
+
     async def _update(self) -> None:
         await self.api.update_guild_configuration(
             self._id,
@@ -61,8 +71,43 @@ class GuildConfiguration:
         )
 
     @property
+    def xp_system_active(self) -> bool:
+        """Returns true if the XP system is active for the server."""
+        return self.__xp_system_active
+
+    @property
+    def xp_multiplier(self) -> float:
+        """Returns the XP multiplier per message."""
+        return self.__xp_multiplier
+    
+    @property
+    def xp_per_message_min(self) -> int:
+        """Returns the minimum amount of XP that can be received per message."""
+        return self.__xp_per_message_min
+
+    @property
+    def xp_per_message_max(self) -> int:
+        """Returns the maximum amount of XP that can be received per message."""
+        return self.__xp_per_message_max
+
+    @property
+    def xp_exempt_roles(self) -> List[int]:
+        """Returns a list of XP exempt role IDs."""
+        return self.__xp_exempt_roles
+
+    @property
+    def xp_exempt_channels(self) -> List[int]:
+        """Returns a list of XP exempt channel IDs."""
+        return self.__xp_exempt_channels
+
+    @property
+    def stack_level_rewards(self) -> bool:
+        """Returns true if level rewards should be stacked."""
+        return self.__stack_level_rewards
+
+    @property
     def appeal_url(self) -> Optional[str]:
-        """Returns appeal URL for the guild."""
+        """Returns the punishment appeal URL."""
         return self._appeal_url
 
     async def update_public_tag_permission(self, allow_public: bool) -> None:

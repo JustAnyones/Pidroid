@@ -304,13 +304,13 @@ class PidroidPages(discord.ui.View):
 
     async def start(self):
         if self.check_embeds and not self.ctx.channel.permissions_for(self.ctx.me).embed_links:
-            return await self.ctx.send('Bot does not have embed links permission in this channel.')
+            return await self.ctx.reply('Bot does not have embed links permission in this channel.')
 
         await self.source._prepare_once()
         page = await self.source.get_page(0)
         kwargs = await self._get_kwargs_from_page(page)
         self._update_labels(0)
-        self.message = await self.ctx.send(**kwargs, view=self)  # type: ignore
+        self.message = await self.ctx.reply(**kwargs, view=self)  # type: ignore
 
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
     async def go_to_first_page(self, interaction: discord.Interaction, button: discord.ui.Button):

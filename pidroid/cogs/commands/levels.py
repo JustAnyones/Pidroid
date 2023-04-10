@@ -1,96 +1,90 @@
 from __future__ import annotations
 
-import discord
-import os
-import typing
-import sys
-
+from discord import Member, User, app_commands
+from discord.utils import escape_markdown
 from discord.ext import commands # type: ignore
-from discord.member import Member
-from discord.message import Message
-from discord.ext.commands import Greedy, Context
+from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument # type: ignore
-from typing import TYPE_CHECKING, Optional, TypedDict
+from typing import List, Optional, Union
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
-from pidroid.constants import JUSTANYONE_ID
 from pidroid.models.categories import OwnerCategory
-from pidroid.utils.decorators import command_checks
+from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.levels import LevelInformation
+from pidroid.utils.paginators import ListPageSource, PidroidPages
 
-def get_total_xp(level: int) -> float:
-    """Returns the total amount of XP required to reach the specified level."""
-    return 5 / 6 * level * (2 * level * level + 27 * level + 91)
+class LeaderboardPaginator(ListPageSource):
+    def __init__(self, data: List[LevelInformation]):
+        super().__init__(data, per_page=10)
+        self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-def get_level_from_xp(xp: int) -> float:
-    total_xp = 0.0
-    level = 0
-    while total_xp < xp:
-        level += 1
-        total_xp = get_total_xp(level)
-    previous_lvl_xp = get_total_xp(level - 1)
-    return level - 1 + (xp - previous_lvl_xp) / (total_xp - previous_lvl_xp)
+    async def format_page(self, menu: PidroidPages, data: List[LevelInformation]):
+        assert isinstance(menu.ctx.bot, Pidroid)
+        self.embed.clear_fields()
+        for info in data:
+            self.embed.add_field(
+                name=f"{info.rank}. {await menu.ctx.bot.get_or_fetch_user(info.user_id)} (lvl. {info.current_level})",
+                value=f'{info.total_xp} XP',
+                inline=False
+            )
+        return self.embed
 
-class LevelHolder(TypedDict):
-    pass
+    async def get_page(self, page_number):
+        return await super().get_page(page_number)
 
 class LevelCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        self.x = {
-            "guild_id": {
-                "user_id": {
-                    
-                }
-            }
-        }
-        
-    async def try_earn_level(self, message: Message):
-        # TODO: do some time checking, to avoid spam,
-        # should return if it was under a minute
-        
-        assert message.guild is not None
-        
-        config = await self.client.fetch_guild_configuration(message.guild.id)
-        
-        
-        await self.client.api.increase_member_level(message.guild.id, message.author.id, 0)
-        
-        
-        
-        pass
 
-    #@commands.hybrid_command(name="level")
-    #@commands.command( # type: ignore
-    #    name="level",
-    #    brief="Sends a message to a specified guild channel as the bot.",
-    #    usage="<channel> <message>",
-    #    aliases=["say"],
-    #    permissions=["Bot owner"],
-    #    category=OwnerCategory,
-    #    hidden=True
-    #)
-    #@commands.is_owner() # type: ignore
-    #@commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    #async def level_command(self, ctx: Context, member: Annotated[Optional[Member], Member] = None):
-    #    member = member or ctx.author
-    #    await ctx.send(f"Querying level for {member}")
+    @commands.hybrid_command( # type: ignore
+        name="rank",
+        brief="Displays the member level rank.",
+        usage="[user/member]",
+        category=OwnerCategory
+    )
+    @app_commands.describe(member="Member or user you to view rank of.")
+    @commands.guild_only()
+    @commands.bot_has_guild_permissions(send_messages=True)
+    async def rank_command(
+        self,
+        ctx: Context,
+        member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+    ):
+        assert ctx.guild is not None
+        member = member or ctx.author
+        info = await self.client.api.fetch_member_level_info(ctx.guild.id, member.id)
+        if info is None:
+            raise BadArgument('The specified member is not yet ranked!')
+
+        embed = PidroidEmbed(title=f'{escape_markdown(str(member))} rank')
+        embed.add_field(name='Level', value=info.current_level)
+        embed.add_field(name='Rank', value=info.rank)       
+
+        # Create a progress bar
+        # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
+        dashes = 10
+        current_dashes = int(info.current_xp / int(info.xp_to_level_up / dashes))
+        current_prog = '🟦' * current_dashes
+        remaining_prog = '⬛' * (dashes - current_dashes)
+
+        embed.add_field(name=f'Level progress ({info.current_xp} / {info.xp_to_level_up} XP)', value=f"{current_prog}{remaining_prog}", inline=False)
+
+        await ctx.reply(embed=embed)
         
-    #@commands.hybrid_command(name="leaderboard")
-    #@commands.command( # type: ignore
-    #    name="level",
-    #    brief="Sends a message to a specified guild channel as the bot.",
-    #    usage="<channel> <message>",
-    #    aliases=["say"],
-    #    permissions=["Bot owner"],
-    #    category=OwnerCategory,
-    #    hidden=True
-    #)
-    #@commands.is_owner() # type: ignore
-    #@commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    #async def leaderboard_command(self, ctx: Context):
-    #    await ctx.send(f"Querying server leaderboard")
+    @commands.hybrid_command( # type: ignore
+        name="leaderboard",
+        brief='Returns the server level system leaderboard.',
+        category=OwnerCategory
+    )
+    @commands.guild_only()
+    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    async def leaderboard_command(self, ctx: Context):
+        assert ctx.guild is not None
+        levels = await self.client.api.fetch_guild_levels(ctx.guild.id)
+        pages = PidroidPages(LeaderboardPaginator(levels), ctx=ctx)
+        return await pages.start()
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LevelCommands(client))
