@@ -18,13 +18,14 @@ from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
-from pidroid.cogs.models.case import Case
-from pidroid.cogs.models.categories import get_command_categories, UncategorizedCategory
-from pidroid.cogs.models.persistent_views import PersistentSuggestionDeletionView
-from pidroid.cogs.utils.api import API
-from pidroid.cogs.utils.checks import is_client_pidroid
-from pidroid.cogs.utils.data import PersistentDataManager
-from pidroid.cogs.utils.logger import BaseLog
+from pidroid.models.case import Case
+from pidroid.models.categories import get_command_categories, UncategorizedCategory
+from pidroid.models.guild_configuration import GuildConfiguration
+from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.utils.api import API
+from pidroid.utils.checks import is_client_pidroid
+from pidroid.utils.data import PersistentDataManager
+from pidroid.utils.logger import BaseLog
 
 class VersionInfo(NamedTuple):
     major: int
@@ -35,10 +36,6 @@ class VersionInfo(NamedTuple):
 
 
 __VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id='unknown') # TODO: figure out how to reliably provide
-
-if TYPE_CHECKING:
-    from pidroid.cogs.models.guild_configuration import GuildConfiguration
-
 
 class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
@@ -64,50 +61,50 @@ class Pidroid(commands.Bot): # type: ignore
         # This defines hot-reloadable cogs and various files
         self._extensions_to_load = [
             # Commands
-            'cogs.ext.commands.admin',
-            'cogs.ext.commands.anime',
-            'cogs.ext.commands.bot',
-            'cogs.ext.commands.economy',
-            'cogs.ext.commands.emoji',
-            'cogs.ext.commands.forum',
-            'cogs.ext.commands.fun',
-            'cogs.ext.commands.giveaway',
-            'cogs.ext.commands.help',
-            'cogs.ext.commands.image',
-            'cogs.ext.commands.info',
-            'cogs.ext.commands.levels',
-            'cogs.ext.commands.owner',
-            'cogs.ext.commands.reddit',
-            'cogs.ext.commands.sticker',
-            'cogs.ext.commands.tags',
-            'cogs.ext.commands.theotown',
-            'cogs.ext.commands.utilities',
+            'cogs.commands.admin',
+            'cogs.commands.anime',
+            'cogs.commands.bot',
+            'cogs.commands.economy',
+            'cogs.commands.emoji',
+            'cogs.commands.forum',
+            'cogs.commands.fun',
+            'cogs.commands.giveaway',
+            'cogs.commands.help',
+            'cogs.commands.image',
+            'cogs.commands.info',
+            'cogs.commands.levels',
+            'cogs.commands.owner',
+            'cogs.commands.reddit',
+            'cogs.commands.sticker',
+            'cogs.commands.tags',
+            'cogs.commands.theotown',
+            'cogs.commands.utilities',
             
             # Moderation related commands
-            'cogs.ext.commands.moderation.punishment',
-            'cogs.ext.commands.moderation.information',
+            'cogs.commands.moderation.punishment',
+            'cogs.commands.moderation.information',
 
             # Extensions related to handling or responding
             # to certain events and running tasks
-            'cogs.ext.handlers.automod',
-            'cogs.ext.handlers.guild_events',
-            'cogs.ext.handlers.initialization',
-            'cogs.ext.handlers.punishment_handler',
-            'cogs.ext.handlers.punishment_listener',
-            'cogs.ext.handlers.thread_archiver',
+            'cogs.handlers.automod',
+            'cogs.handlers.guild_events',
+            'cogs.handlers.initialization',
+            'cogs.handlers.punishment_handler',
+            'cogs.handlers.punishment_listener',
+            'cogs.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
             # NOTE: these handlers are not loaded if current client ID is not Pidroid.
-            'cogs.ext.handlers.theotown.chat_translator',
-            'cogs.ext.handlers.theotown.copypasta',
-            'cogs.ext.handlers.theotown.event_channel_handler',
-            'cogs.ext.handlers.theotown.forum_message_handler',
-            'cogs.ext.handlers.theotown.guild_statistics',
-            'cogs.ext.handlers.theotown.plugin_store',
-            'cogs.ext.handlers.theotown.reaction_handler',
+            'cogs.handlers.theotown.chat_translator',
+            'cogs.handlers.theotown.copypasta',
+            'cogs.handlers.theotown.event_channel_handler',
+            'cogs.handlers.theotown.forum_message_handler',
+            'cogs.handlers.theotown.guild_statistics',
+            'cogs.handlers.theotown.plugin_store',
+            'cogs.handlers.theotown.reaction_handler',
 
             # Load the error handler last
-            'cogs.ext.handlers.error_handler',
+            'cogs.handlers.error_handler',
 
             # Debugging tool jishaku
             'jishaku'
