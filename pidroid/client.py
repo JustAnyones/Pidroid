@@ -290,11 +290,11 @@ class Pidroid(commands.Bot): # type: ignore
         self.logger.critical("Reloading bot configuration data and all cogs")
         is_pidroid = is_client_pidroid(self)
         for ext in self._extensions_to_load:
-            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
                 continue
             await self.unload_extension(ext)
         for ext in self._extensions_to_load:
-            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
                 self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             await self.load_extension(ext)
@@ -307,7 +307,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         for ext in self._extensions_to_load:
             self.logger.debug(f"Loading {ext}.")
-            if not is_pidroid and ext.startswith("cogs.ext.handlers.theotown"):
+            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
                 self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             try:
