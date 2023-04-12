@@ -44,6 +44,10 @@ class TagCategory(Category):
     def __init__(self):
         super().__init__("Tags", "Tagging related commands.", "🏷️")
 
+class LevelCategory(Category):
+    def __init__(self):
+        super().__init__("Level", "Leveling related commands.", "🌟")
+
 class UncategorizedCategory(Category):
     def __init__(self):
         super().__init__("Uncategorized", "Commands which do not fit in either of the above categories.", "🗑️")
