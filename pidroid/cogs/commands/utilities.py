@@ -1,5 +1,6 @@
 import re
 
+from aiohttp.client_exceptions import ContentTypeError
 from discord.ext import commands
 from discord.ext.commands import Context, BadArgument # type: ignore
 from urllib.parse import quote_plus as urlencode
@@ -102,8 +103,11 @@ class UtilityCommands(commands.Cog): # type: ignore
                 if "country" in data:
                     title = "Covid-19 pandemic stats for " + data["country"]
                     # Attempt to retrieve vaccine data if available
-                    async with await http.get(self.client, f"{CORONA_API_URL}/vaccine/coverage/countries/{location}?lastdays=1&fullData=true") as r:
-                        vaccine_data = await r.json()
+                    try:
+                        async with await http.get(self.client, f"{CORONA_API_URL}/vaccine/coverage/countries/{location}?lastdays=1&fullData=true") as r:
+                            vaccine_data = await r.json()
+                    except ContentTypeError:
+                        raise BadArgument(f'{CORONA_API_URL} returned corrupted data, please try again later')
                     if 'timeline' in vaccine_data:
                         total_vaccinations = vaccine_data['timeline'][0]['total']
 
