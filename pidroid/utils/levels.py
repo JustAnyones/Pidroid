@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import logging
+
+from typing import TYPE_CHECKING, List, Optional
+
+from discord import Member, Role
+
+from pidroid.models.guild_configuration import GuildConfiguration
+
+logger = logging.getLogger('Pidroid')
 
 if TYPE_CHECKING:
     from pidroid.utils.api import API, UserLevelsTable, LevelRewardsTable
@@ -69,6 +77,28 @@ class LevelReward:
         """Returns the required level to obtain the reward."""
         return self.__level
 
+    async def fetch_guild_configuration(self) -> GuildConfiguration:
+        """Returns the guild configuration object associated with the guild this reward is in."""
+        return await self.__api.client.fetch_guild_configuration(self.guild_id)
+
+    async def fetch_next_reward(self):
+        return await self.__api._fetch_next_level_reward(self.guild_id, self.level)
+
+    async def fetch_previous_reward(self):
+        return await self.__api._fetch_previous_level_reward(self.guild_id, self.level)
+
+    async def fetch_role(self) -> Optional[Role]:
+        """Fetches the role object associated with this level reward."""
+        guild = self.__api.client.get_guild(self.guild_id)
+        if guild is None:
+            logger.warning(f'Failed to acquire guild {self.guild_id} while fetching role from LevelReward')
+            return None
+        return await self.__api.client.get_or_fetch_role(guild, self.role_id)
+
+    async def delete(self):
+        """Deletes the current level reward from the database."""
+        await self.__api._delete_level_reward(self.internal_id)
+
 
 class LevelInformation:
 
@@ -91,6 +121,9 @@ class LevelInformation:
         self.__xp_to_level_up = xp_to_level_up
         self.__current_level = current_level
         self.__rank = rank
+
+    def __repr__(self) -> str:
+        return f'<LevelInformation guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
 
     @classmethod
     def from_table(cls: type[LevelInformation], api: API, table: UserLevelsTable, rank: int = -1) -> LevelInformation:
@@ -142,3 +175,19 @@ class LevelInformation:
     def current_level(self) -> int:
         """Returns the current member level."""
         return self.__current_level
+
+    async def fetch_member(self) -> Optional[Member]:
+        """Fetches the member object associated with this level information."""
+        guild = self.__api.client.get_guild(self.__guild_id)
+        if guild is None:
+            logger.warning(f'Failed to acquire guild {self.__guild_id} while fetching member information from LevelInformation')
+            return None
+        return await self.__api.client.get_or_fetch_member(guild, self.__user_id)
+
+    async def fetch_eligible_level_rewards(self) -> List[LevelReward]:
+        """Returns a list of eligible level rewards for the user."""
+        return await self.__api.fetch_eligible_level_rewards_for_level(self.__guild_id, self.__current_level)
+
+    async def fetch_eligible_level_reward(self) -> Optional[LevelReward]:
+        """Returns the most eligible level reward for the user."""
+        return await self.__api.fetch_eligible_level_reward_for_level(self.__guild_id, self.__current_level)

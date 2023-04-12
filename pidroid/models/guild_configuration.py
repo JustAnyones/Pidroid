@@ -59,7 +59,7 @@ class GuildConfiguration:
 
 
     async def _update(self) -> None:
-        await self.api.update_guild_configuration(
+        await self.api._update_guild_configuration(
             self._id,
             self.jail_channel, self.jail_role,
             self.log_channel,

@@ -61,7 +61,7 @@ class LevelCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         member = member or ctx.author
-        info = await self.client.api.fetch_member_level_info(ctx.guild.id, member.id)
+        info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, member.id)
         if info is None:
             raise BadArgument('The specified member is not yet ranked!')
 
@@ -92,7 +92,7 @@ class LevelCommands(commands.Cog): # type: ignore
     async def leaderboard_command(self, ctx: Context):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
-        levels = await self.client.api.fetch_guild_levels(ctx.guild.id, limit=100)
+        levels = await self.client.api.fetch_guild_level_rankings(ctx.guild.id, limit=100)
         pages = PidroidPages(LeaderboardPaginator(levels), ctx=ctx)
         return await pages.start()
 
@@ -143,12 +143,14 @@ class LevelCommands(commands.Cog): # type: ignore
         if reward is not None:
             raise BadArgument('A role reward already exists for the specified level.')
 
-        reward = await self.client.api.fetch_guild_level_reward_by_role(ctx.guild.id, role.id)
+        reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
         if reward is not None:
             raise BadArgument('Specified role already belongs to a reward.')
 
         await self.client.api.insert_level_reward(ctx.guild.id, role.id, level)
-        await ctx.reply(embed=SuccessEmbed('Role reward added successfully!'))
+        await ctx.reply(embed=SuccessEmbed(
+            'Role reward added successfully! Please note that it might some time for changes to take effect.'
+        ))
 
     @rewards_command.command( # type: ignore
         name='change',
@@ -161,6 +163,7 @@ class LevelCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def rewards_change_command(self, ctx: Context, role: Role, level: int):
         assert ctx.guild is not None
+        raise BadArgument("Feature not yet supported")
         await self.check_system_enabled(ctx.guild)
         if level > 1000:
             raise BadArgument('You cannot set level requirement higher than 1000!')
@@ -171,12 +174,14 @@ class LevelCommands(commands.Cog): # type: ignore
         if reward is not None:
             raise BadArgument('A role reward already exists for the specified level.')
 
-        reward = await self.client.api.fetch_guild_level_reward_by_role(ctx.guild.id, role.id)
+        reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
         if reward is None:
             raise BadArgument('Specified role does not belong to any rewards.')
 
         await self.client.api.update_level_reward_by_id(reward.internal_id, role.id, level)
-        await ctx.reply(embed=SuccessEmbed(f'Role level requirement successfully updated to {level}!'))
+        await ctx.reply(embed=SuccessEmbed(
+            f'Role level requirement successfully updated to {level}! Please note that it might some time for changes to take effect.'
+        ))
 
     @rewards_command.command( # type: ignore
         name='remove',
@@ -190,17 +195,19 @@ class LevelCommands(commands.Cog): # type: ignore
     async def rewards_remove_command(self, ctx: Context, role: Role):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
-        reward = await self.client.api.fetch_guild_level_reward_by_role(ctx.guild.id, role.id)
+        reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
         if reward is None:
             raise BadArgument('Specified role does not belong to any rewards.')
 
-        await self.client.api.delete_level_reward(reward.internal_id)
-        await ctx.reply(embed=SuccessEmbed('Role reward removed successfully!'))
+        await reward.delete()
+        await ctx.reply(embed=SuccessEmbed(
+            'Role reward removed successfully! Please note that it might some time for changes to take effect.'
+        ))
 
-    # TODO: add exempt role
-    # add exempt channel
-    # remove exempt role
-    # remove exempt channel
+    # TODO: add exempt role command
+    # TODO: add exempt channel command
+    # TODO: remove exempt role command
+    # TODO: remove exempt channel command
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LevelCommands(client))

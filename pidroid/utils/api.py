@@ -152,42 +152,42 @@ class API:
 
     def __init__(self, client: Pidroid, dsn: str) -> None:
         self.client = client
-        self._dsn = dsn
-        self._http = HTTP(client)
-        self.engine: Optional[AsyncEngine] = None
+        self.__dsn = dsn
+        self.__http = HTTP(client)
+        self.__engine: Optional[AsyncEngine] = None
 
-        self._listeners: Dict[str, Set[Callable[[Any], Coroutine[Any, Any, None]]]] = {}  
+        self.__listeners: Dict[str, Set[Callable[[Any], Coroutine[Any, Any, None]]]] = {}  
 
     def add_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
-        if not self._listeners.get(event, None):
-            self._listeners[event] = {listener}
+        if not self.__listeners.get(event, None):
+            self.__listeners[event] = {listener}
         else:
-            self._listeners[event].add(listener)
+            self.__listeners[event].add(listener)
 
     def remove_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
-        self._listeners[event].remove(listener)
-        if len(self._listeners[event]) == 0:
-            del self._listeners[event]
+        self.__listeners[event].remove(listener)
+        if len(self.__listeners[event]) == 0:
+            del self.__listeners[event]
     
     def emit(self, event_name: str, *args: Any, **kwargs: Any) -> None:
         """Calls the specified event to be handled by event listeners.
         
         First argument is the event name, the rest are optional arguments for the event handler."""
-        listeners = self._listeners.get(event_name, set())
+        listeners = self.__listeners.get(event_name, set())
         for listener in listeners:
             self.client.loop.create_task(listener(*args, **kwargs))
 
     async def connect(self) -> None:
         """Creates a postgresql database connection."""
-        self.engine = create_async_engine(self._dsn, echo=self.client.debugging)
-        self.session = sessionmaker(self.engine, expire_on_commit=False, class_=AsyncSession)
+        self.__engine = create_async_engine(self.__dsn, echo=self.client.debugging)
+        self.session = sessionmaker(self.__engine, expire_on_commit=False, class_=AsyncSession)
         # Checks if actual connection can be made
-        a = await self.engine.connect()
+        a = await self.__engine.connect()
         await a.close()
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""
-        return await self._http.request("GET", route)
+        return await self.__http.request("GET", route)
 
     async def insert_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str] = []) -> int:
         """Creates a suggestion entry in the database."""
@@ -302,11 +302,11 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        config = await self.fetch_guild_configuration_by_id(entry.id) # type: ignore
+        config = await self.__fetch_guild_configuration_by_id(entry.id) # type: ignore
         assert config is not None
         return config
 
-    async def fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
+    async def __fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
         """Fetches and returns a deserialized guild configuration if available."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
@@ -341,7 +341,7 @@ class API:
             )
         return [GuildConfiguration(self, r[0]) for r in result.fetchall()] # type: ignore
 
-    async def update_guild_configuration(
+    async def _update_guild_configuration(
         self,
         row_id: int,
         jail_channel: Optional[int], jail_role: Optional[int],
@@ -784,7 +784,7 @@ class API:
         after = await self.fetch_level_reward_by_id(id)
         self.emit('on_level_reward_changed', before, after)
 
-    async def delete_level_reward(self, id: int) -> None:
+    async def _delete_level_reward(self, id: int) -> None:
         """Removes a level reward by specified row ID."""
         obj = await self.fetch_level_reward_by_id(id)
         async with self.session() as session: # type: ignore
@@ -793,6 +793,24 @@ class API:
                 await session.execute(delete(LevelRewardsTable).filter(LevelRewardsTable.id == id))
             await session.commit()
         self.emit('on_level_reward_removed', obj)
+
+    async def fetch_all_guild_level_rewards(self, guild_id: int) -> List[LevelReward]:
+        """Returns a list of all LevelReward entries available for the specified guild.
+        
+        Role IDs are sorted by their appropriate level requirement descending."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id
+                ).
+                order_by(LevelRewardsTable.level.desc())
+            )
+        data = []
+        for r in result.fetchall():
+            data.append(LevelReward.from_table(self, r[0]))
+        return data
 
     async def fetch_level_reward_by_id(self, id: int) -> Optional[LevelReward]:
         """Returns a LevelReward entry for the specified ID."""
@@ -807,7 +825,7 @@ class API:
             return LevelReward.from_table(self, r[0])
         return None
 
-    async def fetch_guild_level_reward_by_role(self, guild_id: int, role_id: int) -> Optional[LevelReward]:
+    async def fetch_level_reward_by_role(self, guild_id: int, role_id: int) -> Optional[LevelReward]:
         """Returns a LevelReward entry for the specified guild and role."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
@@ -839,10 +857,10 @@ class API:
             return LevelReward.from_table(self, r[0])
         return None
 
-    async def fetch_guild_level_rewards(self, guild_id: int, level: int) -> List[LevelReward]:
+    async def fetch_eligible_level_rewards_for_level(self, guild_id: int, level: int) -> List[LevelReward]:
         """Returns a list of LevelReward entries available for the specified guild and level.
         
-        Role IDs are sorted by their appropriate level requirement descending."""
+        Entries are sorted by required level descending."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
@@ -858,7 +876,69 @@ class API:
             data.append(LevelReward.from_table(self, r[0]))
         return data
 
-    async def fetch_guild_levels(self, guild_id: int, start: int = 0, limit: int = 10) -> List[LevelInformation]:
+    async def fetch_eligible_level_reward_for_level(self, guild_id: int, level: int) -> Optional[LevelReward]:
+        """Returns a LevelReward entry for the specified guild and level.
+        
+        Entry will be sorted by required level descending."""
+        rewards = await self.fetch_eligible_level_rewards_for_level(guild_id, level)
+        if len(rewards) == 0:
+            return None
+        return rewards[0]
+
+    async def _fetch_previous_level_reward(self, guild_id: int, level: int):
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id,
+                    LevelRewardsTable.level < level
+                ).order_by(LevelRewardsTable.level.desc())
+            )
+        r = result.fetchone()
+        if r:
+            return LevelReward.from_table(self, r[0])
+        return None
+
+    async def _fetch_next_level_reward(self, guild_id: int, level: int):
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id,
+                    LevelRewardsTable.level > level
+                ).order_by(LevelRewardsTable.level.desc())
+            )
+        r = result.fetchone()
+        if r:
+            return LevelReward.from_table(self, r[0])
+        return None
+
+
+
+    """ User levels related """
+
+    async def insert_member_level_info(
+        self,
+        guild_id: int,
+        user_id: int
+    ) -> LevelInformation:
+        """Inserts an empty member level information entry to the database."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = UserLevelsTable(
+                    guild_id=guild_id,
+                    user_id=user_id
+                )
+                session.add(entry)
+            await session.commit()
+        info = await self.fetch_user_level_info(guild_id, user_id)
+        assert info is not None
+        return info
+
+    async def fetch_guild_level_rankings(self, guild_id: int, start: int = 0, limit: int = 10) -> List[LevelInformation]:
         """Returns a list of guild levels."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
@@ -877,45 +957,25 @@ class API:
             info.append(LevelInformation.from_table(self, r[0], r[1]))
         return info
 
-    async def fetch_all_guild_level_rewards(self, guild_id: int) -> List[LevelReward]:
-        """Returns a list of all LevelReward entries available for the specified guild.
-        
-        Role IDs are sorted by their appropriate level requirement descending."""
+    async def fetch_guild_level_infos(self, guild_id: int) -> List[LevelInformation]:
+        """Returns the bare member level information excluding ranking information."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
-                select(LevelRewardsTable).
-                filter(
-                    LevelRewardsTable.guild_id == guild_id
+                select(
+                    UserLevelsTable
                 ).
-                order_by(LevelRewardsTable.level.desc())
+                filter(
+                    UserLevelsTable.guild_id == guild_id
+                )
             )
         data = []
         for r in result.fetchall():
-            data.append(LevelReward.from_table(self, r[0]))
+            data.append(LevelInformation.from_table(self, r[0]))
         return data
 
-    async def insert_member_level_info(
-        self,
-        guild_id: int,
-        user_id: int
-    ) -> LevelInformation:
-        """Inserts an empty member level information entry to the database."""
-        async with self.session() as session: # type: ignore
-            assert isinstance(session, AsyncSession)
-            async with session.begin():
-                entry = UserLevelsTable(
-                    guild_id=guild_id,
-                    user_id=user_id
-                )
-                session.add(entry)
-            await session.commit()
-        info = await self.fetch_bare_member_level_info(guild_id, user_id)
-        assert info is not None
-        return info
-
-    async def fetch_member_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
-        """Returns the member level information."""
+    async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
+        """Returns ranked level information for the specified user."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             subquery = (
@@ -946,8 +1006,8 @@ class API:
             )
         return None
 
-    async def fetch_bare_member_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
-        """Returns the bare member level information excluding ranking information."""
+    async def fetch_user_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
+        """Returns the level information for the specified user."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result: ChunkedIteratorResult = await session.execute(
@@ -964,19 +1024,23 @@ class API:
             return LevelInformation.from_table(self, r[0])
         return None
 
-    async def fetch_members_of_min_level(self, guild_id: int, level: int) -> List[LevelInformation]:
-        """Returns a list of bare member level information excluding ranking information for the specified level."""
+    async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: Optional[int]) -> List[LevelInformation]:
+        """Returns a list of user level information for specified levels.
+        
+        Returned user data is ``min_level <= USERS < max_level`` """
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
-            result: ChunkedIteratorResult = await session.execute(
-                select(
-                    UserLevelsTable
-                ).
+            stmt = (
+                select(UserLevelsTable).
                 filter(
                     UserLevelsTable.guild_id == guild_id,
-                    UserLevelsTable.level >= level
+                    UserLevelsTable.level >= min_level
                 )
             )
+            stmt_with_top = stmt.filter(UserLevelsTable.level < max_level)
+            if max_level is not None:
+                stmt = stmt_with_top
+            result: ChunkedIteratorResult = await session.execute(stmt)
         data = []
         for r in result.fetchall():
             data.append(LevelInformation.from_table(self, r[0]))
@@ -986,7 +1050,7 @@ class API:
         """Increments the member XP by the specified amount."""
 
         # Acquire the level information before leveling up
-        info = await self.fetch_bare_member_level_info(guild_id, user_id)
+        info = await self.fetch_user_level_info(guild_id, user_id)
         new_insert = False
         if info is None:
             new_insert = True
@@ -1028,7 +1092,7 @@ class API:
             await session.commit()
 
         if new_insert or calculated_level != current_level:
-            self.emit('on_member_level_up', await self.fetch_bare_member_level_info(guild_id, user_id))
+            self.emit('on_member_level_up', await self.fetch_user_level_info(guild_id, user_id))
 
     """TheoTown backend related"""
 
