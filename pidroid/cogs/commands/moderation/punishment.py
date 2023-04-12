@@ -6,7 +6,7 @@ import discord
 from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
-from discord import ui, ButtonStyle, Interaction, app_commands
+from discord import Thread, VoiceChannel, ui, ButtonStyle, Interaction, app_commands
 from discord.channel import TextChannel, DMChannel, GroupChannel, PartialMessageable
 from discord.colour import Colour
 from discord.user import User
@@ -30,6 +30,7 @@ from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.case import Ban, Kick, Timeout, Jail, Warning
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import InvalidDuration, MissingUserPermissions
+from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
@@ -165,15 +166,18 @@ REASON_MAPPING = {
         ReasonButton("Ignoring moderator's orders", "Ignoring moderator's orders."),
         ReasonButton("Hacked content", "Sharing, spreading or using hacked content."),
         ReasonButton("Offensive content or hate-speech", "Posting or spreading offensive content or hate-speech."),
-        ReasonButton("Underage user", "You are under the allowed age as defined in Discord's Terms of Service."),
         ReasonButton("Harassing other members", "Harassing other members."),
         ReasonButton("Scam or phishing", "Sharing or spreading scams or phishing content."),
-        ReasonButton("Continued offences", "Continued and or repeat offences."),
+        ReasonButton("Continued or repeat offences", "Continued or repeat offences."),
+        ReasonButton("Spam", "Spam."),
+        ReasonButton("Alternative account", "Alternative accounts are not allowed."),
+        ReasonButton("Underage user", "You are under the allowed age as defined in Discord's Terms of Service."),
         ReasonButton(None, None)
     ],
     "kick": [
-        ReasonButton("Underage", "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."),
+        ReasonButton("Spam", "Spam."),
         ReasonButton("Alternative account", "Alternative accounts are not allowed."),
+        ReasonButton("Underage", "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."),
         ReasonButton(None, None)
     ],
     "jail": [
@@ -193,8 +197,8 @@ REASON_MAPPING = {
         ReasonButton("Failure to comply with verbal warning", "Failure to comply with a verbal warning."),
         ReasonButton("Hateful content", "Sharing or spreading hateful content."),
         ReasonButton("Repeat use of wrong channels", "Repeat use of wrong channels."),
-        ReasonButton("NSFW content", "Sharing or spreading of NSFW content."),
-        ReasonButton("Politics", "Politics and or political content."),
+        ReasonButton("NSFW content", "Sharing or spreading NSFW content."),
+        ReasonButton("Politics", "Politics or political content."),
         ReasonButton(None, None)
     ]
 }
@@ -230,10 +234,10 @@ class ModerationMenu(ui.View):
 
         # Aqcuire guild, channel and users from the context
         assert ctx.guild is not None
-        assert isinstance(ctx.channel, (TextChannel))
+        assert isinstance(ctx.channel, (TextChannel, Thread, VoiceChannel))
 
         self.guild = ctx.guild
-        self.channel = ctx.channel
+        self.channel: GuildTextChannel = ctx.channel
         self.moderator = ctx.author
         self.user = user
         
