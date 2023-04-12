@@ -10,7 +10,7 @@ from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.accounts import TheoTownAccount
 from pidroid.utils.http import HTTP, Route
-from pidroid.utils.levels import LevelInformation
+from pidroid.utils.levels import LevelInformation, LevelReward
 from pidroid.utils.time import utcnow
 
 from sqlalchemy import Column # type: ignore
@@ -23,7 +23,6 @@ from sqlalchemy.engine.result import ChunkedIteratorResult # type: ignore
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine # type: ignore
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import declarative_base # type: ignore
-from sqlalchemy.orm import selectinload
 from sqlalchemy.orm import sessionmaker
 
 if TYPE_CHECKING:
@@ -752,6 +751,113 @@ class API:
     
     """Leveling system related"""
 
+    async def insert_level_reward(self, guild_id: int, role_id: int, level: int) -> int:
+        """Creates a level reward entry in the database."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = LevelRewardsTable(
+                    guild_id=guild_id,
+                    role_id=role_id,
+                    level=level
+                )
+                session.add(entry)
+            await session.commit()
+        self.emit('on_level_reward_added', await self.fetch_level_reward_by_id(entry.id))
+        return entry.id  # type: ignore
+
+    async def update_level_reward_by_id(self, id: int, role_id: int, level: int) -> None:
+        """Updates a level reward entry by specified ID."""
+        before = await self.fetch_level_reward_by_id(id)
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(LevelRewardsTable).
+                    filter(LevelRewardsTable.id == id).
+                    values(
+                       role_id=role_id,
+                       level=level
+                    )
+                )
+            await session.commit()
+        after = await self.fetch_level_reward_by_id(id)
+        self.emit('on_level_reward_changed', before, after)
+
+    async def delete_level_reward(self, id: int) -> None:
+        """Removes a level reward by specified row ID."""
+        obj = await self.fetch_level_reward_by_id(id)
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(delete(LevelRewardsTable).filter(LevelRewardsTable.id == id))
+            await session.commit()
+        self.emit('on_level_reward_removed', obj)
+
+    async def fetch_level_reward_by_id(self, id: int) -> Optional[LevelReward]:
+        """Returns a LevelReward entry for the specified ID."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(LevelRewardsTable.id == id)
+            )
+        r = result.fetchone()
+        if r:
+            return LevelReward.from_table(self, r[0])
+        return None
+
+    async def fetch_guild_level_reward_by_role(self, guild_id: int, role_id: int) -> Optional[LevelReward]:
+        """Returns a LevelReward entry for the specified guild and role."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id,
+                    LevelRewardsTable.role_id == role_id
+                )
+            )
+        r = result.fetchone()
+        if r:
+            return LevelReward.from_table(self, r[0])
+        return None
+
+    async def fetch_guild_level_reward_by_level(self, guild_id: int, level: int) -> Optional[LevelReward]:
+        """Returns a LevelReward entry for the specified guild and level."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id,
+                    LevelRewardsTable.level == level
+                )
+            )
+        r = result.fetchone()
+        if r:
+            return LevelReward.from_table(self, r[0])
+        return None
+
+    async def fetch_guild_level_rewards(self, guild_id: int, level: int) -> List[LevelReward]:
+        """Returns a list of LevelReward entries available for the specified guild and level.
+        
+        Role IDs are sorted by their appropriate level requirement descending."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id,
+                    LevelRewardsTable.level <= level
+                ).
+                order_by(LevelRewardsTable.level.desc())
+            )
+        data = []
+        for r in result.fetchall():
+            data.append(LevelReward.from_table(self, r[0]))
+        return data
+
     async def fetch_guild_levels(self, guild_id: int, start: int = 0, limit: int = 10) -> List[LevelInformation]:
         """Returns a list of guild levels."""
         async with self.session() as session: # type: ignore
@@ -768,11 +874,26 @@ class API:
             )
         info = []
         for r in result.fetchall():
-            info.append(LevelInformation(self, r[0], r[1]))
+            info.append(LevelInformation.from_table(self, r[0], r[1]))
         return info
-    
-    async def fetch_guild_level_rewards(self, guild_id: int, level: int):
-        pass
+
+    async def fetch_all_guild_level_rewards(self, guild_id: int) -> List[LevelReward]:
+        """Returns a list of all LevelReward entries available for the specified guild.
+        
+        Role IDs are sorted by their appropriate level requirement descending."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(LevelRewardsTable).
+                filter(
+                    LevelRewardsTable.guild_id == guild_id
+                ).
+                order_by(LevelRewardsTable.level.desc())
+            )
+        data = []
+        for r in result.fetchall():
+            data.append(LevelReward.from_table(self, r[0]))
+        return data
 
     async def insert_member_level_info(
         self,
@@ -789,7 +910,7 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
-        info = await self.fetch_member_level_info(guild_id, user_id)
+        info = await self.fetch_bare_member_level_info(guild_id, user_id)
         assert info is not None
         return info
 
@@ -797,10 +918,41 @@ class API:
         """Returns the member level information."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
-            result: ChunkedIteratorResult = await session.execute(
+            subquery = (
                 select(
                     UserLevelsTable,
                     func.rank().over(order_by=UserLevelsTable.total_xp.desc()).label("rank")
+                )
+                .where(UserLevelsTable.guild_id == guild_id)
+                .subquery()
+            )
+            query = (
+                select(subquery)
+                .where(subquery.c.user_id == user_id)
+            )
+            result: ChunkedIteratorResult = await session.execute(query)
+
+            r = result.fetchone()
+
+        if r:
+            # I hate this, I couldn't figure out how to provide ORM entity + rank instead
+            # If you have ideas, let me know
+            # I spent 5 hours on this method
+            _, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, rank = r
+            return LevelInformation(
+                self,
+                guild_id, user_id, total_xp, current_xp, xp_to_level_up, level,
+                rank
+            )
+        return None
+
+    async def fetch_bare_member_level_info(self, guild_id: int, user_id: int) -> Optional[LevelInformation]:
+        """Returns the bare member level information excluding ranking information."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(
+                    UserLevelsTable
                 ).
                 filter(
                     UserLevelsTable.guild_id == guild_id,
@@ -809,15 +961,35 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return LevelInformation(self, r[0], r[1])
+            return LevelInformation.from_table(self, r[0])
         return None
+
+    async def fetch_members_of_min_level(self, guild_id: int, level: int) -> List[LevelInformation]:
+        """Returns a list of bare member level information excluding ranking information for the specified level."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result: ChunkedIteratorResult = await session.execute(
+                select(
+                    UserLevelsTable
+                ).
+                filter(
+                    UserLevelsTable.guild_id == guild_id,
+                    UserLevelsTable.level >= level
+                )
+            )
+        data = []
+        for r in result.fetchall():
+            data.append(LevelInformation.from_table(self, r[0]))
+        return data
 
     async def increment_member_xp(self, guild_id: int, user_id: int, amount: int):
         """Increments the member XP by the specified amount."""
 
         # Acquire the level information before leveling up
-        info = await self.fetch_member_level_info(guild_id, user_id)
+        info = await self.fetch_bare_member_level_info(guild_id, user_id)
+        new_insert = False
         if info is None:
+            new_insert = True
             info = await self.insert_member_level_info(guild_id, user_id)
 
         # Get the current information
@@ -855,9 +1027,8 @@ class API:
                 )
             await session.commit()
 
-        if calculated_level != current_level:
-            # TODO: announce level up
-            pass
+        if new_insert or calculated_level != current_level:
+            self.emit('on_member_level_up', await self.fetch_bare_member_level_info(guild_id, user_id))
 
     """TheoTown backend related"""
 
