@@ -64,5 +64,6 @@ def get_command_categories() -> list[Category]:
         OwnerCategory(),
         UtilityCategory(),
         TagCategory(),
+        LevelCategory(),
         UncategorizedCategory()
     ]
