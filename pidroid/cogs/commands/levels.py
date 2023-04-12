@@ -185,6 +185,7 @@ class LevelCommands(commands.Cog): # type: ignore
     @rewards_command.command( # type: ignore
         name='remove',
         brief='Removes the specified role as a level reward.',
+        usage='<role>',
         category=LevelCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
