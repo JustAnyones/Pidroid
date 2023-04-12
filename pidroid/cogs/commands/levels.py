@@ -19,7 +19,6 @@ class LeaderboardPaginator(ListPageSource):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-    # TODO: allow paginating beyond 10 pages
     async def format_page(self, menu: PidroidPages, data: List[LevelInformation]):
         assert isinstance(menu.ctx.bot, Pidroid)
         self.embed.clear_fields()
@@ -30,9 +29,6 @@ class LeaderboardPaginator(ListPageSource):
                 inline=False
             )
         return self.embed
-
-    async def get_page(self, page_number):
-        return await super().get_page(page_number)
 
 class LevelCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
@@ -96,7 +92,7 @@ class LevelCommands(commands.Cog): # type: ignore
     async def leaderboard_command(self, ctx: Context):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
-        levels = await self.client.api.fetch_guild_levels(ctx.guild.id)
+        levels = await self.client.api.fetch_guild_levels(ctx.guild.id, limit=100)
         pages = PidroidPages(LeaderboardPaginator(levels), ctx=ctx)
         return await pages.start()
 
@@ -200,6 +196,11 @@ class LevelCommands(commands.Cog): # type: ignore
 
         await self.client.api.delete_level_reward(reward.internal_id)
         await ctx.reply(embed=SuccessEmbed('Role reward removed successfully!'))
+
+    # TODO: add exempt role
+    # add exempt channel
+    # remove exempt role
+    # remove exempt channel
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LevelCommands(client))
