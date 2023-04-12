@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from discord import Member, User, app_commands, Role
+from discord import Guild, Member, User, app_commands, Role
 from discord.utils import escape_markdown
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context
@@ -39,6 +39,15 @@ class LevelCommands(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
+    async def check_system_enabled(self, guild: Guild) -> bool:
+        """Checks if the XP system is enabled in the specified guild.
+        
+        Raises BadArgument if system is not enabled."""
+        conf = await self.client.fetch_guild_configuration(guild.id)
+        if not conf.xp_system_active:
+            raise BadArgument('XP system is not enabled in this server!')
+        return True
+
     @commands.hybrid_command( # type: ignore
         name="rank",
         brief="Displays the member level rank.",
@@ -54,6 +63,7 @@ class LevelCommands(commands.Cog): # type: ignore
         member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
         member = member or ctx.author
         info = await self.client.api.fetch_member_level_info(ctx.guild.id, member.id)
         if info is None:
@@ -85,6 +95,7 @@ class LevelCommands(commands.Cog): # type: ignore
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
     async def leaderboard_command(self, ctx: Context):
         assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
         levels = await self.client.api.fetch_guild_levels(ctx.guild.id)
         pages = PidroidPages(LeaderboardPaginator(levels), ctx=ctx)
         return await pages.start()
@@ -101,6 +112,7 @@ class LevelCommands(commands.Cog): # type: ignore
     async def rewards_command(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             assert ctx.guild is not None
+            await self.check_system_enabled(ctx.guild)
             rewards = await self.client.api.fetch_all_guild_level_rewards(ctx.guild.id)
             if len(rewards) == 0:
                 raise BadArgument('This server does not have any level rewards!')
@@ -121,9 +133,11 @@ class LevelCommands(commands.Cog): # type: ignore
         category=LevelCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.has_permissions(manage_roles=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def rewards_add_command(self, ctx: Context, role: Role, level: int):
         assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
         if level > 1000:
             raise BadArgument('You cannot set level requirement higher than 1000!')
         if level <= 0:
@@ -147,9 +161,11 @@ class LevelCommands(commands.Cog): # type: ignore
         category=LevelCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.has_permissions(manage_roles=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def rewards_change_command(self, ctx: Context, role: Role, level: int):
         assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
         if level > 1000:
             raise BadArgument('You cannot set level requirement higher than 1000!')
         if level <= 0:
@@ -172,9 +188,11 @@ class LevelCommands(commands.Cog): # type: ignore
         category=LevelCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.has_permissions(manage_roles=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def rewards_remove_command(self, ctx: Context, role: Role):
         assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
         reward = await self.client.api.fetch_guild_level_reward_by_role(ctx.guild.id, role.id)
         if reward is None:
             raise BadArgument('Specified role does not belong to any rewards.')
