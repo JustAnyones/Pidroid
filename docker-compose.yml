@@ -2,7 +2,7 @@ version: "3.7"
 
 services:
   pidroid:
-    restart: always
+    restart: unless-stopped
     image: pidroid-bot:latest
     container_name: pidroid
     volumes:
@@ -25,7 +25,7 @@ services:
   # It is not recommended to expose anything to the outside world
   db:
     image: postgres:15-bullseye
-    restart: always
+    restart: unless-stopped
     env_file:
       - config.env
     environment:
