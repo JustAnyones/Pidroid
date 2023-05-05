@@ -7,8 +7,11 @@ Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [d
 To use Pidroid in production, first we need to build a Pidroid [docker](https://www.docker.com) image with this command:
 
 ```shell
-docker build . --tag pidroid-bot
+docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t pidroid-bot .
 ```
+
+build.sh file is provided for convenience. If you do not have git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing
+version information.
 
 After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
 
