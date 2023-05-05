@@ -147,9 +147,7 @@ class Pidroid(commands.Bot): # type: ignore
     def version(self) -> str:
         """Returns shorthand client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
-        if self.client_version.commit_id != '':
-            return f"{version_str} ({self.client_version.commit_id})"
-        return f"{version_str} (hash not available)"
+        return version_str
 
     @property
     def full_version(self) -> str:

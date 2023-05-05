@@ -52,6 +52,9 @@ class BotCommands(commands.Cog): # type: ignore
             # Fetch data from config file
             version = self.client.version
 
+            if self.client.client_version.commit_id != '':
+                version += f" ([{self.client.client_version.commit_id}](https://github.com/JustAnyones/Pidroid/commit/{self.client.client_version.commit_id}))"
+
             # Fetch application information from datcord
             app_info = await self.client.application_info()
             if app_info.team is not None:
