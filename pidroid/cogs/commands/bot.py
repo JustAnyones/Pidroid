@@ -90,16 +90,16 @@ class BotCommands(commands.Cog): # type: ignore
                 )
                 return await ctx.reply(extended_message)
 
-            embed = PidroidEmbed(title=f'{self.client.user.name} status', description=f'{self.client.user.name} is a custom made discord bot by JustAnyone, designed to be used inside the official TheoTown discord.')
+            embed = PidroidEmbed(title=f'{self.client.user.name} status', description=f'{self.client.user.name} is a custom made discord bot by JustAnyone, designed for the TheoTown community.')
             embed.add_field(name='Uptime', value=uptime, inline=True)
             embed.add_field(name='Version', value=version, inline=True)
             if app_info.team is None:
                 embed.add_field(name='Owner', value=f'{owner_name}', inline=True)
             else:
                 embed.add_field(name='Team', value=f'{owner_name}', inline=True)
-            embed.add_field(name='Servers', value=f'{len(self.client.guilds):,} ({len(self.client.users):,} users)', inline=True)
+            embed.add_field(name='Servers', value=f'{len(self.client.guilds):,} ({len(self.client.users):,} users cached)', inline=True)
             embed.add_field(name='RAM usage', value=f'{used_memory} MB', inline=True)
-            embed.add_field(name='Current time', value=timestamp_to_date(int(current_timestamp), 'custom'), inline=False)
+            embed.add_field(name='Current bot time', value=timestamp_to_date(int(current_timestamp), 'custom'), inline=False)
             await ctx.reply(embed=embed)
 
 

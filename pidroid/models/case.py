@@ -322,7 +322,7 @@ class BasePunishment:
         embed.add_field(name='Expires in', value=duration)
         if self._appeal_url:
             embed.add_field(name='You can appeal the punishment here:', value=self._appeal_url)
-        embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
+        embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
 
     @property
@@ -330,7 +330,7 @@ class BasePunishment:
         embed = Embed(title='Punishment revoked', color=discord.Color.green())
         embed.add_field(name='Type', value=self.type.capitalize())
         embed.add_field(name='Reason', value=self.reason or "No reason specified")
-        embed.set_footer(text=f'Guild: {self.guild.name} ({self.guild.id})')
+        embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
 
     async def create_entry(self):

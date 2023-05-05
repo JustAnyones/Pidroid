@@ -6,6 +6,7 @@ import discord
 import random
 import subprocess # nosec
 import sys
+import os
 import logging
 
 from aiohttp import ClientSession
@@ -35,7 +36,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=9, micro=0, releaselevel='alpha', commit_id='unknown') # TODO: figure out how to reliably provide
+__VERSION__ = VersionInfo(major=5, minor=9, micro=1, releaselevel='alpha', commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
@@ -146,9 +147,9 @@ class Pidroid(commands.Bot): # type: ignore
     def version(self) -> str:
         """Returns shorthand client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
-        if self.client_version.releaselevel != "final":
-            return f"{version_str} {self.client_version.releaselevel}"
-        return version_str
+        if self.client_version.commit_id != '':
+            return f"{version_str} ({self.client_version.commit_id})"
+        return f"{version_str} (hash not available)"
 
     @property
     def full_version(self) -> str:
