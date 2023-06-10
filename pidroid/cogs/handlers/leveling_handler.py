@@ -5,13 +5,15 @@ import logging
 import math
 import random
 
-from contextlib import suppress
-from discord import Forbidden, Member, Message, Role, User, Object
+from asyncio import Queue
+from dataclasses import dataclass
+from discord import Member, Message, Role, User, Object
+from discord.abc import Snowflake
 from discord.ext import commands, tasks
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.utils.levels import LevelInformation, LevelReward
+from pidroid.utils.levels import MemberLevelInfo, LevelReward
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
@@ -36,7 +38,7 @@ class UserBucket:
         return (utcnow().timestamp() - self.__last_earned.timestamp()) >= 60
 
     def cooldown(self) -> None:
-        """Sets the bucket on a 60 second cooldown."""
+        """Sets the bucket on a cooldown."""
         self.__last_earned = utcnow()
 
 def get_random_xp_amount(config: GuildConfiguration) -> int:
@@ -49,84 +51,146 @@ Extremities to consider
 
 * User levels up
 * Level reward gets added
-- Level reward gets changed
 * Level reward gets removed
 * User joins
 * User joins while bot is offline
 * Role gets deleted
 * Role gets deleted while bot is offline
 
+# THE ONLY FLAW HERE IS IF BOT CRASHES IN AN UNEXPECTED FASHION,
+# SOME ROLE ADDITIONS / REMOVALS WILL NOT BE DONE
+# MOST LIKELY THE REMOVAL OF ROLES WILL NOT BE DONE CORRECTLY
+# AS ADDITION IS ENSURED BY PIDROID SYNC TASK
 """
 
+@dataclass
+class RoleChangeState:
+    member: Member
+    reason: str
+    roles_added: Optional[Tuple[Snowflake, ...]] = None
+    roles_removed: Optional[Tuple[Snowflake, ...]] = None
+
 class LevelingHandler(commands.Cog):
-    """This class implements a cog for handling the leveling system."""
+    """This class implements a cog for handling the leveling system related functionality."""
     
     def __init__(self, client: Pidroid):
         self.client = client
-        self.cooldown_storage: Dict[int, Dict[int, UserBucket]] = {}
-        self.client.api.add_listener('on_member_level_up', self.on_member_level_up)
-        self.client.api.add_listener('on_level_reward_added', self.on_level_reward_added)
-        #self.client.api.add_listener('on_level_reward_changed', self.on_level_reward_changed)
+        self.__cooldown_storage: Dict[int, Dict[int, UserBucket]] = {}
         self.client.api.add_listener('on_level_reward_removed', self.on_level_reward_removed)
+        self.__role_change_queue: Queue[RoleChangeState] = Queue()
+        self.sync_role_rewards.start()
+        self.role_change_processor = self.client.loop.create_task(
+            self.process_role_changes()
+        )
+
+    def cog_unload(self):
+        """Ensure that all the tasks are stopped and cancelled on cog unload."""
+        self.sync_role_rewards.cancel()
+        self.role_change_processor.cancel()
 
     def get_bucket(self, guild_id: int, user_id: int) -> UserBucket:
         """Returns the user cooldown bucket."""
-        guild = self.cooldown_storage.get(guild_id, None)
+        guild = self.__cooldown_storage.get(guild_id, None)
         if guild is None:
-            self.cooldown_storage[guild_id] = {}
-            guild = self.cooldown_storage[guild_id]
+            self.__cooldown_storage[guild_id] = {}
+            guild = self.__cooldown_storage[guild_id]
 
         if guild.get(user_id, None) is None:
-            self.cooldown_storage[guild_id][user_id] = UserBucket(user_id)
+            self.__cooldown_storage[guild_id][user_id] = UserBucket(user_id)
         return guild[user_id]
 
-    @commands.Cog.listener() # type: ignore
-    async def on_ready(self) -> None:
+    async def queue_role_add(self, member: Member, *roles: Snowflake, reason: str):
+        """Adds role addition to the change queue."""
+        self.__role_change_queue.put_nowait(RoleChangeState(member=member, roles_added=roles, reason=reason))
+
+    async def queue_role_remove(self, member: Member, *roles: Snowflake, reason: str):
+        """Adds role removal to the change queue."""
+        self.__role_change_queue.put_nowait(RoleChangeState(member=member, roles_removed=roles, reason=reason))
+
+    async def process_role_changes(self):
+        """This task loops forever applying the required role changes for members."""
         await self.client.wait_until_guild_configurations_loaded()
+        while True:
+            item = await self.__role_change_queue.get()
+            try:
+                roles_to_add = item.roles_added
+                # the library methods ensure that we do not add/remove roles multiple times
+                if roles_to_add is not None:
+                    await item.member.add_roles(*roles_to_add, reason=item.reason, atomic=False)
+                else:
+                    await item.member.remove_roles(*item.roles_removed, reason=item.reason, atomic=False)
+            except Exception as e:
+                logger.exception(e)
+
+    @tasks.loop(seconds=120)
+    async def sync_role_rewards(self) -> None:
+        """
+        This task runs periodically to ensure correct member reward state across all guilds.
+
+        This can handle the following scenarios:
+            - new level rewards getting added;
+            - user joins or role gets deleted while bot is offline;
+            - sync if someone messes with roles manually.
+        
+        WARNING, THIS DOES NOT HANDLE ROLE REWARDS THAT WERE REMOVED AS PIDROID
+        CAN NO LONGER INDENTIFY THEM."""
+        #logger.debug("Running role reward sync task")
         for guild in self.client.guilds:
-            # Delete level rewards for roles that have been deleted
-            rewards = await self.client.api.fetch_all_guild_level_rewards(guild.id)
-            guild_role_ids = [r.id for r in guild.roles]
-            for reward in rewards:
+            # Acquire guild information
+            guild_information = await self.client.fetch_guild_information(guild.id)
+
+            all_level_rewards = await guild_information.fetch_all_level_rewards()
+
+            # Remove rewards for roles that no longer exist
+            guild_role_ids = [role.id for role in guild.roles]
+            for reward in all_level_rewards:
                 if reward.role_id not in guild_role_ids:
-                    logger.debug(f'Removing {reward.role_id} as a level reward for {guild}')
+                    logger.debug(f'Removing {reward.role_id} as a level reward for {guild} since role no longer exists')
                     await reward.delete()
 
-            # Check if guild has enabled leveling system
-            config = await self.client.fetch_guild_configuration(guild.id)
-            if not config.xp_system_active:
+            # If leveling system is not active, we do not need to update member role states
+            # for rewards
+            if not guild_information.xp_system_active:
                 continue
-            
-            # Go over each level info and add the roles if they don't have them already
-            level_infos = await self.client.api.fetch_guild_level_infos(guild.id)
-            # Copied from role adding
-            for level_info in level_infos:
-                
-                # Acquire member object
-                member = await level_info.fetch_member()
+
+            # Update every eligible user
+            for member_information in await guild_information.fetch_all_member_levels():
+                # Obtain member object, if we can't do that
+                # then move onto the next member
+                member = await member_information.fetch_member()
                 if member is None:
                     continue
+                
+                # Acquire all rewards that the user is eligible for
+                rewards = await member_information.fetch_eligible_level_rewards()
 
-                # Acquire eligible level rewards if they are available
-                level_rewards = await level_info.fetch_eligible_level_rewards()
-                if len(level_rewards) == 0:
+                # If member has no eligible rewards, move onto the next member
+                if len(rewards) == 0:
                     continue
+
+                
+                roles = [Object(id=r.role_id) for r in rewards]
                 
                 # If to stack rewards, add all of them
-                if config.stack_level_rewards:
-                    for level_reward in level_rewards:
-                        role = await level_reward.fetch_role()
-                        if role:
-                            with suppress(Forbidden):
-                                await member.add_roles(role, reason='Re-add level reward on rejoin as sync') # type: ignore
+                if guild_information.level_rewards_stacked:
+                    await self.queue_role_add(member, *roles, reason="Periodic role reward state sync")
+                    #logger.debug(f"Queued {len(roles)} role add(s) for {member} as sync")
                 
                 # If only a single role should be given
                 else:
                     # the first item in the list is always the topmost role
-                    role = await level_rewards[0].fetch_role()
-                    if role:
-                        with suppress(Forbidden):
-                            await member.add_roles(role, reason='Re-add level reward on rejoin as sync') # type: ignore
+                    #logger.debug(f"Queued a role add for {member} as sync")
+                    await self.queue_role_add(member, roles[0], reason="Periodic role reward state sync")
+                    # remove all other roles
+                    amount_to_remove = len(roles) - 1
+                    if amount_to_remove > 0:
+                        await self.queue_role_remove(member, *roles[1:], reason="Periodic role reward state sync")
+                        #logger.debug(f"Queued {amount_to_remove} role removal(s) for {member} as sync")
+
+    @sync_role_rewards.before_loop
+    async def before_sync_role_rewards(self) -> None:
+        """Runs before sync_role_rewards task to ensure that the task is ready to run."""
+        await self.client.wait_until_guild_configurations_loaded()
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
@@ -158,10 +222,9 @@ class LevelingHandler(commands.Cog):
         # Immediately put it on cooldown
         bucket.cooldown()
 
-        xp = get_random_xp_amount(config)
-
         # Save it by a call to the database
-        await self.client.api.increment_member_xp(message.guild.id, message.author.id, xp)
+        # Award the XP to the specified message
+        await self.client.api.award_xp(message, get_random_xp_amount(config))
 
     @commands.Cog.listener() # type: ignore
     async def on_member_join(self, member: Member) -> None:
@@ -170,117 +233,54 @@ class LevelingHandler(commands.Cog):
             return
 
         await self.client.wait_until_guild_configurations_loaded()
-        config = await self.client.fetch_guild_configuration(member.guild.id)
 
-        if not config.xp_system_active:
+        information = await self.client.fetch_guild_information(member.guild.id)
+
+        # If XP system is not active, don't give the rewards
+        if not information.xp_system_active:
             return
 
-        # Obtain user information
-        bare_info = await self.client.api.fetch_user_level_info(member.guild.id, member.id)
-        if bare_info is None:
+        # Obtain member level information, if it doesn't exist - stop
+        member_level = await information.fetch_member_level(member.id)
+        if member_level is None:
             return
 
         # If rewards should be stacked
-        if config.stack_level_rewards:
-            for level_reward in await bare_info.fetch_eligible_level_rewards():
-                role = await level_reward.fetch_role()
-                if role:
-                    with suppress(Forbidden):
-                        await member.add_roles(role, reason='Re-add level reward on rejoin') # type: ignore
-            return
+        if information.level_rewards_stacked:
+            level_rewards = await member_level.fetch_eligible_level_rewards()
+            return await self.queue_role_add(member, *[Object(id=r.role_id) for r in level_rewards], reason="Re-add stacked level reward on rejoin")
             
-        # If only a single role should be given
-        reward = await bare_info.fetch_eligible_level_reward()
-        if reward is None:
-            return
-        role = await reward.fetch_role()
-        if role:
-            with suppress(Forbidden):
-                await member.add_roles(role, reason='Re-add level reward on rejoin') # type: ignore
+        # If only a single role reward should be given
+        reward = await member_level.fetch_eligible_level_reward()
+        if reward is not None:
+            await self.queue_role_add(member, Object(id=reward.role_id), reason="Re-add single level reward on rejoin")
 
-    async def on_member_level_up(self, information: LevelInformation):
+    @commands.Cog.listener()
+    async def on_member_level_up(self, member: Member, message: Message, information: MemberLevelInfo):
         """Called when a member levels up."""
-        logger.debug(f'{information.user_id} just leveled up to {information.current_level} level in {information.guild_id} guild!')
-        
-        # Acquire guild and member objects
-        guild = self.client.get_guild(information.guild_id)
-        assert guild is not None
-        member = await self.client.get_or_fetch_member(guild, information.user_id)
-        if member is None:
-            return logger.warning(f"Could not resolve member {information.user_id} on member level up in {information.guild_id}")
-
+        logger.debug(f'{member} just leveled up to {information.current_level} level in {information.guild_id} guild!')
 
         rewards = await information.fetch_eligible_level_rewards()
         config = await self.client.fetch_guild_configuration(information.guild_id)
 
         # Convert every role to a snowflake representation
-        member_role_ids = [r.id for r in member.roles]
         role_snowflakes = [Object(id=r.role_id) for r in rewards]
         if len(role_snowflakes) == 0:
             return
 
         if config.stack_level_rewards:
-            for snowflake in role_snowflakes:
-                # Ignore roles that the member already
-                if snowflake.id in member_role_ids:
-                    continue
-                with suppress(Forbidden):
-                    await member.add_roles(*role_snowflakes, reason='Level up reward granted')
+            await self.queue_role_add(member, *role_snowflakes, reason="Level up stacked reward granted")
         else:
-            for snowflake in role_snowflakes:
-                if snowflake.id not in member_role_ids:
-                    continue
-                with suppress(Forbidden):
-                    await member.remove_roles(*role_snowflakes, reason='Level up reward granted')
-            with suppress(Forbidden):
-                await member.add_roles(role_snowflakes[0], reason='Level up reward granted')
+            await self.queue_role_remove(member, *role_snowflakes[1:], reason="Level up reward granted")
+            await self.queue_role_add(member, role_snowflakes[0], reason="Level up reward granted")
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_guild_role_delete(self, role: Role) -> None:
         """Handles removal of level reward if the said role is removed."""
         await self.client.wait_until_guild_configurations_loaded()
         reward = await self.client.api.fetch_level_reward_by_role(role.guild.id, role.id)
         if reward:
             await reward.delete()
-
-    async def on_level_reward_added(self, reward: LevelReward):
-        """Called when level reward is added."""
-        config = await self.client.fetch_guild_configuration(reward.guild_id)
-
-        # If level rewards are stacked
-        if config.stack_level_rewards:
-            level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
-            for level_info in level_infos:
-                member = await level_info.fetch_member()
-                if member:
-                    with suppress(Forbidden):
-                        await member.add_roles(Object(id=reward.role_id), reason='Role reward added')
-        
-        # If they are not stacked
-        else:
-            
-            # get the affected level informations
-            level_infos = []
-            next = await reward.fetch_next_reward()
-            if next:
-                level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, next.level)
-            else:
-                level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
-
-            # go over each level information and change roles
-            for level_info in level_infos:
-                member = await level_info.fetch_member()
-                if member:
-                    previous = await reward.fetch_previous_reward()
-                    with suppress(Forbidden):
-                        await member.add_roles(Object(id=reward.role_id), reason='Role reward added')
-                        if previous:
-                            await member.remove_roles(Object(id=previous.role_id), reason='Role reward added')
-
-    async def on_level_reward_changed(self, before: LevelReward, after: LevelReward):
-        """Called when level reward is changed."""
-        # TODO: implement
-        logger.debug(f"Level reward changed: {before} -> {after}")
 
     async def on_level_reward_removed(self, reward: LevelReward):
         """Called when level reward is removed."""
@@ -307,8 +307,7 @@ class LevelingHandler(commands.Cog):
             for level_info in affected_user_level_infos:
                 member = await level_info.fetch_member()
                 if member:
-                    with suppress(Forbidden):
-                        await member.remove_roles(role, reason='Role is no longer a level reward')
+                    await self.queue_role_remove(member, role, reason="Role is no longer a level reward")
             return
 
 
@@ -322,9 +321,7 @@ class LevelingHandler(commands.Cog):
                     le = await level_info.fetch_eligible_level_reward()
                     if le:
                         # We add member to the role
-                        # TODO: ensure that we do not have to check if it exists
-                        with suppress(Forbidden):
-                            await member.add_roles(Object(id=le.role_id), reason='Next role due to role change')
+                        await self.queue_role_add(member, Object(id=le.role_id), reason="Next role due to role change")
             return
 
         # If role does exist, remove it from all eligible members and try to assign them a new role
@@ -332,15 +329,12 @@ class LevelingHandler(commands.Cog):
             member = await level_info.fetch_member()
             if member:
                 # we remove the role
-                with suppress(Forbidden):
-                    await member.remove_roles(role, reason='Role is no longer a level reward')
+                await self.queue_role_remove(member, role, reason="Role is no longer a level reward")
                 # we pick the next best role, if available
                 le = await level_info.fetch_eligible_level_reward()
                 if le:
                     # We add member to the role
-                    # TODO: ensure that we do not have to check if it exists
-                    with suppress(Forbidden):
-                        await member.add_roles(Object(id=le.role_id), reason='Next role due to role change')
+                    await self.queue_role_add(member, Object(id=le.role_id), reason="Next role due to role change")
 
 
 async def setup(client: Pidroid) -> None:

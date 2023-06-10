@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, List, Optional
 from discord import Member, Role
 
 from pidroid.models.guild_configuration import GuildConfiguration
+from pidroid.models.guild_information import GuildInformation
 
 logger = logging.getLogger('Pidroid')
 
@@ -51,10 +52,10 @@ class LevelReward:
         """Constructs level reward from a LevelRewardsTable object."""
         return cls(
             api,
-            table.id,
-            table.guild_id,
-            table.role_id,
-            table.level
+            table.id, # type: ignore
+            table.guild_id, # type: ignore
+            table.role_id, # type: ignore
+            table.level # type: ignore
         )
 
     @property
@@ -81,6 +82,10 @@ class LevelReward:
         """Returns the guild configuration object associated with the guild this reward is in."""
         return await self.__api.client.fetch_guild_configuration(self.guild_id)
 
+    async def fetch_guild_information(self) -> GuildInformation:
+        """Returns the guild configuration object associated with the guild this reward is in."""
+        return await self.__api.client.fetch_guild_information(self.__guild_id)
+
     async def fetch_next_reward(self):
         return await self.__api._fetch_next_level_reward(self.guild_id, self.level)
 
@@ -100,7 +105,7 @@ class LevelReward:
         await self.__api._delete_level_reward(self.internal_id)
 
 
-class LevelInformation:
+class MemberLevelInfo:
 
     def __init__(
         self,
@@ -123,19 +128,19 @@ class LevelInformation:
         self.__rank = rank
 
     def __repr__(self) -> str:
-        return f'<LevelInformation guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
+        return f'<MemberLevelInfo guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
 
     @classmethod
-    def from_table(cls: type[LevelInformation], api: API, table: UserLevelsTable, rank: int = -1) -> LevelInformation:
+    def from_table(cls: type[MemberLevelInfo], api: API, table: UserLevelsTable, rank: int = -1) -> MemberLevelInfo:
         """Constructs level information from a UserLevelsTable object."""
         return cls(
             api,
-            table.guild_id,
-            table.user_id,
-            table.total_xp,
-            table.current_xp,
-            table.xp_to_next_level,
-            table.level,
+            table.guild_id, # type: ignore
+            table.user_id, # type: ignore
+            table.total_xp, # type: ignore
+            table.current_xp, # type: ignore
+            table.xp_to_next_level, # type: ignore
+            table.level, # type: ignore
             rank
         )
 

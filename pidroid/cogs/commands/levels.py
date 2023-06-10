@@ -11,15 +11,15 @@ from typing_extensions import Annotated
 from pidroid.client import Pidroid
 from pidroid.models.categories import LevelCategory
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.levels import LevelInformation
+from pidroid.utils.levels import MemberLevelInfo
 from pidroid.utils.paginators import ListPageSource, PidroidPages
 
 class LeaderboardPaginator(ListPageSource):
-    def __init__(self, data: List[LevelInformation]):
+    def __init__(self, data: List[MemberLevelInfo]):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-    async def format_page(self, menu: PidroidPages, data: List[LevelInformation]):
+    async def format_page(self, menu: PidroidPages, data: List[MemberLevelInfo]):
         assert isinstance(menu.ctx.bot, Pidroid)
         self.embed.clear_fields()
         for info in data:
@@ -39,8 +39,8 @@ class LevelCommands(commands.Cog): # type: ignore
         """Checks if the XP system is enabled in the specified guild.
         
         Raises BadArgument if system is not enabled."""
-        conf = await self.client.fetch_guild_configuration(guild.id)
-        if not conf.xp_system_active:
+        info = await self.client.fetch_guild_configuration(guild.id)
+        if not info.xp_system_active:
             raise BadArgument('XP system is not enabled in this server!')
         return True
 
@@ -109,7 +109,8 @@ class LevelCommands(commands.Cog): # type: ignore
         if ctx.invoked_subcommand is None:
             assert ctx.guild is not None
             await self.check_system_enabled(ctx.guild)
-            rewards = await self.client.api.fetch_all_guild_level_rewards(ctx.guild.id)
+            info = await self.client.fetch_guild_information(ctx.guild.id)
+            rewards = await info.fetch_all_level_rewards()
             if len(rewards) == 0:
                 raise BadArgument('This server does not have any level rewards!')
             
@@ -149,38 +150,7 @@ class LevelCommands(commands.Cog): # type: ignore
 
         await self.client.api.insert_level_reward(ctx.guild.id, role.id, level)
         await ctx.reply(embed=SuccessEmbed(
-            'Role reward added successfully! Please note that it might some time for changes to take effect.'
-        ))
-
-    @rewards_command.command( # type: ignore
-        name='change',
-        brief='Changes the specified role level requirement.',
-        usage='<role> <level>',
-        category=LevelCategory
-    )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def rewards_change_command(self, ctx: Context, role: Role, level: int):
-        assert ctx.guild is not None
-        raise BadArgument("Feature not yet supported")
-        await self.check_system_enabled(ctx.guild)
-        if level > 1000:
-            raise BadArgument('You cannot set level requirement higher than 1000!')
-        if level <= 0:
-            raise BadArgument('You cannot set level requirement to be 0 or less.')
-
-        reward = await self.client.api.fetch_guild_level_reward_by_level(ctx.guild.id, level)
-        if reward is not None:
-            raise BadArgument('A role reward already exists for the specified level.')
-
-        reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
-        if reward is None:
-            raise BadArgument('Specified role does not belong to any rewards.')
-
-        await self.client.api.update_level_reward_by_id(reward.internal_id, role.id, level)
-        await ctx.reply(embed=SuccessEmbed(
-            f'Role level requirement successfully updated to {level}! Please note that it might some time for changes to take effect.'
+            'Role reward added successfully! Please note that it will take some time for changes to take effect.'
         ))
 
     @rewards_command.command( # type: ignore
@@ -201,7 +171,7 @@ class LevelCommands(commands.Cog): # type: ignore
 
         await reward.delete()
         await ctx.reply(embed=SuccessEmbed(
-            'Role reward removed successfully! Please note that it might some time for changes to take effect.'
+            'Role reward removed successfully! Please note that it will take some time for changes to take effect.'
         ))
 
     # TODO: add exempt role command
