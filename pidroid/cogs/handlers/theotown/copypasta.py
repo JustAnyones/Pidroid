@@ -56,6 +56,39 @@ AMONG_US_COPYPASTA: str = (
     "jie"
 )
 
+QUASO_ASCII: str = (
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣺⣿⣿⣯⡽⣂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⢿⠏⣿⣗⣿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⣻⣯⠀⠷⠟⠁⠀⠀⠀⠀⢀⣀⣤⣄⣀⠀⠀⠀⠀⠀⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⢀⣠⡤⣤⢟⡹⣖⣄⠀⠀⠀⠀⢀⣴⡿⣟⣿⢿⣿⣷⣄⠀⠀⠀⠀"
+    "⢠⣶⣶⣦⣤⡀⢀⣌⣲⣙⢣⣿⢴⣷⣷⣾⡵⣶⣴⣿⣿⡽⣯⣟⣯⢷⣟⣿⢷⡄⠀⠀"
+    "⢾⡿⣯⣟⢟⣩⣾⣿⡝⣿⣻⡿⣟⣯⣫⢅⡻⣜⡹⢿⣷⣿⣳⣟⡾⣟⣾⣽⣻⣟⣦⡀"
+    "⠸⣟⠗⣱⣚⣧⠵⠿⠽⠷⠯⠷⣟⣿⢯⣚⢭⢓⡽⣏⢮⢗⣿⡞⠋⠻⢳⣯⢷⣻⢯⡿"
+    "⠀⢇⣸⡾⣈⠁⠀⡀⠄⠀⢤⠥⢤⠉⠳⣿⣯⢾⢻⣾⢲⣯⠵⣖⡀⠀⠀⠉⠛⠉⠉⠀"
+    "⣐⣲⡗⠁⠡⠂⠄⠠⠐⠈⣓⣠⢀⡤⠃⡙⣿⣾⣧⣷⣟⣭⣯⣾⣗⡀⠀⠀⠀⠀⠀⠀"
+    "⢆⣿⣰⡵⣿⡧⢀⢁⠂⣴⣾⣿⡟⢟⢯⠖⠸⣿⣯⡞⣿⣞⣱⣟⣿⡿⢦⠀⠀⠀⠀⠀"
+    "⡾⣽⠸⢴⣿⡃⠀⠐⢀⠘⣟⡿⣿⡃⠬⠀⠆⣿⣷⣿⣟⣯⣷⣾⣷⣿⡟⠓⠀⠀⠀⠀"
+    "⠰⡿⣈⡉⠋⠁⡐⠈⠀⠂⢉⠳⠊⢈⠠⠐⡈⣿⡷⣿⣷⣿⣿⣿⣿⣿⡃⠀⠀⠀⠀⠀"
+    "⠀⢻⣷⣄⠘⢀⠠⠔⢨⠀⢠⠀⡑⢀⠂⠅⣴⡿⣿⣿⣿⣿⡿⢿⣿⡛⣏⢆⠀⠀⠀⠀"
+    "⠀⠀⠈⠙⣻⢤⢦⣈⣐⣈⡄⣰⣤⣦⣷⣾⣾⣿⣿⣿⣿⣿⣿⣿⢣⠟⣜⣎⠆⠀⠀⠀"
+    "⠀⠀⠀⢠⡚⣎⢧⠻⣏⡟⣾⣿⣭⣽⣺⡿⣿⢿⡽⣷⣫⣷⣿⡗⢯⢺⡱⣎⡻⠀⠀⠀"
+    "⠀⠀⠀⢰⠹⣘⠮⣝⣡⠻⣏⣷⣩⠗⣟⡾⣯⣟⡽⣽⠯⣷⢫⡟⢧⣫⠗⣼⠱⡇⠀⠀"
+    "⠀⠀⠀⢠⠛⣬⠹⡜⣜⢳⡜⣹⢥⡻⣜⡴⣹⢮⠿⣵⢛⣖⣯⣽⣙⠶⣫⢧⢻⣱⠀⠀"
+    "⠀⠀⠀⢠⢛⢖⡹⣚⡥⢷⡘⢗⡎⡷⣌⡳⣹⢮⢷⢺⣝⠾⣸⣧⢏⡿⣱⣚⡵⡛⠀⠀"
+    "⠀⠀⠀⠘⡽⢪⠴⣣⡝⣲⠹⣎⠵⣓⢞⡵⢣⢟⢮⣗⡞⣿⣵⣳⢟⣼⢣⡟⣴⢣⠀⠀"
+    "⠀⠀⠀⠀⠘⣱⡛⣤⠻⡬⡗⣮⠳⣥⢻⡜⣯⢹⣲⢻⣜⡳⣞⡵⣏⣾⡵⣹⣾⣿⡄⠀"
+    "⠀⠀⠀⠀⠀⣾⣷⣞⡽⣳⣭⢳⡟⣮⢳⣟⣼⣷⢻⣳⢾⡽⣞⣷⣿⣾⣽⣿⣿⣿⡇⠀"
+    "⠀⠀⠀⠀⠀⣿⣿⠿⠟⠑⠋⠷⠾⢷⣿⣼⣷⣯⣿⣿⣿⣾⣿⣿⣿⠁⠈⠻⠿⠿⠃⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣿⣿⣿⡟⠀⠀⠀⠀⠀⠀⠀"
+    "⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠛⠛⠋⠀⠀⠀⠀⠀⠀⠀⠀"
+)
+
+LITHUANIA_COPYPASTA: str = (
+    "LIETUVA NUMERIS 1 🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹💪💪💪💪🏆🏆 ŠLOVĖ DIDVYRIŲ ŽEMEI 🥇🥇🥇🥇🇱🇹🇱🇹🇱🇹💪💪💪"
+    "🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹 LIETUVA PASAULIO GALIA %YEAR% 🇱🇹🇱🇹🇱🇹🇱🇹💪💪🥇💪💪💪🏆🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🥇🥇🥇🏆🏆💪💪💪🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹"
+)
+
 class CopypastaEventHandler(commands.Cog): # type: ignore
     """
     This class implements a cog for handling invocation of copypastas and other memes
@@ -68,7 +101,9 @@ class CopypastaEventHandler(commands.Cog): # type: ignore
         self.cooldowns = {
             "ping_ja": empty_date,
             "linux": empty_date,
-            "among_us": empty_date
+            "among_us": empty_date,
+            "lithuania": empty_date,
+            "ganyu": empty_date
         }
 
     def check_probability(self, x: int) -> bool:
@@ -105,6 +140,19 @@ class CopypastaEventHandler(commands.Cog): # type: ignore
                 find_whole_word('among', content)
                 and find_whole_word('us', content))
         )
+    
+    def is_lithuania(self, content: str) -> bool:
+        """Returns true if message is worthy of a Lithuania #1 copypasta."""
+        return (
+            find_whole_word('lithuania', content) and not find_whole_word('poland', content)
+        )
+
+    def is_ganyu(self, content: str) -> bool:
+        """Returns true if message is worthy of a Quaso."""
+        return (
+            find_whole_word('ganyu', content) or find_whole_word('quaso', content)
+            or find_whole_word('gansu', content) # https://www.reddit.com/r/okbuddygenshin/comments/11ey07z/quaso_and_ganyu_reall/
+        )
 
     @commands.Cog.listener() # type: ignore
     async def on_message(self, message: Message): # noqa: C901
@@ -135,6 +183,24 @@ class CopypastaEventHandler(commands.Cog): # type: ignore
                     await message.reply(
                         AMONG_US_COPYPASTA.replace("%USERNAME%", message.author.name),
                         delete_after=120
+                    )
+
+        # Lithuania copypasta
+        if self.is_lithuania(content):
+            if self.check_cooldown("lithuania", 60 * 60 * 24 * 7): # You can attempt once a week
+                if self.check_probability(10): # 10%               # And the attempt is 10% likely to fire
+                    await message.reply(
+                        LITHUANIA_COPYPASTA.replace("%YEAR%", str(utcnow().year)),
+                        delete_after=40
+                    )
+
+        # Quaso copypasta
+        if self.is_ganyu(content):
+            if self.check_cooldown("ganyu", 60 * 60 * 24):         # You can attempt once a day
+                if self.check_probability(10): # 10%               # And the attempt is 10% likely to fire
+                    await message.reply(
+                        QUASO_ASCII,
+                        delete_after=10
                     )
 
 
