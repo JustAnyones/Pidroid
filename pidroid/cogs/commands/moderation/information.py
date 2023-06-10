@@ -22,7 +22,6 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid):
         self.client = client
 
-
     @commands.hybrid_command(
         name="case",
         brief="Displays details for the specified case.\n Cases can be modified by providing a reason argument.",
@@ -64,16 +63,16 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=SuccessEmbed('Warning invalidated successfully!'))
 
 
-    # Due to limitation with discord's slash commands, this is hidden
+    # Originally hidden due to limitation, now hidden due to making warnings subcommand explicit
     @commands.hybrid_group( # type: ignore
         name="warnings",
-        hidden=True,
-        disabled=True
+        hidden=True
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     async def warnings_command(self, ctx: Context):
-        pass
+        if ctx.invoked_subcommand is None:
+            raise GeneralCommandError("You have to explicitly mention whether you want to display active or all warnings!")
 
     @warnings_command.command( # type: ignore
         name="active",

@@ -73,37 +73,37 @@ class GuildConfiguration:
     @property
     def xp_system_active(self) -> bool:
         """Returns true if the XP system is active for the server."""
-        return self.__xp_system_active
+        return self.__xp_system_active # type: ignore
 
     @property
     def xp_multiplier(self) -> float:
         """Returns the XP multiplier per message."""
-        return self.__xp_multiplier
+        return self.__xp_multiplier # type: ignore
     
     @property
     def xp_per_message_min(self) -> int:
         """Returns the minimum amount of XP that can be received per message."""
-        return self.__xp_per_message_min
+        return self.__xp_per_message_min # type: ignore
 
     @property
     def xp_per_message_max(self) -> int:
         """Returns the maximum amount of XP that can be received per message."""
-        return self.__xp_per_message_max
+        return self.__xp_per_message_max # type: ignore
 
     @property
     def xp_exempt_roles(self) -> List[int]:
         """Returns a list of XP exempt role IDs."""
-        return self.__xp_exempt_roles
+        return self.__xp_exempt_roles # type: ignore
 
     @property
     def xp_exempt_channels(self) -> List[int]:
         """Returns a list of XP exempt channel IDs."""
-        return self.__xp_exempt_channels
+        return self.__xp_exempt_channels # type: ignore
 
     @property
     def stack_level_rewards(self) -> bool:
         """Returns true if level rewards should be stacked."""
-        return self.__stack_level_rewards
+        return self.__stack_level_rewards # type: ignore
 
     @property
     def appeal_url(self) -> Optional[str]:
