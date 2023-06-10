@@ -7,7 +7,7 @@ from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta # type: ignore
 from discord import Thread, VoiceChannel, ui, ButtonStyle, Interaction, app_commands
-from discord.channel import TextChannel, DMChannel, GroupChannel, PartialMessageable
+from discord.channel import TextChannel, DMChannel, GroupChannel, PartialMessageable, StageChannel
 from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
@@ -757,27 +757,56 @@ class ModeratorCommands(commands.Cog): # type: ignore
             return True
         return False
 
-    # TODO: refactor
-    @commands.command( # type: ignore
+    @commands.hybrid_group( # type: ignore
+        name="purge",
         brief='Removes a specified amount of messages from the channel.',
-        usage='<amount> [delete pidroid messages: true/False]',
+        usage='<amount>',
+        category=ModerationCategory,
+        invoke_without_command=True,
+        fallback="any"
+    )
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True)
+    @command_checks.can_purge()
+    @commands.guild_only()
+    async def purge_command(self, ctx: Context, amount: int):
+        if ctx.invoked_subcommand is None:
+            if amount <= 0:
+                raise BadArgument("That's not a valid amount!")
+
+            # Evan proof
+            if amount > 500:
+                raise BadArgument("The maximum amount of messages I can purge at once is 500!")
+            
+            await ctx.message.delete(delay=0)
+            
+            assert hasattr(ctx.channel, 'purge')
+            deleted = await ctx.channel.purge(limit=amount)
+            await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
+
+    @purge_command.command(
+        name="user",
+        brief="Removes a specified amount of messages sent by specified user.",
+        usage="<user> <amount>",
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True) # type: ignore
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.can_purge()
-    @commands.guild_only() # type: ignore
-    async def purge(self, ctx: Context, amount: int):
+    @commands.guild_only()
+    async def purge_user_command(self, ctx: Context, member: Member, amount: int):
+        def is_member(message: Message):
+            return message.author.id == member.id
+
         if amount <= 0:
             raise BadArgument("That's not a valid amount!")
 
         # Evan proof
         if amount > 500:
-            raise BadArgument("Max amount of messages I can purge at once is 500!")
-
+            raise BadArgument("The maximum amount of messages I can purge at once is 500!")
+            
+        await ctx.message.delete(delay=0)
         assert hasattr(ctx.channel, 'purge')
-        await ctx.channel.purge(limit=amount + 1) # type: ignore
-        await ctx.send(f'{amount:,} messages have been purged!', delete_after=1.5)
-
+        deleted = await ctx.channel.purge(limit=amount, check=is_member)
+        await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @commands.command(hidden=True) # type: ignore
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True) # type: ignore
@@ -867,7 +896,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
     ):
         assert ctx.guild is not None
         assert isinstance(ctx.message.author, Member)
-        assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable))
+        assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable, StageChannel))
         
         conf = await self.client.fetch_guild_configuration(ctx.guild.id)
         
