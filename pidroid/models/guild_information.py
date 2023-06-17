@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pidroid.models.guild_configuration import GuildConfiguration
 
 class GuildInformation:
@@ -10,6 +12,8 @@ class GuildInformation:
         self.__api = conf.api
         self.__guild_config = conf
         self.__guild_id = conf.guild_id
+        
+        self.__logging_enabled = False # TODO: remove after debugging
 
     @property
     def xp_system_active(self) -> bool:
@@ -20,6 +24,16 @@ class GuildInformation:
     def level_rewards_stacked(self) -> bool:
         """Returns true if level rewards obtained from the level system should be stacked."""
         return self.__guild_config.stack_level_rewards
+    
+    @property
+    def logging_channel_id(self) -> Optional[int]:
+        """Returns the ID of the logging channel if available."""
+        return self.__guild_config.log_channel
+    
+    @property
+    def logging_active(self) -> bool:
+        """Returns true if logging system is enabled for the server."""
+        return self.__logging_enabled
 
     async def fetch_all_level_rewards(self):
         """Returns a list of all level rewards in the guild."""

@@ -11,7 +11,6 @@ import logging
 
 from aiohttp import ClientSession
 from contextlib import suppress
-from discord.channel import TextChannel
 from discord.ext import commands # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
@@ -27,7 +26,6 @@ from pidroid.models.guild_information import GuildInformation
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 from pidroid.utils.data import PersistentDataManager
-from pidroid.utils.logger import BaseLog
 
 class VersionInfo(NamedTuple):
     major: int
@@ -88,7 +86,6 @@ class Pidroid(commands.Bot): # type: ignore
 
             # Extensions related to handling or responding
             # to certain events and running tasks
-            'cogs.handlers.automod',
             'cogs.handlers.guild_events',
             'cogs.handlers.initialization',
             'cogs.handlers.leveling_handler',
@@ -201,17 +198,6 @@ class Pidroid(commands.Bot): # type: ignore
         thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration) # type: ignore
         await self.api.insert_expiring_thread(thread.id, expire_timestamp)
         return thread
-
-    async def dispatch_log(self, guild: Guild, log: BaseLog):
-        """Dispatches a Pidroid log to a guild channel, if applicable."""
-        config = await self.fetch_guild_configuration(guild.id)
-        if not config.log_channel:
-            return
-
-        channel = await self.get_or_fetch_guild_channel(guild, config.log_channel)
-        if channel is not None:
-            assert isinstance(channel, TextChannel)
-            await channel.send(embed=log.as_embed())
 
     async def fetch_case(self, guild_id: int, case_id: int) -> Case:
         """Returns a case for specified guild and user."""
