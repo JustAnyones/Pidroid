@@ -114,10 +114,13 @@ class PidroidLog:
         """Sets the author of the current Pidroid log."""
         name = "Unknown"
         icon_url = None
+        user_id = "Unknown"
         if user:
             name = str(user)
             icon_url = user.display_avatar.url
+            user_id = str(user.id)
         self.__embed.set_author(name=name, icon_url=icon_url)
+        self.__embed.set_footer(text=f"Perpetrator ID: {user_id}")
 
     def add_field(self, name: str, value: str):
         """Adds a field to the internal log embed."""
