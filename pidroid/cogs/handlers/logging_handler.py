@@ -1,11 +1,10 @@
-import datetime
 import logging
-from typing import TYPE_CHECKING, List, Optional, Union
-from discord import AuditLogEntry, ChannelType, Object, Permissions, Role
 
+from discord import AuditLogEntry, ChannelType, Member, Object, Permissions, Role, User
 from discord.ext import commands
+from typing import TYPE_CHECKING
 
-from pidroid.models.logs import _RoleUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -305,15 +304,13 @@ class LoggingHandler(commands.Cog):
         - deaf
         - timed_out_until
         """
-        guild = entry.guild
-        issuer = entry.user
-        receiver = entry.target
-        reason = entry.reason
-        
-        nick: Optional[str] = entry.after.nick
-        mute: bool = entry.after.mute # Whether the member is being server muted.
-        deaf: bool = entry.after.deaf # Whether the member is being server deafened.
-        timed_out_until: Optional[datetime.datetime] = entry.after.timed_out_until
+        assert isinstance(entry.target, (Member, User, Object))
+        before = _MemberUpdateData(nick=entry.before.nick, mute=entry.before.mute, deaf=entry.before.deaf, timed_out_until=entry.before.timed_out_until)
+        after = _MemberUpdateData(nick=entry.after.nick, mute=entry.after.mute, deaf=entry.after.deaf, timed_out_until=entry.after.timed_out_until)
+        data = MemberUpdateData(
+            guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
+            member=entry.target, before=before, after=after
+        )
     
     async def _on_member_role_update(self, entry: AuditLogEntry):
         """
@@ -324,11 +321,13 @@ class LoggingHandler(commands.Cog):
         Possible attributes for AuditLogDiff:
         - roles
         """
-        guild = entry.guild
-        issuer = entry.user
-        receiver = entry.target
-        reason = entry.reason
-        roles: List[Union[Role, Object]] = entry.after.roles
+        assert isinstance(entry.target, (Member, User, Object))
+        before = _MemberRoleUpdateData(roles=entry.before.roles)
+        after = _MemberRoleUpdateData(roles=entry.after.roles)
+        data = MemberRoleUpdateData(
+            guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
+            member=entry.target, before=before, after=after
+        )
         
     @commands.Cog.listener()
     async def on_pidroid_log(self, log: PidroidLog):

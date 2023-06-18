@@ -2,7 +2,7 @@ import datetime
 
 from dataclasses import dataclass
 from discord import Asset, Colour, Embed, Member, Object, Permissions, Role, User, Color, Guild
-from typing import Union, Optional
+from typing import List, Union, Optional
 
 from pidroid.utils import normalize_permission_name, role_mention
 
@@ -12,6 +12,33 @@ class BaseData:
     user: Union[Member, User, None]
     reason: Optional[str]
     created_at: datetime.datetime
+
+@dataclass
+class BaseMemberData(BaseData):
+    member: Union[Member, User, Object]
+
+@dataclass
+class _MemberUpdateData:
+    nick: Optional[str]
+    # Whether the member is being server muted.
+    mute: bool
+    # Whether the member is being server deafened.
+    deaf: bool
+    timed_out_until: Optional[datetime.datetime]
+
+@dataclass
+class MemberUpdateData(BaseMemberData):
+    before: _MemberUpdateData
+    after: _MemberUpdateData
+
+@dataclass
+class _MemberRoleUpdateData:
+    roles: List[Union[Role, Object]]
+
+@dataclass
+class MemberRoleUpdateData(BaseMemberData):
+    before: _MemberRoleUpdateData
+    after: _MemberRoleUpdateData
 
 @dataclass
 class BaseRoleData(BaseData):
