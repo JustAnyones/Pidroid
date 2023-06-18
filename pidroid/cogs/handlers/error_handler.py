@@ -53,7 +53,7 @@ use_default = (
 
 async def notify(ctx: Context, message: str, delete_after: Optional[int] = None):
     with suppress(discord.errors.Forbidden):
-            await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
+        await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after) # type: ignore
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
