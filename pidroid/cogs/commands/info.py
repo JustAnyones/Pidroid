@@ -16,6 +16,7 @@ from typing_extensions import Annotated
 from pidroid.client import Pidroid
 from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import InformationCategory
+from pidroid.utils import normalize_permission_name
 from pidroid.utils.checks import is_guild_moderator, is_guild_administrator
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import utcnow
@@ -113,7 +114,7 @@ class InfoCommands(commands.Cog): # type: ignore
             # Get member permissions
             permissions = [permission[0] for permission in member.guild_permissions if permission[1]]
             for i, permission in enumerate(permissions):
-                permissions[i] = permission.replace('_', ' ').replace('guild', 'server').title().replace('Tts', 'TTS')
+                permissions[i] = normalize_permission_name(permission)
 
             if member.joined_at is not None:
                 embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
