@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from discord import Asset, Colour, Embed, Member, Object, Permissions, Role, User, Color, Guild
 from typing import Union, Optional
 
-from pidroid.utils import normalize_permission_name
+from pidroid.utils import normalize_permission_name, role_mention
 
 @dataclass
 class BaseData:
@@ -127,8 +127,12 @@ class PidroidLog:
         self.__embed.add_field(name=name, value=value)
 
     def set_colour(self, colour: Colour):
-        """Sets the colour of the embed to the specified"""
+        """Sets the colour of the embed to the specified."""
         self.__embed.colour = colour
+
+    def set_description(self, text: str):
+        """Sets the description of the embed."""
+        self.__embed.description = text
 
     def as_embed(self) -> Embed:
         """Returns the internal log embed object."""
@@ -141,6 +145,8 @@ class RoleCreateLog(PidroidLog):
 
     def __init__(self, data: RoleCreateData) -> None:
         super().__init__(data)
+
+        self.set_description(f"Role: {role_mention(data.role.id)} ({data.role.id})")
 
         self.add_field("Name", data.name)
 
@@ -166,6 +172,8 @@ class RoleDeleteLog(PidroidLog):
     def __init__(self, data: RoleDeleteData) -> None:
         super().__init__(data)
 
+        self.set_description(f"Role: {role_mention(data.role.id)} ({data.role.id})")
+
         self.add_field("Name", data.name)
 
         # Colour information
@@ -190,6 +198,8 @@ class RoleUpdateLog(PidroidLog):
 
         before = data.before
         after = data.after
+
+        self.set_description(f"Role: {role_mention(data.role.id)} ({data.role.id})")
         
         # React to name change
         if before.name != after.name:
