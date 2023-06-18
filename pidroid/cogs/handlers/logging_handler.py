@@ -1,11 +1,11 @@
 import datetime
 import logging
 from typing import TYPE_CHECKING, List, Optional, Union
-from discord import Asset, AuditLogEntry, ChannelType, Colour, Object, Permissions, Role
+from discord import AuditLogEntry, ChannelType, Object, Permissions, Role
 
 from discord.ext import commands
 
-from pidroid.models.logs import BaseLog
+from pidroid.models.logs import _RoleUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -21,9 +21,9 @@ class LoggingHandler(commands.Cog):
     def __init__(self, client: Pidroid):
         self.client = client
         
-    async def acquire_guild_information(self, guild_id: int):
+    async def acquire_guild_conf(self, guild_id: int):
         await self.client.wait_until_guild_configurations_loaded()
-        return await self.client.fetch_guild_information(guild_id)    
+        return await self.client.fetch_guild_configuration(guild_id)    
         
     @commands.Cog.listener() 
     async def on_audit_log_entry_create(self, entry: AuditLogEntry):
@@ -210,18 +210,19 @@ class LoggingHandler(commands.Cog):
         - name
         - permissions
         """
-        guild = entry.guild
-        issuer = entry.user
-        role = entry.target
-        reason = entry.reason
-        
-        colour: Colour = entry.after.colour
-        mentionable: bool = entry.after.mentionable
-        hoist: bool = entry.after.hoist
-        icon: Asset = entry.after.icon
-        unicode_emoji: str = entry.after.unicode_emoji
-        name: str = entry.after.name
-        permissions: Permissions = entry.after.permissions
+        assert isinstance(entry.target, (Role, Object))
+        data = RoleCreateData(
+            guild=entry.guild,
+            user=entry.user, role=entry.target, reason=entry.reason,
+            created_at=entry.created_at,
+
+            colour=entry.after.colour, mentionable=entry.after.colour,
+            hoist=entry.after.hoist, icon=entry.after.icon,
+            unicode_emoji=entry.after.unicode_emoji, name=entry.after.name,
+            permissions=entry.after.permissions
+        )
+        self.client.dispatch('pidroid_log', RoleCreateLog(data))
+
     
     async def _on_role_delete(self, entry: AuditLogEntry):
         """
@@ -236,16 +237,18 @@ class LoggingHandler(commands.Cog):
         - name
         - permissions
         """
-        guild = entry.guild
-        issuer = entry.user
-        role = entry.target
-        reason = entry.reason
-        
-        colour: Colour = entry.before.colour
-        mentionable: bool = entry.before.mentionable
-        hoist: bool = entry.before.hoist
-        name: str = entry.before.name
-        permissions: Permissions = entry.before.permissions
+        assert isinstance(entry.target, (Role, Object))
+        data = RoleDeleteData(
+            guild=entry.guild,
+            user=entry.user, role=entry.target, reason=entry.reason,
+            created_at=entry.created_at,
+
+            colour=entry.before.colour, mentionable=entry.before.colour,
+            hoist=entry.before.hoist,
+            name=entry.before.name,
+            permissions=entry.before.permissions
+        )
+        self.client.dispatch('pidroid_log', RoleDeleteLog(data))
     
     async def _on_role_update(self, entry: AuditLogEntry):
         """
@@ -267,18 +270,26 @@ class LoggingHandler(commands.Cog):
         - name
         - permissions
         """
-        guild = entry.guild
-        issuer = entry.user
-        role = entry.target
-        reason = entry.reason
-        
-        colour: Colour = entry.after.colour
-        mentionable: bool = entry.after.mentionable
-        hoist: bool = entry.after.hoist
-        icon: Asset = entry.after.icon
-        unicode_emoji: str = entry.after.unicode_emoji
-        name: str = entry.after.name
-        permissions: Permissions = entry.after.permissions
+        assert isinstance(entry.target, (Role, Object))
+        before = _RoleUpdateData(
+            colour=entry.before.colour, mentionable=entry.before.colour,
+            hoist=entry.before.hoist, icon=entry.before.icon,
+            unicode_emoji=entry.before.unicode_emoji, name=entry.before.name,
+            permissions=entry.before.permissions
+        )
+        after = _RoleUpdateData(
+            colour=entry.after.colour, mentionable=entry.after.colour,
+            hoist=entry.after.hoist, icon=entry.after.icon,
+            unicode_emoji=entry.after.unicode_emoji, name=entry.after.name,
+            permissions=entry.after.permissions
+        )
+        data = RoleUpdateData(
+            guild=entry.guild,
+            user=entry.user, role=entry.target, reason=entry.reason,
+            created_at=entry.created_at,
+            before=before, after=after
+        )
+        self.client.dispatch('pidroid_log', RoleUpdateLog(data))
     
     async def _on_member_update(self, entry: AuditLogEntry):
         """
@@ -320,20 +331,20 @@ class LoggingHandler(commands.Cog):
         roles: List[Union[Role, Object]] = entry.after.roles
         
     @commands.Cog.listener()
-    async def on_pidroid_log(self, log: BaseLog):
-        info = await self.acquire_guild_information(log.guild.id)
+    async def on_pidroid_log(self, log: PidroidLog):
+        conf = await self.acquire_guild_conf(log.guild.id)
         # If logging system is not active, do nothing
-        if not info.logging_active:
+        if not conf.logging_active:
             return
         # If we don't have a logging channel set
-        if info.logging_channel_id is None:
+        if conf.logging_channel_id is None:
             return
         
-        channel = await self.client.get_or_fetch_guild_channel(log.guild, info.logging_channel_id)
+        channel = await self.client.get_or_fetch_guild_channel(log.guild, conf.logging_channel_id)
         if channel:
             await channel.send(embed=log.as_embed())
         else:
-            logger.warning(f"Could not resolve a guild channel {info.logging_channel_id} to send a Pidroid log to")
+            logger.warning(f"Could not resolve a guild channel {conf.logging_channel_id} to send a Pidroid log to")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LoggingHandler(client))

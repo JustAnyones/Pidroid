@@ -105,6 +105,7 @@ class Error(commands.Cog): # type: ignore
             print(error.status)
             print(error.text)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+            await notify(ctx, "I could not find a resource, you should not see this")
 
         elif isinstance(error, discord.errors.Forbidden):
             print(f'A 403 error has been encountered in {ctx.command} command, printing stack trace')
@@ -113,6 +114,7 @@ class Error(commands.Cog): # type: ignore
             print(error.response)
             print(error.status)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
+            await notify(ctx, "I do not have the required permissions, you should not see this")
 
         # Handle specific errors
         elif isinstance(error, commands.NotOwner):

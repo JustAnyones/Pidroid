@@ -22,7 +22,6 @@ from pidroid.models.case import Case
 from pidroid.models.categories import get_command_categories, UncategorizedCategory
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
-from pidroid.models.guild_information import GuildInformation
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 from pidroid.utils.data import PersistentDataManager
@@ -174,11 +173,6 @@ class Pidroid(commands.Bot): # type: ignore
             config = await self.api.insert_guild_configuration(guild_id)
         self._update_guild_configuration(guild_id, config)
         return config
-    
-    async def fetch_guild_information(self, guild_id: int) -> GuildInformation:
-        """Returns unified guild information object."""
-        conf = await self.fetch_guild_configuration(guild_id=guild_id)
-        return GuildInformation(conf)
 
     def _get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Returns guild configuration from internal cache."""

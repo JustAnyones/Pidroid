@@ -158,3 +158,30 @@ class GuildConfiguration:
         """Updates the appeal URL. If None is specified, the appeal URL is removed."""
         self._appeal_url = appeal_url
         await self._update()
+
+    @property
+    def level_rewards_stacked(self) -> bool:
+        """Returns true if level rewards obtained from the level system should be stacked."""
+        return self.stack_level_rewards
+    
+    @property
+    def logging_channel_id(self) -> Optional[int]:
+        """Returns the ID of the logging channel if available."""
+        return self.log_channel
+    
+    @property
+    def logging_active(self) -> bool:
+        """Returns true if logging system is enabled for the server."""
+        return False
+
+    async def fetch_all_level_rewards(self):
+        """Returns a list of all level rewards in the guild."""
+        return await self.api.fetch_all_guild_level_rewards(self.guild_id)
+    
+    async def fetch_member_level(self, member_id: int):
+        """Returns member level object."""
+        return await self.api.fetch_user_level_info(self.guild_id, member_id)
+
+    async def fetch_all_member_levels(self):
+        """Returns a list of member level information for every member in the guild."""
+        return await self.api.fetch_guild_level_infos(self.guild_id)

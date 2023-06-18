@@ -109,8 +109,8 @@ class LevelCommands(commands.Cog): # type: ignore
         if ctx.invoked_subcommand is None:
             assert ctx.guild is not None
             await self.check_system_enabled(ctx.guild)
-            info = await self.client.fetch_guild_information(ctx.guild.id)
-            rewards = await info.fetch_all_level_rewards()
+            conf = await self.client.fetch_guild_configuration(ctx.guild.id)
+            rewards = await conf.fetch_all_level_rewards()
             if len(rewards) == 0:
                 raise BadArgument('This server does not have any level rewards!')
             

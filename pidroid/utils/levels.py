@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, List, Optional
 from discord import Member, Role
 
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.models.guild_information import GuildInformation
 
 logger = logging.getLogger('Pidroid')
 
@@ -81,10 +80,6 @@ class LevelReward:
     async def fetch_guild_configuration(self) -> GuildConfiguration:
         """Returns the guild configuration object associated with the guild this reward is in."""
         return await self.__api.client.fetch_guild_configuration(self.guild_id)
-
-    async def fetch_guild_information(self) -> GuildInformation:
-        """Returns the guild configuration object associated with the guild this reward is in."""
-        return await self.__api.client.fetch_guild_information(self.__guild_id)
 
     async def fetch_next_reward(self):
         return await self.__api._fetch_next_level_reward(self.guild_id, self.level)

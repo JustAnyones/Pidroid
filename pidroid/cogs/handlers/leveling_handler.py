@@ -137,9 +137,9 @@ class LevelingHandler(commands.Cog):
         #logger.debug("Running role reward sync task")
         for guild in self.client.guilds:
             # Acquire guild information
-            guild_information = await self.client.fetch_guild_information(guild.id)
+            conf = await self.client.fetch_guild_configuration(guild.id)
 
-            all_level_rewards = await guild_information.fetch_all_level_rewards()
+            all_level_rewards = await conf.fetch_all_level_rewards()
 
             # Remove rewards for roles that no longer exist
             guild_role_ids = [role.id for role in guild.roles]
@@ -150,11 +150,11 @@ class LevelingHandler(commands.Cog):
 
             # If leveling system is not active, we do not need to update member role states
             # for rewards
-            if not guild_information.xp_system_active:
+            if not conf.xp_system_active:
                 continue
 
             # Update every eligible user
-            for member_information in await guild_information.fetch_all_member_levels():
+            for member_information in await conf.fetch_all_member_levels():
                 # Obtain member object, if we can't do that
                 # then move onto the next member
                 member = await member_information.fetch_member()
@@ -172,7 +172,7 @@ class LevelingHandler(commands.Cog):
                 roles = [Object(id=r.role_id) for r in rewards]
                 
                 # If to stack rewards, add all of them
-                if guild_information.level_rewards_stacked:
+                if conf.level_rewards_stacked:
                     await self.queue_role_add(member, *roles, reason="Periodic role reward state sync")
                     #logger.debug(f"Queued {len(roles)} role add(s) for {member} as sync")
                 
@@ -234,19 +234,19 @@ class LevelingHandler(commands.Cog):
 
         await self.client.wait_until_guild_configurations_loaded()
 
-        information = await self.client.fetch_guild_information(member.guild.id)
+        conf = await self.client.fetch_guild_configuration(member.guild.id)
 
         # If XP system is not active, don't give the rewards
-        if not information.xp_system_active:
+        if not conf.xp_system_active:
             return
 
         # Obtain member level information, if it doesn't exist - stop
-        member_level = await information.fetch_member_level(member.id)
+        member_level = await conf.fetch_member_level(member.id)
         if member_level is None:
             return
 
         # If rewards should be stacked
-        if information.level_rewards_stacked:
+        if conf.level_rewards_stacked:
             level_rewards = await member_level.fetch_eligible_level_rewards()
             return await self.queue_role_add(member, *[Object(id=r.role_id) for r in level_rewards], reason="Re-add stacked level reward on rejoin")
             
