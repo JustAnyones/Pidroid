@@ -102,8 +102,7 @@ class PidroidLog:
 
     def __init__(self, data: BaseData) -> None:
         self.__guild = data.guild
-        self.__embed = Embed()
-        self.__embed.title = self.__logname__
+        self.__embed = Embed(title=self.__logname__, timestamp=data.created_at)
         self.__set_author(data.user)
 
     @property
