@@ -172,7 +172,7 @@ class GuildConfiguration:
     @property
     def logging_active(self) -> bool:
         """Returns true if logging system is enabled for the server."""
-        return False
+        return True # TODO: fix
 
     async def fetch_all_level_rewards(self):
         """Returns a list of all level rewards in the guild."""

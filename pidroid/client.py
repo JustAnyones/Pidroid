@@ -88,6 +88,7 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.handlers.guild_events',
             'cogs.handlers.initialization',
             'cogs.handlers.leveling_handler',
+            'cogs.handlers.logging_handler',
             'cogs.handlers.punishment_handler',
             'cogs.handlers.punishment_listener',
             'cogs.handlers.thread_archiver',

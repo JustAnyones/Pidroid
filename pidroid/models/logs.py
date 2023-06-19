@@ -1,9 +1,10 @@
 import datetime
 
 from dataclasses import dataclass
-from discord import Asset, Colour, Embed, Member, Object, Permissions, Role, User, Color, Guild
+from discord import Asset, ChannelType, Colour, Embed, Member, Object, Permissions, Role, User, Color, Guild, abc
 from typing import List, Union, Optional
 
+from pidroid.constants import EMBED_COLOUR
 from pidroid.utils import normalize_permission_name, role_mention
 
 @dataclass
@@ -12,6 +13,31 @@ class BaseData:
     user: Union[Member, User, None]
     reason: Optional[str]
     created_at: datetime.datetime
+
+@dataclass
+class BaseOverwriteData(BaseData):
+    channel: Union[abc.GuildChannel, Object]
+    role_or_user: Union[Role, Member, Object]
+
+@dataclass
+class _OverwriteData:
+    id: int # TODO: Is it the ID of the role or user that is being changed for or is it the ID for the channel?
+    type: ChannelType  # The type of channel.
+    deny: Permissions  # The permissions being denied.
+    allow: Permissions # The permissions being allowed.
+
+@dataclass
+class OverwriteCreateData(BaseOverwriteData, _OverwriteData):
+    pass
+
+@dataclass
+class OverwriteDeleteData(BaseOverwriteData, _OverwriteData):
+    pass
+
+@dataclass
+class OverwriteUpdateData(BaseOverwriteData):
+    before: _OverwriteData
+    after: _OverwriteData
 
 @dataclass
 class BaseMemberData(BaseData):
@@ -46,31 +72,31 @@ class BaseRoleData(BaseData):
 
 @dataclass
 class RoleCreateData(BaseRoleData):
-    colour: Colour
-    mentionable: bool
-    hoist: bool
-    icon: Asset
-    unicode_emoji: str
-    name: str
-    permissions: Permissions
+    colour: Optional[Colour]
+    mentionable: Optional[bool]
+    hoist: Optional[bool]
+    icon: Optional[Asset]
+    unicode_emoji: Optional[str]
+    name: Optional[str]
+    permissions: Optional[Permissions]
 
 @dataclass
 class RoleDeleteData(BaseRoleData):
-    colour: Colour
-    mentionable: bool
-    hoist: bool
-    name: str
-    permissions: Permissions
+    colour: Optional[Colour]
+    mentionable: Optional[bool]
+    hoist: Optional[bool]
+    name: Optional[str]
+    permissions: Optional[Permissions]
 
 @dataclass
 class _RoleUpdateData:
-    colour: Colour
-    mentionable: bool
-    hoist: bool
-    icon: Asset
-    unicode_emoji: str
-    name: str
-    permissions: Permissions
+    colour: Optional[Colour]
+    mentionable: Optional[bool]
+    hoist: Optional[bool]
+    icon: Optional[Asset]
+    unicode_emoji: Optional[str]
+    name: Optional[str]
+    permissions: Optional[Permissions]
 
 @dataclass
 class RoleUpdateData(BaseRoleData):
@@ -131,6 +157,7 @@ class PidroidLog:
         self.__guild = data.guild
         self.__embed = Embed(title=self.__logname__, timestamp=data.created_at)
         self.__set_author(data.user)
+        self.__embed.colour = EMBED_COLOUR # type: ignore
 
     @property
     def guild(self) -> Guild:
@@ -175,22 +202,33 @@ class RoleCreateLog(PidroidLog):
 
         self.set_description(f"Role: {role_mention(data.role.id)} ({data.role.id})")
 
-        self.add_field("Name", data.name)
+        if data.name:
+            self.add_field("Name", data.name)
 
         # Colour information
-        self.set_colour(data.colour)
-        self.add_field("Colour", str(data.colour))
+        if isinstance(data.role, Role):
+            self.set_colour(data.role.colour)
+        if data.colour:
+            self.set_colour(data.colour)
+            self.add_field("Colour", str(data.colour))
 
-        self.add_field("Is mentionable?", str(data.mentionable))
-        self.add_field("Is hoisted?", str(data.hoist))
-        self.add_field("Icon", data.icon.url)
-        self.add_field("Emoji", data.unicode_emoji)
+        if data.mentionable is not None:
+            self.add_field("Is mentionable?", str(data.mentionable))
+        if data.hoist is not None:
+            self.add_field("Is hoisted?", str(data.hoist))
+        if data.icon:
+            self.add_field("Icon", data.icon.url)
+        if data.unicode_emoji:
+            self.add_field("Emoji", data.unicode_emoji)
 
-        filtered = []
-        for permission in data.permissions:
-            name, value = permission
-            filtered.append(f"{normalize_permission_name(name)}: {value}")
-        self.add_field("Permissions", '\n'.join(filtered))
+        if data.permissions:
+            filtered = []
+            for permission in data.permissions:
+                name, value = permission
+                filtered.append(f"{normalize_permission_name(name)}: {value}")
+            perms_as_string = '\n'.join(filtered)
+            if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+                self.add_field("Permissions", perms_as_string)
 
 class RoleDeleteLog(PidroidLog):
 
@@ -200,21 +238,30 @@ class RoleDeleteLog(PidroidLog):
         super().__init__(data)
 
         self.set_description(f"Role: {role_mention(data.role.id)} ({data.role.id})")
-
-        self.add_field("Name", data.name)
+        
+        if data.name:
+            self.add_field("Name", data.name)
 
         # Colour information
-        self.set_colour(data.colour)
-        self.add_field("Colour", str(data.colour))
+        if isinstance(data.role, Role):
+            self.set_colour(data.role.colour)
+        if data.colour:
+            self.set_colour(data.colour)
+            self.add_field("Colour", str(data.colour))
 
-        self.add_field("Is mentionable?", str(data.mentionable))
-        self.add_field("Is hoisted?", str(data.hoist))
+        if data.mentionable is not None:
+            self.add_field("Is mentionable?", str(data.mentionable))
+        if data.hoist is not None:
+            self.add_field("Is hoisted?", str(data.hoist))
 
-        filtered = []
-        for permission in data.permissions:
-            name, value = permission
-            filtered.append(f"{normalize_permission_name(name)}: {value}")
-        self.add_field("Permissions", '\n'.join(filtered))
+        if data.permissions:
+            filtered = []
+            for permission in data.permissions:
+                name, value = permission
+                filtered.append(f"{normalize_permission_name(name)}: {value}")
+            perms_as_string = '\n'.join(filtered)
+            if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+                self.add_field("Permissions", perms_as_string)
 
 class RoleUpdateLog(PidroidLog):
 
@@ -233,8 +280,10 @@ class RoleUpdateLog(PidroidLog):
             self.add_field("Name", f"{before.name} -> {after.name}")
 
         # Colour information
-        self.set_colour(after.colour)
+        if isinstance(data.role, Role):
+            self.set_colour(data.role.colour)
         if before.colour != after.colour:
+            #self.set_colour(after.colour)
             self.add_field("Colour", f"{before.colour} -> {after.colour}")
         
         # Mentionability change
@@ -245,20 +294,24 @@ class RoleUpdateLog(PidroidLog):
         if before.hoist != after.hoist:
             self.add_field("Is hoisted?", f"{before.hoist} -> {after.hoist}")
 
-        # Icon change
-        if before.icon != after.icon:
-            self.add_field("Icon", f"{before.icon.url} -> {after.icon.url}")
+        # TODO: Icon change
+        #if before.icon != after.icon:
+        #    self.add_field("Icon", f"{before.icon.url} -> {after.icon.url}")
 
-        # Emoji change
-        if before.unicode_emoji != after.unicode_emoji:
-            self.add_field("Emoji", f"{before.unicode_emoji} -> {after.unicode_emoji}")
+        # TODO: Emoji change
+        #if before.unicode_emoji != after.unicode_emoji:
+        #    self.add_field("Emoji", f"{before.unicode_emoji} -> {after.unicode_emoji}")
 
         # Permission change
         if before.permissions != after.permissions:
+            assert after.permissions is not None
+            assert before.permissions is not None
             after_permissions = [p for p in after.permissions]
             filtered = []
             for i, before_perm in enumerate(before.permissions):
                 before_perm_name, before_perm_value = before_perm
                 if before_perm_value != after_permissions[i][1]:
-                    filtered.append(f"{normalize_permission_name(before_perm_name)}: {after_permissions[i][0]}")
-            self.add_field("Permissions", '\n'.join(filtered))
+                    filtered.append(f"{normalize_permission_name(before_perm_name)}: {after_permissions[i][1]}")
+            perms_as_string = '\n'.join(filtered)
+            if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+                self.add_field("Permissions changed", perms_as_string)

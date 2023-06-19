@@ -1,15 +1,26 @@
+from __future__ import annotations
+
 import logging
 
-from discord import AuditLogEntry, ChannelType, Member, Object, Permissions, Role, User
+from discord import AuditLogDiff, AuditLogEntry, Member, Object, Role, User, abc, AuditLogAction
 from discord.ext import commands
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from pidroid.models.logs import _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberUpdateData, OverwriteCreateData, OverwriteDeleteData, OverwriteUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
 
 logger = logging.getLogger('Pidroid')
+
+class AuditLogDiffWrapper:
+    def __init__(self, diff: AuditLogDiff) -> None:
+        self.__dict = diff.__dict__
+
+    def __getattr__(self, item: str) -> Any:
+        val = self.__dict.get(item, None)
+        logger.debug(f"Asking for attribute {item}: {val}")
+        return val
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -40,30 +51,33 @@ class LoggingHandler(commands.Cog):
         action = entry.action
         handlers = {
             # Adding, removal and editing of channels
-            action.channel_create: self._on_channel_create,
-            action.channel_delete: self._on_channel_delete,
-            action.channel_update: self._on_channel_update,
+            AuditLogAction.channel_create: self._on_channel_create,
+            AuditLogAction.channel_delete: self._on_channel_delete,
+            AuditLogAction.channel_update: self._on_channel_update,
             # Channel permission changes
-            action.overwrite_create: self._on_overwrite_create,
-            action.overwrite_delete: self._on_overwrite_delete,
-            action.overwrite_update: self._on_overwrite_update,
+            AuditLogAction.overwrite_create: self._on_overwrite_create,
+            AuditLogAction.overwrite_delete: self._on_overwrite_delete,
+            AuditLogAction.overwrite_update: self._on_overwrite_update,
             
             # Adding and, removal and editing of roles
-            action.role_create: self._on_role_create,
-            action.role_delete: self._on_role_delete,
-            action.role_update: self._on_role_update,
+            AuditLogAction.role_create: self._on_role_create,
+            AuditLogAction.role_delete: self._on_role_delete,
+            AuditLogAction.role_update: self._on_role_update,
             
             # Changes in members (Change in server name and roles)
-            action.member_update: self._on_member_update,
-            action.member_role_update: self._on_member_role_update,
+            AuditLogAction.member_update: self._on_member_update,
+            AuditLogAction.member_role_update: self._on_member_role_update
 
         }
-        
-        coro = handlers.get(entry.action.value, None)
+        coro = handlers.get(action, None)
         if coro is None:
             return
-        await coro(entry)
-        
+        try:
+            await coro(entry)
+        except Exception as e:
+            logger.exception(e)
+    
+
     async def _on_channel_create(self, entry: AuditLogEntry):
         """
         A new channel was created.
@@ -79,6 +93,7 @@ class LoggingHandler(commands.Cog):
         """
         pass
     
+
     async def _on_channel_delete(self, entry: AuditLogEntry):
         """
         A channel was deleted.
@@ -97,6 +112,7 @@ class LoggingHandler(commands.Cog):
         """
         pass
     
+
     async def _on_channel_update(self, entry: AuditLogEntry):
         """
         A channel was updated. Things that trigger this include:
@@ -123,6 +139,7 @@ class LoggingHandler(commands.Cog):
         """
         pass
     
+
     async def _on_overwrite_create(self, entry: AuditLogEntry):
         """
         A channel permission overwrite was created.
@@ -137,17 +154,21 @@ class LoggingHandler(commands.Cog):
         - id
         - type
         """
-        guild = entry.guild
-        issuer = entry.user
-        channel = entry.target
-        reason = entry.reason
-        role_or_member = entry.extra
-        
-        id: int = entry.after.id
-        type: ChannelType = entry.after.type # The type of channel.
-        deny: Permissions = entry.after.deny # The permissions being denied.
-        allow: Permissions = entry.after.allow # The permissions being allowed.
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        assert isinstance(entry.extra, (Role, Member, Object))
+        diff_after = AuditLogDiffWrapper(entry.after)
+        data = OverwriteCreateData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target, role_or_user=entry.extra,
+            reason=entry.reason, created_at=entry.created_at,
+
+            id=diff_after.id,
+            type=diff_after.type,
+            deny=diff_after.deny,
+            allow=diff_after.allow
+        )
     
+
     async def _on_overwrite_delete(self, entry: AuditLogEntry):
         """
         A channel permission overwrite was deleted.
@@ -160,17 +181,21 @@ class LoggingHandler(commands.Cog):
         - id
         - type
         """
-        guild = entry.guild
-        issuer = entry.user
-        channel = entry.target
-        reason = entry.reason
-        role_or_member = entry.extra
-        
-        id: int = entry.before.id
-        type: ChannelType = entry.before.type # The type of channel.
-        deny: Permissions = entry.before.deny # The permissions being denied.
-        allow: Permissions = entry.before.allow # The permissions being allowed.
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        assert isinstance(entry.extra, (Role, Member, Object))
+        diff_before = AuditLogDiffWrapper(entry.before)
+        data = OverwriteDeleteData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target, role_or_user=entry.extra,
+            reason=entry.reason, created_at=entry.created_at,
+
+            id=diff_before.id,
+            type=diff_before.type,
+            deny=diff_before.deny,
+            allow=diff_before.allow
+        )
     
+
     async def _on_overwrite_update(self, entry: AuditLogEntry):
         """
         A channel permission overwrite was changed, this is typically when the permission values change.
@@ -183,17 +208,25 @@ class LoggingHandler(commands.Cog):
         - id
         - type
         """
-        guild = entry.guild
-        issuer = entry.user
-        channel = entry.target
-        reason = entry.reason
-        role_or_member = entry.extra
-        
-        id: int = entry.after.id
-        type: ChannelType = entry.after.type # The type of channel.
-        deny: Permissions = entry.after.deny # The permissions being denied.
-        allow: Permissions = entry.after.allow # The permissions being allowed.
-    
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        assert isinstance(entry.extra, (Role, Member, Object))
+        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_after = AuditLogDiffWrapper(entry.after)
+        before = _OverwriteData(
+            id=diff_before.id, type=diff_before.type,
+            deny=diff_before.deny, allow=diff_before.allow
+        )
+        after = _OverwriteData(
+            id=diff_after.id, type=diff_after.type,
+            deny=diff_after.deny, allow=diff_after.allow
+        )
+        data = OverwriteUpdateData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target, role_or_user=entry.extra,
+            reason=entry.reason, created_at=entry.created_at,
+            before=before, after=after
+        )
+
     async def _on_role_create(self, entry: AuditLogEntry):
         """
         A new role was created.
@@ -210,19 +243,20 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
+        diff_after = AuditLogDiffWrapper(entry.after)
         data = RoleCreateData(
             guild=entry.guild,
             user=entry.user, role=entry.target, reason=entry.reason,
             created_at=entry.created_at,
 
-            colour=entry.after.colour, mentionable=entry.after.colour,
-            hoist=entry.after.hoist, icon=entry.after.icon,
-            unicode_emoji=entry.after.unicode_emoji, name=entry.after.name,
-            permissions=entry.after.permissions
+            colour=diff_after.colour, mentionable=diff_after.mentionable,
+            hoist=diff_after.hoist, icon=diff_after.icon,
+            unicode_emoji=diff_after.unicode_emoji, name=diff_after.name,
+            permissions=diff_after.permissions
         )
         self.client.dispatch('pidroid_log', RoleCreateLog(data))
-
     
+
     async def _on_role_delete(self, entry: AuditLogEntry):
         """
         A role was deleted.
@@ -237,18 +271,20 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
+        diff_before = AuditLogDiffWrapper(entry.before)
         data = RoleDeleteData(
             guild=entry.guild,
             user=entry.user, role=entry.target, reason=entry.reason,
             created_at=entry.created_at,
 
-            colour=entry.before.colour, mentionable=entry.before.colour,
-            hoist=entry.before.hoist,
-            name=entry.before.name,
-            permissions=entry.before.permissions
+            colour=diff_before.colour, mentionable=diff_before.mentionable,
+            hoist=diff_before.hoist,
+            name=diff_before.name,
+            permissions=diff_before.permissions
         )
         self.client.dispatch('pidroid_log', RoleDeleteLog(data))
     
+
     async def _on_role_update(self, entry: AuditLogEntry):
         """
         A role was updated. This triggers in the following situations:
@@ -270,17 +306,19 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
+        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_after = AuditLogDiffWrapper(entry.after)
         before = _RoleUpdateData(
-            colour=entry.before.colour, mentionable=entry.before.colour,
-            hoist=entry.before.hoist, icon=entry.before.icon,
-            unicode_emoji=entry.before.unicode_emoji, name=entry.before.name,
-            permissions=entry.before.permissions
+            colour=diff_before.colour, mentionable=diff_before.mentionable,
+            hoist=diff_before.hoist, icon=diff_before.icon,
+            unicode_emoji=diff_before.unicode_emoji, name=diff_before.name,
+            permissions=diff_before.permissions
         )
         after = _RoleUpdateData(
-            colour=entry.after.colour, mentionable=entry.after.colour,
-            hoist=entry.after.hoist, icon=entry.after.icon,
-            unicode_emoji=entry.after.unicode_emoji, name=entry.after.name,
-            permissions=entry.after.permissions
+            colour=diff_after.colour, mentionable=diff_after.mentionable,
+            hoist=diff_after.hoist, icon=diff_after.icon,
+            unicode_emoji=diff_after.unicode_emoji, name=diff_after.name,
+            permissions=diff_after.permissions
         )
         data = RoleUpdateData(
             guild=entry.guild,
@@ -290,6 +328,7 @@ class LoggingHandler(commands.Cog):
         )
         self.client.dispatch('pidroid_log', RoleUpdateLog(data))
     
+
     async def _on_member_update(self, entry: AuditLogEntry):
         """
         A member has updated. This triggers in the following situations:
@@ -305,13 +344,16 @@ class LoggingHandler(commands.Cog):
         - timed_out_until
         """
         assert isinstance(entry.target, (Member, User, Object))
-        before = _MemberUpdateData(nick=entry.before.nick, mute=entry.before.mute, deaf=entry.before.deaf, timed_out_until=entry.before.timed_out_until)
-        after = _MemberUpdateData(nick=entry.after.nick, mute=entry.after.mute, deaf=entry.after.deaf, timed_out_until=entry.after.timed_out_until)
+        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_after = AuditLogDiffWrapper(entry.after)
+        before = _MemberUpdateData(nick=diff_before.nick, mute=diff_before.mute, deaf=diff_before.deaf, timed_out_until=diff_before.timed_out_until)
+        after = _MemberUpdateData(nick=diff_after.nick, mute=diff_after.mute, deaf=diff_after.deaf, timed_out_until=diff_after.timed_out_until)
         data = MemberUpdateData(
             guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
             member=entry.target, before=before, after=after
         )
     
+
     async def _on_member_role_update(self, entry: AuditLogEntry):
         """
         A member’s role has been updated. This triggers when a member either gains a role or loses a role.
@@ -322,20 +364,26 @@ class LoggingHandler(commands.Cog):
         - roles
         """
         assert isinstance(entry.target, (Member, User, Object))
-        before = _MemberRoleUpdateData(roles=entry.before.roles)
-        after = _MemberRoleUpdateData(roles=entry.after.roles)
+        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_after = AuditLogDiffWrapper(entry.after)
+        before = _MemberRoleUpdateData(roles=diff_before.roles)
+        after = _MemberRoleUpdateData(roles=diff_after.roles)
         data = MemberRoleUpdateData(
             guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
             member=entry.target, before=before, after=after
         )
-        
+    
+    
     @commands.Cog.listener()
     async def on_pidroid_log(self, log: PidroidLog):
+        logger.debug(f"Log received: {type(log)}")
         conf = await self.acquire_guild_conf(log.guild.id)
         # If logging system is not active, do nothing
         if not conf.logging_active:
             return
+        
         # If we don't have a logging channel set
+        # TODO: consider migrating to allow to set custom channels for different logs
         if conf.logging_channel_id is None:
             return
         
