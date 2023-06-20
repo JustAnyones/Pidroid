@@ -320,7 +320,7 @@ class BasePunishment:
         else:
             duration = format_dt(self.case.date_expires)
         embed.add_field(name='Expires in', value=duration)
-        if self._appeal_url:
+        if self._appeal_url and self.case.type == "ban":
             embed.add_field(name='You can appeal the punishment here:', value=self._appeal_url)
         embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
