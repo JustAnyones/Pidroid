@@ -49,6 +49,8 @@ class LoggingHandler(commands.Cog):
         To get the user ID of entry, AuditLogEntry.user_id can be used instead.
         """
         action = entry.action
+
+        # This dictionary defines all specific action handlers
         handlers = {
             # Adding, removal and editing of channels
             AuditLogAction.channel_create: self._on_channel_create,
@@ -59,15 +61,30 @@ class LoggingHandler(commands.Cog):
             AuditLogAction.overwrite_delete: self._on_overwrite_delete,
             AuditLogAction.overwrite_update: self._on_overwrite_update,
             
-            # Adding and, removal and editing of roles
+            # Adding, removal and editing of roles
             AuditLogAction.role_create: self._on_role_create,
             AuditLogAction.role_delete: self._on_role_delete,
             AuditLogAction.role_update: self._on_role_update,
             
-            # Changes in members (Change in server name and roles)
+            # Changes in members such as their roles, usernames and status
+            # in voice channels
             AuditLogAction.member_update: self._on_member_update,
-            AuditLogAction.member_role_update: self._on_member_role_update
+            AuditLogAction.member_role_update: self._on_member_role_update,
+            AuditLogAction.member_move: None,
+            AuditLogAction.member_disconnect: None,
 
+            # Member management related
+            AuditLogAction.kick: None,
+            AuditLogAction.member_prune: None,
+            AuditLogAction.ban: None,
+            AuditLogAction.unban: None,
+
+            # No idea
+            AuditLogAction.message_delete: None,      # Would rather implement as event
+            AuditLogAction.message_bulk_delete: None, # Would rather implement as event
+            AuditLogAction.thread_create: None,
+            AuditLogAction.thread_delete: None,
+            AuditLogAction.thread_update: None,
         }
         coro = handlers.get(action, None)
         if coro is None:
