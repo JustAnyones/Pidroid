@@ -30,6 +30,7 @@ from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.case import Ban, Kick, Timeout, Jail, Warning
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import InvalidDuration, MissingUserPermissions
+from pidroid.utils import user_mention
 from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed
@@ -39,7 +40,9 @@ from pidroid.utils.checks import (
     check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
     is_guild_moderator, is_guild_theotown
 )
-from pidroid.utils.time import duration_string_to_relativedelta, utcnow
+from pidroid.utils.time import delta_to_datetime, duration_string_to_relativedelta, utcnow
+
+BUNNY_ID = 793465265237000212
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
     reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason") # type: ignore
@@ -907,7 +910,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("Specified member is above or shares the same role with you, you cannot suspend them!")
 
         if member.top_role > ctx.guild.me.top_role:
-            raise BadArgument("Specified member is above me, I cannot suspend them!!")
+            raise BadArgument("Specified member is above me, I cannot suspend them!")
 
         sem = self.get_user_semaphore(ctx.guild.id, member.id)
         if sem is not None and sem["semaphore"].locked():
@@ -925,6 +928,37 @@ class ModeratorCommands(commands.Cog): # type: ignore
         await t.issue()
         await ctx.reply(embed=t.public_message_issue_embed)
 
+    @commands.command( # type: ignore
+        name="punish-bunny",
+        brief='Bans (times out) bunny for 4 weeks.',
+        category=ModerationCategory
+    )
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
+    @command_checks.is_junior_moderator(moderate_members=True)
+    @commands.guild_only() # type: ignore
+    async def punish_bunny_command(
+        self,
+        ctx: Context
+    ):
+        assert ctx.guild is not None
+        assert isinstance(ctx.message.author, Member)
+        assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable, StageChannel))
+
+        member = await self.client.get_or_fetch_member(ctx.guild, BUNNY_ID)
+
+        if member is None:
+            raise BadArgument("Bunny ")
+
+        if member.top_role >= ctx.message.author.top_role:
+            raise BadArgument("Bunny is above or shares the same role with you, you cannot suspend her!")
+
+        if member.top_role > ctx.guild.me.top_role:
+            raise BadArgument("Bunny is above me, I cannot suspend her!")
+        
+        timed_out_until = delta_to_datetime(timedelta(weeks=4))
+
+        await member.edit(reason=":)", timed_out_until=timed_out_until)
+        await ctx.reply(f"{user_mention(BUNNY_ID)}, can you hear me now?")
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorCommands(client))
