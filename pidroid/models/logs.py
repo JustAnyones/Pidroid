@@ -5,7 +5,7 @@ from discord import Asset, ChannelType, Colour, Embed, Member, Object, Permissio
 from typing import List, Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
-from pidroid.utils import normalize_permission_name, role_mention
+from pidroid.utils import normalize_permission_name, role_mention, user_mention
 
 @dataclass
 class BaseData:
@@ -21,7 +21,7 @@ class BaseOverwriteData(BaseData):
 
 @dataclass
 class _OverwriteData:
-    id: int # TODO: Is it the ID of the role or user that is being changed for or is it the ID for the channel?
+    id: int            # TODO: Is it the ID of the role or user that is being changed for or is it the ID for the channel?
     type: ChannelType  # The type of channel.
     deny: Permissions  # The permissions being denied.
     allow: Permissions # The permissions being allowed.
@@ -47,9 +47,9 @@ class BaseMemberData(BaseData):
 class _MemberUpdateData:
     nick: Optional[str]
     # Whether the member is being server muted.
-    mute: bool
+    mute: Optional[bool]
     # Whether the member is being server deafened.
-    deaf: bool
+    deaf: Optional[bool]
     timed_out_until: Optional[datetime.datetime]
 
 @dataclass
@@ -103,52 +103,6 @@ class RoleUpdateData(BaseRoleData):
     before: _RoleUpdateData
     after: _RoleUpdateData
 
-class BaseLog:
-
-    def __init__(self, guild: Guild) -> None:
-        self.type = "Base log"
-        self.embed = Embed(color=Color.red())
-        self.guild = guild
-
-    def __str__(self) -> str:
-        return self.__class__.__name__
-
-    def __repr__(self) -> str:
-        return f'<BaseLog type="{self.type}" title="{self.embed.title}">'
-
-    def set_title(self, title: str) -> None:
-        """Sets embed title."""
-        self.embed.title = title
-
-    def set_description(self, description: str) -> None:
-        """Sets embed description."""
-        self.embed.description = description
-
-    def add_field(self, name: str, value: str, inline: bool = True) -> None:
-        """Adds an embed field."""
-        self.embed.add_field(name=name, value=value, inline=inline)
-
-    def set_footer(self, text: Optional[str] = None, icon_url: Optional[str] = None) -> None:
-        """Sets embed footer."""
-        self.embed.set_footer(text=text, icon_url=icon_url)
-
-    def set_type(self, log_type: str) -> None:
-        """Sets log type. An alias for set_title."""
-        self.set_title(log_type)
-
-    def set_author(self, name: str, icon_url: Optional[str] = None) -> None:
-        """Sets embed author."""
-        self.embed.set_author(name=name, icon_url=icon_url)
-
-    def put_author(self, user: Union[Member, User]) -> None:
-        """Sets embed author and specifies the user ID in the footer."""
-        self.set_author(str(user), user.display_avatar.url)
-        self.embed.set_footer(text=f"User ID: {user.id}")
-
-    def as_embed(self) -> Embed:
-        """Returns embed representation of the object."""
-        return self.embed
-
 class PidroidLog:
 
     __logname__ = "A new Pidroid log"
@@ -176,8 +130,16 @@ class PidroidLog:
         self.__embed.set_author(name=name, icon_url=icon_url)
         self.__embed.set_footer(text=f"Perpetrator ID: {user_id}")
 
+    def add_reason_field(self, data: BaseData):
+        """Adds a reason field to the end of the embed."""
+        if data.reason:
+            size = len(self.__embed.fields)
+            self.__embed.insert_field_at(size, name="Reason", value=data.reason, inline=False)
+
     def add_field(self, name: str, value: str):
         """Adds a field to the internal log embed."""
+        if len(value) > 1024:
+            raise ValueError("Value cannot be longer than 1024 characters!")
         self.__embed.add_field(name=name, value=value)
 
     def set_colour(self, colour: Colour):
@@ -230,6 +192,8 @@ class RoleCreateLog(PidroidLog):
             if len(perms_as_string) <= 1024: # TODO: figure a better solution out
                 self.add_field("Permissions", perms_as_string)
 
+        self.add_reason_field(data)
+
 class RoleDeleteLog(PidroidLog):
 
     __logname__ = "Role deleted"
@@ -262,6 +226,8 @@ class RoleDeleteLog(PidroidLog):
             perms_as_string = '\n'.join(filtered)
             if len(perms_as_string) <= 1024: # TODO: figure a better solution out
                 self.add_field("Permissions", perms_as_string)
+        
+        self.add_reason_field(data)
 
 class RoleUpdateLog(PidroidLog):
 
@@ -315,3 +281,58 @@ class RoleUpdateLog(PidroidLog):
             perms_as_string = '\n'.join(filtered)
             if len(perms_as_string) <= 1024: # TODO: figure a better solution out
                 self.add_field("Permissions changed", perms_as_string)
+        
+        self.add_reason_field(data)
+
+class MemberUpdateLog(PidroidLog):
+
+    __logname__ = "Member updated"
+
+    def __init__(self, data: MemberUpdateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Member: {user_mention(data.member.id)} ({data.member.id})")
+
+        before = data.before
+        after = data.after
+
+        if before.nick != after.nick:
+            self.add_field("Nickname", f"{before.nick} -> {after.nick}")
+
+        if before.mute != after.mute:
+            self.add_field("Server muted", f"{before.mute} -> {after.mute}")
+
+        if before.deaf != after.deaf:
+            self.add_field("Server deafened", f"{before.deaf} -> {after.deaf}")
+
+        # TODO: make this pretty
+        if before.timed_out_until != after.timed_out_until:
+            self.add_field("Timed out until", f"{before.timed_out_until} -> {after.timed_out_until}")
+
+        self.add_reason_field(data)
+
+class MemberRoleUpdateLog(PidroidLog):
+
+    __logname__ = "Member roles updated"
+
+    def __init__(self, data: MemberRoleUpdateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Member: {user_mention(data.member.id)} ({data.member.id})")
+
+        roles_before = data.before.roles
+        roles_after = data.after.roles
+
+        if len(roles_before) > 0:
+            msg = ""
+            for role in roles_before:
+                msg += f"{role_mention(role.id)} ({role.id})\n"
+            self.add_field("Roles removed", msg.strip())
+
+        if len(roles_after) > 0:
+            msg = ""
+            for role in roles_after:
+                msg += f"{role_mention(role.id)} ({role.id})\n"
+            self.add_field("Roles added", msg.strip())
+
+        self.add_reason_field(data)

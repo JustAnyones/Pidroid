@@ -6,7 +6,7 @@ from discord import AuditLogDiff, AuditLogEntry, Member, Object, Role, User, abc
 from discord.ext import commands
 from typing import TYPE_CHECKING, Any
 
-from pidroid.models.logs import _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberUpdateData, OverwriteCreateData, OverwriteDeleteData, OverwriteUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteDeleteData, OverwriteUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -352,6 +352,7 @@ class LoggingHandler(commands.Cog):
             guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
             member=entry.target, before=before, after=after
         )
+        self.client.dispatch('pidroid_log', MemberUpdateLog(data))
     
 
     async def _on_member_role_update(self, entry: AuditLogEntry):
@@ -372,6 +373,7 @@ class LoggingHandler(commands.Cog):
             guild=entry.guild, user=entry.user, reason=entry.reason, created_at=entry.created_at,
             member=entry.target, before=before, after=after
         )
+        self.client.dispatch('pidroid_log', MemberRoleUpdateLog(data))
     
     
     @commands.Cog.listener()
