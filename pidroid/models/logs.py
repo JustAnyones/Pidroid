@@ -277,7 +277,8 @@ class RoleUpdateLog(PidroidLog):
             for i, before_perm in enumerate(before.permissions):
                 before_perm_name, before_perm_value = before_perm
                 if before_perm_value != after_permissions[i][1]:
-                    filtered.append(f"{normalize_permission_name(before_perm_name)}: {after_permissions[i][1]}")
+                    marker = "\-" if after_permissions[i][1] is False else "+"
+                    filtered.append(f"{marker} {normalize_permission_name(before_perm_name)}")
             perms_as_string = '\n'.join(filtered)
             if len(perms_as_string) <= 1024: # TODO: figure a better solution out
                 self.add_field("Permissions changed", perms_as_string)
