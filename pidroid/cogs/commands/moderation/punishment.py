@@ -27,7 +27,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, Typed
 
 from pidroid.client import Pidroid
 from pidroid.cogs.handlers.error_handler import notify
-from pidroid.models.case import Ban, Kick, Timeout, Jail, Warning
+from pidroid.models.punishments import Ban, Kick, Timeout, Jail, Warning
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import InvalidDuration, MissingUserPermissions
 from pidroid.utils import user_mention
@@ -106,7 +106,7 @@ class LengthButton(ValueButton):
                 return await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
             
             assert self.view._punishment is not None
-            if self.view._punishment.type == "timeout":
+            if isinstance(self.view._punishment, Timeout):
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
                     return await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
 

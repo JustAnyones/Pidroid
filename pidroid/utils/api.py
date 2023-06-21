@@ -6,9 +6,9 @@ from discord import Message, Member
 from typing import TYPE_CHECKING, List, Dict, Set, Any, Optional, Coroutine, Callable
 
 from pidroid.cogs.commands.tags import Tag
-from pidroid.models.case import Case
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
+from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.accounts import TheoTownAccount
 from pidroid.utils.http import HTTP, Route
 from pidroid.utils.levels import MemberLevelInfo, LevelReward
@@ -65,7 +65,10 @@ class PunishmentTable(Base): # type: ignore
     issue_date = Column(DateTime(timezone=True), default=func.now()) # date of issue
     expire_date = Column(DateTime(timezone=True), nullable=True) # date when punishment expires, null means never
 
+    # This let's us now if Pidroid already dealt with this case automatically
     handled = Column(Boolean, server_default="false")
+    # This hides the case from visibility
+    # Usually in the case of removing invalid warnings
     visible = Column(Boolean, server_default="true")
 
 class ExpiringThreadTable(Base): # type: ignore
@@ -83,7 +86,7 @@ class SuggestionTable(Base): # type: ignore
     message_id = Column(BigInteger)
     suggestion = Column(Text)
     date_submitted = Column(DateTime(timezone=True), default=func.now())
-    attachments = Column(ARRAY(Text), server_default="{}")
+    attachments = Column(ARRAY(Text), server_default="{}") # type: ignore
 
 class TagTable(Base): # type: ignore
     __tablename__ = "Tags"
@@ -92,8 +95,8 @@ class TagTable(Base): # type: ignore
     guild_id = Column(BigInteger)
     name = Column(Text)
     content = Column(Text)
-    authors = Column(ARRAY(BigInteger))
-    aliases = Column(ARRAY(Text), server_default="{}")
+    authors = Column(ARRAY(BigInteger)) # type: ignore
+    aliases = Column(ARRAY(Text), server_default="{}") # type: ignore
     locked = Column(Boolean, server_default="false")
     date_created = Column(DateTime(timezone=True), default=func.now())
 
@@ -105,8 +108,8 @@ class GuildConfigurationTable(Base): # type: ignore
     jail_channel = Column(BigInteger, nullable=True)
     jail_role = Column(BigInteger, nullable=True)
     log_channel = Column(BigInteger, nullable=True)
-    prefixes = Column(ARRAY(Text), server_default="{}")
-    suspicious_usernames = Column(ARRAY(Text), server_default="{}")
+    prefixes = Column(ARRAY(Text), server_default="{}") # type: ignore
+    suspicious_usernames = Column(ARRAY(Text), server_default="{}") # type: ignore
     public_tags = Column(Boolean, server_default="false")
     punishing_moderators = Column(Boolean, server_default="false")
     appeal_url = Column(String, nullable=True)
@@ -116,8 +119,8 @@ class GuildConfigurationTable(Base): # type: ignore
     xp_per_message_min = Column(BigInteger, server_default="15")
     xp_per_message_max = Column(BigInteger, server_default="25")
     xp_multiplier = Column(Float, server_default="1.0")
-    xp_exempt_roles = Column(ARRAY(BigInteger), server_default="{}")
-    xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}")
+    xp_exempt_roles = Column(ARRAY(BigInteger), server_default="{}") # type: ignore
+    xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}") # type: ignore
     stack_level_rewards = Column(Boolean, server_default="true")
 
 class UserLevelsTable(Base): # type: ignore
@@ -443,12 +446,12 @@ class API:
                 session.add(entry)
             await session.commit()
 
-        case = await self.fetch_case_by_internal_id(entry.id) # type: ignore
+        case = await self.__fetch_case_by_internal_id(entry.id) # type: ignore
         assert case is not None
         return case
 
-    async def fetch_case_by_internal_id(self, id: int) -> Optional[Case]:
-        """Fetches and returns a deserialized case if available."""
+    async def __fetch_case_by_internal_id(self, id: int) -> Optional[Case]:
+        """Fetches and returns a deserialized case, if available."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
@@ -457,12 +460,12 @@ class API:
             )
         r = result.fetchone()
         if r:
-            c = Case(self, r[0]) # type: ignore
-            await c._fetch_users()
+            c = Case(self)
+            await c._from_table(r[0])
             return c
         return None
 
-    async def fetch_case(self, guild_id: int, case_id: int) -> Optional[Case]:
+    async def _fetch_case(self, guild_id: int, case_id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
@@ -476,12 +479,11 @@ class API:
             )
         r = result.fetchone()
         if r:
-            c = Case(self, r[0])
-            await c._fetch_users()
-            return c
+            c = Case(self)
+            await c._from_table(r[0])
         return None
 
-    async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
+    async def _fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Fetches and returns a list of deserialized cases."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
@@ -496,26 +498,10 @@ class API:
             )
         case_list = []
         for r in result.fetchall():
-            c = Case(self, r[0])
-            await c._fetch_users()
+            c = Case(self)
+            await c._from_table(r[0])
             case_list.append(c)
         return case_list
-
-    async def fetch_active_cases(self, guild_id: int, user_id: int) -> List[Case]:
-        """Returns a list of active cases for the specified guild and user."""
-        return [c for c in await self.fetch_cases(guild_id, user_id) if not c.has_expired]
-
-    async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
-        """Returns a list of warnings for the specified guild and user."""
-        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == "warning"]
-
-    async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
-        """Returns a list of active warnings for the specified guild and user."""
-        return [
-            c
-            for c in await self.fetch_cases(guild_id, user_id)
-            if c.type == "warning" and not c.has_expired
-        ]
 
     async def update_case_by_internal_id(
         self,
@@ -541,19 +527,20 @@ class API:
                 )
             await session.commit()
 
-    async def revoke_cases_by_type(
+    async def expire_cases_by_type(
         self,
-        type: str,
+        type: PunishmentType,
         guild_id: int, user_id: int
     ) -> None:
-        """Revokes a case entry by making it expired using the specified type, user ID and guild ID."""
+        """Expires a case entry by making it expired using the specified type, user ID and guild ID."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
                     update(PunishmentTable).
-                    filter(PunishmentTable.type == type, PunishmentTable.guild_id == guild_id, PunishmentTable.user_id == user_id).
+                    filter(PunishmentTable.type == type.value, PunishmentTable.guild_id == guild_id, PunishmentTable.user_id == user_id).
                     values(
+                        # Note that we do not hide it, only set it as handled so Pidroid doesn't touch it
                         expire_date=utcnow(),
                         handled=True
                     )
@@ -599,7 +586,7 @@ class API:
             "guild_total": guild_total
         }
 
-    async def is_currently_punished(self, punishment_type: str, guild_id: int, user_id: int) -> bool:
+    async def __is_currently_punished(self, punishment_type: str, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently punished in a guild for the specified punishment type."""
         async with self.session() as session:
             assert isinstance(session, AsyncSession)
@@ -620,48 +607,38 @@ class API:
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
-        return await self.is_currently_punished("jail", guild_id, user_id)
+        return await self.__is_currently_punished(PunishmentType.jail.value, guild_id, user_id)
 
-    async def is_currently_muted(self, guild_id: int, user_id: int) -> bool:
-        """Returns true if user is currently muted in the guild."""
-        return await self.is_currently_punished("mute", guild_id, user_id)
+    async def fetch_active_guild_bans(self, guild_id: int) -> List[Case]:
+            """
+            Returns a list of active guild bans that can expire. Bans
+            without an expiration date will not be included.
+            """
+            async with self.session() as session: # type: ignore
+                assert isinstance(session, AsyncSession)
+                result = await session.execute(
+                    select(PunishmentTable).
+                    filter(
+                        PunishmentTable.guild_id == guild_id,
 
-    async def fetch_active_expiring_guild_punishments(self, guild_id: int) -> List[Case]:
-        """Returns a list of active guild punishments that can expire. Punishments
-        without an expiration date will not be included.
-        
-        Additionally, warnings, timeouts, jails and kicks are excluded from this list
-        as Pidroid doesn't have anything else to do."""
-        async with self.session() as session: # type: ignore
-            assert isinstance(session, AsyncSession)
-            result = await session.execute(
-                select(PunishmentTable).
-                filter(
-                    PunishmentTable.guild_id == guild_id,
+                        # Expires if expiration date is past current date
+                        # and if expiration date is actually set
+                        PunishmentTable.expire_date <= utcnow(),
+                        PunishmentTable.expire_date.is_not(None),
 
-                    # Expires if expiration date is past current date
-                    # and if expiration date is actually set
-                    PunishmentTable.expire_date <= utcnow(),
-                    PunishmentTable.expire_date.is_not(None),
+                        # Explicit statement to know if case was already handled
+                        PunishmentTable.handled == False,
 
-                    # Explicit statement to know if case was already handled
-                    PunishmentTable.handled == False,
-
-                    # Ignore things that cannot expire or Pidroid does not care
-                    PunishmentTable.type != 'warning',
-                    PunishmentTable.type != 'timeout',
-                    PunishmentTable.type != 'jail',
-                    PunishmentTable.type != 'kick',
-
-                    PunishmentTable.visible == True
+                        PunishmentTable.type == PunishmentType.ban.value,
+                        PunishmentTable.visible == True
+                    )
                 )
-            )
-        case_list = []
-        for r in result.fetchall():
-            c = Case(self, r[0])
-            await c._fetch_users()
-            case_list.append(c)
-        return case_list
+            case_list = []
+            for r in result.fetchall():
+                c = Case(self)
+                await c._from_table(r[0])
+                case_list.append(c)
+            return case_list
 
     """Translation related"""
 

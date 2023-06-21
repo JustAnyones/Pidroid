@@ -30,9 +30,11 @@ import discord
 from contextlib import suppress
 from discord.errors import NotFound
 from discord.ext import commands
+from discord.utils import format_dt
 from typing import TYPE_CHECKING, List, Optional, Dict, Any
 
 from pidroid.models.plugins import Plugin
+from pidroid.models.punishments import Case
 from pidroid.utils.embeds import PidroidEmbed
 
 if TYPE_CHECKING:
@@ -363,4 +365,33 @@ class PluginListPaginator(ListPageSource):
                 value=plugin.clean_title,
                 inline=True
             )
+        return self.embed
+
+
+class CasePaginator(ListPageSource):
+    def __init__(self, paginator_title: str, cases: List[Case], compact: bool = False):
+        super().__init__(cases, per_page=8)
+        self.compact = compact
+        self.embed = PidroidEmbed(title=paginator_title)
+
+    async def format_page(self, _: PidroidPages, cases: List[Case]) -> discord.Embed:
+        self.embed.clear_fields()
+        for case in cases:
+            if self.compact:
+                name = f"#{case.case_id} issued by {case.moderator_name}"
+                value = f"\"{case.clean_reason}\" issued on {format_dt(case.date_issued)}"
+            else:
+                name = f"Case #{case.case_id}: {case.type.value}"
+                value = (
+                    f"**Issued by:** {case.moderator_name}\n"
+                    f"**Issued on:** {format_dt(case.date_issued)}\n"
+                    f"**Reason:** {case.clean_reason.capitalize()}"
+                )
+            self.embed.add_field(name=name, value=value, inline=False)
+        
+        entry_count = len(self.entries)
+        if entry_count == 1:
+            self.embed.set_footer(text=f'{entry_count} entry')
+        else:
+            self.embed.set_footer(text=f'{entry_count:,} entries')
         return self.embed

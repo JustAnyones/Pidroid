@@ -18,7 +18,7 @@ from discord.mentions import AllowedMentions
 from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
-from pidroid.models.case import Case
+from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.categories import get_command_categories, UncategorizedCategory
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
@@ -90,7 +90,6 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.handlers.leveling_handler',
             'cogs.handlers.logging_handler',
             'cogs.handlers.punishment_handler',
-            'cogs.handlers.punishment_listener',
             'cogs.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
@@ -196,22 +195,26 @@ class Pidroid(commands.Bot): # type: ignore
 
     async def fetch_case(self, guild_id: int, case_id: int) -> Case:
         """Returns a case for specified guild and user."""
-        case = await self.api.fetch_case(guild_id, case_id)
+        case = await self.api._fetch_case(guild_id, case_id)
         if case is None:
             raise BadArgument("Specified case could not be found!")
         return case
 
     async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of cases for specified guild and user."""
-        return await self.api.fetch_cases(guild_id, user_id)
+        return await self.api._fetch_cases(guild_id, user_id)
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of warning cases for specified guild and user."""
-        return await self.api.fetch_warnings(guild_id, user_id)
+        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType.warning]
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
         """Returns a list of active warning cases for specified guild and user."""
-        return await self.api.fetch_active_warnings(guild_id, user_id)
+        return [
+            c
+            for c in await self.fetch_cases(guild_id, user_id)
+            if c.type == PunishmentType.warning and not c.has_expired
+        ]
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""

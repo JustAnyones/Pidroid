@@ -13,12 +13,12 @@ from discord.member import Member
 from discord.role import Role
 from discord.user import User
 from discord.utils import format_dt
+from enum import Enum
 from typing import TYPE_CHECKING, List, Optional, Union
 
 from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
-from pidroid.utils.paginators import ListPageSource, PidroidPages
 from pidroid.utils.time import delta_to_datetime, humanize, time_since, utcnow
 
 if TYPE_CHECKING:
@@ -27,58 +27,117 @@ if TYPE_CHECKING:
     Moderator = Union[Member, User]
     Length = Union[timedelta, relativedelta]
 
-class BaseCase:
+MAX_REASON_LENGTH = 512
+
+class PunishmentType(Enum):
+    ban = "ban"
+    kick = "kick"
+    warning = "warning"
+    jail = "jail"
+    timeout = "timeout"
+    mute = "mute" # Backwards compatibility
+    unknown = "unknown"
+
+class Case:
 
     if TYPE_CHECKING:
-        _id: int
-        case_id: int
-        type: str
-        guild_id: int
+        __id: int
+        __case_id: int
+        __type: PunishmentType
+        __guild_id: int
 
-        user_id: int
-        moderator_id: int
+        __user_id: int
+        __moderator_id: int
 
-        _user_name: Optional[str]
-        _moderator_name: Optional[str]
+        __user_name: Optional[str]
+        __moderator_name: Optional[str]
 
-        reason: Optional[str]
-        date_issued: datetime.datetime
-        date_expires: Optional[datetime.datetime]
+        __user: Optional[User]
+        __moderator: Optional[User]
 
-        visible: bool
-        handled: bool
+        __reason: Optional[str]
+        __date_issued: datetime.datetime
+        __date_expires: Optional[datetime.datetime]
 
-    def __init__(self, api: API, data: PunishmentTable) -> None:
-        self._api = api
-        self._deserialize(data)
+        __visible: bool
+        __handled: bool
 
-    def _deserialize(self, data: PunishmentTable):
-        self._id = data.id # type: ignore
-        self.case_id = data.case_id # type: ignore
-        self.type = data.type # type: ignore
-        self.guild_id = data.guild_id # type: ignore
+    def __init__(self, api: API) -> None:
+        self.__api = api
 
-        self.user_id = data.user_id # type: ignore
-        self.moderator_id = data.moderator_id # type: ignore
+    async def _from_table(self, data: PunishmentTable):
+        self.__id = data.id # type: ignore
+        self.__case_id = data.case_id # type: ignore
+        self.__type = PunishmentType[data.type] # type: ignore
+        self.__guild_id = data.guild_id # type: ignore
 
-        self._user_name = data.user_name # type: ignore
-        self._moderator_name = data.moderator_name # type: ignore
+        self.__user_id = data.user_id # type: ignore
+        self.__moderator_id = data.moderator_id # type: ignore
 
-        self.reason = data.reason # type: ignore
-        self.date_issued = data.issue_date # type: ignore
-        self.date_expires = data.expire_date # type: ignore
+        self.__user_name = data.user_name # type: ignore
+        self.__moderator_name = data.moderator_name # type: ignore
 
-        self.visible = data.visible # type: ignore
-        self.handled = data.handled # type: ignore
+        self.__user = await self.__api.client.get_or_fetch_user(self.__user_id)
+        self.__moderator = await self.__api.client.get_or_fetch_user(self.__moderator_id)
+
+        self.__reason = data.reason # type: ignore
+        self.__date_issued = data.issue_date # type: ignore
+        self.__date_expires = data.expire_date # type: ignore
+
+        self.__visible = data.visible # type: ignore
+        self.__handled = data.handled # type: ignore
 
     async def _update(self) -> None:
-        await self._api.update_case_by_internal_id(self._id, self.reason, self.date_expires, self.visible, self.handled)
+        await self.__api.update_case_by_internal_id(self.__id, self.__reason, self.__date_expires, self.__visible, self.__handled)
+
+    @property
+    def case_id(self) -> int:
+        """Returns the ID of the case."""
+        return self.__case_id
+
+    @property
+    def type(self) -> PunishmentType:
+        """Returns the type of the punishment."""
+        return self.__type
+
+    @property
+    def user_name(self) -> str:
+        """Returns user name. Priority is given to the one saved in the database."""
+        if self.__user:
+            return self.__user_name or str(self.__user)
+        return self.__user_name or str(self.__user_id)
+
+    @property
+    def moderator_name(self) -> str:
+        """Returns moderator name. Priority is given to the one saved in the database."""
+        if self.__moderator:
+            return self.__moderator_name or str(self.__moderator)
+        return self.__moderator_name or str(self.__moderator_id)
+
+    @property
+    def user(self) -> Optional[User]:
+        return self.__user
+
+    @property
+    def clean_reason(self) -> str:
+        """Returns reason as string since there are cases where reason is unavailable."""
+        return self.__reason or "None"
+
+    @property
+    def date_issued(self) -> datetime.datetime:
+        """Returns the date of when the punishment was issued."""
+        return self.__date_issued
+
+    @property
+    def date_expires(self) -> Optional[datetime.datetime]:
+        """Returns the date of when the punishment expires."""
+        return self.__date_expires
 
     @property
     def has_expired(self) -> bool:
         """Returns true if the punishment expired."""
         # If case expired by getting explicitly handled
-        if self.handled:
+        if self.__handled:
             return True
         # If the date of expiration is set to none, then it never expires
         if self.date_expires is None:
@@ -86,24 +145,9 @@ class BaseCase:
         # Otherwise, if current date is above or equal to the date is should expire, then it IS expired
         return self.date_expires <= utcnow()
 
-    @property
-    def user_name(self) -> str:
-        """Returns user name. Priority is given to the one saved in the database."""
-        return self._user_name or str(self.user_id)
-
-    @property
-    def moderator_name(self) -> str:
-        """Returns moderator name. Priority is given to the one saved in the database."""
-        return self._moderator_name or str(self.moderator_id)
-
-    @property
-    def clean_reason(self) -> str:
-        """Returns reason as string since there are cases where reason is unavailable."""
-        return self.reason or "None"
-
     def to_embed(self) -> Embed:
         """Returns an Embed representation of the class."""
-        embed = PidroidEmbed(title=f"[{self.type.capitalize()} #{self.case_id}] {self.user_name}")
+        embed = PidroidEmbed(title=f"[{self.type.value.capitalize()} #{self.case_id}] {self.user_name}")
         embed.add_field(name="User", value=self.user_name)
         embed.add_field(name="Moderator", value=self.moderator_name)
         embed.add_field(name="Reason", value=self.clean_reason)
@@ -119,79 +163,34 @@ class BaseCase:
         embed.set_footer(text=f"Issued {time_since(self.date_issued, max_units=3)}")
         return embed
 
-class Case(BaseCase):
-
-    if TYPE_CHECKING:
-        user: Optional[User]
-        moderator: Optional[User]
-
-    def __init__(self, api: API, data: PunishmentTable) -> None:
-        super().__init__(api, data)
-
-    async def _fetch_users(self) -> None:
-        self.user = await self._api.client.get_or_fetch_user(self.user_id)
-        self.moderator = await self._api.client.get_or_fetch_user(self.moderator_id)
-
-    @property
-    def user_name(self) -> str:
-        """Returns user name. Priority is given to the one saved in the database."""
-        return self._user_name or str(self.user)
-
-    @property
-    def moderator_name(self) -> str:
-        """Returns moderator name. Priority is given to the one saved in the database."""
-        return self._moderator_name or str(self.moderator)
-
     async def update_reason(self, reason: str) -> None:
         """Updates the case reason."""
-        self.reason = reason
+        if len(reason) > MAX_REASON_LENGTH:
+            raise BadArgument(f"Reason can only be {MAX_REASON_LENGTH} characters!")
+        self.__reason = reason
         await self._update()
 
     async def invalidate(self) -> None:
-        """Invalidates specified case.
+        """Invalidates the specified case.
 
         Note, this only works for warnings."""
-        if self.type != "warning":
+        if self.type != PunishmentType.warning:
             raise BadArgument("Only warnings can be invalidated!")
-        self.date_expires = utcnow()
-        self.handled = True
-        self.visible = False
+        self.__date_expires = utcnow()
+        self.__handled = True
+        self.__visible = False
         await self._update()
 
-
-class CasePaginator(ListPageSource):
-    def __init__(self, paginator_title: str, cases: List[Case], compact: bool = False):
-        super().__init__(cases, per_page=6)
-        self.compact = compact
-        self.embed = PidroidEmbed(title=paginator_title)
-
-    async def format_page(self, menu: PidroidPages, cases: List[Case]) -> Embed:
-        self.embed.clear_fields()
-        for case in cases:
-            if self.compact:
-                name = f"#{case.case_id} issued by {case.moderator_name}"
-                value = f"\"{case.reason}\" issued on {format_dt(case.date_issued)}"
-            else:
-                name = f"Case #{case.case_id}: {case.type}"
-                value = (
-                    f"**Issued by:** {case.moderator_name}\n"
-                    f"**Issued on:** {format_dt(case.date_issued)}\n"
-                    f"**Reason:** {case.clean_reason.capitalize()}"
-                )
-            self.embed.add_field(name=name, value=value, inline=False)
-        
-        entry_count = len(self.entries)
-        if entry_count == 1:
-            self.embed.set_footer(text=f'{entry_count} entry')
-        else:
-            self.embed.set_footer(text=f'{entry_count:,} entries')
-        return self.embed
+    async def expire(self):
+        """Expires the current case."""
+        await self.__api.expire_cases_by_type(self.__type, self.__guild_id, self.__user_id)
 
 class BasePunishment:
 
+    __type__: PunishmentType = PunishmentType.unknown
+
     if TYPE_CHECKING:
         _api: API
-        type: str
         case: Optional[Case]
         _channel: Optional[GuildTextChannel]
 
@@ -209,7 +208,6 @@ class BasePunishment:
 
     def __init__(self, api: API, guild: Guild) -> None:
         # Only used internally, we initialize them here
-        self.type = "unknown"
         self.case = None
         self._expiration_date = None
         self._reason = None
@@ -220,7 +218,7 @@ class BasePunishment:
         self._appeal_url = None
 
     def __str__(self) -> str:
-        return self.type
+        return self.__type__.value
 
     @property
     def user_name(self) -> str:
@@ -232,7 +230,7 @@ class BasePunishment:
         """Returns moderator name."""
         return str(self.moderator)
 
-    def set_length(self, length: Optional[Union[timedelta, relativedelta, None]]):
+    def set_length(self, length: Optional[Union[timedelta, relativedelta, None]]) -> None:
         """Sets punishment length."""
         if length is None:
             self._expiration_date = None
@@ -257,22 +255,22 @@ class BasePunishment:
 
     @reason.setter
     def reason(self, reason: Optional[str]) -> None:
-        if reason and len(reason) > 512:
-            raise BadArgument("Your reason is too long. Please make sure it's below or equal to 512 characters!")
+        if reason and len(reason) > MAX_REASON_LENGTH:
+            raise BadArgument(f"Your reason is too long. Please make sure it's below or equal to {MAX_REASON_LENGTH} characters!")
         self._reason = reason
 
-    async def _create_db_entry(self) -> Case:
+    async def _create_case_record(self) -> Case:
         return await self._api.insert_punishment_entry(
-            self.type,
+            self.__type__.value,
             self.guild.id,
             self.user.id, self.user_name,
             self.moderator.id, self.moderator_name,
             self.reason, self.expiration_date
         )
 
-    async def _revoke_punishment_db_entry(self, type: str) -> None:
+    async def _expire_cases_by_type(self, type: PunishmentType) -> None:
         """Removes all punishments of specified type for the current user."""
-        await self._api.revoke_cases_by_type(type, self.guild.id, self.user.id)
+        await self._api.expire_cases_by_type(type, self.guild.id, self.user.id)
 
     def _set_user(self, user: DiscordUser) -> None:
         if isinstance(user, Member):
@@ -313,14 +311,14 @@ class BasePunishment:
         if self.case is None:
             raise BadArgument("Case object was not retrieved")
         embed = Embed(title=f"New punishment received [case #{self.case.case_id}]", color=discord.Color.red())
-        embed.add_field(name='Type', value=self.case.type.capitalize())
+        embed.add_field(name='Type', value=self.case.type.value.capitalize())
         embed.add_field(name="Reason", value=self.reason or "No reason specified")
         if self.case.date_expires is None:
             duration = "Never"
         else:
             duration = format_dt(self.case.date_expires)
         embed.add_field(name='Expires in', value=duration)
-        if self._appeal_url and self.case.type == "ban":
+        if self._appeal_url and self.case.type == PunishmentType.ban:
             embed.add_field(name='You can appeal the punishment here:', value=self._appeal_url)
         embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
@@ -328,25 +326,27 @@ class BasePunishment:
     @property
     def private_message_revoke_embed(self) -> Embed:
         embed = Embed(title='Punishment revoked', color=discord.Color.green())
-        embed.add_field(name='Type', value=self.type.capitalize())
+        embed.add_field(name='Type', value=self.__type__.value.capitalize())
         embed.add_field(name='Reason', value=self.reason or "No reason specified")
         embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
 
-    async def create_entry(self):
+    async def create_case(self):
+        """Creates an case entry for the punishment in the database."""
         config = await self._api.client.fetch_guild_configuration(self.guild.id)
         self._appeal_url = config.appeal_url
 
     async def issue(self) -> Case:
-        raise NotImplementedError
-
-    async def revoke_entry(self) -> None:
+        """Issues the punishment for the user."""
         raise NotImplementedError
 
     async def revoke(self) -> None:
+        """Revokes the punishment from the user."""
         raise NotImplementedError
 
 class Ban(BasePunishment):
+
+    __type__ = PunishmentType.ban
 
     if TYPE_CHECKING:
         user: DiscordUser
@@ -358,7 +358,6 @@ class Ban(BasePunishment):
         moderator: Moderator, user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
-        self.type = "ban"
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)        
@@ -399,33 +398,31 @@ class Ban(BasePunishment):
         embed.description = f"{self.user_name} was unbanned"
         return embed
 
-    async def create_entry(self) -> Case:
-        """Creates new database entry for the case."""
-        await super().create_entry()
-        await self._revoke_punishment_db_entry("jail")
-        await self._revoke_punishment_db_entry("mute")
-        await self._revoke_punishment_db_entry("timeout")
-        return await self._create_db_entry()
+    async def create_case(self) -> Case:
+        await super().create_case()
+        # When we ban the user, we will remove their jail, mute punishments
+        await self._expire_cases_by_type(PunishmentType.jail)
+        await self._expire_cases_by_type(PunishmentType.mute)
+        # Actually, Discord persists timeouts during bans
+        return await self._create_case_record()
 
     async def issue(self) -> Case:
         """Bans the user and creates new database entry."""
         await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
-        self.case = await self.create_entry()
-        self._api.emit("on_ban_issued", self)
+        self.case = await self.create_case()
+        self._api.client.dispatch("pidroid_ban_issue", self)
         return self.case
-
-    async def revoke_entry(self) -> None:
-        """Revokes ban in the database."""
-        await self._revoke_punishment_db_entry("ban")
 
     async def revoke(self, reason: Optional[str] = None) -> None:
         """Unbans the user and updates database entry."""
         self.reason = reason
         await self.guild.unban(self.user, reason=self.audit_log_revoke_reason) # type: ignore
-        await self.revoke_entry()
-        self._api.emit("on_ban_revoked", self)
+        await self._expire_cases_by_type(PunishmentType.ban)
+        self._api.client.dispatch("pidroid_ban_revoke", self)
 
 class Kick(BasePunishment):
+
+    __type__ = PunishmentType.kick
 
     if TYPE_CHECKING:
         user: Member
@@ -437,7 +434,6 @@ class Kick(BasePunishment):
         moderator: Moderator, user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
-        self.type = "kick"
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)
@@ -457,20 +453,22 @@ class Kick(BasePunishment):
             embed.description += f" for the following reason: {self.reason}"
         return embed
 
-    async def create_entry(self) -> Case:
-        await super().create_entry()
-        await self._revoke_punishment_db_entry('jail')
-        await self._revoke_punishment_db_entry('mute')
-        await self._revoke_punishment_db_entry('timeout')
-        return await self._create_db_entry()
+    async def create_case(self) -> Case:
+        await super().create_case()
+        # When we ban the user, we will remove their jail, mute punishments
+        await self._expire_cases_by_type(PunishmentType.jail)
+        await self._expire_cases_by_type(PunishmentType.mute)
+        return await self._create_case_record()
 
     async def issue(self) -> Case:
         await self.user.kick(reason=self.audit_log_issue_reason)
-        self.case = await self.create_entry()
-        self._api.emit("on_kick_issued", self)
+        self.case = await self.create_case()
+        self._api.client.dispatch("pidroid_kick_issue", self)
         return self.case
 
 class Jail(BasePunishment):
+
+    __type__ = PunishmentType.jail
 
     if TYPE_CHECKING:
         user: Member
@@ -483,7 +481,6 @@ class Jail(BasePunishment):
         kidnapping: bool = False
     ) -> None:
         super().__init__(api, guild)
-        self.type = "jail"
         self._kidnapping = kidnapping
         self._channel = channel
         self._set_moderator(moderator)
@@ -537,27 +534,26 @@ class Jail(BasePunishment):
     def is_kidnapping(self) -> bool:
         return self._kidnapping
 
-    async def create_entry(self) -> Case:
-        await super().create_entry()
-        return await self._create_db_entry()
+    async def create_case(self) -> Case:
+        await super().create_case()
+        return await self._create_case_record()
 
     async def issue(self, role: Role) -> Case: # type: ignore
         """Jails the member."""
         await self.user.add_roles(role, reason=self.audit_log_issue_reason) # type: ignore
-        self.case = await self.create_entry()
-        self._api.emit("on_jail_issued", self)
+        self.case = await self.create_case()
+        self._api.client.dispatch("pidroid_jail_issue", self)
         return self.case
-
-    async def revoke_entry(self) -> None:
-        await self._revoke_punishment_db_entry("jail")
 
     async def revoke(self, role: Role, reason: Optional[str] = None) -> None: # type: ignore
         self.reason = reason
         await self.user.remove_roles(role, reason=self.audit_log_revoke_reason) # type: ignore
-        await self.revoke_entry()
-        self._api.emit("on_jail_revoked", self)
+        await self._expire_cases_by_type(PunishmentType.jail)
+        self._api.client.dispatch("pidroid_jail_revoke", self)
 
 class Warning(BasePunishment):
+
+    __type__ = PunishmentType.warning
 
     if TYPE_CHECKING:
         user: Member
@@ -569,7 +565,6 @@ class Warning(BasePunishment):
         moderator: Moderator, user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
-        self.type = "warning"
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)
@@ -580,19 +575,21 @@ class Warning(BasePunishment):
         embed.description = f"{self.user_name} has been warned: {self.reason}"
         return embed
 
-    async def create_entry(self) -> Case:
-        await super().create_entry()
-        return await self._create_db_entry()
+    async def create_case(self) -> Case:
+        await super().create_case()
+        return await self._create_case_record()
 
     async def issue(self) -> Case:
         """Warns the member."""
         if self.expiration_date is None:
-            self.set_length(timedelta(days=90))
-        self.case = await self.create_entry()
-        self._api.emit("on_warning_issued", self)
+            self.length = timedelta(days=90)
+        self.case = await self.create_case()
+        self._api.client.dispatch("pidroid_warning_issue", self)
         return self.case
 
 class Timeout(BasePunishment):
+
+    __type__ = PunishmentType.timeout
 
     if TYPE_CHECKING:
         user: Member
@@ -604,7 +601,6 @@ class Timeout(BasePunishment):
         moderator: Moderator, user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
-        self.type = "timeout"
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)
@@ -645,21 +641,18 @@ class Timeout(BasePunishment):
         embed.description = f"Timeout for {self.user_name} was removed"
         return embed
 
-    async def create_entry(self) -> Case:
-        await super().create_entry()
-        return await self._create_db_entry()
+    async def create_case(self) -> Case:
+        await super().create_case()
+        return await self._create_case_record()
 
     async def issue(self) -> Case:
         await self.user.timeout(self.expiration_date, reason=self.audit_log_issue_reason)
-        self.case = await self.create_entry()
-        self._api.emit("on_timeout_issued", self)
+        self.case = await self.create_case()
+        self._api.client.dispatch("pidroid_timeout_issue", self)
         return self.case
-
-    async def revoke_entry(self) -> None:
-        await self._revoke_punishment_db_entry("timeout")
 
     async def revoke(self, reason: Optional[str] = None) -> None:
         self.reason = reason
         await self.user.edit(timed_out_until=None, reason=self.audit_log_revoke_reason)
-        await self.revoke_entry()
-        self._api.emit("on_timeout_revoked", self)
+        await self._expire_cases_by_type(PunishmentType.timeout)
+        self._api.client.dispatch("pidroid_timeout_revoke", self)

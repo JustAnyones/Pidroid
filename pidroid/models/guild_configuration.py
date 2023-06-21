@@ -70,6 +70,8 @@ class GuildConfiguration:
             self._appeal_url
         )
 
+    """XP system related"""
+
     @property
     def xp_system_active(self) -> bool:
         """Returns true if the XP system is active for the server."""
@@ -101,9 +103,23 @@ class GuildConfiguration:
         return self.__xp_exempt_channels # type: ignore
 
     @property
-    def stack_level_rewards(self) -> bool:
-        """Returns true if level rewards should be stacked."""
+    def level_rewards_stacked(self) -> bool:
+        """Returns true if level rewards obtained from the level system should be stacked."""
         return self.__stack_level_rewards # type: ignore
+    
+    """Logging system related"""
+
+    @property
+    def logging_channel_id(self) -> Optional[int]:
+        """Returns the ID of the logging channel if available."""
+        return self.log_channel
+    
+    @property
+    def logging_active(self) -> bool:
+        """Returns true if logging system is enabled for the server."""
+        return True # TODO: fix
+
+    """Punishment system related"""
 
     @property
     def appeal_url(self) -> Optional[str]:
@@ -158,21 +174,6 @@ class GuildConfiguration:
         """Updates the appeal URL. If None is specified, the appeal URL is removed."""
         self._appeal_url = appeal_url
         await self._update()
-
-    @property
-    def level_rewards_stacked(self) -> bool:
-        """Returns true if level rewards obtained from the level system should be stacked."""
-        return self.stack_level_rewards
-    
-    @property
-    def logging_channel_id(self) -> Optional[int]:
-        """Returns the ID of the logging channel if available."""
-        return self.log_channel
-    
-    @property
-    def logging_active(self) -> bool:
-        """Returns true if logging system is enabled for the server."""
-        return True # TODO: fix
 
     async def fetch_all_level_rewards(self):
         """Returns a list of all level rewards in the guild."""

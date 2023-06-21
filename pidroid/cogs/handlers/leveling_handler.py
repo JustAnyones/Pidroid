@@ -268,7 +268,7 @@ class LevelingHandler(commands.Cog):
         if len(role_snowflakes) == 0:
             return
 
-        if config.stack_level_rewards:
+        if config.level_rewards_stacked:
             await self.queue_role_add(member, *role_snowflakes, reason="Level up stacked reward granted")
         else:
             await self.queue_role_remove(member, *role_snowflakes[1:], reason="Level up reward granted")
@@ -298,7 +298,7 @@ class LevelingHandler(commands.Cog):
 
 
         # If level rewards are stacked
-        if config.stack_level_rewards:
+        if config.level_rewards_stacked:
             # If role does not exist, we do not care, it is already removed
             if not role_exists:
                 return

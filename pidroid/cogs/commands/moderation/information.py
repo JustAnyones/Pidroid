@@ -7,13 +7,12 @@ from typing import Optional, Union
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
-from pidroid.models.case import CasePaginator
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import GeneralCommandError
 from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.paginators import PidroidPages
+from pidroid.utils.paginators import PidroidPages, CasePaginator
 
 
 class ModeratorInfoCommands(commands.Cog): # type: ignore
