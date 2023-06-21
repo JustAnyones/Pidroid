@@ -931,6 +931,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
     @commands.command( # type: ignore
         name="punish-bunny",
         brief='Bans (times out) bunny for 4 weeks.',
+        hidden=True,
         category=ModerationCategory
     )
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
@@ -947,7 +948,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         member = await self.client.get_or_fetch_member(ctx.guild, BUNNY_ID)
 
         if member is None:
-            raise BadArgument("Bunny ")
+            raise BadArgument("I could not find Bunny in this server.")
 
         if member.top_role >= ctx.message.author.top_role:
             raise BadArgument("Bunny is above or shares the same role with you, you cannot suspend her!")
