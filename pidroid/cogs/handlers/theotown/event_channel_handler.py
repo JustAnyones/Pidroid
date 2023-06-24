@@ -10,6 +10,12 @@ from pidroid.client import Pidroid
 from pidroid.utils.checks import TheoTownChecks as TTChecks, is_guild_moderator, is_guild_theotown
 
 EVENTS_CHANNEL_ID = 371731826601099264
+EVENTS_CHANNEL_IDS = [
+    EVENTS_CHANNEL_ID,
+    1122229069694652446,
+    1122229140519661630
+]
+
 EVENTS_FORUM_CHANNEL_ID = 1085224525924417617
 
 class EventChannelHandler(commands.Cog): # type: ignore
@@ -49,7 +55,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
         assert message.guild is not None
         assert message.channel is not None
 
-        if message.channel.id != EVENTS_CHANNEL_ID:
+        if message.channel.id not in EVENTS_CHANNEL_IDS:
             return
 
         if isinstance(message.author, discord.User):
@@ -83,7 +89,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
             return
 
         # Ignore if outside of events channel
-        if payload.channel_id != EVENTS_CHANNEL_ID:
+        if payload.channel_id not in EVENTS_CHANNEL_IDS:
             return
 
         channel = await self.client.get_or_fetch_channel(payload.channel_id)
