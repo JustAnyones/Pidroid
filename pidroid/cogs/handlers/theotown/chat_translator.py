@@ -140,7 +140,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
             }) as r:
                 data = await r.json()
         except Exception as e:
-            self.client.logger.critical("Failure while translating:", e)
+            self.client.logger.critical(f"Failure while translating: {text}")
+            self.client.logger.exception(e)
             self._translating.set()
             return []
         self._translating.set()
