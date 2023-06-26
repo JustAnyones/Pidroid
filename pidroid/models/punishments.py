@@ -582,7 +582,7 @@ class Warning(BasePunishment):
     async def issue(self) -> Case:
         """Warns the member."""
         if self.expiration_date is None:
-            self.length = timedelta(days=90)
+            self.set_length(timedelta(days=90))
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_warning_issue", self)
         return self.case
