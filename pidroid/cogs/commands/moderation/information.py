@@ -190,12 +190,12 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         member = user or ctx.author
         data = await self.client.api.fetch_moderation_statistics(ctx.guild.id, member.id)
         embed = PidroidEmbed(title=f'Displaying moderation statistics for {str(member)}')
-        embed.add_field(name='Bans', value=data["bans"])
-        embed.add_field(name='Kicks', value=data["kicks"])
-        embed.add_field(name='Jails', value=data["jails"])
-        embed.add_field(name='Warnings', value=data["warnings"])
-        embed.add_field(name='Moderator total', value=data["user_total"])
-        embed.add_field(name='Server total', value=data["guild_total"])
+        embed.add_field(name='Bans', value=f"{data['bans']:,}")
+        embed.add_field(name='Kicks', value=f"{data['kicks']:,}")
+        embed.add_field(name='Jails', value=f"{data['jails']:,}")
+        embed.add_field(name='Warnings', value=f"{data['warns']:,}")
+        embed.add_field(name='Moderator total', value=f"{data['user_total']:,}")
+        embed.add_field(name='Server total', value=f"{data['guild_total']:,}")
         await ctx.reply(embed=embed)
 
 
