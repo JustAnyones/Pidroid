@@ -84,8 +84,11 @@ class UtilityCommands(commands.Cog): # type: ignore
     async def coronavirus(self, ctx: Context, *, location: str = "global"):
         async with ctx.typing():
             url = get_corona_endpoint(location.lower())
-            async with await http.get(self.client, url) as response:
-                data = await response.json()
+            try:
+                async with await http.get(self.client, url) as response:
+                    data = await response.json()
+            except ContentTypeError:
+                raise BadArgument(f'{CORONA_API_URL} returned corrupted data, please try again later')
 
             total_vaccinations = None
 
