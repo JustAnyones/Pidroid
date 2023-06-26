@@ -481,6 +481,7 @@ class API:
         if r:
             c = Case(self)
             await c._from_table(r[0])
+            return c
         return None
 
     async def _fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
