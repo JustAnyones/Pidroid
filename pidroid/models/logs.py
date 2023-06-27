@@ -1,7 +1,8 @@
 import datetime
 
 from dataclasses import dataclass
-from discord import Asset, ChannelType, Colour, Embed, Member, Object, Permissions, Role, User, Color, Guild, abc
+from discord import Asset, ChannelType, Colour, Embed, Member, Object, Permissions, Role, User, Guild, abc
+from discord.utils import format_dt
 from typing import List, Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
@@ -297,8 +298,13 @@ class MemberUpdateLog(PidroidLog):
         before = data.before
         after = data.after
 
-        if before.nick != after.nick:
-            self.add_field("Nickname", f"{before.nick} -> {after.nick}")
+        # Nick related
+        if before.nick is None and after.nick is not None:
+            self.add_field("Nickname added", after.nick)
+        elif before.nick is not None and after.nick is None:
+            self.add_field("Nickname cleared", f"Was: {before.nick}")
+        elif before.nick != after.nick:
+            self.add_field("Nickname changed", f"{before.nick} -> {after.nick}")
 
         if before.mute != after.mute:
             self.add_field("Server muted", f"{before.mute} -> {after.mute}")
@@ -306,9 +312,19 @@ class MemberUpdateLog(PidroidLog):
         if before.deaf != after.deaf:
             self.add_field("Server deafened", f"{before.deaf} -> {after.deaf}")
 
-        # TODO: make this pretty
-        if before.timed_out_until != after.timed_out_until:
-            self.add_field("Timed out until", f"{before.timed_out_until} -> {after.timed_out_until}")
+        # Timeout related
+        if before.timed_out_until is None and after.timed_out_until is None:
+            # If both are none, do nothing
+            pass
+        # If timeout was set but now its not
+        elif before.timed_out_until is not None and after.timed_out_until is None:
+            self.add_field("Timed out until", "Timeout removed")
+        # If timeout wasn't set, but now it is
+        elif before.timed_out_until is None and after.timed_out_until is not None:
+            self.add_field("Timed out until", format_dt(after.timed_out_until))
+        # If timeout was set before and changed now
+        elif before.timed_out_until and after.timed_out_until and before.timed_out_until != after.timed_out_until:
+            self.add_field("Timed out until", f"{format_dt(before.timed_out_until)} -> {format_dt(after.timed_out_until)}")
 
         self.add_reason_field(data)
 
