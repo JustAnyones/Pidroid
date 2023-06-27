@@ -11,13 +11,16 @@ from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, UtilityCategory
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 
-SETUP_REASON = "Guild jail system setup"
+SETUP_REASON = "Server jail system setup"
 
 class AdminCommands(commands.Cog): # type: ignore
     """This class implements cog which contains commands for administrators."""
 
     def __init__(self, client: Pidroid):
         self.client = client
+
+    # configuration allow_stacking_rewards
+    # configuration xp_system
 
     @commands.group( # type: ignore
         brief='Returns server configuration for Pidroid.',
