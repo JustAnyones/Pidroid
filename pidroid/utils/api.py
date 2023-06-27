@@ -3,13 +3,14 @@ from __future__ import annotations
 import datetime
 
 from discord import Message, Member
-from typing import TYPE_CHECKING, List, Dict, Set, Any, Optional, Coroutine, Callable
+from typing import TYPE_CHECKING, List, Optional
 
 from pidroid.cogs.commands.tags import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.accounts import TheoTownAccount
+from pidroid.models.role_changes import MemberRoleChanges, RoleAction, RoleQueueState
 from pidroid.utils.http import HTTP, Route
 from pidroid.utils.levels import MemberLevelInfo, LevelReward
 from pidroid.utils.time import utcnow
@@ -150,6 +151,17 @@ class TranslationTable(Base): # type: ignore
     detected_language = Column(String)
     translated_string = Column(String)
 
+class RoleChangeQueueTable(Base): # type: ignore
+    __tablename__ = "RoleChangeQueue"
+    
+    id = Column(BigInteger, primary_key=True)
+    action = Column(Integer) # RoleAction
+    status = Column(Integer) # RoleQueueState
+    guild_id = Column(BigInteger)
+    member_id = Column(BigInteger)
+    role_id = Column(BigInteger)
+    date_created = Column(DateTime(timezone=True), default=func.now())
+
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
@@ -159,34 +171,13 @@ class API:
         self.__http = HTTP(client)
         self.__engine: Optional[AsyncEngine] = None
 
-        self.__listeners: Dict[str, Set[Callable[[Any], Coroutine[Any, Any, None]]]] = {}  
-
-    def add_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
-        if not self.__listeners.get(event, None):
-            self.__listeners[event] = {listener}
-        else:
-            self.__listeners[event].add(listener)
-
-    def remove_listener(self, event: str, listener: Callable[[Any], Coroutine[Any, Any, None]]):
-        self.__listeners[event].remove(listener)
-        if len(self.__listeners[event]) == 0:
-            del self.__listeners[event]
-    
-    def emit(self, event_name: str, *args: Any, **kwargs: Any) -> None:
-        """Calls the specified event to be handled by event listeners.
-        
-        First argument is the event name, the rest are optional arguments for the event handler."""
-        listeners = self.__listeners.get(event_name, set())
-        for listener in listeners:
-            self.client.loop.create_task(listener(*args, **kwargs))
-
     async def connect(self) -> None:
         """Creates a postgresql database connection."""
         self.__engine = create_async_engine(self.__dsn, echo=self.client.debugging)
-        self.session = sessionmaker(self.__engine, expire_on_commit=False, class_=AsyncSession)
+        self.session = sessionmaker(self.__engine, expire_on_commit=False, class_=AsyncSession) # type: ignore
         # Checks if actual connection can be made
-        a = await self.__engine.connect()
-        await a.close()
+        temp_conn = await self.__engine.connect()
+        await temp_conn.close()
 
     async def get(self, route: Route) -> dict:
         """Sends a GET request to the TheoTown API."""
@@ -766,7 +757,7 @@ class API:
             async with session.begin():
                 await session.execute(delete(LevelRewardsTable).filter(LevelRewardsTable.id == id))
             await session.commit()
-        self.emit('on_level_reward_removed', obj)
+        self.client.dispatch("pidroid_level_reward_remove", obj)
 
     async def fetch_all_guild_level_rewards(self, guild_id: int) -> List[LevelReward]:
         """Returns a list of all LevelReward entries available for the specified guild.
@@ -1072,12 +1063,60 @@ class API:
 
         if new_insert or calculated_level != current_level:
             self.client.dispatch(
-                'member_level_up',
+                'pidroid_level_up',
                 message.author,
                 message,
                 info,
                 MemberLevelInfo(self, guild_id, member_id, info.total_xp + amount, calculated_xp, calculated_xp_to_next_level, calculated_level)
             )
+
+    """Role change queue management in postgres database"""
+
+    async def insert_role_change(self, action: RoleAction, guild_id: int, member_id: int, role_id: int):
+        """Inserts a role change to a queue."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                entry = RoleChangeQueueTable(
+                    action=action.value,
+                    status=RoleQueueState.enqueued.value,
+                    guild_id=guild_id,
+                    member_id=member_id,
+                    role_id=role_id
+                )
+                session.add(entry)
+            await session.commit()
+
+    async def fetch_role_changes(self, guild_id: int) -> List[MemberRoleChanges]:
+        """Returns a list of pending role changes in the guild."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            statement = select(
+                func.array_agg(RoleChangeQueueTable.id).label('ids'),
+                RoleChangeQueueTable.member_id,
+                func.array_agg(RoleChangeQueueTable.role_id).filter(RoleChangeQueueTable.action == 1).label('role_added'),
+                func.array_agg(RoleChangeQueueTable.role_id).filter(RoleChangeQueueTable.action == 0).label('role_removed')
+            ).where(
+                RoleChangeQueueTable.guild_id == guild_id
+            ).group_by(
+                RoleChangeQueueTable.member_id
+            )
+            result = await session.execute(statement)
+
+        changes = []
+        for row in result.fetchall():
+            ids, member_id, roles_added, roles_removed = row
+            obj = MemberRoleChanges(self, guild_id, member_id, ids, roles_added, roles_removed)
+            changes.append(obj)
+        return changes
+    
+    async def delete_role_changes(self, ids: List[int]):
+        """Removes role changes for specified IDs from the queue."""
+        async with self.session() as session:
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(delete(RoleChangeQueueTable).filter(RoleChangeQueueTable.id.in_(ids)))
+            await session.commit()
 
     """TheoTown backend related"""
 
