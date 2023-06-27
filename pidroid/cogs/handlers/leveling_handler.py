@@ -93,9 +93,9 @@ class LevelingHandler(commands.Cog):
         logger.debug(f"Adding role ({role_id}) add to queue for {member} in {member.guild}: {reason}")
         await self.client.api.insert_role_change(RoleAction.add, member.guild.id, member.id, role_id)
     
-    async def queue_remove(self, member: Member, role_id: int, reason: str):
+    async def queue_remove(self, member: Member, role_id: int, reason: str, bypass_cache = False):
         # If member doesn't have the role, don't bother
-        if not any(r.id == role_id for r in member.roles):
+        if not bypass_cache and not any(r.id == role_id for r in member.roles):
             return
         logger.debug(f"Adding role ({role_id}) removal to queue for {member} in {member.guild}: {reason}")
         await self.client.api.insert_role_change(RoleAction.remove, member.guild.id, member.id, role_id)
@@ -200,7 +200,7 @@ class LevelingHandler(commands.Cog):
                     amount_to_remove = len(rewards) - 1
                     if amount_to_remove > 0:
                         for reward in rewards[1:]:
-                            await self.queue_remove(member, reward.role_id, "Periodic role reward state sync")
+                            await self.queue_remove(member, reward.role_id, "Periodic role reward state sync", bypass_cache=True)
 
     @sync_role_rewards.before_loop
     async def before_sync_role_rewards(self) -> None:
