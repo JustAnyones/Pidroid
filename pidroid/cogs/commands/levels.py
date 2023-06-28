@@ -25,7 +25,7 @@ class LeaderboardPaginator(ListPageSource):
         for info in data:
             self.embed.add_field(
                 name=f"{info.rank}. {await menu.ctx.bot.get_or_fetch_user(info.user_id)} (lvl. {info.current_level})",
-                value=f'{info.total_xp} XP',
+                value=f'{info.total_xp:,} XP',
                 inline=False
             )
         return self.embed
@@ -69,7 +69,7 @@ class LevelCommands(commands.Cog): # type: ignore
         avatar = member.avatar or member.default_avatar
         embed.set_thumbnail(url=avatar.url)
         embed.add_field(name='Level', value=info.current_level)
-        embed.add_field(name='Rank', value=f'#{info.rank}')       
+        embed.add_field(name='Rank', value=f'#{info.rank:,}')       
 
         # Create a progress bar
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
@@ -78,7 +78,7 @@ class LevelCommands(commands.Cog): # type: ignore
         current_prog = '🟦' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
 
-        embed.add_field(name=f'Level progress ({info.current_xp} / {info.xp_to_level_up} XP)', value=f"{current_prog}{remaining_prog}", inline=False)
+        embed.add_field(name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)', value=f"{current_prog}{remaining_prog}", inline=False)
 
         await ctx.reply(embed=embed)
         
