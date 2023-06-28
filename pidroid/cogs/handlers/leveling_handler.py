@@ -200,7 +200,7 @@ class LevelingHandler(commands.Cog):
                     amount_to_remove = len(rewards) - 1
                     if amount_to_remove > 0:
                         for reward in rewards[1:]:
-                            await self.queue_remove(member, reward.role_id, "Periodic role reward state sync", bypass_cache=True)
+                            await self.queue_remove(member, reward.role_id, "Periodic role reward state sync", bypass_cache=False)
 
     @sync_role_rewards.before_loop
     async def before_sync_role_rewards(self) -> None:
