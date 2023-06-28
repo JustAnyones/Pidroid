@@ -132,11 +132,6 @@ DEEPL_API_KEY=
 UNBELIEVABOAT_API_KEY=
 # Tenor API key for gifs
 TENOR_API_KEY=
-# Reddit related credentials for reddit command
-REDDIT_CLIENT_ID=
-REDDIT_CLIENT_SECRET=
-REDDIT_USERNAME=
-REDDIT_PASSWORD=
 ```
 
 Please note that if your credentials contain a dollar sign, you need to add another dollar sign to make it a literal.

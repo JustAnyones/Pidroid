@@ -2,7 +2,6 @@ discord.py[voice]==2.3.0
 aiofiles==0.8.0
 aiocron==1.8
 jishaku==2.5.1
-asyncpraw==7.7.0
 psutil==5.9.4
 pillow==9.4.0
 dill==0.3.6
