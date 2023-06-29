@@ -133,7 +133,10 @@ class LevelingHandler(commands.Cog):
                         if any(role_id == r.id for r in updated_roles):
                             continue
                         updated_roles.append(Object(id=role_id))
-                    await member.edit(roles=updated_roles, reason="Pidroid level reward update")
+
+                    # If roles actually changed
+                    if set(r.id for r in updated_roles) != set(r.id for r in member.roles):
+                        await member.edit(roles=updated_roles, reason="Pidroid level rewards")
 
                     await role_change.pop()
 
@@ -151,9 +154,7 @@ class LevelingHandler(commands.Cog):
             - new level rewards getting added;
             - user joins or role gets deleted while bot is offline;
             - sync if someone messes with roles manually.
-        
-        WARNING, THIS DOES NOT HANDLE ROLE REWARDS THAT WERE REMOVED AS PIDROID
-        CAN NO LONGER INDENTIFY THEM."""
+        """
         for guild in self.client.guilds:
             # Acquire guild information
             conf = await self.client.fetch_guild_configuration(guild.id)
@@ -301,6 +302,38 @@ class LevelingHandler(commands.Cog):
         reward = await self.client.api.fetch_level_reward_by_role(role.guild.id, role.id)
         if reward:
             await reward.delete()
+
+    @commands.Cog.listener()
+    async def on_pidroid_level_reward_add(self, reward: LevelReward):
+        """Called when level reward is added."""
+        config = await self.client.fetch_guild_configuration(reward.guild_id)
+
+        # If level rewards are stacked
+        if config.level_rewards_stacked:
+            level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
+            for level_info in level_infos:
+                member = await level_info.fetch_member()
+                if member:
+                    await self.queue_add(member, reward.role_id, "Role reward created")
+
+        # If they are not stacked
+        else:
+            # get the affected level informations
+            level_infos = []
+            next = await reward.fetch_next_reward()
+            if next:
+                level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, next.level)
+            else:
+                level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
+
+            # go over each level information and change roles
+            for level_info in level_infos:
+                member = await level_info.fetch_member()
+                if member:
+                    previous = await reward.fetch_previous_reward()
+                    await self.queue_add(member, reward.role_id, "Role reward created")
+                    if previous:
+                        await self.queue_remove(member, previous.role_id, "Role reward created")
 
     @commands.Cog.listener()
     async def on_pidroid_level_reward_remove(self, reward: LevelReward):

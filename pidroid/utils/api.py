@@ -732,6 +732,10 @@ class API:
                 )
                 session.add(entry)
             await session.commit()
+        self.client.dispatch(
+            'pidroid_level_reward_add',
+            await self.fetch_level_reward_by_id(entry.id) # type: ignore
+        )
         return entry.id # type: ignore
 
     async def update_level_reward_by_id(self, id: int, role_id: int, level: int) -> None:
