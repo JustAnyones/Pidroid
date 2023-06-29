@@ -310,7 +310,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return GuildConfiguration(self, r[0])
+            return GuildConfiguration.from_table(self, r[0])
         return None
 
     async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
@@ -323,7 +323,7 @@ class API:
             )
         r = result.fetchone()
         if r:
-            return GuildConfiguration(self, r[0])
+            return GuildConfiguration.from_table(self, r[0])
         return None
 
     async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
@@ -333,7 +333,7 @@ class API:
             result = await session.execute(
                 select(GuildConfigurationTable)
             )
-        return [GuildConfiguration(self, r[0]) for r in result.fetchall()]
+        return [GuildConfiguration.from_table(self, r[0]) for r in result.fetchall()]
 
     async def _update_guild_configuration(
         self,

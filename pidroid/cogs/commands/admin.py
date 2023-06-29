@@ -37,25 +37,25 @@ class AdminCommands(commands.Cog): # type: ignore
 
             embed = PidroidEmbed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
 
-            prefixes = data.prefixes or self.client.prefixes
+            prefixes = data.guild_prefixes.prefixes or self.client.prefixes
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
-            if data.jail_role:
-                jail_role = await self.client.get_or_fetch_role(guild, data.jail_role)
+            if data.jail_role_id:
+                jail_role = await self.client.get_or_fetch_role(guild, data.jail_role_id)
                 if jail_role is not None:
                     embed.add_field(name='Jail role', value=jail_role.mention)
 
-            if data.jail_channel:
-                jail_channel = await self.client.get_or_fetch_guild_channel(guild, data.jail_channel)
+            if data.jail_channel_id:
+                jail_channel = await self.client.get_or_fetch_guild_channel(guild, data.jail_channel_id)
                 if jail_channel is not None:
                     embed.add_field(name='Jail channel', value=jail_channel.mention)
             
-            if data.log_channel:
-                log_channel = await self.client.get_or_fetch_guild_channel(guild, data.log_channel)
+            if data.logging_channel_id:
+                log_channel = await self.client.get_or_fetch_guild_channel(guild, data.logging_channel_id)
                 if log_channel is not None:
                     embed.add_field(name='Log channel', value=log_channel.mention)
 
-            embed.add_field(name="Everyone can create tags?", value=data.public_tags)
+            embed.add_field(name="Can everyone manage tags?", value="Yes" if data.public_tags else "No")
 
             embed.set_footer(text=f'To edit the configuration, view the available administration commands with {prefixes[0]}help administration.')
             await ctx.reply(embed=embed)
@@ -125,8 +125,8 @@ class AdminCommands(commands.Cog): # type: ignore
             # Acquire config and submit changes to the database
             config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
-            config.jail_role = jail_role.id
-            config.jail_channel = jail_channel.id
+            config.jail_role_id = jail_role.id
+            config.jail_channel_id = jail_channel.id
             await config._update()
 
         await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
@@ -231,7 +231,7 @@ class AdminCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
-        prefixes = config.prefixes or self.client.prefixes
+        prefixes = config.guild_prefixes.prefixes or self.client.prefixes
         prefix_str = '**, **'.join(prefixes)
 
         await ctx.reply(f"My prefixes are: **{prefix_str}**")

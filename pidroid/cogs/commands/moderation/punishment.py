@@ -254,8 +254,8 @@ class ModerationMenu(ui.View):
         """Acquires the guild configuration and related items."""
         config = await self._client.fetch_guild_configuration(self.guild.id)
 
-        if config.jail_role is not None:
-            role = await self._client.get_or_fetch_role(self.guild, config.jail_role)
+        if config.jail_role_id is not None:
+            role = await self._client.get_or_fetch_role(self.guild, config.jail_role_id)
             if role is not None:
                 self._jail_role = role
 
@@ -852,7 +852,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
         # Generic check to only invoke the menu if author is a moderator
         is_moderator = isinstance(user, Member) and is_guild_moderator(user)
-        if is_moderator and not conf.allow_punishing_moderators:
+        if is_moderator and not conf.allow_to_punish_moderators:
             raise BadArgument("You are not allowed to punish a moderator!")
 
         if isinstance(user, Member) and user.top_role > ctx.guild.me.top_role:
@@ -916,7 +916,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if sem is not None and sem["semaphore"].locked():
             raise BadArgument(f"There's a moderation menu open for the member at {sem['message_url']}, I cannot manage them.")
 
-        if is_guild_moderator(member) and not conf.allow_punishing_moderators:
+        if is_guild_moderator(member) and not conf.allow_to_punish_moderators:
             raise BadArgument("You cannot suspend a moderator!")
 
         if member.bot:
@@ -951,10 +951,10 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("I could not find Bunny in this server.")
 
         if member.top_role >= ctx.message.author.top_role:
-            raise BadArgument("Bunny is above or shares the same role with you, you cannot suspend her!")
+            raise BadArgument("Bunny is above or shares the same role with you, you cannot punish her!")
 
         if member.top_role > ctx.guild.me.top_role:
-            raise BadArgument("Bunny is above me, I cannot suspend her!")
+            raise BadArgument("Bunny is above me, I cannot punish her!")
         
         timed_out_until = delta_to_datetime(timedelta(weeks=4))
 

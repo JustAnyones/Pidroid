@@ -20,7 +20,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.categories import get_command_categories, UncategorizedCategory
-from pidroid.models.guild_configuration import GuildConfiguration
+from pidroid.models.guild_configuration import GuildConfiguration, GuildPrefixes
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
@@ -109,8 +109,8 @@ class Pidroid(commands.Bot): # type: ignore
         ]
 
         # This holds cached guild configurations
-        self._guild_config_ready = asyncio.Event()
-        self._cached_configurations: Dict[int, GuildConfiguration] = {}
+        self._guild_prefix_cache_ready = asyncio.Event()
+        self.__cached_guild_prefixes: Dict[int, GuildPrefixes] = {}
 
         self.client_version = __VERSION__
 
@@ -157,7 +157,7 @@ class Pidroid(commands.Bot): # type: ignore
         It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()
         is no longer needed.
         """
-        await self._guild_config_ready.wait()
+        await self._guild_prefix_cache_ready.wait()
     
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
         """Returns the latest available guild configuration from the database.
@@ -170,21 +170,21 @@ class Pidroid(commands.Bot): # type: ignore
         if config is None:
             self.logger.warn(f"Could not fetch guild configuration for {guild_id}, create new configuration")
             config = await self.api.insert_guild_configuration(guild_id)
-        self._update_guild_configuration(guild_id, config)
+        self._update_guild_prefixes(guild_id, config)
         return config
+    
+    def _get_guild_prefixes(self, guild_id: int) -> Optional[GuildPrefixes]:
+        """Returns guild prefixes from internal cache."""
+        return self.__cached_guild_prefixes.get(guild_id)
 
-    def _get_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
-        """Returns guild configuration from internal cache."""
-        return self._cached_configurations.get(guild_id)
+    def _update_guild_prefixes(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
+        """Updates guild prefixes in the internal cache and returns its object."""
+        self.__cached_guild_prefixes[guild_id] = config.guild_prefixes
+        return self._get_guild_prefixes(guild_id) # type: ignore
 
-    def _update_guild_configuration(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
-        """Updates guild configuration in the internal cache and returns its object."""
-        self._cached_configurations[guild_id] = config
-        return self._get_guild_configuration(guild_id) # type: ignore
-
-    def _remove_guild_configuration(self, guild_id: int) -> None:
-        """Removes guild configuration from internal cache."""
-        self._cached_configurations.pop(guild_id)
+    def _remove_guild_prefixes(self, guild_id: int) -> None:
+        """Removes guild prefixes from internal cache."""
+        self.__cached_guild_prefixes.pop(guild_id)
 
     async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: int = 60):
         """Creates a new expiring thread"""
@@ -263,9 +263,9 @@ class Pidroid(commands.Bot): # type: ignore
             return self.prefixes
 
         if message.guild:
-            config = self._get_guild_configuration(message.guild.id)
-            if config:
-                return config.prefixes or self.prefixes
+            guild_prefixes = self._get_guild_prefixes(message.guild.id)
+            if guild_prefixes:
+                return guild_prefixes.prefixes or self.prefixes
         return self.prefixes
 
     async def get_prefix(self, message: Message):
