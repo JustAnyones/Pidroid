@@ -158,6 +158,7 @@ class LevelingHandler(commands.Cog):
         await self.client.wait_until_guild_configurations_loaded()
         logger.debug("Syncing level reward state")
         for guild in self.client.guilds:
+            logger.debug(f"Syncing {guild} level rewards")
             # Acquire guild information
             conf = await self.client.fetch_guild_configuration(guild.id)
 
@@ -176,10 +177,15 @@ class LevelingHandler(commands.Cog):
                 continue
 
             # Update every eligible user
+            logger.debug("Syncing guild member levels")
             for member_information in await conf.fetch_all_member_levels():
                 # Obtain member object, if we can't do that
                 # then move onto the next member
-                member = await member_information.fetch_member()
+
+                if self.client.debugging:
+                    logger.debug(f"Fetching member information for {member_information.user_id}")
+
+                member = guild.get_member(member_information.user_id)
                 if member is None:
                     continue
                 
