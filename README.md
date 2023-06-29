@@ -245,6 +245,5 @@ Henceforth, the following is an example of a new way of handling missing argumen
 
 ## Features in the works
 - Level reward subsystem
-- Support for slash commands
-- Persistent role support
+- Logging subsystem
 - Refactoring of the help system to make it more lenient and less janky
