@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import datetime
 import logging
 import math
@@ -67,13 +68,12 @@ class LevelingHandler(commands.Cog):
     def __init__(self, client: Pidroid):
         self.client = client
         self.__cooldown_storage: Dict[int, Dict[int, UserBucket]] = {}
+        self.__startup_sync_finished = asyncio.Event()
         self.process_role_queue.start()
-        self.sync_role_rewards.start()
 
     def cog_unload(self):
         """Ensure that all the tasks are stopped and cancelled on cog unload."""
         self.process_role_queue.cancel()
-        self.sync_role_rewards.cancel()
 
     def get_bucket(self, guild_id: int, user_id: int) -> UserBucket:
         """Returns the user cooldown bucket."""
@@ -144,17 +144,19 @@ class LevelingHandler(commands.Cog):
     async def before_process_role_queue(self) -> None:
         """Runs before process_role_queue task to ensure that the task is ready to run."""
         await self.client.wait_until_guild_configurations_loaded()
+        await self.__startup_sync_finished.wait()
 
-    @tasks.loop(seconds=120)
-    async def sync_role_rewards(self) -> None:
+    @commands.Cog.listener() # type: ignore
+    async def on_ready(self) -> None:
         """
-        This task runs periodically to ensure correct member reward state across all guilds.
+        This task runs on start-up to ensure correct member reward state across all guilds.
 
         This can handle the following scenarios:
             - new level rewards getting added;
             - user joins or role gets deleted while bot is offline;
-            - sync if someone messes with roles manually.
         """
+        await self.client.wait_until_guild_configurations_loaded()
+        logger.debug("Syncing level reward state")
         for guild in self.client.guilds:
             # Acquire guild information
             conf = await self.client.fetch_guild_configuration(guild.id)
@@ -191,22 +193,19 @@ class LevelingHandler(commands.Cog):
                 # If to stack rewards, add all of them
                 if conf.level_rewards_stacked:
                     for reward in rewards:
-                        await self.queue_add(member, reward.role_id, "Periodic role reward state sync")
+                        await self.queue_add(member, reward.role_id, "Start-up role reward state sync")
                 
                 # If only a single role should be given
                 else:
                     # the first item in the list is always the topmost role
-                    await self.queue_add(member, rewards[0].role_id, "Periodic role reward state sync")
+                    await self.queue_add(member, rewards[0].role_id, "Start-up role reward state sync")
                     # remove all other roles
                     amount_to_remove = len(rewards) - 1
                     if amount_to_remove > 0:
                         for reward in rewards[1:]:
-                            await self.queue_remove(member, reward.role_id, "Periodic role reward state sync", bypass_cache=False)
-
-    @sync_role_rewards.before_loop
-    async def before_sync_role_rewards(self) -> None:
-        """Runs before sync_role_rewards task to ensure that the task is ready to run."""
-        await self.client.wait_until_guild_configurations_loaded()
+                            await self.queue_remove(member, reward.role_id, "Start-up role reward state sync", bypass_cache=False)
+        logger.debug("Level reward state synced")
+        self.__startup_sync_finished.set()
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
