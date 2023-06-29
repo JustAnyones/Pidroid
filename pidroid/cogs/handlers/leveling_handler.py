@@ -273,12 +273,12 @@ class LevelingHandler(commands.Cog):
             await self.queue_add(member, reward.role_id, "Re-add single level reward on rejoin")
 
     @commands.Cog.listener()
-    async def on_pidroid_level_up(self, member: Member, message: Message, information: MemberLevelInfo):
+    async def on_pidroid_level_up(self, member: Member, message: Message, info_before: MemberLevelInfo, info_after: MemberLevelInfo):
         """Called when a member levels up."""
-        logger.debug(f'{member} just leveled up to {information.current_level} level in {information.guild_id} guild!')
+        logger.debug(f'{member} just leveled up to {info_after.current_level} level in {info_after.guild_id} guild!')
 
-        rewards = await information.fetch_eligible_level_rewards()
-        config = await self.client.fetch_guild_configuration(information.guild_id)
+        rewards = await info_after.fetch_eligible_level_rewards()
+        config = await self.client.fetch_guild_configuration(info_after.guild_id)
 
         if len(rewards) == 0:
             return

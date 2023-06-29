@@ -1031,22 +1031,24 @@ class API:
             info = await self.insert_member_level_info(guild_id, member_id)
 
         # Get the current information
-        current_xp = info.current_xp
-        current_level = info.current_level
-        xp_to_next_level = info.xp_to_level_up
+        original_xp = info.current_xp
+        original_level = info.current_level
+        original_xp_to_next_lvl = info.xp_to_level_up
 
-        calculated_xp = current_xp + amount # TODO: limit max amount to 100 or create a method to deal with consecutive level up
+        # If we get no level up
+        new_xp_to_next_level = original_xp_to_next_lvl
+        new_level = original_level
+        new_xp = original_xp + amount
 
-        # If the new xp is above xp required to reach next level
-        if calculated_xp >= xp_to_next_level:
-            calculated_level = current_level + 1
-            # https://github.com/Mee6/Mee6-documentation/blob/master/docs/levels_xp.md
-            calculated_xp_to_next_level = 5 * (calculated_level ** 2) + (50 * calculated_level) + 100
-            calculated_xp = calculated_xp - xp_to_next_level
-
-        else:
-            calculated_xp_to_next_level = xp_to_next_level
-            calculated_level = current_level
+        # Calculate the new levels
+        while True:
+            if new_xp >= new_xp_to_next_level:
+                new_level = new_level + 1
+                # https://github.com/Mee6/Mee6-documentation/blob/master/docs/levels_xp.md
+                new_xp = new_xp - new_xp_to_next_level
+                new_xp_to_next_level = 5 * (new_level ** 2) + (50 * new_level) + 100
+            else:
+                break
 
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
@@ -1057,21 +1059,21 @@ class API:
                         UserLevelsTable.guild_id == guild_id,
                         UserLevelsTable.user_id == member_id
                     ).values(
-                        current_xp=calculated_xp,
-                        xp_to_next_level=calculated_xp_to_next_level,
+                        current_xp=new_xp,
+                        xp_to_next_level=new_xp_to_next_level,
                         total_xp=UserLevelsTable.total_xp + amount,
-                        level=calculated_level
+                        level=new_level
                     )
                 )
             await session.commit()
 
-        if new_insert or calculated_level != current_level:
+        if new_insert or new_level != original_level:
             self.client.dispatch(
                 'pidroid_level_up',
                 message.author,
                 message,
                 info,
-                MemberLevelInfo(self, guild_id, member_id, info.total_xp + amount, calculated_xp, calculated_xp_to_next_level, calculated_level)
+                MemberLevelInfo(self, guild_id, member_id, info.total_xp + amount, new_xp, new_xp_to_next_level, new_level)
             )
 
     """Role change queue management in postgres database"""
