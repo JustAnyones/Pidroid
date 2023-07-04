@@ -6,7 +6,7 @@ from discord import AuditLogDiff, AuditLogEntry, Member, Object, Role, User, abc
 from discord.ext import commands
 from typing import TYPE_CHECKING, Any
 
-from pidroid.models.logs import _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteDeleteData, OverwriteUpdateData, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, ChannelCreateData, ChannelDeleteData, ChannelUpdateData, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteCreateLog, OverwriteDeleteData, OverwriteDeleteLog, OverwriteUpdateData, OverwriteUpdateLog, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -108,7 +108,16 @@ class LoggingHandler(commands.Cog):
         - type
         - overwrites
         """
-        pass
+        diff_after = AuditLogDiffWrapper(entry.after)
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        data = ChannelCreateData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target,
+            reason=entry.reason,created_at=entry.created_at,
+            name=diff_after.name,
+            type=diff_after.type,
+            overwrites=diff_after.overwrites
+        )
     
 
     async def _on_channel_delete(self, entry: AuditLogEntry):
@@ -127,7 +136,20 @@ class LoggingHandler(commands.Cog):
         - nsfw
         - slowmode_delay
         """
-        pass
+        diff_before = AuditLogDiffWrapper(entry.before)
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        data = ChannelDeleteData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target,
+            reason=entry.reason,created_at=entry.created_at,
+
+            name=diff_before.name,
+            type=diff_before.type,
+            overwrites=diff_before.overwrites,
+            flags=diff_before.flags,
+            nsfw=diff_before.nsfw,
+            slowmode_delay=diff_before.slowmode_delay
+        )
     
 
     async def _on_channel_update(self, entry: AuditLogEntry):
@@ -154,7 +176,44 @@ class LoggingHandler(commands.Cog):
         - slowmode_delay
         - user_limit
         """
-        pass
+        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_after = AuditLogDiffWrapper(entry.after)
+        assert isinstance(entry.target, (abc.GuildChannel, Object))
+        before = _ChannelData(
+            name=diff_before.name,
+            type=diff_before.type,
+            position=diff_before.position,
+            overwrites=diff_before.overwrites,
+            topic=diff_before.topic,
+            bitrate=diff_before.bitrate,
+            rtc_region=diff_before.rtc_region,
+            video_quality_mode=diff_before.video_quality_mode,
+            default_auto_archive_duration=diff_before.default_auto_archive_duration,
+            nsfw=diff_before.nsfw,
+            slowmode_delay=diff_before.slowmode_delay,
+            user_limit=diff_before.user_limit
+        )
+        after = _ChannelData(
+            name=diff_after.name,
+            type=diff_after.type,
+            position=diff_after.position,
+            overwrites=diff_after.overwrites,
+            topic=diff_after.topic,
+            bitrate=diff_after.bitrate,
+            rtc_region=diff_after.rtc_region,
+            video_quality_mode=diff_after.video_quality_mode,
+            default_auto_archive_duration=diff_after.default_auto_archive_duration,
+            nsfw=diff_after.nsfw,
+            slowmode_delay=diff_after.slowmode_delay,
+            user_limit=diff_after.user_limit
+        )
+        data = ChannelUpdateData(
+            guild=entry.guild, user=entry.user,
+            channel=entry.target,
+            reason=entry.reason,created_at=entry.created_at,
+            before=before,
+            after=after
+        )
     
 
     async def _on_overwrite_create(self, entry: AuditLogEntry):

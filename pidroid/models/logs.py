@@ -1,12 +1,12 @@
 import datetime
 
 from dataclasses import dataclass
-from discord import Asset, ChannelType, Colour, Embed, Member, Object, Permissions, Role, User, Guild, abc
+from discord import Asset, ChannelFlags, ChannelType, Colour, Embed, Member, Object, PermissionOverwrite, Permissions, Role, User, Guild, VideoQualityMode, abc
 from discord.utils import format_dt
-from typing import List, Union, Optional
+from typing import List, Tuple, Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
-from pidroid.utils import normalize_permission_name, role_mention, user_mention
+from pidroid.utils import channel_mention, normalize_permission_name, role_mention, user_mention
 
 @dataclass
 class BaseData:
@@ -16,13 +16,52 @@ class BaseData:
     created_at: datetime.datetime
 
 @dataclass
+class BaseChannelData(BaseData):
+    channel: Union[abc.GuildChannel, Object]
+
+@dataclass
+class ChannelCreateData(BaseChannelData):
+    name: str
+    type: ChannelType
+    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
+
+@dataclass
+class ChannelDeleteData(BaseChannelData):
+    name: str
+    type: ChannelType
+    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
+    flags: ChannelFlags
+    nsfw: bool
+    slowmode_delay: int
+
+@dataclass
+class _ChannelData:
+    name: str
+    type: ChannelType
+    position: int
+    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
+    topic: str
+    bitrate: int
+    rtc_region: str
+    video_quality_mode: VideoQualityMode
+    default_auto_archive_duration: int
+    nsfw: bool
+    slowmode_delay: int
+    user_limit: int
+
+@dataclass
+class ChannelUpdateData(BaseChannelData):
+    before: _ChannelData
+    after: _ChannelData
+
+@dataclass
 class BaseOverwriteData(BaseData):
     channel: Union[abc.GuildChannel, Object]
     role_or_user: Union[Role, Member, Object]
 
 @dataclass
 class _OverwriteData:
-    id: int            # TODO: Is it the ID of the role or user that is being changed for or is it the ID for the channel?
+    id: int            # ID of the role or user that is being changed for 
     type: ChannelType  # The type of channel.
     deny: Permissions  # The permissions being denied.
     allow: Permissions # The permissions being allowed.
