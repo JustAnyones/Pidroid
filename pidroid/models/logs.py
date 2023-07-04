@@ -36,18 +36,18 @@ class ChannelDeleteData(BaseChannelData):
 
 @dataclass
 class _ChannelData:
-    name: str
-    type: ChannelType
-    position: int
+    name: Optional[str]
+    type: Optional[ChannelType]
+    position: Optional[int]
     overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
-    topic: str
-    bitrate: int
-    rtc_region: str
-    video_quality_mode: VideoQualityMode
-    default_auto_archive_duration: int
-    nsfw: bool
-    slowmode_delay: int
-    user_limit: int
+    topic: Optional[str]
+    bitrate: Optional[int]
+    rtc_region: Optional[str]
+    video_quality_mode: Optional[VideoQualityMode]
+    default_auto_archive_duration: Optional[int]
+    nsfw: Optional[bool]
+    slowmode_delay: Optional[int]
+    user_limit: Optional[int]
 
 @dataclass
 class ChannelUpdateData(BaseChannelData):

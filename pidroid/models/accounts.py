@@ -63,12 +63,7 @@ class ForumAccount:
 
 class TheoTownAccount:
 
-    if TYPE_CHECKING:
-        id: int
-        name: str
-        forum_account: ForumAccount
-
     def __init__(self, data: dict) -> None:
-        self.id = data["id"]
-        self.name = data["name"]
+        self.id: int = data["id"]
+        self.name: str = data["name"]
         self.forum_account = ForumAccount(data["forum_account"])
