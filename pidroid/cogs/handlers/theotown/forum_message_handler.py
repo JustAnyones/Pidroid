@@ -4,9 +4,9 @@ from discord.utils import format_dt
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_FORUM_URL
+from pidroid.utils import truncate_string
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.http import Route
-from pidroid.utils.parsers import truncate_string
 from pidroid.utils.time import timestamp_to_datetime
 
 MESSAGE_FEED_CHANNEL_ID = 707561286820692039

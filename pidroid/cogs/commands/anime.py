@@ -16,11 +16,10 @@ from pidroid.models.categories import RandomCategory
 from pidroid.models.exceptions import APIException
 from pidroid.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from pidroid.utils.decorators import command_checks
-from pidroid.utils import http
+from pidroid.utils import http, truncate_string
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 from pidroid.utils.file import Resource
 from pidroid.utils.paginators import ListPageSource, PidroidPages
-from pidroid.utils.parsers import truncate_string
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [

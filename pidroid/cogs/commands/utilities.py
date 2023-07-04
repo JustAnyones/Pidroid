@@ -7,9 +7,8 @@ from urllib.parse import quote_plus as urlencode
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory
-from pidroid.utils import http
+from pidroid.utils import http, truncate_string
 from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
-from pidroid.utils.parsers import truncate_string
 from pidroid.utils.time import timestamp_to_date
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')

@@ -9,10 +9,9 @@ from discord.utils import escape_markdown
 from typing import List
 
 from pidroid.client import Pidroid
-from pidroid.utils import http
+from pidroid.utils import http, truncate_string, clean_inline_translations
 from pidroid.utils.cronjobs import start_cronjob
 from pidroid.utils.embeds import PidroidEmbed
-from pidroid.utils.parsers import truncate_string, clean_inline_translations
 from pidroid.utils.time import timedelta_to_datetime
 
 PLUGIN_SHOWCASE_CHANNEL_ID = 640522649033769000

@@ -15,13 +15,12 @@ from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
 from pidroid.models.categories import TheoTownCategory
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
-from pidroid.utils import http
+from pidroid.utils import http, format_version_code
 from pidroid.utils.checks import check_bot_channel_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed, SuccessEmbed
 from pidroid.utils.http import Route
 from pidroid.utils.paginators import PidroidPages, PluginListPaginator
-from pidroid.utils.parsers import format_version_code
 from pidroid.utils.time import utcnow
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
