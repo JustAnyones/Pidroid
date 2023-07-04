@@ -130,7 +130,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
                     inline=False
                 )
 
-            for i in range(9): # Only 9 results
+            for i in range(10): # Only 10 results
                 top_plugin = plugins_all_time[i]
                 top_creator = creators_all_time[i]
                 top_plugins_embed.add_field(
@@ -144,9 +144,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
                     inline=False
                 )
 
-            await channel.send(embed=initial_embed)
-            await channel.send(embed=top_plugins_embed)
-            await channel.send(embed=top_creators_embed)
+            await channel.send(embeds=[initial_embed, top_plugins_embed, top_creators_embed])
     except Exception:
         client.logger.exception("An exception was encountered while trying announce monthly plugin information")
 
