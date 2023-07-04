@@ -20,3 +20,10 @@ def user_mention(user_id: int) -> str:
     Acquiring an entire User or Member object just to call mention property might not always
     be a good idea."""
     return f"<@{user_id}>"
+
+def channel_mention(channel_id: int) -> str:
+    """Returns channel mention string for the specified user ID.
+    
+    Acquiring an entire Channel object just to call mention property might not always
+    be a good idea."""
+    return f"<#{channel_id}>"
