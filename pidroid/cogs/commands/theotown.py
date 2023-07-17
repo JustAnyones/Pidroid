@@ -283,9 +283,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
             # If suggestion text is above discord embed description limit
             if len(suggestion) > 2048:
-                await ctx.reply(embed=ErrorEmbed('The suggestion is too long! Keep it within 2048 character limit.'))
-                self.suggest.reset_cooldown(ctx)
-                return
+                raise BadArgument("The suggestion is too long! Keep it within 2048 character limit.")
 
             embed = PidroidEmbed(description=suggestion)
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)

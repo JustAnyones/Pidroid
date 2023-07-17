@@ -159,6 +159,24 @@ class GuildConfiguration:
         """Returns true if logging system is enabled for the server."""
         return True # TODO: fix
 
+
+    """Suggestions related"""
+
+    @property
+    def suggestion_system_active(self) -> bool:
+        """Returns true if suggestion system is enabled for the server."""
+        raise NotImplementedError
+
+    @property
+    def suggestions_channel_id(self) -> Optional[int]:
+        """Returns the ID of the suggestions channel if available."""
+        raise NotImplementedError
+
+    @property
+    def suggestion_threads_enabled(self) -> bool:
+        """Returns true if expiring thread creation is enabled for the suggestion system."""
+        raise NotImplementedError
+
     """Punishment system related"""
 
     @property
