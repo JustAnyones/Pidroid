@@ -193,7 +193,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         embed.add_field(name='Bans', value=f"{data['bans']:,}")
         embed.add_field(name='Kicks', value=f"{data['kicks']:,}")
         embed.add_field(name='Jails', value=f"{data['jails']:,}")
-        embed.add_field(name='Warnings', value=f"{data['warns']:,}")
+        embed.add_field(name='Warnings', value=f"{data['warnings']:,}")
         embed.add_field(name='Moderator total', value=f"{data['user_total']:,}")
         embed.add_field(name='Server total', value=f"{data['guild_total']:,}")
         await ctx.reply(embed=embed)
