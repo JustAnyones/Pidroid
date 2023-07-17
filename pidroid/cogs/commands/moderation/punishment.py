@@ -180,12 +180,15 @@ REASON_MAPPING = {
     "kick": [
         ReasonButton("Spam", "Spam."),
         ReasonButton("Alternative account", "Alternative accounts are not allowed."),
-        ReasonButton("Underage", "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."),
+        ReasonButton(
+            "Underage",
+            "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."
+        ),
         ReasonButton(None, None)
     ],
     "jail": [
-        ReasonButton("Pending investigation", "Pending investigation."),
-        ReasonButton("Questioning", "Questioning."),
+        #ReasonButton("Pending investigation", "Pending investigation."),
+        #ReasonButton("Questioning", "Questioning."),
         ReasonButton(None, None)
     ],
     "timeout": [
@@ -243,7 +246,7 @@ class ModerationMenu(ui.View):
         self.channel: GuildTextChannel = ctx.channel
         self.moderator = ctx.author
         self.user = user
-        
+
         # Initialize variables
         self._message = None
         self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
@@ -528,8 +531,8 @@ class ModerationMenu(ui.View):
         assert self.punishment is not None
         # Jail also requires a special jail role
         if isinstance(self.punishment, Jail):
-                assert self._jail_role is not None
-                await self.punishment.issue(self._jail_role)
+            assert self._jail_role is not None
+            await self.punishment.issue(role=self._jail_role)
         # Otherwise
         else:
             await self.punishment.issue()
@@ -592,7 +595,7 @@ class ModerationMenu(ui.View):
         assert isinstance(self.user, Member)
         assert self._jail_role is not None
         self.punishment = Jail(self._api, self.guild, self.channel, self.moderator, self.user)
-        await self.punishment.revoke(self._jail_role, f"Released by {str(self.moderator)}")
+        await self.punishment.revoke(role=self._jail_role, reason=f"Released by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Time-out', style=discord.ButtonStyle.gray)
@@ -652,7 +655,7 @@ class ModerationMenu(ui.View):
             self._embed = embed
         files = []
         if file:
-            files.append(file)            
+            files.append(file)
         await self._update_view(interaction, files) # Update message with latest information
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
@@ -717,9 +720,6 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        # GUILD_ID: {USER_ID: Semaphore}
-        #self.user_semaphores: Dict[int, Dict[int, asyncio.Semaphore]] = {}
-
         # {GUILD_ID: {USER_ID: {semaphore: Semaphore, message_url: Optional[str]}}}
         self.user_semaphores: Dict[int, Dict[int, UserSemaphoreDict]] = {}
         self.allow_moderator_on_themselves: bool = True
@@ -779,9 +779,9 @@ class ModeratorCommands(commands.Cog): # type: ignore
             # Evan proof
             if amount > 500:
                 raise BadArgument("The maximum amount of messages I can purge at once is 500!")
-            
+
             await ctx.message.delete(delay=0)
-            
+
             assert hasattr(ctx.channel, 'purge')
             deleted = await ctx.channel.purge(limit=amount)
             await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
@@ -805,7 +805,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         # Evan proof
         if amount > 500:
             raise BadArgument("The maximum amount of messages I can purge at once is 500!")
-            
+
         await ctx.message.delete(delay=0)
         assert hasattr(ctx.channel, 'purge')
         deleted = await ctx.channel.purge(limit=amount, check=is_member)

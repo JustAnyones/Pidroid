@@ -77,7 +77,7 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.commands.tags',
             'cogs.commands.theotown',
             'cogs.commands.utilities',
-            
+
             # Moderation related commands
             'cogs.commands.moderation.punishment',
             'cogs.commands.moderation.information',
@@ -158,7 +158,7 @@ class Pidroid(commands.Bot): # type: ignore
         is no longer needed.
         """
         await self._guild_prefix_cache_ready.wait()
-    
+
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
         """Returns the latest available guild configuration from the database.
 
@@ -168,7 +168,10 @@ class Pidroid(commands.Bot): # type: ignore
         """
         config = await self.api.fetch_guild_configuration(guild_id)
         if config is None:
-            self.logger.warn(f"Could not fetch guild configuration for {guild_id}, create new configuration")
+            self.logger.warning(
+                "Could not fetch guild configuration for %s, create new configuration",
+                guild_id
+            )
             config = await self.api.insert_guild_configuration(guild_id)
         self._update_guild_prefixes(guild_id, config)
         return config
@@ -251,9 +254,9 @@ class Pidroid(commands.Bot): # type: ignore
         """Attempts to resolve a role from role_id by any means. Returns None if everything failed."""
         role = guild.get_role(role_id)
         if role is None:
-            for r in await guild.fetch_roles():
-                if r.id == role_id:
-                    return r
+            for role in await guild.fetch_roles():
+                if role.id == role_id:
+                    return role
         return role
 
 
