@@ -280,12 +280,12 @@ class ModerationMenu(ui.View):
         self._message = await self._ctx.reply(embed=self.embed, view=self)
 
     """Private utility methods"""
-    
+
     @property
     def punishment(self):
         """The punishment instance, if available."""
         return self._punishment
-    
+
     @punishment.setter
     def punishment(self, instance):
         """Sets the punishment instance."""
@@ -525,17 +525,11 @@ class ModerationMenu(ui.View):
         self._embed.set_footer(text="Confirm or cancel the punishment")
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
-    async def on_confirm_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the punishment confirmation button."""
 
         assert self.punishment is not None
-        # Jail also requires a special jail role
-        if isinstance(self.punishment, Jail):
-            assert self._jail_role is not None
-            await self.punishment.issue(role=self._jail_role)
-        # Otherwise
-        else:
-            await self.punishment.issue()
+        await self.punishment.issue()
 
         # Regardless, we clean up
         return await self.finish_interface(
@@ -545,80 +539,112 @@ class ModerationMenu(ui.View):
         )
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
-    async def on_cancel_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_cancel_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the cancel button."""
         await self.cancel_interface(interaction)
 
     """Punishment buttons"""
 
     @discord.ui.button(label='Ban', style=discord.ButtonStyle.red, emoji='🔨')
-    async def on_type_ban_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_ban_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the ban type button."""
-        self.punishment = Ban(self._api, self.guild, self.channel, self.moderator, self.user)
+        self.punishment = Ban(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
         await self.show_length_selection_menu()
         await self._update_view(interaction)
 
     @discord.ui.button(label='Unban', style=discord.ButtonStyle.red, emoji='🔨')
-    async def on_type_unban_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_unban_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the unban type button."""
-        self.punishment = Ban(self._api, self.guild, self.channel, self.moderator, self.user)
-        await self.punishment.revoke(f"Unbanned by {str(self.moderator)}")
+        self.punishment = Ban(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
+        await self.punishment.revoke(reason=f"Unbanned by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Kick', style=discord.ButtonStyle.gray)
-    async def on_type_kick_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_kick_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the kick type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Kick(self._api, self.guild, self.channel, self.moderator, self.user)
+        self.punishment = Kick(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
         await self.show_reason_selection_menu()
         await self._update_view(interaction)
 
     @discord.ui.button(label='Jail', style=discord.ButtonStyle.gray)
-    async def on_type_jail_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the jail type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Jail(self._api, self.guild, self.channel, self.moderator, self.user)
+        assert self._jail_role is not None
+        self.punishment = Jail(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user,
+            role=self._jail_role
+        )
         await self.show_reason_selection_menu()
         await self._update_view(interaction)
 
     @discord.ui.button(label='Kidnap', style=discord.ButtonStyle.gray)
-    async def on_type_kidnap_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_kidnap_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the kidnap type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Jail(self._api, self.guild, self.channel, self.moderator, self.user, True)
+        assert self._jail_role is not None
+        self.punishment = Jail(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user,
+            role=self._jail_role, kidnapping=True
+        )
         await self.show_reason_selection_menu()
         await self._update_view(interaction)
 
     @discord.ui.button(label='Release from jail', style=discord.ButtonStyle.gray)
-    async def on_type_unjail_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_unjail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the unjail type button."""
         assert isinstance(self.user, Member)
         assert self._jail_role is not None
-        self.punishment = Jail(self._api, self.guild, self.channel, self.moderator, self.user)
-        await self.punishment.revoke(role=self._jail_role, reason=f"Released by {str(self.moderator)}")
+        self.punishment = Jail(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user,
+            role=self._jail_role
+        )
+        await self.punishment.revoke(reason=f"Released by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Time-out', style=discord.ButtonStyle.gray)
-    async def on_type_timeout_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_timeout_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the timeout type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Timeout(self._api, self.guild, self.channel, self.moderator, self.user)
+        self.punishment = Timeout(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
         await self.show_length_selection_menu()
         await self._update_view(interaction)
 
     @discord.ui.button(label='Remove time-out', style=discord.ButtonStyle.gray)
-    async def on_type_timeout_remove_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_timeout_remove_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the timeout removal type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Timeout(self._api, self.guild, self.channel, self.moderator, self.user)
-        await self.punishment.revoke(f"Time out removed by {str(self.moderator)}")
+        self.punishment = Timeout(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
+        await self.punishment.revoke(reason=f"Time out removed by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Warn', style=discord.ButtonStyle.gray, emoji='⚠️')
-    async def on_type_warn_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def on_type_warn_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the warn type button."""
         assert isinstance(self.user, Member)
-        self.punishment = Warning(self._api, self.guild, self.channel, self.moderator, self.user)
+        self.punishment = Warning(
+            self._api, self.guild,
+            channel=self.channel, moderator=self.moderator, user=self.user
+        )
         await self.show_reason_selection_menu()
         await self._update_view(interaction)
 

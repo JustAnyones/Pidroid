@@ -14,7 +14,7 @@ from discord.role import Role
 from discord.user import User
 from discord.utils import format_dt
 from enum import Enum
-from typing import TYPE_CHECKING, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.embeds import PidroidEmbed
@@ -71,8 +71,8 @@ class Case:
         self.__type = PunishmentType[data.type] # type: ignore
         self.__guild_id = data.guild_id # type: ignore
 
-        self.__user_id = data.user_id # type: ignore
-        self.__moderator_id = data.moderator_id # type: ignore
+        self.__user_id: int = data.user_id # type: ignore
+        self.__moderator_id: int = data.moderator_id # type: ignore
 
         self.__user_name = data.user_name # type: ignore
         self.__moderator_name = data.moderator_name # type: ignore
@@ -256,7 +256,9 @@ class BasePunishment:
     @reason.setter
     def reason(self, reason: Optional[str]) -> None:
         if reason and len(reason) > MAX_REASON_LENGTH:
-            raise BadArgument(f"Your reason is too long. Please make sure it's below or equal to {MAX_REASON_LENGTH} characters!")
+            raise ValueError(
+                f"Your reason is too long. Please make sure it's below or equal to {MAX_REASON_LENGTH} characters!"
+            )
         self._reason = reason
 
     async def _create_case_record(self) -> Case:
@@ -286,26 +288,26 @@ class BasePunishment:
     @property
     def audit_log_issue_reason(self) -> str:
         raise NotImplementedError
-    
+
     @property
     def audit_log_revoke_reason(self) -> str:
         raise NotImplementedError
-    
+
     @property
     def public_message_issue_embed(self) -> Embed:
         if self.case is None:
             raise BadArgument("Case object was not retrieved")
         embed = Embed(title=f"Case #{self.case.case_id}", color=discord.Color.green())
         return embed
-    
+
     @property
     def public_message_issue_file(self) -> Optional[File]:
         return None
-    
+
     @property
     def public_message_revoke_embed(self) -> Embed:
         return Embed(color=discord.Color.green())
-    
+
     @property
     def private_message_issue_embed(self) -> Embed:
         if self.case is None:
@@ -340,8 +342,10 @@ class BasePunishment:
         """Issues the punishment for the user."""
         raise NotImplementedError
 
-    async def revoke(self) -> None:
-        """Revokes the punishment from the user."""
+    async def revoke(self, *, reason: Optional[str] = None) -> None:
+        """Revokes the punishment from the user.
+        
+        Reason for the revocation can be optionally provided."""
         raise NotImplementedError
 
 class Ban(BasePunishment):
@@ -354,13 +358,16 @@ class Ban(BasePunishment):
     def __init__(
         self,
         api: API,
-        guild: Guild, channel: Optional[GuildTextChannel],
-        moderator: Moderator, user: DiscordUser
+        guild: Guild,
+        *,
+        channel: Optional[GuildTextChannel],
+        moderator: Moderator,
+        user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
         self._channel = channel
         self._set_moderator(moderator)
-        self._set_user(user)        
+        self._set_user(user)
 
     @property
     def audit_log_issue_reason(self) -> str:
@@ -372,7 +379,7 @@ class Ban(BasePunishment):
         if self.expiration_date:
             reason += f", expires in {humanize(self.expiration_date, max_units=2)}."
         return reason
-    
+
     @property
     def audit_log_revoke_reason(self) -> str:
         reason = f"Unbanned on behalf of {self.moderator_name}"
@@ -381,7 +388,7 @@ class Ban(BasePunishment):
         else:
             reason += ", reason was not specified"
         return reason
-    
+
     @property
     def public_message_issue_embed(self) -> Embed:
         embed = super().public_message_issue_embed
@@ -391,7 +398,7 @@ class Ban(BasePunishment):
         if self.expiration_date:
             embed.description += f"\nExpires {format_dt(self.expiration_date, style='R')}."
         return embed
-    
+
     @property
     def public_message_revoke_embed(self) -> Embed:
         embed = super().public_message_revoke_embed
@@ -413,7 +420,7 @@ class Ban(BasePunishment):
         self._api.client.dispatch("pidroid_ban_issue", self)
         return self.case
 
-    async def revoke(self, reason: Optional[str] = None) -> None:
+    async def revoke(self, *, reason: Optional[str] = None) -> None:
         """Unbans the user and updates database entry."""
         self.reason = reason
         await self.guild.unban(self.user, reason=self.audit_log_revoke_reason) # type: ignore
@@ -426,12 +433,15 @@ class Kick(BasePunishment):
 
     if TYPE_CHECKING:
         user: Member
-        
+
     def __init__(
         self,
         api: API,
-        guild: Guild, channel: Optional[GuildTextChannel],
-        moderator: Moderator, user: DiscordUser
+        guild: Guild,
+        *,
+        channel: Optional[GuildTextChannel],
+        moderator: Moderator,
+        user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
         self._channel = channel
@@ -476,15 +486,20 @@ class Jail(BasePunishment):
     def __init__(
         self,
         api: API,
-        guild: Guild, channel: Optional[GuildTextChannel],
-        moderator: Moderator, user: DiscordUser,
+        guild: Guild,
+        *,
+        channel: Optional[GuildTextChannel],
+        moderator: Moderator,
+        user: DiscordUser,
+        role: Role,
         kidnapping: bool = False
     ) -> None:
         super().__init__(api, guild)
-        self._kidnapping = kidnapping
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)
+        self.__role = role
+        self.__is_kidnapping = kidnapping
 
     @property
     def audit_log_issue_reason(self) -> str:
@@ -496,7 +511,7 @@ class Jail(BasePunishment):
         if self.expiration_date:
             reason += f", expires in {humanize(self.expiration_date, max_units=2)}."
         return reason
-    
+
     @property
     def audit_log_revoke_reason(self) -> str:
         reason = f"Released from jail on behalf of {self.moderator_name}"
@@ -509,7 +524,7 @@ class Jail(BasePunishment):
     @property
     def public_message_issue_embed(self) -> Embed:
         embed = super().public_message_issue_embed
-        if self._kidnapping:
+        if self.__is_kidnapping:
             embed.description = f"{self.user_name} was kidnapped"
             embed.set_image(url='attachment://bus.png')
         else:
@@ -519,11 +534,11 @@ class Jail(BasePunishment):
         if self.expiration_date:
             embed.description += f"\nExpires {format_dt(self.expiration_date, 'R')}."
         return embed
-    
+
     @property
     def public_message_issue_file(self) -> File:
         return File(Resource('bus.png'))
-    
+
     @property
     def public_message_revoke_embed(self) -> Embed:
         embed = super().public_message_revoke_embed
@@ -532,22 +547,23 @@ class Jail(BasePunishment):
 
     @property
     def is_kidnapping(self) -> bool:
-        return self._kidnapping
+        """Returns true if kidnapping specific messages and assets should be sent."""
+        return self.__is_kidnapping
 
     async def create_case(self) -> Case:
         await super().create_case()
         return await self._create_case_record()
 
-    async def issue(self, role: Role) -> Case: # type: ignore
+    async def issue(self) -> Case: # type: ignore
         """Jails the member."""
-        await self.user.add_roles(role, reason=self.audit_log_issue_reason) # type: ignore
+        await self.user.add_roles(self.__role, reason=self.audit_log_issue_reason) # type: ignore
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_jail_issue", self)
         return self.case
 
-    async def revoke(self, role: Role, reason: Optional[str] = None) -> None: # type: ignore
+    async def revoke(self, *, reason: Optional[str] = None) -> None: # type: ignore
         self.reason = reason
-        await self.user.remove_roles(role, reason=self.audit_log_revoke_reason) # type: ignore
+        await self.user.remove_roles(self.__role, reason=self.audit_log_revoke_reason) # type: ignore
         await self._expire_cases_by_type(PunishmentType.jail)
         self._api.client.dispatch("pidroid_jail_revoke", self)
 
@@ -561,8 +577,11 @@ class Warning(BasePunishment):
     def __init__(
         self,
         api: API,
-        guild: Guild, channel: Optional[GuildTextChannel],
-        moderator: Moderator, user: DiscordUser
+        guild: Guild,
+        *,
+        channel: Optional[GuildTextChannel],
+        moderator: Moderator,
+        user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
         self._channel = channel
@@ -597,8 +616,11 @@ class Timeout(BasePunishment):
     def __init__(
         self,
         api: API,
-        guild: Guild, channel: Optional[GuildTextChannel],
-        moderator: Moderator, user: DiscordUser
+        guild: Guild,
+        *,
+        channel: Optional[GuildTextChannel],
+        moderator: Moderator,
+        user: DiscordUser
     ) -> None:
         super().__init__(api, guild)
         self._channel = channel
@@ -615,7 +637,7 @@ class Timeout(BasePunishment):
         if self.expiration_date:
             reason += f", expires in {humanize(self.expiration_date, max_units=2)}."
         return reason
-    
+
     @property
     def audit_log_revoke_reason(self) -> str:
         reason = f"Time out removed on behalf of {self.moderator_name}"
@@ -634,7 +656,7 @@ class Timeout(BasePunishment):
         if self.expiration_date:
             embed.description += f"\nExpires {format_dt(self.expiration_date, 'R')}."
         return embed
-    
+
     @property
     def public_message_revoke_embed(self) -> Embed:
         embed = super().public_message_revoke_embed
@@ -651,7 +673,7 @@ class Timeout(BasePunishment):
         self._api.client.dispatch("pidroid_timeout_issue", self)
         return self.case
 
-    async def revoke(self, reason: Optional[str] = None) -> None:
+    async def revoke(self, *, reason: Optional[str] = None) -> None:
         self.reason = reason
         await self.user.edit(timed_out_until=None, reason=self.audit_log_revoke_reason)
         await self._expire_cases_by_type(PunishmentType.timeout)

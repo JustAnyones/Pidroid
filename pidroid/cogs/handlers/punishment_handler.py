@@ -55,7 +55,10 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         jail_role = await self.client.get_or_fetch_role(member.guild, c.jail_role_id)
         if jail_role is not None:
             if await self.client.api.is_currently_jailed(member.guild.id, member.id):
-                await member.add_roles(jail_role, reason="Jailed automatically as punishment evasion was detected.") # type: ignore
+                await member.add_roles(
+                    jail_role,
+                    reason="Jailed automatically as punishment evasion was detected."
+                ) # type: ignore
 
     @commands.Cog.listener() # type: ignore
     async def on_member_unban(self, guild: discord.Guild, user: Union[discord.Member, discord.User]) -> None:
