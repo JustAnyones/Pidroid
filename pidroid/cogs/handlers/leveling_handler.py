@@ -103,7 +103,7 @@ class LevelingHandler(commands.Cog):
     @tasks.loop(seconds=60)
     async def process_role_queue(self) -> None:
         """This task runs periodically to apply role changes to members from a queue."""
-        logger.debug("Processing role queue")
+        #logger.debug("Processing role queue")
         for guild in self.client.guilds:
             # Acquire guild information
             conf = await self.client.fetch_guild_configuration(guild.id)
