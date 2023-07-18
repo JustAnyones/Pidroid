@@ -82,7 +82,7 @@ class Error(commands.Cog): # type: ignore
         if error is None:
             return
 
-        # Resets command cooldown on command error
+        # Resets command cooldown on command error if it's not a cooldown error
         if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown): # type: ignore
             ctx.command.reset_cooldown(ctx)
 
@@ -100,19 +100,14 @@ class Error(commands.Cog): # type: ignore
         if isinstance(error, discord.errors.NotFound):
             print('Unhandled NotFound exception encountered!')
             print(error.args)
-            print(error.code)
             print(error.response)
-            print(error.status)
-            print(error.text)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
-            await notify(ctx, "I could not find a resource, you should not see this")
+            await notify(ctx, "I could not find a resource on Discord, you should not see this")
 
         elif isinstance(error, discord.errors.Forbidden):
             print(f'A 403 error has been encountered in {ctx.command} command, printing stack trace')
             print(error.args)
-            print(error.code)
             print(error.response)
-            print(error.status)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
             await notify(ctx, "I do not have the required permissions, you should not see this")
 
