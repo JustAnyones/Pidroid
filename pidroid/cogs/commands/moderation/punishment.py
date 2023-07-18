@@ -948,7 +948,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if member.bot:
             raise BadArgument("You cannot suspend a bot!")
 
-        t = Timeout(self.client.api, ctx.guild, ctx.channel, ctx.author, member)
+        t = Timeout(self.client.api, ctx.guild, channel=ctx.channel, moderator=ctx.author, user=member)
         t.reason = "Suspended communications"
         t.set_length(timedelta(days=7))
         await t.issue()
