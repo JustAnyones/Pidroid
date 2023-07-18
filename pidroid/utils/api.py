@@ -338,13 +338,16 @@ class API:
     async def _update_guild_configuration(
         self,
         row_id: int,
+        *,
         jail_channel: Optional[int], jail_role: Optional[int],
         log_channel: Optional[int],
         prefixes: List[str],
         suspicious_usernames: List[str],
         public_tags: bool,
         punishing_moderators: bool,
-        appeal_url: Optional[str]
+        appeal_url: Optional[str],
+        xp_system_active: bool,
+        stack_level_rewards: bool
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
         async with self.session() as session: # type: ignore
@@ -361,7 +364,9 @@ class API:
                         suspicious_usernames=suspicious_usernames,
                         public_tags=public_tags,
                         punishing_moderators=punishing_moderators,
-                        appeal_url=appeal_url
+                        appeal_url=appeal_url,
+                        xp_system_active=xp_system_active,
+                        stack_level_rewards=stack_level_rewards
                     )
                 )
             await session.commit()

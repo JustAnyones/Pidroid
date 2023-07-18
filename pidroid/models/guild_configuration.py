@@ -48,13 +48,13 @@ class GuildConfiguration:
         self.__appeal_url: Optional[str] = table.appeal_url # type: ignore
 
         # XP system related information
-        self.__xp_system_active = table.xp_system_active
+        self.__xp_system_active: bool = table.xp_system_active # type: ignore
         self.__xp_multiplier = table.xp_multiplier
         self.__xp_per_message_min = table.xp_per_message_min
         self.__xp_per_message_max = table.xp_per_message_max
         self.__xp_exempt_roles = table.xp_exempt_roles
         self.__xp_exempt_channels = table.xp_exempt_channels
-        self.__stack_level_rewards = table.stack_level_rewards
+        self.__stack_level_rewards: bool = table.stack_level_rewards # type: ignore
 
     @property
     def guild_id(self) -> int:
@@ -93,22 +93,35 @@ class GuildConfiguration:
     def public_tags(self) -> bool:
         """Returns true if tag system can be management by regular members."""
         return self.__public_tags
+    
+    async def toggle_public_tags(self) -> None:
+        """Updates public tags permission."""
+        self.__public_tags = not self.__public_tags
+        await self._update()
 
     @property
     def allow_to_punish_moderators(self) -> bool:
         """Returns true if moderators are allowed to punish lower ranking moderators."""
         return self.__allow_punishing_moderators
+    
+    async def toggle_moderator_punishing(self) -> None:
+        """Updates moderator punishing permission."""
+        self.__allow_punishing_moderators = not self.__allow_punishing_moderators
+        await self._update()
 
     async def _update(self) -> None:
         await self.api._update_guild_configuration(
             self.__id,
-            self.__jail_channel_id, self.__jail_role_id,
-            self.__log_channel_id,
-            self.__prefixes,
-            self.__suspicious_usernames,
-            self.__public_tags,
-            self.__allow_punishing_moderators,
-            self.__appeal_url
+            jail_channel=self.__jail_channel_id,
+            jail_role=self.__jail_role_id,
+            log_channel=self.__log_channel_id,
+            prefixes=self.__prefixes,
+            suspicious_usernames=self.__suspicious_usernames,
+            public_tags=self.__public_tags,
+            punishing_moderators=self.__allow_punishing_moderators,
+            appeal_url=self.__appeal_url,
+            xp_system_active=self.__xp_system_active,
+            stack_level_rewards=self.__stack_level_rewards
         )
 
     async def delete(self) -> None:
@@ -121,6 +134,11 @@ class GuildConfiguration:
     def xp_system_active(self) -> bool:
         """Returns true if the XP system is active for the server."""
         return self.__xp_system_active # type: ignore
+    
+    async def toggle_xp_system(self) -> None:
+        """Toggles XP system."""
+        self.__xp_system_active = not self.__xp_system_active
+        await self._update()
 
     @property
     def xp_multiplier(self) -> float:
@@ -152,6 +170,11 @@ class GuildConfiguration:
         """Returns true if level rewards obtained from the level system should be stacked."""
         return self.__stack_level_rewards # type: ignore
     
+    async def toggle_level_reward_stacking(self) -> None:
+        """Toggles level reward stacking."""
+        self.__stack_level_rewards = not self.__stack_level_rewards
+        await self._update()
+
     """Logging system related"""
     
     @property
@@ -166,6 +189,10 @@ class GuildConfiguration:
     def suggestion_system_active(self) -> bool:
         """Returns true if suggestion system is enabled for the server."""
         raise NotImplementedError
+    
+    async def toggle_suggestion_system(self) -> None:
+        """Toggles suggestion system."""
+        raise NotImplementedError
 
     @property
     def suggestions_channel_id(self) -> Optional[int]:
@@ -175,6 +202,10 @@ class GuildConfiguration:
     @property
     def suggestion_threads_enabled(self) -> bool:
         """Returns true if expiring thread creation is enabled for the suggestion system."""
+        raise NotImplementedError
+
+    async def toggle_suggestion_threads(self) -> None:
+        """Toggles threads for the suggestion system."""
         raise NotImplementedError
 
     """Punishment system related"""
@@ -187,11 +218,6 @@ class GuildConfiguration:
     async def update_public_tag_permission(self, allow_public: bool) -> None:
         """Updates public tag permission."""
         self.__public_tags = allow_public
-        await self._update()
-        
-    async def update_moderator_punishing_permission(self, allow_punishing: bool) -> None:
-        """Updates moderator punishing permission."""
-        self.__allow_punishing_moderators = allow_punishing
         await self._update()
 
     async def update_prefixes(self, prefix: str) -> None:
