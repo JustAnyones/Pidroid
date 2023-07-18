@@ -111,7 +111,8 @@ class LevelingHandler(commands.Cog):
                 continue
             
             role_changes = await self.client.api.fetch_role_changes(guild.id)
-            logger.debug(f"Managing role changes for {guild}")
+            if role_changes:
+                logger.debug(f"Managing role changes for {guild}")
             for role_change in role_changes:
                 member = guild.get_member(role_change.member_id)
                 # If we have the member object
