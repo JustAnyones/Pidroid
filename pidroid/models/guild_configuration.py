@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from discord.channel import TextChannel
-from discord.role import Role
+from discord import Guild, Role, TextChannel
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
@@ -60,6 +59,11 @@ class GuildConfiguration:
     def guild_id(self) -> int:
         """The ID of the guild this configuration belongs to."""
         return self.__guild_id
+
+    @property
+    def guild(self) -> Optional[Guild]:
+        """The guild this configuration belongs to."""
+        return self.api.client.get_guild(self.__guild_id)
 
     @property
     def guild_prefixes(self) -> GuildPrefixes:
