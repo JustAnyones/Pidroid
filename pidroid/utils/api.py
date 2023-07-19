@@ -352,7 +352,11 @@ class API:
         punishing_moderators: bool,
         appeal_url: Optional[str],
         xp_system_active: bool,
-        stack_level_rewards: bool
+        stack_level_rewards: bool,
+
+        suggestion_system_active: bool,
+        suggestion_channel: Optional[int],
+        suggestion_threads_enabled: bool
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
         async with self.session() as session: # type: ignore
@@ -371,7 +375,10 @@ class API:
                         punishing_moderators=punishing_moderators,
                         appeal_url=appeal_url,
                         xp_system_active=xp_system_active,
-                        stack_level_rewards=stack_level_rewards
+                        stack_level_rewards=stack_level_rewards,
+                        suggestion_system_active=suggestion_system_active,
+                        suggestion_channel=suggestion_channel,
+                        suggestion_threads_enabled=suggestion_threads_enabled
                     )
                 )
             await session.commit()

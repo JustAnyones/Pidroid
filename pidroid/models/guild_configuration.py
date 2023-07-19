@@ -55,6 +55,11 @@ class GuildConfiguration:
         self.__xp_exempt_channels = table.xp_exempt_channels
         self.__stack_level_rewards: bool = table.stack_level_rewards # type: ignore
 
+        # Suggestion system related information
+        self.__suggestion_system_active: bool = table.suggestion_system_active # type: ignore
+        self.__suggestion_channel_id: Optional[int] = table.suggestion_channel # type: ignore
+        self.__suggestion_threads_enabled: bool = table.suggestion_threads_enabled # type: ignore
+
     @property
     def guild_id(self) -> int:
         """The ID of the guild this configuration belongs to."""
@@ -125,7 +130,11 @@ class GuildConfiguration:
             punishing_moderators=self.__allow_punishing_moderators,
             appeal_url=self.__appeal_url,
             xp_system_active=self.__xp_system_active,
-            stack_level_rewards=self.__stack_level_rewards
+            stack_level_rewards=self.__stack_level_rewards,
+
+            suggestion_system_active=self.__suggestion_system_active,
+            suggestion_channel=self.__suggestion_channel_id,
+            suggestion_threads_enabled=self.__suggestion_threads_enabled
         )
 
     async def delete(self) -> None:
@@ -192,25 +201,27 @@ class GuildConfiguration:
     @property
     def suggestion_system_active(self) -> bool:
         """Returns true if suggestion system is enabled for the server."""
-        raise NotImplementedError
+        return self.__suggestion_system_active
     
     async def toggle_suggestion_system(self) -> None:
         """Toggles suggestion system."""
-        raise NotImplementedError
+        self.__suggestion_system_active = not self.__suggestion_system_active
+        await self._update()
 
     @property
     def suggestions_channel_id(self) -> Optional[int]:
         """Returns the ID of the suggestions channel if available."""
-        raise NotImplementedError
+        return self.__suggestion_channel_id
 
     @property
     def suggestion_threads_enabled(self) -> bool:
         """Returns true if expiring thread creation is enabled for the suggestion system."""
-        raise NotImplementedError
+        return self.__suggestion_threads_enabled
 
     async def toggle_suggestion_threads(self) -> None:
         """Toggles threads for the suggestion system."""
-        raise NotImplementedError
+        self.__suggestion_threads_enabled = not self.__suggestion_threads_enabled
+        await self._update()
 
     """Punishment system related"""
 
