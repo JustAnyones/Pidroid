@@ -242,8 +242,3 @@ Henceforth, the following is an example of a new way of handling missing argumen
         # This must be at the end of the method.
         setattr(error, 'unhandled', True)
 ```
-
-## Features in the works
-- Level reward subsystem
-- Logging subsystem
-- Refactoring of the help system to make it more lenient and less janky
