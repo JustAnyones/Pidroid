@@ -124,6 +124,11 @@ class GuildConfigurationTable(Base): # type: ignore
     xp_exempt_channels = Column(ARRAY(BigInteger), server_default="{}") # type: ignore
     stack_level_rewards = Column(Boolean, server_default="true")
 
+    # Suggestion system related
+    suggestion_system_active = Column(Boolean, server_default="false")
+    suggestion_channel = Column(BigInteger, nullable=True)
+    suggestion_threads_enabled = Column(Boolean, server_default="false")
+
 class UserLevelsTable(Base): # type: ignore
     __tablename__ = "UserLevels"
     
@@ -185,7 +190,7 @@ class API:
 
     async def insert_suggestion(self, author_id: int, message_id: int, suggestion: str, attachment_urls: List[str] = []) -> int:
         """Creates a suggestion entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = SuggestionTable(
@@ -202,7 +207,7 @@ class API:
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: List[int]) -> int:
         """Creates a tag entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = TagTable(
@@ -217,7 +222,7 @@ class API:
 
     async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Optional[Tag]:
         """Returns a guild tag for the appropriate name."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(TagTable).
@@ -231,7 +236,7 @@ class API:
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> List[Tag]:
         """Returns all guild tags matching the appropriate name."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(TagTable).
@@ -242,7 +247,7 @@ class API:
 
     async def fetch_guild_tags(self, guild_id: int) -> List[Tag]:
         """Returns a list of all tags defined in the guild."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(TagTable).
@@ -253,7 +258,7 @@ class API:
 
     async def update_tag(self, row_id: int, content: str, authors: List[int], aliases: List[str], locked: bool) -> None:
         """Updates a tag entry by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -270,7 +275,7 @@ class API:
 
     async def delete_tag(self, row_id: int) -> None:
         """Removes a tag by specified row ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(TagTable).filter(TagTable.id == row_id))
@@ -302,7 +307,7 @@ class API:
 
     async def __fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
         """Fetches and returns a deserialized guild configuration if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(GuildConfigurationTable).
@@ -315,7 +320,7 @@ class API:
 
     async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
         """Fetches and returns a deserialized guild configuration if available for the specified guild."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(GuildConfigurationTable).
@@ -328,7 +333,7 @@ class API:
 
     async def fetch_guild_configurations(self) -> List[GuildConfiguration]:
         """Returns a list of all guild configuration entries in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(GuildConfigurationTable)
@@ -463,7 +468,7 @@ class API:
 
     async def _fetch_case(self, guild_id: int, case_id: int) -> Optional[Case]:
         """Fetches and returns a deserialized case if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(PunishmentTable).
@@ -482,7 +487,7 @@ class API:
 
     async def _fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Fetches and returns a list of deserialized cases."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(PunishmentTable).
@@ -547,7 +552,7 @@ class API:
     async def fetch_moderation_statistics(self, guild_id: int, moderator_id: int) -> dict:
         """Fetches and returns a dictionary containing the general moderation statistics."""
         bans = kicks = jails = warnings = user_total = guild_total = 0
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(PunishmentTable.type).
@@ -585,7 +590,7 @@ class API:
 
     async def __is_currently_punished(self, punishment_type: str, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently punished in a guild for the specified punishment type."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(func.count(PunishmentTable.type)).
@@ -685,7 +690,7 @@ class API:
         date_wage_last_redeemed: Optional[datetime.datetime],
     ) -> None:
         """Updates a linked account entry by specified user ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -699,7 +704,7 @@ class API:
 
     async def fetch_linked_account_by_user_id(self, user_id: int) -> Optional[LinkedAccountTable]:
         """Fetches and returns a linked account if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LinkedAccountTable).
@@ -712,7 +717,7 @@ class API:
 
     async def fetch_linked_account_by_forum_id(self, forum_id: int) -> Optional[LinkedAccountTable]:
         """Fetches and returns a linked account if available."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LinkedAccountTable).
@@ -727,7 +732,7 @@ class API:
 
     async def insert_level_reward(self, guild_id: int, role_id: int, level: int) -> int:
         """Creates a level reward entry in the database."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = LevelRewardsTable(
@@ -745,7 +750,7 @@ class API:
 
     async def update_level_reward_by_id(self, id: int, role_id: int, level: int) -> None:
         """Updates a level reward entry by specified ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(
@@ -761,7 +766,7 @@ class API:
     async def _delete_level_reward(self, id: int) -> None:
         """Removes a level reward by specified row ID."""
         obj = await self.fetch_level_reward_by_id(id)
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(LevelRewardsTable).filter(LevelRewardsTable.id == id))
@@ -772,7 +777,7 @@ class API:
         """Returns a list of all LevelReward entries available for the specified guild.
         
         Role IDs are sorted by their appropriate level requirement descending."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -788,7 +793,7 @@ class API:
 
     async def fetch_level_reward_by_id(self, id: int) -> Optional[LevelReward]:
         """Returns a LevelReward entry for the specified ID."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -801,7 +806,7 @@ class API:
 
     async def fetch_level_reward_by_role(self, guild_id: int, role_id: int) -> Optional[LevelReward]:
         """Returns a LevelReward entry for the specified guild and role."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -817,7 +822,7 @@ class API:
 
     async def fetch_guild_level_reward_by_level(self, guild_id: int, level: int) -> Optional[LevelReward]:
         """Returns a LevelReward entry for the specified guild and level."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -835,7 +840,7 @@ class API:
         """Returns a list of LevelReward entries available for the specified guild and level.
         
         Entries are sorted by required level descending."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -860,7 +865,7 @@ class API:
         return rewards[0]
 
     async def _fetch_previous_level_reward(self, guild_id: int, level: int):
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -875,7 +880,7 @@ class API:
         return None
 
     async def _fetch_next_level_reward(self, guild_id: int, level: int):
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(LevelRewardsTable).
@@ -914,7 +919,7 @@ class API:
 
     async def fetch_guild_level_rankings(self, guild_id: int, start: int = 0, limit: int = 10) -> List[MemberLevelInfo]:
         """Returns a list of guild levels."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(
@@ -933,7 +938,7 @@ class API:
 
     async def fetch_guild_level_infos(self, guild_id: int) -> List[MemberLevelInfo]:
         """Returns the bare member level information excluding ranking information."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(
@@ -950,7 +955,7 @@ class API:
 
     async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> Optional[MemberLevelInfo]:
         """Returns ranked level information for the specified user."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             subquery = (
                 select(
@@ -982,7 +987,7 @@ class API:
 
     async def fetch_user_level_info(self, guild_id: int, user_id: int) -> Optional[MemberLevelInfo]:
         """Returns the level information for the specified user."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             result = await session.execute(
                 select(
@@ -1002,7 +1007,7 @@ class API:
         """Returns a list of user level information for specified levels.
         
         Returned user data is ``min_level <= USERS < max_level`` """
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             stmt = (
                 select(UserLevelsTable).
@@ -1085,7 +1090,7 @@ class API:
 
     async def insert_role_change(self, action: RoleAction, guild_id: int, member_id: int, role_id: int):
         """Inserts a role change to a queue."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 entry = RoleChangeQueueTable(
@@ -1100,7 +1105,7 @@ class API:
 
     async def fetch_role_changes(self, guild_id: int) -> List[MemberRoleChanges]:
         """Returns a list of pending role changes in the guild."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             statement = select(
                 func.array_agg(RoleChangeQueueTable.id).label('ids'),
@@ -1123,7 +1128,7 @@ class API:
     
     async def delete_role_changes(self, ids: List[int]):
         """Removes role changes for specified IDs from the queue."""
-        async with self.session() as session:
+        async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
                 await session.execute(delete(RoleChangeQueueTable).filter(RoleChangeQueueTable.id.in_(ids)))
