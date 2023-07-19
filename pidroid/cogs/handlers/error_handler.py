@@ -3,7 +3,6 @@ from __future__ import annotations
 import discord
 import sys
 import traceback
-import random
 
 from contextlib import suppress
 from discord.errors import HTTPException
@@ -12,7 +11,6 @@ from discord.ext.commands.context import Context # type: ignore
 from jishaku.paginators import PaginatorInterface, WrappedPaginator # type: ignore
 from typing import TYPE_CHECKING, Optional
 
-from pidroid.constants import REFUSE_COMMAND_RESPONSES
 from pidroid.models import exceptions
 from pidroid.utils.embeds import ErrorEmbed as ErrorEmbed
 from pidroid.utils.time import humanize
@@ -141,9 +139,6 @@ class Error(commands.Cog): # type: ignore
             if error.cooldown.per <= 5:
                 return await notify(ctx, "Woah, slow down!", delete_after=3)
             await notify(ctx, f"You're on cooldown, try again in {humanize(error.retry_after, False, max_units=2)}.", delete_after=3)
-
-        elif isinstance(error, exceptions.InvalidChannel):
-            await notify(ctx, random.choice(REFUSE_COMMAND_RESPONSES)) # nosec
 
         elif isinstance(error, commands.NSFWChannelRequired):
             await notify(ctx, "The command can only be used inside NSFW channel")

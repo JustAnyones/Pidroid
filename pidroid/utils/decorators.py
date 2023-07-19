@@ -1,10 +1,9 @@
 from discord.ext import commands
-from discord.ext.commands import BadArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.member import Member
 
-from pidroid.constants import BOT_COMMANDS_CHANNEL, EMERGENCY_SHUTDOWN, CHEESE_EATERS
-from pidroid.models.exceptions import ClientIsNotPidroid, InvalidChannel, NotInTheoTownGuild, MissingUserPermissions
+from pidroid.constants import EMERGENCY_SHUTDOWN, CHEESE_EATERS
+from pidroid.models.exceptions import ClientIsNotPidroid, NotInTheoTownGuild, MissingUserPermissions
 from pidroid.utils.checks import (
     TheoTownChecks,
     is_client_pidroid, is_guild_theotown,
@@ -72,15 +71,6 @@ class command_checks:
             assert ctx.guild is not None
             if not is_guild_theotown(ctx.guild):
                 raise NotInTheoTownGuild
-            return True
-        return commands.check(predicate)
-
-    @staticmethod
-    def is_bot_commands():
-        """Checks whether the command is invoked in a channel for bot commands inside TheoTown guild."""
-        async def predicate(ctx: Context):
-            if not ctx.channel.id == BOT_COMMANDS_CHANNEL:
-                raise InvalidChannel(f'The command can only be used inside <#{BOT_COMMANDS_CHANNEL}> channel')
             return True
         return commands.check(predicate)
 
