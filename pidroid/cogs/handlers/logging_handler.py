@@ -6,7 +6,7 @@ from discord import AuditLogDiff, AuditLogEntry, Member, Object, Role, User, abc
 from discord.ext import commands
 from typing import TYPE_CHECKING, Any
 
-from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, ChannelCreateData, ChannelDeleteData, ChannelUpdateData, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteCreateLog, OverwriteDeleteData, OverwriteDeleteLog, OverwriteUpdateData, OverwriteUpdateLog, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, ChannelCreateData, ChannelCreateLog, ChannelDeleteData, ChannelDeleteLog, ChannelUpdateData, ChannelUpdateLog, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteCreateLog, OverwriteDeleteData, OverwriteDeleteLog, OverwriteUpdateData, OverwriteUpdateLog, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -14,12 +14,14 @@ from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateD
 logger = logging.getLogger('Pidroid')
 
 class AuditLogDiffWrapper:
-    def __init__(self, diff: AuditLogDiff) -> None:
+    def __init__(self, diff: AuditLogDiff, log: bool = True) -> None:
         self.__dict = diff.__dict__
+        self.__logging_on = log
 
     def __getattr__(self, item: str) -> Any:
         val = self.__dict.get(item, None)
-        logger.debug(f"Asking for attribute {item}: {val}")
+        if self.__logging_on:
+            logger.debug(f"Asking for attribute {item}: {val}")
         return val
 
 if TYPE_CHECKING:
@@ -118,6 +120,7 @@ class LoggingHandler(commands.Cog):
             type=diff_after.type,
             overwrites=diff_after.overwrites
         )
+        self.client.dispatch('pidroid_log', ChannelCreateLog(data))
     
 
     async def _on_channel_delete(self, entry: AuditLogEntry):
@@ -150,6 +153,7 @@ class LoggingHandler(commands.Cog):
             nsfw=diff_before.nsfw,
             slowmode_delay=diff_before.slowmode_delay
         )
+        self.client.dispatch('pidroid_log', ChannelDeleteLog(data))
     
 
     async def _on_channel_update(self, entry: AuditLogEntry):
@@ -214,6 +218,7 @@ class LoggingHandler(commands.Cog):
             before=before,
             after=after
         )
+        self.client.dispatch('pidroid_log', ChannelUpdateLog(data))
     
 
     async def _on_overwrite_create(self, entry: AuditLogEntry):
@@ -243,6 +248,7 @@ class LoggingHandler(commands.Cog):
             deny=diff_after.deny,
             allow=diff_after.allow
         )
+        self.client.dispatch('pidroid_log', OverwriteCreateLog(data))
     
 
     async def _on_overwrite_delete(self, entry: AuditLogEntry):
@@ -270,6 +276,7 @@ class LoggingHandler(commands.Cog):
             deny=diff_before.deny,
             allow=diff_before.allow
         )
+        self.client.dispatch('pidroid_log', OverwriteDeleteLog(data))
     
 
     async def _on_overwrite_update(self, entry: AuditLogEntry):
@@ -302,6 +309,7 @@ class LoggingHandler(commands.Cog):
             reason=entry.reason, created_at=entry.created_at,
             before=before, after=after
         )
+        self.client.dispatch('pidroid_log', OverwriteUpdateLog(data))
 
     async def _on_role_create(self, entry: AuditLogEntry):
         """

@@ -392,3 +392,204 @@ class MemberRoleUpdateLog(PidroidLog):
             self.add_field("Roles added", msg.strip())
 
         self.add_reason_field(data)
+
+class _OverwriteLog(PidroidLog):
+
+    @staticmethod
+    def _is_role(data: BaseOverwriteData):
+        """Returns true if the target is a role."""
+        if isinstance(data.role_or_user, Object):
+            if data.role_or_user.type == "role":
+                return True
+            return False
+        return isinstance(data.role_or_user, Role)
+
+class OverwriteCreateLog(_OverwriteLog):
+
+    __logname__ = "New channel overwrite created"
+
+    def __init__(self, data: OverwriteCreateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        if self._is_role(data):
+            self.add_field("Role", f"{role_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+        else:
+            self.add_field("Member", f"{user_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+
+
+        filtered = []
+        for permission in data.deny:
+            name, value = permission
+            filtered.append(f"{normalize_permission_name(name)}: {value}")
+        perms_as_string = '\n'.join(filtered)
+        print(perms_as_string)
+        if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+            self.add_field("Permissions 1", perms_as_string)
+
+        filtered = []
+        for permission in data.allow:
+            name, value = permission
+            filtered.append(f"{normalize_permission_name(name)}: {value}")
+        perms_as_string = '\n'.join(filtered)
+        print(perms_as_string)
+        if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+            self.add_field("Permissions 2", perms_as_string)
+
+        print(data.deny, data.allow)
+
+        self.add_reason_field(data)
+
+class OverwriteDeleteLog(_OverwriteLog):
+
+    __logname__ = "Channel overwrite deleted"
+
+    def __init__(self, data: OverwriteDeleteData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        if self._is_role(data):
+            self.add_field("Role", f"{role_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+        else:
+            self.add_field("Member", f"{user_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+
+
+        filtered = []
+        for permission in data.deny:
+            name, value = permission
+            filtered.append(f"{normalize_permission_name(name)}: {value}")
+        perms_as_string = '\n'.join(filtered)
+        print("Perms 1", perms_as_string)
+        print()
+        if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+            self.add_field("Permissions 1", perms_as_string)
+
+        filtered = []
+        for permission in data.allow:
+            name, value = permission
+            filtered.append(f"{normalize_permission_name(name)}: {value}")
+        perms_as_string = '\n'.join(filtered)
+        print("Perms 2", perms_as_string)
+        print()
+        if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+            self.add_field("Permissions 2", perms_as_string)
+
+        print(data.deny, data.allow)
+
+
+        self.add_reason_field(data)
+
+class OverwriteUpdateLog(_OverwriteLog):
+
+    __logname__ = "Channel overwrite updated"
+
+    def __init__(self, data: OverwriteUpdateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        if self._is_role(data):
+            self.add_field("Role", f"{role_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+        else:
+            self.add_field("Member", f"{user_mention(data.role_or_user.id)} ({data.role_or_user.id})")
+
+        #filtered = []
+        #for permission in data.deny:
+        #    name, value = permission
+        #    filtered.append(f"{normalize_permission_name(name)}: {value}")
+        #perms_as_string = '\n'.join(filtered)
+        #if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+        #    self.add_field("Permissions 1", perms_as_string)
+
+        #filtered = []
+        #for permission in data.allow:
+        #    name, value = permission
+        #    filtered.append(f"{normalize_permission_name(name)}: {value}")
+        #perms_as_string = '\n'.join(filtered)
+        #if len(perms_as_string) <= 1024: # TODO: figure a better solution out
+        #    self.add_field("Permissions 2", perms_as_string)
+
+        print(data.before.deny, data.before.allow)
+        print(data.after.deny, data.after.allow)
+
+        self.add_reason_field(data)
+
+
+
+class ChannelCreateLog(_OverwriteLog):
+
+    __logname__ = "New channel created"
+
+    def __init__(self, data: ChannelCreateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        if data.name:
+            self.add_field("Name", data.name)
+
+        if data.type:
+            self.add_field("Channel type", str(data.type))
+
+        for target, overwrite in data.overwrites:
+            # TODO: implement
+            pass
+
+        self.add_reason_field(data)
+
+class ChannelDeleteLog(_OverwriteLog):
+
+    __logname__ = "Channel deleted"
+
+    def __init__(self, data: ChannelDeleteData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        if data.name:
+            self.add_field("Name", data.name)
+
+        if data.type:
+            self.add_field("Channel type", str(data.type))
+
+        for target, overwrite in data.overwrites:
+            # TODO: implement
+            pass
+
+        self.add_field("Was age-restricted?", str(data.nsfw))
+        self.add_field("Slowmode delay", "Not set" if data.slowmode_delay == 0 else f"{data.slowmode_delay} seconds")
+
+        self.add_reason_field(data)
+
+class ChannelUpdateLog(_OverwriteLog):
+
+    __logname__ = "Channel updated"
+
+    def __init__(self, data: ChannelUpdateData) -> None:
+        super().__init__(data)
+
+        self.set_description(f"Channel: {channel_mention(data.channel.id)} ({data.channel.id})")
+
+        before = data.before
+        after = data.after
+
+        # If name changed
+        if before.name != after.name:
+            self.add_field("Name", f"{before.name} -> {after.name}")
+
+        #if data.name:
+        #    self.add_field("Name", data.name)
+
+        #if data.type:
+        #    self.add_field("Channel type", str(data.type))
+
+        #for target, overwrite in data.overwrites:
+        #    # TODO: implement
+        #    pass
+
+        #self.add_field("Was age-restricted?", str(data.nsfw))
+        #self.add_field("Slowmode delay", "Not set" if data.slowmode_delay == 0 else f"{data.slowmode_delay} seconds")
+
+        self.add_reason_field(data)
