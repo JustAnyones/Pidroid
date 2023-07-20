@@ -344,14 +344,18 @@ class API:
         self,
         row_id: int,
         *,
-        jail_channel: Optional[int], jail_role: Optional[int],
+        jail_channel: Optional[int],
+        jail_role: Optional[int],
         log_channel: Optional[int],
         prefixes: List[str],
-        suspicious_usernames: List[str],
         public_tags: bool,
         punishing_moderators: bool,
         appeal_url: Optional[str],
+
         xp_system_active: bool,
+        xp_multiplier: float,
+        xp_exempt_roles: List[int],
+        xp_exempt_channels: List[int],
         stack_level_rewards: bool,
 
         suggestion_system_active: bool,
@@ -370,12 +374,16 @@ class API:
                         jail_role=jail_role,
                         log_channel=log_channel,
                         prefixes=prefixes,
-                        suspicious_usernames=suspicious_usernames,
                         public_tags=public_tags,
                         punishing_moderators=punishing_moderators,
                         appeal_url=appeal_url,
+
                         xp_system_active=xp_system_active,
+                        xp_multiplier=xp_multiplier,
+                        xp_exempt_roles=xp_exempt_roles,
+                        xp_exempt_channels=xp_exempt_channels,
                         stack_level_rewards=stack_level_rewards,
+
                         suggestion_system_active=suggestion_system_active,
                         suggestion_channel=suggestion_channel,
                         suggestion_threads_enabled=suggestion_threads_enabled

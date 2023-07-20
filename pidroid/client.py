@@ -73,6 +73,7 @@ class Pidroid(commands.Bot): # type: ignore
             'cogs.commands.info',
             'cogs.commands.levels',
             'cogs.commands.owner',
+            'cogs.commands.setting',
             'cogs.commands.sticker',
             'cogs.commands.suggestion',
             'cogs.commands.tags',
