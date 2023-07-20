@@ -180,7 +180,7 @@ class LevelingHandler(commands.Cog):
                 continue
 
             # Update every eligible user
-            logger.debug("Syncing guild member levels")
+            logger.debug(f"Syncing {guild} member levels")
             for member_information in await conf.fetch_all_member_levels():
                 # Obtain member object, if we can't do that
                 # then move onto the next member
