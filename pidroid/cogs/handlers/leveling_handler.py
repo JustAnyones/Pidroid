@@ -43,6 +43,8 @@ class UserBucket:
 
 def get_random_xp_amount(config: GuildConfiguration) -> int:
     """Returns a random amount of XP as derived from the config."""
+    if config.xp_multiplier == 0:
+        return 0
     xp_amount = random.randint(config.xp_per_message_min, config.xp_per_message_max)
     return math.floor(xp_amount * config.xp_multiplier)
 
