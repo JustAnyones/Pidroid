@@ -45,15 +45,16 @@ class LevelCommands(commands.Cog): # type: ignore
         return True
 
     @commands.hybrid_command( # type: ignore
-        name="rank",
+        name="level",
         brief="Displays the member level rank.",
         usage="[user/member]",
+        aliases=['rank'],
         category=LevelCategory
     )
     @app_commands.describe(member="Member or user you to view rank of.")
     @commands.guild_only()
     @commands.bot_has_guild_permissions(send_messages=True)
-    async def rank_command(
+    async def level_command(
         self,
         ctx: Context,
         member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
