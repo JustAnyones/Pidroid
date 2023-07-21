@@ -17,6 +17,7 @@ from pidroid.utils.time import datetime_to_duration
 
 GIVEAWAY_TIMEOUT = 180
 
+# TODO: refactor with discord's UI toolkit
 class GiveawayCommand(commands.Cog): # type: ignore
     """This class implements a cog with commands for dealing with giveaway creation."""
 

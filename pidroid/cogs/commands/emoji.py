@@ -4,15 +4,16 @@ from discord.emoji import Emoji
 from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext.commands.errors import BadArgument, MissingRequiredArgument, PartialEmojiConversionFailure # type: ignore
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from typing import Optional, Union, List
 
 from pidroid.client import Pidroid
+from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import UtilityCategory
 from pidroid.utils import http
-from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.utils.embeds import PidroidEmbed
 
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 
@@ -49,35 +50,42 @@ def get_emoji_name(emoji: Union[Emoji, PartialEmoji]) -> str:
 
 
 class EmojiCommands(commands.Cog): # type: ignore
-    """This class implements a cog for dealing with emoji related commands."""
+    """This class implements a cog for dealing with custom emojis."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
     @commands.command( # type: ignore
-        brief='Displays the image or the GIF file of the emoji.',
+        name="emoji",
+        brief='Displays the source image or the GIF of the specified custom emoji.',
         usage='<emoji>',
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def emoji(self, ctx: Context, *, emoji: Optional[PartialEmoji]):
-        if emoji is None:
-            raise BadArgument('Please specify a custom emoji you want to view!')
-
+    async def emoji_command(self, ctx: Context, emoji: PartialEmoji):
         embed = PidroidEmbed(title=get_emoji_name(emoji))
         embed.set_image(url=emoji.url)
         await ctx.reply(embed=embed)
 
+    @emoji_command.error
+    async def on_emoji_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "emoji":
+                return await notify(ctx, "Please specify a custom emoji you want to view.")
+        if isinstance(error, PartialEmojiConversionFailure):
+            return await notify(ctx, f'"{error.argument}" is not a valid custom emoji.')
+        setattr(error, 'unhandled', True)
+
     @commands.command( # type: ignore
-        name='clone-emoji',
+        name='copy-emoji',
         brief='Retrieves the first emoji from a referenced message and adds it to server custom emoji list.',
-        aliases=['steal-emoji', 'stealemoji', 'cloneemoji'],
+        aliases=['steal-emoji', 'clone-emoji'],
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True, manage_emojis=True) # type: ignore
     @commands.has_permissions(manage_emojis=True) # type: ignore
     @commands.guild_only() # type: ignore
-    async def steal_emoji(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
+    async def copy_emoji_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         assert ctx.guild is not None
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -91,7 +99,7 @@ class EmojiCommands(commands.Cog): # type: ignore
         elif 1 <= emoji_index <= emote_count:
             partial_emoji = emojis[emoji_index - 1]
         else:
-            raise BadArgument("Please select the correct index of the emoji you want to steal")
+            raise BadArgument("Please select the correct index of the emoji you want to copy.")
 
         # Get emoji picture
         async with await http.get(self.client, str(partial_emoji.url)) as r:
@@ -100,11 +108,11 @@ class EmojiCommands(commands.Cog): # type: ignore
         try:
             emoji: Emoji = await ctx.guild.create_custom_emoji(
                 name=partial_emoji.name, image=payload,
-                reason=f"Stolen by {ctx.author.name}#{ctx.author.discriminator}"
+                reason=f"Copied by {str(ctx.author)}"
             )
         except HTTPException as e:
             if e.code == 30008:
-                return await ctx.reply(embed=ErrorEmbed("The server emote list is full. I can't add more!"))
+                raise BadArgument("The server emote list is full. I can't add more!")
             raise e
         else:
             await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
@@ -112,11 +120,11 @@ class EmojiCommands(commands.Cog): # type: ignore
     @commands.command( # type: ignore
         name='get-emojis',
         brief='Retrieves all custom emojis from a referenced message.',
-        aliases=['getemojis', 'get-emoji', 'getemoji'],
+        aliases=['get-emoji'],
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def get_emojis(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
+    async def get_emojis_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
@@ -125,11 +133,11 @@ class EmojiCommands(commands.Cog): # type: ignore
 
         emote_count = len(emojis)
         if emote_count == 1:
-            await ctx.invoke(self.emoji, emoji=emojis[0])
+            await ctx.invoke(self.emoji_command, emoji=emojis[0])
             return
 
         if 1 <= emoji_index <= emote_count:
-            await ctx.invoke(self.emoji, emoji=emojis[emoji_index - 1])
+            await ctx.invoke(self.emoji_command, emoji=emojis[emoji_index - 1])
             return
 
         # TODO: look into pagination

@@ -22,12 +22,13 @@ class BotCommands(commands.Cog): # type: ignore
         self.client = client
 
     @commands.command( # type: ignore
-        brief='Returns ping of the bot and the Discord websocket.',
+        name="ping",
+        brief='Returns the ping of the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.cooldown(rate=1, per=1, type=commands.BucketType.user) # type: ignore
-    async def ping(self, ctx: Context):
+    async def ping_command(self, ctx: Context):
         msg: Message = await ctx.reply("**Pinging...**")
         client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
         api_ping = round(self.client.latency * 1000)
@@ -35,19 +36,21 @@ class BotCommands(commands.Cog): # type: ignore
         await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
 
     @commands.command( # type: ignore
-        brief='Returns invite link for the bot.',
+        name="invite",
+        brief='Returns an invite link for the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def invite(self, ctx: Context):
+    async def invite_command(self, ctx: Context):
         await ctx.reply('You can invite the bot to your server with the following url: https://ja.theotown.com/pidroid/invite')
 
     @commands.command( # type: ignore
+        name="info",
         brief='Returns general information about the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def info(self, ctx: Context, mode: Optional[str]):
+    async def info_command(self, ctx: Context, mode: Optional[str]):
         async with ctx.typing():
             # Fetch data from config file
             version = self.client.version

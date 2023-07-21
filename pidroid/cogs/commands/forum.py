@@ -7,6 +7,7 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.utils import format_dt
 
 from pidroid.client import Pidroid
+from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.accounts import ForumAccount
 from pidroid.models.categories import TheoTownCategory
 from pidroid.utils.decorators import command_checks
@@ -27,7 +28,7 @@ class ForumCommands(commands.Cog): # type: ignore
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def forum_user(self, ctx: Context, *, username: str):
+    async def forum_user_command(self, ctx: Context, username: str):
         async with ctx.typing():
             res = await self.client.api.get(Route(
                 "/private/forum/find_account",
@@ -55,6 +56,14 @@ class ForumCommands(commands.Cog): # type: ignore
             embed.set_thumbnail(url=account.avatar_url)
             await ctx.reply(embed=embed)
 
+    @forum_user_command.error
+    async def on_forum_user_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "username":
+                return await notify(ctx, "Please specify the username to view the information for.")
+        setattr(error, 'unhandled', True)
+
+    # TODO: refactor arguments
     @commands.command( # type: ignore
         name='forum-gift',
         brief='Gifts specified items to the specified user.',
@@ -123,7 +132,7 @@ class ForumCommands(commands.Cog): # type: ignore
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.is_theotown_developer()
-    async def forum_authorise(self, ctx: Context, *, user: str):
+    async def forum_authorise_command(self, ctx: Context, user: str):
         async with ctx.typing():
             res = await self.client.api.get(Route(
                 "/private/forum/activate_account",
@@ -133,6 +142,12 @@ class ForumCommands(commands.Cog): # type: ignore
                 return await ctx.reply(embed=SuccessEmbed(res['details']))
             raise BadArgument(res["details"])
 
+    @forum_authorise_command.error
+    async def on_forum_authorise_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "username":
+                return await notify(ctx, "Please specify the username of the user you are trying to authorize.")
+        setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(ForumCommands(client))

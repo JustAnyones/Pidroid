@@ -102,70 +102,71 @@ class AnimeCommands(commands.Cog): # type: ignore
         self.waifu_list_api = MyWaifuListAPI()
 
     @commands.command( # type: ignore
-        brief='Don\'t ask.',
+        name="yourebanned",
         category=RandomCategory,
         hidden=True
     )
     @commands.is_owner() # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    async def yourebanned(self, ctx: Context):
+    async def yourebanned_command(self, ctx: Context):
         async with ctx.typing():
             await ctx.reply(file=discord.File(Resource('you_were_banned.mp4')))
 
     @commands.group( # type: ignore
+        name="neko",
         category=RandomCategory,
         hidden=True,
         invoke_without_command=True
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko(self, ctx: Context):
+    async def neko_command(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             raise BadArgument((
                 "Invalid neko subcommand specified. "
                 "Please consult the help command."
             ))
 
-    @neko.command( # type: ignore
+    @neko_command.command( # type: ignore
         name='fact',
         brief='Tells a random fact as provided by the API.',
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko_fact(self, ctx: Context):
+    async def neko_fact_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/fact") as r:
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["fact"]))
 
-    @neko.command( # type: ignore
+    @neko_command.command( # type: ignore
         name='name',
         brief='Generates a random name from the API.',
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko_name(self, ctx: Context):
+    async def neko_name_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/name") as r:
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["name"]))
 
-    @neko.command( # type: ignore
+    @neko_command.command( # type: ignore
         name='why',
         brief='Questions that make you think as provided by the API.',
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko_why(self, ctx: Context):
+    async def neko_why_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/why") as r:
             data = await r.json()
         await ctx.reply(embed=SuccessEmbed(data["why"]))
 
-    @neko.command( # type: ignore
+    @neko_command.command( # type: ignore
         name='image',
         brief='Fetches an image for the specified type as provided by the API.',
         usage='[image type]',
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def neko_image(self, ctx: Context, endpoint: Optional[str]):
+    async def neko_image_command(self, ctx: Context, endpoint: Optional[str]):
         if endpoint is None:
             endpoint = random.choice(NEKO_ENDPOINTS) # nosec
 
@@ -188,13 +189,13 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def owo(self, ctx: Context, *, text: str):
+    async def owo_command(self, ctx: Context, *, text: str):
         owo = get_owo(text)
         if len(owo) > 4096:
             raise BadArgument('The text is too long!')
         await ctx.reply(embed=SuccessEmbed(owo))
 
-    @owo.error
+    @owo_command.error
     async def on_owo_error(self, ctx: Context, error):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "text":
@@ -251,7 +252,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def anime_media(self, ctx: Context, endpoint: Optional[str]):
+    async def anime_media_command(self, ctx: Context, endpoint: Optional[str]):
         if endpoint is None:
             endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
 
@@ -270,6 +271,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         await ctx.reply(embed=embed)
 
     @commands.command( # type: ignore
+        name="weeb",
         category=RandomCategory,
         hidden=True
     )
@@ -277,7 +279,7 @@ class AnimeCommands(commands.Cog): # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.guild, wait=True) # type: ignore
     @command_checks.is_theotown_guild()
     @commands.guild_only() # type: ignore
-    async def weeb(self, ctx: Context):
+    async def weeb_command(self, ctx: Context):
         for _ in range(7):
             await asyncio.sleep(random.randint(2, 5)) # nosec
             await ctx.send(f"<@{JESSE_ID}>, you asked for it")

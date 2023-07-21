@@ -130,12 +130,13 @@ class EconomyCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
-        load_command_cooldowns(self.beg, "beg.dill")
+        load_command_cooldowns(self.beg_command, "beg.dill")
 
     def cog_unload(self):
-        save_command_cooldowns(self.beg, "beg.dill")
+        save_command_cooldowns(self.beg_command, "beg.dill")
 
     @commands.command( # type: ignore
+        name="beg",
         brief='Beg Pidroid to print some money for you.',
         category=RandomCategory
     )
@@ -143,7 +144,7 @@ class EconomyCommands(commands.Cog): # type: ignore
     @command_checks.is_theotown_guild()
     @command_checks.client_is_pidroid()
     @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    async def beg(self, ctx: Context):
+    async def beg_command(self, ctx: Context):
         try:
             token = self.client.config['unbelievaboat_api_key']
             headers = {'Authorization': token}
@@ -168,7 +169,7 @@ class EconomyCommands(commands.Cog): # type: ignore
 
         await ctx.reply(random.choice(FAILED_BEGGING_RESPONSES)) # nosec
 
-    @beg.error
+    @beg_command.error
     async def on_beg_command_error(self, ctx: Context, error):
         if isinstance(error, commands.CommandOnCooldown): # type: ignore
             return await ctx.reply(
