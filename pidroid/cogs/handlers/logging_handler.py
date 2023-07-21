@@ -14,7 +14,7 @@ from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateD
 logger = logging.getLogger('Pidroid')
 
 class AuditLogDiffWrapper:
-    def __init__(self, diff: AuditLogDiff, log: bool = True) -> None:
+    def __init__(self, diff: AuditLogDiff, *, log: bool = False) -> None:
         self.__dict = diff.__dict__
         self.__logging_on = log
 
@@ -110,7 +110,7 @@ class LoggingHandler(commands.Cog):
         - type
         - overwrites
         """
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         data = ChannelCreateData(
             guild=entry.guild, user=entry.user,
@@ -139,7 +139,7 @@ class LoggingHandler(commands.Cog):
         - nsfw
         - slowmode_delay
         """
-        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         data = ChannelDeleteData(
             guild=entry.guild, user=entry.user,
@@ -180,8 +180,8 @@ class LoggingHandler(commands.Cog):
         - slowmode_delay
         - user_limit
         """
-        diff_before = AuditLogDiffWrapper(entry.before)
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         before = _ChannelData(
             name=diff_before.name,
@@ -237,7 +237,7 @@ class LoggingHandler(commands.Cog):
         """
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         assert isinstance(entry.extra, (Role, Member, Object))
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         data = OverwriteCreateData(
             guild=entry.guild, user=entry.user,
             channel=entry.target, role_or_user=entry.extra,
@@ -265,7 +265,7 @@ class LoggingHandler(commands.Cog):
         """
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         assert isinstance(entry.extra, (Role, Member, Object))
-        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
         data = OverwriteDeleteData(
             guild=entry.guild, user=entry.user,
             channel=entry.target, role_or_user=entry.extra,
@@ -293,8 +293,8 @@ class LoggingHandler(commands.Cog):
         """
         assert isinstance(entry.target, (abc.GuildChannel, Object))
         assert isinstance(entry.extra, (Role, Member, Object))
-        diff_before = AuditLogDiffWrapper(entry.before)
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         before = _OverwriteData(
             id=diff_before.id, type=diff_before.type,
             deny=diff_before.deny, allow=diff_before.allow
@@ -327,7 +327,7 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         data = RoleCreateData(
             guild=entry.guild,
             user=entry.user, role=entry.target, reason=entry.reason,
@@ -355,7 +355,7 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
-        diff_before = AuditLogDiffWrapper(entry.before)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
         data = RoleDeleteData(
             guild=entry.guild,
             user=entry.user, role=entry.target, reason=entry.reason,
@@ -390,8 +390,8 @@ class LoggingHandler(commands.Cog):
         - permissions
         """
         assert isinstance(entry.target, (Role, Object))
-        diff_before = AuditLogDiffWrapper(entry.before)
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         before = _RoleUpdateData(
             colour=diff_before.colour, mentionable=diff_before.mentionable,
             hoist=diff_before.hoist, icon=diff_before.icon,
@@ -428,8 +428,8 @@ class LoggingHandler(commands.Cog):
         - timed_out_until
         """
         assert isinstance(entry.target, (Member, User, Object))
-        diff_before = AuditLogDiffWrapper(entry.before)
-        diff_after = AuditLogDiffWrapper(entry.after)
+        diff_before = AuditLogDiffWrapper(entry.before, log=True)
+        diff_after = AuditLogDiffWrapper(entry.after, log=True)
         before = _MemberUpdateData(nick=diff_before.nick, mute=diff_before.mute, deaf=diff_before.deaf, timed_out_until=diff_before.timed_out_until)
         after = _MemberUpdateData(nick=diff_after.nick, mute=diff_after.mute, deaf=diff_after.deaf, timed_out_until=diff_after.timed_out_until)
         data = MemberUpdateData(
