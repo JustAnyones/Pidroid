@@ -4,7 +4,7 @@ import pytz # type: ignore
 
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import MissingRequiredArgument
+from discord.ext.commands.errors import MissingRequiredArgument, BadUnionArgument, UserNotFound
 from discord.embeds import Embed
 from discord.member import Member
 from discord.role import Role
@@ -30,70 +30,88 @@ class InfoCommands(commands.Cog): # type: ignore
 
     @commands.command( # type: ignore
         name='profile-avatar',
-        brief='Displays the real profile picture of a specified member.',
-        usage='[member]',
+        brief='Displays the real profile picture of a user.',
+        usage='[user]',
         category=InformationCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def profile_avatar(
+    async def profile_avatar_command(
         self,
         ctx: Context,
-        member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
-        member = member or ctx.author
-        embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
-        if isinstance(member, discord.User):
-            embed.set_image(url=member.display_avatar.with_size(4096).url) # type: ignore
+        user = user or ctx.author
+        embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
+        if isinstance(user, discord.User):
+            embed.set_image(url=user.display_avatar.with_size(4096).url) # type: ignore
         else:
-            embed.set_image(url=member._user.display_avatar.with_size(4096).url) # type: ignore
+            embed.set_image(url=user._user.display_avatar.with_size(4096).url) # type: ignore
         await ctx.reply(embed=embed)
+
+    @profile_avatar_command.error
+    async def on_profile_avatar_command_error(self, ctx: Context, error):
+        if isinstance(error, BadUnionArgument):
+            if error.param.name == "user":
+                for _err in error.errors:
+                    if isinstance(_err, UserNotFound):
+                        return await notify(ctx, str(_err))
+        setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
         name='avatar',
-        brief='Displays the server profile picture of a specified member.',
-        usage='[member]',
+        brief='Displays the server profile picture of a user.',
+        usage='[user]',
         aliases=['server-avatar'],
         category=InformationCategory
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def server_avatar(
+    async def server_avatar_command(
         self,
         ctx: Context,
-        member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
-        member = member or ctx.author
-        embed = PidroidEmbed(title=f'{escape_markdown(member.name)}\'s avatar')
-        embed.set_image(url=member.display_avatar.with_size(4096).url) # type: ignore
+        user = user or ctx.author
+        embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
+        embed.set_image(url=user.display_avatar.with_size(4096).url) # type: ignore
         await ctx.reply(embed=embed)
+
+    @server_avatar_command.error
+    async def on_server_avatar_command_error(self, ctx: Context, error):
+        if isinstance(error, BadUnionArgument):
+            if error.param.name == "user":
+                for _err in error.errors:
+                    if isinstance(_err, UserNotFound):
+                        return await notify(ctx, str(_err))
+        setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
         name='user-info',
-        brief='Displays the user information of a specified member.',
-        usage='[member]',
+        brief='Displays the user information.',
+        usage='[user]',
         aliases=['ui', 'user', 'userinfo'],
         category=InformationCategory
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def user_info(
+    async def user_info_command(
         self,
         ctx: Context,
-        member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
-        member = member or ctx.author
+        user = user or ctx.author
 
-        embed = PidroidEmbed(description=member.mention)
-        embed.set_author(name=f'{member.name}#{member.discriminator}', icon_url=member.display_avatar.url)
-        embed.add_field(name='Username', value=f'{escape_markdown(member.name)}#{member.discriminator}')
-        embed.add_field(name='ID', value=member.id)
-        embed.add_field(name='Registered', value=format_dt(member.created_at), inline=False)
+        embed = PidroidEmbed(description=user.mention)
+        embed.set_author(name=f'{user.name}#{user.discriminator}', icon_url=user.display_avatar.url)
+        embed.add_field(name='Username', value=f'{escape_markdown(user.name)}#{user.discriminator}')
+        embed.add_field(name='ID', value=user.id)
+        embed.add_field(name='Registered', value=format_dt(user.created_at), inline=False)
 
-        if isinstance(member, Member):
+        if isinstance(user, Member):
 
             assert ctx.guild is not None
 
-            role_list = [role.mention for role in reversed(member.roles) if role.name != "@everyone"]
+            role_list = [role.mention for role in reversed(user.roles) if role.name != "@everyone"]
 
             # List roles
             role_count = len(role_list)
@@ -102,32 +120,41 @@ class InfoCommands(commands.Cog): # type: ignore
                 roles = 'None'
 
             # Get server member bot acknowledgement
-            if member.id == ctx.guild.owner_id:
+            if user.id == ctx.guild.owner_id:
                 acknowledgement = 'Server Owner'
-            elif is_guild_administrator(member):
+            elif is_guild_administrator(user):
                 acknowledgement = 'Server Administrator'
-            elif is_guild_moderator(member):
+            elif is_guild_moderator(user):
                 acknowledgement = 'Server Moderator'
             else:
                 acknowledgement = 'Server Member'
 
             # Get member permissions
-            permissions = [permission[0] for permission in member.guild_permissions if permission[1]]
+            permissions = [permission[0] for permission in user.guild_permissions if permission[1]]
             for i, permission in enumerate(permissions):
                 permissions[i] = normalize_permission_name(permission)
 
-            if member.joined_at is not None:
-                embed.add_field(name='Joined', value=format_dt(member.joined_at), inline=False)
+            if user.joined_at is not None:
+                embed.add_field(name='Joined', value=format_dt(user.joined_at), inline=False)
             embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
             # Obtain join position, if possible
-            if member.joined_at is not None:
-                pos = sum(m.joined_at < member.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
+            if user.joined_at is not None:
+                pos = sum(m.joined_at < user.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
                 embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
             embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
 
-        embed.set_thumbnail(url=member.display_avatar.with_size(4096).url) # type: ignore
+        embed.set_thumbnail(url=user.display_avatar.with_size(4096).url) # type: ignore
         await ctx.reply(embed=embed)
+
+    @user_info_command.error
+    async def on_user_info_command_error(self, ctx: Context, error):
+        if isinstance(error, BadUnionArgument):
+            if error.param.name == "user":
+                for _err in error.errors:
+                    if isinstance(_err, UserNotFound):
+                        return await notify(ctx, str(_err))
+        setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
         name='server-info',
@@ -137,7 +164,7 @@ class InfoCommands(commands.Cog): # type: ignore
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def server_info(self, ctx: Context):
+    async def server_info_command(self, ctx: Context):
         assert ctx.guild is not None
         guild = ctx.guild
         embed = PidroidEmbed(timestamp=guild.created_at)
@@ -163,7 +190,7 @@ class InfoCommands(commands.Cog): # type: ignore
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def role_info(self, ctx: Context, role: Role):
+    async def role_info_command(self, ctx: Context, role: Role):
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         if role.icon:
             embed.set_thumbnail(url=role.icon.with_size(4096).url) # type: ignore
@@ -175,11 +202,11 @@ class InfoCommands(commands.Cog): # type: ignore
         embed.set_footer(text="Role created")
         await ctx.reply(embed=embed)
 
-    @role_info.error
+    @role_info_command.error
     async def on_role_info_command_error(self, ctx: Context, error):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "role":
-                return await notify(ctx, "Please specify the role to view the information for")
+                return await notify(ctx, "Please specify the role to view the information for.")
         setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
