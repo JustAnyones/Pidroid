@@ -13,7 +13,14 @@ class PersistentSuggestionDeletionView(discord.ui.View):
     async def delete_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.message is None:
             return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
+        
+        channel = interaction.message.channel
+        assert isinstance(channel, discord.TextChannel)
+
+        thread = channel.get_thread(interaction.message.id) # the thread starter message ID is the same ID as the thread
         await interaction.message.delete(delay=0)
+        if thread:
+            await thread.delete()
         await interaction.response.defer()
         
 
@@ -27,5 +34,5 @@ class PersistentSuggestionDeletionView(discord.ui.View):
         JustAnyone, in this case."""
         if interaction.user and interaction.user.id == JUSTANYONE_ID:
             return True
-        await interaction.response.send_message('This menu cannot be controlled by you!', ephemeral=True)
+        await interaction.response.send_message("You are not authorized to remove the suggestions here.", ephemeral=True)
         return False
