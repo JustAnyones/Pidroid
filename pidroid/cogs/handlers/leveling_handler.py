@@ -6,7 +6,7 @@ import logging
 import math
 import random
 
-from discord import Member, Message, Role, User, Object
+from discord import Guild, Member, Message, Role, User, Object
 from discord.abc import Snowflake
 from discord.ext import commands, tasks
 from typing import TYPE_CHECKING, Dict, List
@@ -149,6 +149,61 @@ class LevelingHandler(commands.Cog):
         await self.client.wait_until_guild_configurations_loaded()
         await self.__startup_sync_finished.wait()
 
+    async def _sync_guild_state(self, guild: Guild, reason: str) -> None:
+        """An expensive method that syncs guild level reward state."""
+        logger.debug(f"Syncing {guild} level rewards")
+        # Acquire guild information
+        conf = await self.client.fetch_guild_configuration(guild.id)
+
+        all_level_rewards = await conf.fetch_all_level_rewards()
+
+        # Remove rewards for roles that no longer exist
+        guild_role_ids = [role.id for role in guild.roles]
+        for reward in all_level_rewards:
+            if reward.role_id not in guild_role_ids:
+                logger.debug(f'Removing {reward.role_id} as a level reward for {guild} since role no longer exists')
+                await reward.delete()
+
+        # If leveling system is not active, we do not need to update member role states
+        # for rewards
+        if not conf.xp_system_active:
+            return
+
+        # Update every eligible user
+        logger.debug(f"Syncing {guild} member levels")
+        for member_information in await conf.fetch_all_member_levels():
+            # Obtain member object, if we can't do that
+            # then move onto the next member
+
+            if self.client.debugging:
+                logger.debug(f"Fetching member information for {member_information.user_id}")
+
+            member = guild.get_member(member_information.user_id)
+            if member is None:
+                continue
+                
+            # Acquire all rewards that the user is eligible for
+            rewards = await member_information.fetch_eligible_level_rewards()
+
+            # If member has no eligible rewards, move onto the next member
+            if len(rewards) == 0:
+                continue
+                
+            # If to stack rewards, add all of them
+            if conf.level_rewards_stacked:
+                for reward in rewards:
+                    await self.queue_add(member, reward.role_id, reason)
+                
+            # If only a single role should be given
+            else:
+                # the first item in the list is always the topmost role
+                await self.queue_add(member, rewards[0].role_id, reason)
+                # remove all other roles
+                amount_to_remove = len(rewards) - 1
+                if amount_to_remove > 0:
+                    for reward in rewards[1:]:
+                        await self.queue_remove(member, reward.role_id, reason, bypass_cache=False)
+
     @commands.Cog.listener() # type: ignore
     async def on_ready(self) -> None:
         """
@@ -161,58 +216,7 @@ class LevelingHandler(commands.Cog):
         await self.client.wait_until_guild_configurations_loaded()
         logger.debug("Syncing level reward state")
         for guild in self.client.guilds:
-            logger.debug(f"Syncing {guild} level rewards")
-            # Acquire guild information
-            conf = await self.client.fetch_guild_configuration(guild.id)
-
-            all_level_rewards = await conf.fetch_all_level_rewards()
-
-            # Remove rewards for roles that no longer exist
-            guild_role_ids = [role.id for role in guild.roles]
-            for reward in all_level_rewards:
-                if reward.role_id not in guild_role_ids:
-                    logger.debug(f'Removing {reward.role_id} as a level reward for {guild} since role no longer exists')
-                    await reward.delete()
-
-            # If leveling system is not active, we do not need to update member role states
-            # for rewards
-            if not conf.xp_system_active:
-                continue
-
-            # Update every eligible user
-            logger.debug(f"Syncing {guild} member levels")
-            for member_information in await conf.fetch_all_member_levels():
-                # Obtain member object, if we can't do that
-                # then move onto the next member
-
-                if self.client.debugging:
-                    logger.debug(f"Fetching member information for {member_information.user_id}")
-
-                member = guild.get_member(member_information.user_id)
-                if member is None:
-                    continue
-                
-                # Acquire all rewards that the user is eligible for
-                rewards = await member_information.fetch_eligible_level_rewards()
-
-                # If member has no eligible rewards, move onto the next member
-                if len(rewards) == 0:
-                    continue
-                
-                # If to stack rewards, add all of them
-                if conf.level_rewards_stacked:
-                    for reward in rewards:
-                        await self.queue_add(member, reward.role_id, "Start-up role reward state sync")
-                
-                # If only a single role should be given
-                else:
-                    # the first item in the list is always the topmost role
-                    await self.queue_add(member, rewards[0].role_id, "Start-up role reward state sync")
-                    # remove all other roles
-                    amount_to_remove = len(rewards) - 1
-                    if amount_to_remove > 0:
-                        for reward in rewards[1:]:
-                            await self.queue_remove(member, reward.role_id, "Start-up role reward state sync", bypass_cache=False)
+            await self._sync_guild_state(guild, "Start-up role reward state sync")
         logger.debug("Level reward state synced")
         self.__startup_sync_finished.set()
 
@@ -397,6 +401,11 @@ class LevelingHandler(commands.Cog):
                 if le:
                     # We add member to the role
                     await self.queue_add(member, le.role_id, "Next role due to role reward removal")
+
+    async def on_pidroid_level_stacking_change(self, guild: Guild):
+        """Called when there's a level stacking setting changed."""
+        logger.debug(f"Level stacking setting was changed for {guild}")
+        await self._sync_guild_state(guild, "Level stacking setting change")
 
 
 async def setup(client: Pidroid) -> None:

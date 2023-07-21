@@ -242,6 +242,7 @@ class GuildConfiguration:
         """Toggles level reward stacking."""
         self.__stack_level_rewards = not self.__stack_level_rewards
         await self._update()
+        self.api.client.dispatch("pidroid_level_stacking_change", self.guild)
 
     """Logging system related"""
     
