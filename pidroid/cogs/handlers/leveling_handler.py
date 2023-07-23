@@ -288,7 +288,10 @@ class LevelingHandler(commands.Cog):
     @commands.Cog.listener()
     async def on_pidroid_level_up(self, member: Member, message: Message, info_before: MemberLevelInfo, info_after: MemberLevelInfo):
         """Called when a member levels up."""
-        logger.debug(f'{member} just leveled up to {info_after.current_level} level in {info_after.guild_id} guild!')
+        assert message.guild
+        logger.debug(
+            f'{member} just leveled up to {info_after.current_level} level in {message.guild} ({message.guild.id}) guild!'
+        )
 
         rewards = await info_after.fetch_eligible_level_rewards()
         config = await self.client.fetch_guild_configuration(info_after.guild_id)
