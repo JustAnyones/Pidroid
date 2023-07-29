@@ -67,6 +67,8 @@ After setting up the database, you will need to do the database table creation a
 alembic upgrade head
 ```
 
+You might have to provide the postgres DSN as an environment variable as stated in the [manual](#configuration).
+
 Lastly, all you have to do is run the bot. You can do so by running this command:
 
 ```shell
@@ -105,32 +107,30 @@ This is done to be compatible with Docker containers.
 
 ```ini
 # Comma separated list of prefixes Pidroid will use by default
-PREFIXES=
+PREFIXES=P,TT
 # Discord bot token
 TOKEN=
 
-# DEPRECATED, a postgres DSN string, usually used for connecting to services outside
+# DEPRECATED: a postgres DSN string, usually used for connecting to services outside
 # of a docker container.
 # If you are running Pidroid in a docker container, DO NOT SET THIS VARIABLE
 POSTGRES_DSN=
 
 # Pidroid user postgres credentials
 # This is the default configuration for pidroid database
-# on a docker container.
+# on a docker container. If postgres DSN is not set, DSN will be constructed from here.
 DB_USER=pidroid
 DB_PASSWORD=supersecretpassword
 DB_NAME=pidroid
 DB_HOST=db
 
-# Github token for making issues on TT repo, optional
-GITHUB_TOKEN=
-# TheoTown API key to interact with backend TheoTown API
+# Optional: TheoTown API key to interact with backend TheoTown API
 TT_API_KEY=
-# DeepL API key used for translations
+# Optional: DeepL API key used for translations in TheoTown guild
 DEEPL_API_KEY=
-# Unbelievaboat API key for economy integration in TT server
+# Optional: Unbelievaboat API key for economy integration in TheoTown guild
 UNBELIEVABOAT_API_KEY=
-# Tenor API key for gifs
+# Optional: Tenor API key for gif command
 TENOR_API_KEY=
 ```
 

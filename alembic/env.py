@@ -9,24 +9,7 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import AsyncEngine
 
 from alembic import context
-
-def get_postgres_dsn() -> str:
-    postgres_dsn = os.environ.get("POSTGRES_DSN", None)
-    if postgres_dsn is None:
-        print("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
-        
-        user = os.environ.get("DB_USER", None)
-        password = os.environ.get("DB_PASSWORD", None)
-        host = os.environ.get("DB_HOST", "127.0.0.1")
-        
-        if user is None or password is None:
-            print((
-                "Unable to create a postgres DSN string. "
-                "DB_USER or DB_PASSWORD environment variable is missing."
-            ))
-            exit()
-        postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
-    return postgres_dsn
+from pidroid.main import get_postgres_dsn
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
