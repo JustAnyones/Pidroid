@@ -1,6 +1,7 @@
 from discord import app_commands
 from discord.ext import commands
 from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands.errors import BadArgument
 from discord.member import Member
 from discord.user import User
 from typing import Optional, Union
@@ -100,7 +101,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
             raise GeneralCommandError(error_msg)
 
         pages = PidroidPages(
-            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, True),
+            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, compact=True),
             ctx=ctx
         )
         await pages.start()
@@ -132,7 +133,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
             raise GeneralCommandError(error_msg)
 
         pages = PidroidPages(
-            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, True),
+            source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, compact=True),
             ctx=ctx
         )
         await pages.start()
@@ -198,6 +199,39 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         embed.add_field(name='Server total', value=f"{data['guild_total']:,}")
         await ctx.reply(embed=embed)
 
+
+    @commands.hybrid_command(
+        name="search-cases",
+        brief="Returns user IDs of users who have previously been punished in the server by the specified username.",
+        usage="<username>",
+        category=ModerationCategory
+    )
+    @app_commands.describe(username="Username of the user that was previously punished.")
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @command_checks.is_junior_moderator(kick_members=True)
+    @commands.guild_only() # type: ignore
+    async def search_cases_command(
+        self,
+        ctx: Context,
+        username: str
+    ):
+        assert ctx.guild is not None
+
+        if len(username) < 2:
+            raise BadArgument("Username is too short to search. Make sure it's at least 2 characters long.")
+        
+        cases = await self.client.api._fetch_cases_by_username(ctx.guild.id, username)
+        if len(cases) == 0:
+            raise BadArgument("I could not find any cases that had the specified user as punished.")
+
+        pages = PidroidPages(
+            source=CasePaginator(
+                f"Displaying cases matching '{username}' username", cases,
+                include_original_user_name=True, compact=True
+            ),
+            ctx=ctx
+        )
+        await pages.start()
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorInfoCommands(client))

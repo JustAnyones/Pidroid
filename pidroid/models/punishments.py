@@ -119,6 +119,11 @@ class Case:
         return self.__user
 
     @property
+    def user_id(self) -> int:
+        """Returns the ID of the punished user."""
+        return self.__user_id
+
+    @property
     def clean_reason(self) -> str:
         """Returns reason as string since there are cases where reason is unavailable."""
         return self.__reason or "None"
