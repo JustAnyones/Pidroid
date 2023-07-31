@@ -13,7 +13,7 @@ from discord.user import User
 from discord.embeds import Embed
 from discord.emoji import Emoji
 from discord.errors import NotFound
-from discord.ext.commands.errors import BadArgument, MissingPermissions, MissingRequiredArgument # type: ignore
+from discord.ext.commands.errors import BadArgument, MissingPermissions, MissingRequiredArgument, BadUnionArgument, UserNotFound
 from discord.member import Member
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
@@ -905,8 +905,13 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "user":
                 return await notify(ctx, "Please specify the member or the user you are trying to punish!")
-        setattr(error, 'unhandled', True)
 
+        if isinstance(error, BadUnionArgument):
+            if error.param.name == "user":
+                for _err in error.errors:
+                    if isinstance(_err, UserNotFound):
+                        return await notify(ctx, str(_err))
+        setattr(error, 'unhandled', True)
 
     @commands.hybrid_command( # type: ignore
         name="suspend",

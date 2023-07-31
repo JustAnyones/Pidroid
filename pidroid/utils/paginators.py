@@ -369,26 +369,53 @@ class PluginListPaginator(ListPageSource):
 
 
 class CasePaginator(ListPageSource):
-    def __init__(self, paginator_title: str, cases: List[Case], compact: bool = False):
-        super().__init__(cases, per_page=8)
-        self.compact = compact
+    def __init__(
+        self,
+        paginator_title: str,
+        cases: List[Case],
+        *,
+        per_page: int = 8,
+        compact: bool = False,
+        include_original_user_name: bool = False
+    ):
+        super().__init__(cases, per_page=per_page)
         self.embed = PidroidEmbed(title=paginator_title)
+        self.__compact = compact
+        self.__include_original_user_name = include_original_user_name
+
+    def _get_field_name(self, case: Case) -> str:
+        """"Returns the embed field name for the specified case."""
+        if self.__compact:
+            return f"#{case.case_id} issued by {case.moderator_name}"
+        return f"Case #{case.case_id}: {case.type.value}"
+
+    def _get_field_value(self, case: Case) -> str:
+        """"Returns the embed field value for the specified case."""
+        if self.__compact:
+            if self.__include_original_user_name:
+                return f"\"{case.clean_reason}\" issued to {case.user_name} ({case.user_id}) on {format_dt(case.date_issued)}"
+            return f"\"{case.clean_reason}\" issued on {format_dt(case.date_issued)}"
+        
+        if self.__include_original_user_name:
+            return (
+                f"**Issued to:** {case.user_name} ({case.user_id})\n"
+                f"**Issued by:** {case.moderator_name}\n"
+                f"**Issued on:** {format_dt(case.date_issued)}\n"
+                f"**Reason:** {case.clean_reason.capitalize()}"
+            )
+        return (
+            f"**Issued by:** {case.moderator_name}\n"
+            f"**Issued on:** {format_dt(case.date_issued)}\n"
+            f"**Reason:** {case.clean_reason.capitalize()}"
+        )
 
     async def format_page(self, _: PidroidPages, cases: List[Case]) -> discord.Embed:
         self.embed.clear_fields()
         for case in cases:
-            if self.compact:
-                name = f"#{case.case_id} issued by {case.moderator_name}"
-                value = f"\"{case.clean_reason}\" issued on {format_dt(case.date_issued)}"
-            else:
-                name = f"Case #{case.case_id}: {case.type.value}"
-                value = (
-                    f"**Issued by:** {case.moderator_name}\n"
-                    f"**Issued on:** {format_dt(case.date_issued)}\n"
-                    f"**Reason:** {case.clean_reason.capitalize()}"
-                )
-            self.embed.add_field(name=name, value=value, inline=False)
-        
+            self.embed.add_field(
+                name=self._get_field_name(case), value=self._get_field_value(case), inline=False
+            )
+
         entry_count = len(self.entries)
         if entry_count == 1:
             self.embed.set_footer(text=f'{entry_count} entry')

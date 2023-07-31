@@ -51,6 +51,8 @@ def load_env_from_file(path: str) -> None:
 
 def get_postgres_dsn() -> str:
     postgres_dsn = os.environ.get("POSTGRES_DSN", None)
+    if postgres_dsn == '':
+        postgres_dsn = None
     if postgres_dsn is None:
         logger.debug("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
         
@@ -94,13 +96,7 @@ def config_from_env() -> dict:
         "tt_api_key": os.environ.get("TT_API_KEY"),
         "deepl_api_key": os.environ.get("DEEPL_API_KEY"),
         "tenor_api_key": os.environ.get("TENOR_API_KEY"),
-        "unbelievaboat_api_key": os.environ.get("UNBELIEVABOAT_API_KEY"),
-        "github_token": os.environ.get("GITHUB_TOKEN"),
-
-        "reddit_client_id": os.environ.get("REDDIT_CLIENT_ID"),
-        "reddit_client_secret": os.environ.get("REDDIT_CLIENT_SECRET"),
-        "reddit_username": os.environ.get("REDDIT_USERNAME"),
-        "reddit_password": os.environ.get("REDDIT_PASSWORD"),
+        "unbelievaboat_api_key": os.environ.get("UNBELIEVABOAT_API_KEY")
     }
 
 async def main():  # noqa: C901

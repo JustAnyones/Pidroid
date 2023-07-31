@@ -519,6 +519,26 @@ class API:
             await c._from_table(r[0])
             case_list.append(c)
         return case_list
+    
+    async def _fetch_cases_by_username(self, guild_id: int, username: str) -> List[Case]:
+        """Returns all cases in the guild where original username at punishment time matches the provided username."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            result = await session.execute(
+                select(PunishmentTable).
+                filter(
+                    PunishmentTable.guild_id == guild_id,
+                    PunishmentTable.user_name.ilike(f'%{username}%'),
+                    PunishmentTable.visible == True
+                ).
+                order_by(PunishmentTable.user_name.asc())
+            )
+        case_list = []
+        for r in result.fetchall():
+            c = Case(self)
+            await c._from_table(r[0])
+            case_list.append(c)
+        return case_list
 
     async def update_case_by_internal_id(
         self,

@@ -5,7 +5,7 @@ FROM python:3.9.16-slim-bullseye
 
 # Install the required packages
 RUN apt-get update
-RUN apt-get upgrade
+RUN apt-get upgrade -y
 RUN apt-get install -y ffmpeg
 
 # Create Pidroid user account
