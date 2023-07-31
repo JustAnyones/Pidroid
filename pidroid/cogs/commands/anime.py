@@ -184,6 +184,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         )
 
     @commands.command( # type: ignore
+        name="owo",
         brief='Returns the original input text, but in owo format.',
         usage='<text to be converted>',
         category=RandomCategory
