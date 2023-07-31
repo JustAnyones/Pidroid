@@ -1,14 +1,17 @@
 from __future__ import annotations
 
+import random
+
 from discord import Guild, Member, User, app_commands, Role
 from discord.utils import escape_markdown
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext.commands.errors import BadArgument, BadUnionArgument, MemberNotFound, MissingRequiredArgument # type: ignore
 from typing import List, Optional, Union
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
+from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import LevelCategory
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.levels import MemberLevelInfo
@@ -76,13 +79,34 @@ class LevelCommands(commands.Cog): # type: ignore
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
         dashes = 10
         current_dashes = int(info.current_xp / int(info.xp_to_level_up / dashes))
-        current_prog = '🟦' * current_dashes
+
+        character = [
+            ":blue_square:",
+            ":brown_square:",
+            ":green_square:",
+            ":orange_square:",
+            ":purple_square:",
+            ":red_square:",
+            ":white_large_square:",
+            ":yellow_square:"
+        ]
+
+        current_prog = f'{random.choice(character)}' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
 
         embed.add_field(name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)', value=f"{current_prog}{remaining_prog}", inline=False)
 
         await ctx.reply(embed=embed)
         
+    @level_command.error
+    async def on_level_command_error(self, ctx: Context, error):
+        if isinstance(error, BadUnionArgument):
+            if error.param.name == "member":
+                for _err in error.errors:
+                    if isinstance(_err, MemberNotFound):
+                        return await notify(ctx, str(_err))
+        setattr(error, 'unhandled', True)
+
     @commands.hybrid_command( # type: ignore
         name='leaderboard',
         brief='Returns the server level leaderboard.',
@@ -154,6 +178,15 @@ class LevelCommands(commands.Cog): # type: ignore
             'Role reward added successfully! Please note that it will take some time for changes to take effect.'
         ))
 
+    @rewards_add_command.error
+    async def on_rewards_add_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "role":
+                return await notify(ctx, "Please specify the role.")
+            if error.param.name == "level":
+                return await notify(ctx, "Please specify the level.")
+        setattr(error, 'unhandled', True)
+
     @rewards_command.command( # type: ignore
         name='remove',
         brief='Removes the specified role as a level reward.',
@@ -175,10 +208,12 @@ class LevelCommands(commands.Cog): # type: ignore
             'Role reward removed successfully! Please note that it will take some time for changes to take effect.'
         ))
 
-    # TODO: add exempt role command
-    # TODO: add exempt channel command
-    # TODO: remove exempt role command
-    # TODO: remove exempt channel command
+    @rewards_remove_command.error
+    async def on_rewards_remove_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "role":
+                return await notify(ctx, "Please specify the role.")
+        setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(LevelCommands(client))
