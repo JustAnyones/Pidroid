@@ -420,7 +420,12 @@ class Ban(BasePunishment):
 
     async def issue(self) -> Case:
         """Bans the user and creates new database entry."""
-        await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
+        self._api.client.dispatch("pidroid_ban_issue_start", self)
+        try:
+            await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
+        except Exception as e:
+            self._api.client.dispatch("pidroid_ban_issue_fail", self)
+            raise e
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_ban_issue", self)
         return self.case
@@ -476,7 +481,12 @@ class Kick(BasePunishment):
         return await self._create_case_record()
 
     async def issue(self) -> Case:
-        await self.user.kick(reason=self.audit_log_issue_reason)
+        self._api.client.dispatch("pidroid_kick_issue_start", self)
+        try:
+            await self.user.kick(reason=self.audit_log_issue_reason)
+        except Exception as e:
+            self._api.client.dispatch("pidroid_kick_issue_fail", self)
+            raise e
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_kick_issue", self)
         return self.case
