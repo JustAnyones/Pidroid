@@ -32,13 +32,7 @@ NEKO_ENDPOINTS = [
 
     # GIFs
     'slap', 'pat', 'feed', 'cuddle', 'hug',
-    'tickle', 'smug', 'kiss', 'spank',
-
-    # Questionable, better to exclude
-    # 'gasm', 'lewd',
-
-    # NSFW as conducted per research
-    # 'ngif'
+    'tickle', 'smug', 'kiss',
 ]
 
 WAIFU_PICS_API = "https://api.waifu.pics/sfw"
