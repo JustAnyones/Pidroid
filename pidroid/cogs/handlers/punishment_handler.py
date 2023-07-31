@@ -6,6 +6,7 @@ from typing import Union
 
 from pidroid.client import Pidroid
 from pidroid.models.punishments import PunishmentType, Ban, Warning, Jail, Kick, Timeout
+from pidroid.utils import try_message_user
 
 class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""
@@ -84,20 +85,14 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     """Listen to Pidroid punishment creations and send notifications."""
 
-    async def _message_user(self, user: Union[discord.Member, discord.User], embed: discord.Embed):
-        try:
-            await user.send(embed=embed)
-        except Exception: # nosec
-            pass
-
     # Listeners
     @commands.Cog.listener()
     async def on_pidroid_ban_issue(self, ban: Ban):
-        await self._message_user(ban.user, ban.private_message_issue_embed)
+        pass
 
     @commands.Cog.listener()
     async def on_pidroid_ban_revoke(self, ban: Ban):
-        await self._message_user(ban.user, ban.private_message_revoke_embed)
+        await try_message_user(ban.user, ban.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_ban_expire(self, ban: Ban):
@@ -106,23 +101,23 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     @commands.Cog.listener()
     async def on_pidroid_kick_issue(self, kick: Kick):
-        await self._message_user(kick.user, kick.private_message_issue_embed)
+        pass
 
     @commands.Cog.listener()
     async def on_pidroid_jail_issue(self, jail: Jail):
-        await self._message_user(jail.user, jail.private_message_issue_embed)
+        await try_message_user(jail.user, jail.private_message_issue_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_jail_revoke(self, jail: Jail):
-        await self._message_user(jail.user, jail.private_message_revoke_embed)
+        await try_message_user(jail.user, jail.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_issue(self, timeout: Timeout):
-        await self._message_user(timeout.user, timeout.private_message_issue_embed)
+        await try_message_user(timeout.user, timeout.private_message_issue_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_revoke(self, timeout: Timeout):
-        await self._message_user(timeout.user, timeout.private_message_revoke_embed)
+        await try_message_user(timeout.user, timeout.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_expire(self, timeout: Timeout):
@@ -131,7 +126,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     @commands.Cog.listener()
     async def on_pidroid_warning_issue(self, warning: Warning):
-        await self._message_user(warning.user, warning.private_message_issue_embed)
+        await try_message_user(warning.user, warning.private_message_issue_embed)
 
 
 async def setup(client: Pidroid) -> None:

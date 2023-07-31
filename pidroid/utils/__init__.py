@@ -1,4 +1,7 @@
+import discord
 import re
+
+from typing import Optional, Union
 
 # Compile patters upon load for performance
 INLINE_TRANSLATION_PATTERN = re.compile(r'\[.*].*', flags=re.DOTALL)
@@ -57,3 +60,11 @@ def truncate_string(string: str, max_length: int = 2048, replace_value: str = '.
     if len(string) > max_length:
         return string[:max_length - len(replace_value)] + replace_value
     return string
+
+async def try_message_user(user: Union[discord.Member, discord.User], embed: discord.Embed) -> Optional[discord.Message]:
+    """Tries to send a embed to the user in direct messages. Returns bool whether message was delivered successfully."""
+    try:
+        message = await user.send(embed=embed)
+        return message
+    except Exception: # nosec
+        return None

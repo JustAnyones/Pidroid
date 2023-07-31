@@ -15,6 +15,7 @@ from discord.user import User
 from discord.utils import format_dt
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
+from pidroid.utils import try_message_user
 
 from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.embeds import PidroidEmbed
@@ -315,18 +316,26 @@ class BasePunishment:
 
     @property
     def private_message_issue_embed(self) -> Embed:
-        if self.case is None:
-            raise BadArgument("Case object was not retrieved")
-        embed = Embed(title=f"New punishment received [case #{self.case.case_id}]", color=discord.Color.red())
-        embed.add_field(name='Type', value=self.case.type.value.capitalize())
-        embed.add_field(name="Reason", value=self.reason or "No reason specified")
-        if self.case.date_expires is None:
-            duration = "Never"
+        embed = Embed(color=discord.Color.red())
+
+        if self.case:
+            embed.title = f"New punishment received [case #{self.case.case_id}]"
+            if self.case.date_expires is None:
+                duration = "Never"
+            else:
+                duration = format_dt(self.case.date_expires)
         else:
-            duration = format_dt(self.case.date_expires)
-        embed.add_field(name='Expires in', value=duration)
-        if self._appeal_url and self.case.type == PunishmentType.ban:
-            embed.add_field(name='You can appeal the punishment here:', value=self._appeal_url)
+            embed.title = "New punishment received"
+            if self.expiration_date is None:
+                duration = "Never"
+            else:
+                duration = format_dt(self.expiration_date)
+
+        embed.add_field(name="Type", value=self.__str__().capitalize())
+        embed.add_field(name="Reason", value=self.reason or "No reason specified")
+        embed.add_field(name="Expires in", value=duration)
+        if self._appeal_url and self.__type__ == PunishmentType.ban:
+            embed.add_field(name="You can appeal the punishment here:", value=self._appeal_url)
         embed.set_footer(text=f'Server: {self.guild.name} ({self.guild.id})')
         return embed
 
@@ -420,11 +429,12 @@ class Ban(BasePunishment):
 
     async def issue(self) -> Case:
         """Bans the user and creates new database entry."""
-        self._api.client.dispatch("pidroid_ban_issue_start", self)
+        message = await try_message_user(self.user, self.private_message_issue_embed)
         try:
             await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
         except Exception as e:
-            self._api.client.dispatch("pidroid_ban_issue_fail", self)
+            if message:
+                await message.delete()
             raise e
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_ban_issue", self)
@@ -481,11 +491,12 @@ class Kick(BasePunishment):
         return await self._create_case_record()
 
     async def issue(self) -> Case:
-        self._api.client.dispatch("pidroid_kick_issue_start", self)
+        message = await try_message_user(self.user, self.private_message_issue_embed)
         try:
             await self.user.kick(reason=self.audit_log_issue_reason)
         except Exception as e:
-            self._api.client.dispatch("pidroid_kick_issue_fail", self)
+            if message:
+                await message.delete()
             raise e
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_kick_issue", self)
