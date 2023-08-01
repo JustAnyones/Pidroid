@@ -2,6 +2,7 @@ import os
 import random
 
 from contextlib import suppress
+from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import commands # type: ignore
 from discord.errors import HTTPException
@@ -13,8 +14,10 @@ from typing import Dict, List
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory 
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.utils import truncate_string
 from pidroid.utils.checks import check_bot_channel_permissions, is_guild_theotown
 from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.time import timedelta_to_datetime
 
 ALLOWED_SUGGESTION_ATTACHMENT_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif']
 
@@ -86,7 +89,13 @@ class SuggestionCommand(commands.Cog): # type: ignore
             raise BadArgument("Could not find the suggestion channel for this server.")
 
         assert isinstance(channel, TextChannel)
-        check_bot_channel_permissions(ctx.me, channel, send_messages=True, attach_files=True, add_reactions=True)
+        check_bot_channel_permissions(
+            ctx.me, channel,
+            send_messages=True,
+            attach_files=True,
+            add_reactions=True,
+            create_public_threads=True
+        )
 
         async with ctx.typing():
             if len(suggestion) < 10:
@@ -139,6 +148,12 @@ class SuggestionCommand(commands.Cog): # type: ignore
                 s_id = await self.client.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
                 embed.set_footer(text=f"{embed.footer.text}\n#{s_id}")
                 await message.edit(embed=embed, view=PersistentSuggestionDeletionView())
+
+            if config.suggestion_threads_enabled:
+                await self.client.create_expiring_thread(
+                    message, f"{truncate_string(str(ctx.author), 40)}'s suggestion discussion",
+                    timedelta_to_datetime(timedelta(days=30))
+                )
 
             # Let the suggestion author know that the suggestion was sent
             with suppress(HTTPException):

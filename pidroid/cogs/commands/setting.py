@@ -322,8 +322,7 @@ class SuggestionSubmenu(Submenu):
                 value=configuration.suggestion_threads_enabled,
                 label_true="Enable threads for suggestions",
                 label_false="Disable threads for suggestions",
-                callback=configuration.toggle_suggestion_threads,
-                disabled=True
+                callback=configuration.toggle_suggestion_threads
             ),
             ChannelSetting(
                 name="Suggestion channel",
