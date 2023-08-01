@@ -152,7 +152,8 @@ class SuggestionCommand(commands.Cog): # type: ignore
             if config.suggestion_threads_enabled:
                 await self.client.create_expiring_thread(
                     message, f"{truncate_string(str(ctx.author), 40)}'s suggestion discussion",
-                    timedelta_to_datetime(timedelta(days=30))
+                    timedelta_to_datetime(timedelta(days=30)),
+                    channel.default_auto_archive_duration
                 )
 
             # Let the suggestion author know that the suggestion was sent
