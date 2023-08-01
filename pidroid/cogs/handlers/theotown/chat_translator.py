@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import emoji # type: ignore # I am not updating the emoji regex myself every time there's a new one
 import re
 
@@ -8,7 +7,7 @@ from discord.ext import commands # type: ignore
 from discord.channel import TextChannel
 from discord.utils import remove_markdown
 from discord.message import Message
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 from pidroid.client import Pidroid
 from pidroid.utils.embeds import PidroidEmbed
@@ -98,15 +97,7 @@ class TextParser:
     def should_translate(self) -> bool:
         return len(self.stripped_text) > 0
 
-    def get_parsed_text(self) -> Tuple[int, Optional[str]]:
-        # If string is base64
-        if re.match(BASE64_PATTERN, self.text):
-            try:
-                decoded_string = base64.b64decode(self.text).decode("utf-8")
-            except UnicodeDecodeError:
-                return ParserFlags.FAIL, None
-            return ParserFlags.BASE64, decoded_string
-
+    def get_parsed_text(self) -> Tuple[int, str]:
         # If 50% of all characters are uppercase, lowercase the entire string
         #print("Value of capitalized letters in string", sum(1 for c in self.text if c.isupper()) / len(self.text))
         if not self.text.isupper() and sum(1 for c in self.text if c.isupper()) / len(self.text) >= 0.50:
@@ -204,10 +195,6 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         flag = ParserFlags.BYPASSED
         if parser.should_translate:
             flag, text = parser.get_parsed_text()
-            if text is None and flag == ParserFlags.FAIL:
-                self.client.logger.warn(f"Failed parsing of base64 text for '{parser.original}'")
-                text = parser.text
-                flag = ParserFlags.FAIL
             translations = await self.translate_message(message, text or parser.text)
 
         assert message.guild is not None
