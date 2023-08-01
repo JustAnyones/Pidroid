@@ -124,9 +124,13 @@ class EventChannelHandler(commands.Cog): # type: ignore
             if message.attachments:
                 return await message.add_reaction("👍")
             else:
+                assert isinstance(message, (ForumChannel, Thread))
                 await try_message_user(
                     message.author,
-                    content="Your submission was removed automatically because it did not have any attachments"
+                    content=(
+                        f"Your message in {message.channel.mention} was removed automatically "
+                        "because it did not have any attachments"
+                    )
                 )
                 await message.delete(delay=0)
 
