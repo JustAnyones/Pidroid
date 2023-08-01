@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 
 from typing import TYPE_CHECKING, List, Optional
 
@@ -175,6 +176,22 @@ class MemberLevelInfo:
     def current_level(self) -> int:
         """Returns the current member level."""
         return self.__current_level
+    
+    @property
+    def progress_character(self) -> str:
+        """Returns a random character for use in level progression display."""
+        # TODO: implement proper way, right now its random
+        character = [
+            ":blue_square:",
+            ":brown_square:",
+            ":green_square:",
+            ":orange_square:",
+            ":purple_square:",
+            ":red_square:",
+            ":white_large_square:",
+            ":yellow_square:"
+        ]
+        return random.choice(character) # nosec
 
     async def fetch_member(self) -> Optional[Member]:
         """Fetches the member object associated with this level information."""

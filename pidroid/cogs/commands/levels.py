@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import random
-
 from discord import Guild, Member, User, app_commands, Role
 from discord.utils import escape_markdown
 from discord.ext import commands # type: ignore
@@ -80,21 +78,13 @@ class LevelCommands(commands.Cog): # type: ignore
         dashes = 10
         current_dashes = int(info.current_xp / int(info.xp_to_level_up / dashes))
 
-        character = [
-            ":blue_square:",
-            ":brown_square:",
-            ":green_square:",
-            ":orange_square:",
-            ":purple_square:",
-            ":red_square:",
-            ":white_large_square:",
-            ":yellow_square:"
-        ]
-
-        current_prog = f'{random.choice(character)}' * current_dashes
+        current_prog = f'{info.progress_character}' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
 
-        embed.add_field(name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)', value=f"{current_prog}{remaining_prog}", inline=False)
+        embed.add_field(
+            name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)',
+            value=f"{current_prog}{remaining_prog}", inline=False
+        )
 
         await ctx.reply(embed=embed)
         
