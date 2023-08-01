@@ -200,7 +200,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
                         break
 
                 if not found:
-                    pages = PidroidPages(PluginListPaginator(plugin_list), ctx=ctx)
+                    pages = PidroidPages(PluginListPaginator(query, plugin_list), ctx=ctx)
                     return await pages.start()
 
             await ctx.reply(embed=plugin_list[index].to_embed())
