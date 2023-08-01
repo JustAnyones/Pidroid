@@ -92,7 +92,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     @commands.Cog.listener()
     async def on_pidroid_ban_revoke(self, ban: Ban):
-        await try_message_user(ban.user, ban.private_message_revoke_embed)
+        await try_message_user(ban.user, embed=ban.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_ban_expire(self, ban: Ban):
@@ -105,19 +105,19 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     @commands.Cog.listener()
     async def on_pidroid_jail_issue(self, jail: Jail):
-        await try_message_user(jail.user, jail.private_message_issue_embed)
+        await try_message_user(jail.user, embed=jail.private_message_issue_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_jail_revoke(self, jail: Jail):
-        await try_message_user(jail.user, jail.private_message_revoke_embed)
+        await try_message_user(jail.user, embed=jail.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_issue(self, timeout: Timeout):
-        await try_message_user(timeout.user, timeout.private_message_issue_embed)
+        await try_message_user(timeout.user, embed=timeout.private_message_issue_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_revoke(self, timeout: Timeout):
-        await try_message_user(timeout.user, timeout.private_message_revoke_embed)
+        await try_message_user(timeout.user, embed=timeout.private_message_revoke_embed)
 
     @commands.Cog.listener()
     async def on_pidroid_timeout_expire(self, timeout: Timeout):
@@ -126,7 +126,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
 
     @commands.Cog.listener()
     async def on_pidroid_warning_issue(self, warning: Warning):
-        await try_message_user(warning.user, warning.private_message_issue_embed)
+        await try_message_user(warning.user, embed=warning.private_message_issue_embed)
 
 
 async def setup(client: Pidroid) -> None:

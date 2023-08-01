@@ -429,7 +429,7 @@ class Ban(BasePunishment):
 
     async def issue(self) -> Case:
         """Bans the user and creates new database entry."""
-        message = await try_message_user(self.user, self.private_message_issue_embed)
+        message = await try_message_user(self.user, embed=self.private_message_issue_embed)
         try:
             await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
         except Exception as e:
@@ -491,7 +491,7 @@ class Kick(BasePunishment):
         return await self._create_case_record()
 
     async def issue(self) -> Case:
-        message = await try_message_user(self.user, self.private_message_issue_embed)
+        message = await try_message_user(self.user, embed=self.private_message_issue_embed)
         try:
             await self.user.kick(reason=self.audit_log_issue_reason)
         except Exception as e:
