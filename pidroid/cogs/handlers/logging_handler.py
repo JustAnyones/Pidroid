@@ -11,6 +11,9 @@ from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateD
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
 
+if TYPE_CHECKING:
+    from pidroid.client import Pidroid
+
 logger = logging.getLogger('Pidroid')
 
 class AuditLogDiffWrapper:
@@ -24,8 +27,6 @@ class AuditLogDiffWrapper:
             logger.debug(f"Asking for attribute {item}: {val}")
         return val
 
-if TYPE_CHECKING:
-    from pidroid.client import Pidroid
 
 class LoggingHandler(commands.Cog):
     """This class implements a cog for handling guild related event logging."""
