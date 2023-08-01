@@ -55,13 +55,13 @@ class LoggingHandler(commands.Cog):
         # This dictionary defines all specific action handlers
         handlers = {
             # Adding, removal and editing of channels
-            AuditLogAction.channel_create: self._on_channel_create,
-            AuditLogAction.channel_delete: self._on_channel_delete,
-            AuditLogAction.channel_update: self._on_channel_update,
+            #AuditLogAction.channel_create: self._on_channel_create,
+            #AuditLogAction.channel_delete: self._on_channel_delete,
+            #AuditLogAction.channel_update: self._on_channel_update,
             # Channel permission changes
-            AuditLogAction.overwrite_create: self._on_overwrite_create,
-            AuditLogAction.overwrite_delete: self._on_overwrite_delete,
-            AuditLogAction.overwrite_update: self._on_overwrite_update,
+            #AuditLogAction.overwrite_create: self._on_overwrite_create,
+            #AuditLogAction.overwrite_delete: self._on_overwrite_delete,
+            #AuditLogAction.overwrite_update: self._on_overwrite_update,
             
             # Adding, removal and editing of roles
             AuditLogAction.role_create: self._on_role_create,
