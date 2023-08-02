@@ -16,6 +16,17 @@ from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.levels import MemberLevelInfo
 from pidroid.utils.paginators import ListPageSource
 
+ALLOWED_PROGRESS_CHARACTERS = {
+    "blue": ":blue_square:",
+    "brown": ":brown_square:",
+    "green": ":green_square:",
+    "orange": ":orange_square:",
+    "purple": ":purple_square:",
+    "red": ":red_square:",
+    "white": ":white_large_square:",
+    "yellow": ":yellow_square:"
+}
+
 class LeaderboardPaginator(ListPageSource):
     def __init__(self, data: List[MemberLevelInfo]):
         super().__init__(data, per_page=10)
@@ -79,7 +90,12 @@ class LevelCommands(commands.Cog): # type: ignore
         dashes = 10
         current_dashes = int(info.current_xp / int(info.xp_to_level_up / dashes))
 
-        current_prog = f'{info.progress_character}' * current_dashes
+        # Select progress character to use
+        character = info.default_progress_character
+        if info.progress_character:
+            character = info.progress_character
+
+        current_prog = f'{character}' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
 
         embed.add_field(
@@ -204,6 +220,40 @@ class LevelCommands(commands.Cog): # type: ignore
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "role":
                 return await notify(ctx, "Please specify the role.")
+        setattr(error, 'unhandled', True)
+
+
+    @commands.command( # type: ignore
+        name="level-card",
+        brief="Sets the custom level progress character in the level card.",
+        category=LevelCategory,
+        aliases=['rank-card']
+    )
+    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    async def level_card_command(self, ctx: Context, progress_character: str):
+        assert ctx.guild is not None
+        await self.check_system_enabled(ctx.guild)
+        info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, ctx.author.id)
+        if info is None:
+            raise BadArgument("You are not yet ranked, I cannot set the character.")
+
+        character = ALLOWED_PROGRESS_CHARACTERS.get(progress_character.strip().lower(), None)
+        if character is None:
+            raise BadArgument(
+                f"Specified character is not allowed. It must be one of {', '.join(ALLOWED_PROGRESS_CHARACTERS.keys())}"
+            )
+        
+        await info.update_progress_character(character)
+        await ctx.reply(embed=SuccessEmbed(
+            "Level card progress character has been updated."
+        ))
+
+    @level_card_command.error
+    async def on_level_card_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "progress_character":
+                return await notify(ctx, "Please specify the progress character you want to set.")
         setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:

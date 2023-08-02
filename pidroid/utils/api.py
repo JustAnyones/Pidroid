@@ -139,6 +139,7 @@ class UserLevelsTable(Base): # type: ignore
     current_xp = Column(BigInteger, server_default="0")
     xp_to_next_level = Column(BigInteger, server_default="100")
     level = Column(BigInteger, server_default="0")
+    progress_character = Column(String, nullable=True)
 
 class LevelRewardsTable(Base): # type: ignore
     __tablename__ = "LevelRewards"
@@ -1024,11 +1025,13 @@ class API:
             # I hate this, I couldn't figure out how to provide ORM entity + rank instead
             # If you have ideas, let me know
             # I spent 5 hours on this method
-            _, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, rank = r
+            row, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, char, rank = r
             return MemberLevelInfo(
                 self,
+                row,
                 guild_id, user_id, total_xp, current_xp, xp_to_level_up, level,
-                rank
+                progress_character=char,
+                rank=rank
             )
         return None
 
@@ -1071,6 +1074,21 @@ class API:
             data.append(MemberLevelInfo.from_table(self, r[0]))
         return data
     
+    async def update_user_level_character(self, row_id: int, character: str):
+        """Updates the user level character."""
+        async with self.session() as session: # type: ignore
+            assert isinstance(session, AsyncSession)
+            async with session.begin():
+                await session.execute(
+                    update(UserLevelsTable).
+                    filter(
+                        UserLevelsTable.id == row_id
+                    ).values(
+                        progress_character=character
+                    )
+                )
+            await session.commit()
+
     async def award_xp(self, message: Message, amount: int):
         """Awards the specified amount of XP to the specified message."""
 
@@ -1130,7 +1148,17 @@ class API:
                 message.author,
                 message,
                 info,
-                MemberLevelInfo(self, guild_id, member_id, info.total_xp + amount, new_xp, new_xp_to_next_level, new_level)
+                MemberLevelInfo(
+                    self,
+                    info.row,
+                    guild_id,
+                    member_id,
+                    info.total_xp + amount,
+                    new_xp,
+                    new_xp_to_next_level,
+                    new_level,
+                    progress_character=info.progress_character
+                )
             )
 
     """Role change queue management in postgres database"""

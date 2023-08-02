@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import random
 
 from typing import TYPE_CHECKING, List, Optional
 
@@ -106,21 +105,26 @@ class MemberLevelInfo:
     def __init__(
         self,
         api: API,
+        id: int,
         guild_id: int,
         user_id: int,
         total_xp: int,
         current_xp: int,
         xp_to_level_up: int,
         current_level: int,
+        *,
+        progress_character: Optional[str],
         rank: int = -1
     ) -> None:
         self.__api = api
+        self.__id = id
         self.__guild_id = guild_id
         self.__user_id = user_id
         self.__total_xp = total_xp
         self.__current_xp = current_xp
         self.__xp_to_level_up = xp_to_level_up
         self.__current_level = current_level
+        self.__progress_character = progress_character
         self.__rank = rank
 
     def __repr__(self) -> str:
@@ -131,14 +135,21 @@ class MemberLevelInfo:
         """Constructs level information from a UserLevelsTable object."""
         return cls(
             api,
+            table.id, # type: ignore
             table.guild_id, # type: ignore
             table.user_id, # type: ignore
             table.total_xp, # type: ignore
             table.current_xp, # type: ignore
             table.xp_to_next_level, # type: ignore
             table.level, # type: ignore
-            rank
+            progress_character=table.progress_character, # type: ignore
+            rank=rank
         )
+
+    @property
+    def row(self) -> int:
+        """Returns the row of the object in the database."""
+        return self.__id
 
     @property
     def guild_id(self) -> int:
@@ -185,18 +196,7 @@ class MemberLevelInfo:
     @property
     def progress_character(self) -> Optional[str]:
         """Returns a random character for use in level progression display."""
-        # TODO: implement proper way, right now its random
-        character = [
-            ":blue_square:",
-            ":brown_square:",
-            ":green_square:",
-            ":orange_square:",
-            ":purple_square:",
-            ":red_square:",
-            ":white_large_square:",
-            ":yellow_square:"
-        ]
-        return random.choice(character) # nosec
+        return self.__progress_character
 
     async def fetch_member(self) -> Optional[Member]:
         """Fetches the member object associated with this level information."""
@@ -213,3 +213,7 @@ class MemberLevelInfo:
     async def fetch_eligible_level_reward(self) -> Optional[LevelReward]:
         """Returns the most eligible level reward for the user."""
         return await self.__api.fetch_eligible_level_reward_for_level(self.__guild_id, self.__current_level)
+
+    async def update_progress_character(self, character: str) -> None:
+        """Updates the progress character."""
+        await self.__api.update_user_level_character(self.__id, character)
