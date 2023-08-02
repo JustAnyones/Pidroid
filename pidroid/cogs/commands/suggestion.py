@@ -3,6 +3,7 @@ import random
 
 from contextlib import suppress
 from datetime import timedelta
+from discord import app_commands
 from discord.channel import TextChannel
 from discord.ext import commands # type: ignore
 from discord.errors import HTTPException
@@ -60,6 +61,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
     )
     @commands.guild_only()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
+    @app_commands.describe(suggestion="Your suggestion.")
     async def suggest_command(self, ctx: Context, *, suggestion: str):
         assert isinstance(ctx.me, Member)
         assert ctx.guild
