@@ -90,6 +90,14 @@ class InfoCommands(commands.Cog): # type: ignore
         brief='Displays the user information.',
         usage='[user]',
         aliases=['ui', 'user', 'userinfo'],
+        examples=[
+            ("View your own information", 'user-info'),
+            ("View information for Pidroid", 'user-info Pidroid'),
+            (
+                "View information for Pidroid Development",
+                'user-info "Pidroid Development#8766"'
+            )
+        ],
         category=InformationCategory
     )
     @commands.guild_only() # type: ignore
@@ -186,6 +194,10 @@ class InfoCommands(commands.Cog): # type: ignore
         name='role-info',
         brief='Displays the role information.',
         aliases=['ri', 'roleinfo'],
+        examples=[
+            ("Display information for Plugin expert role", 'role-info "Plugin expert"'),
+            ("You can also just use the mention, although not recommended", 'role-info @Plugin expert'),
+        ],
         category=InformationCategory
     )
     @commands.guild_only() # type: ignore
