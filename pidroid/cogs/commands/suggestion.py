@@ -49,7 +49,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.hybrid_command( # type: ignore
         name="suggest",
         brief='Send a suggestion to the server suggestions channel.',
         usage='<suggestion>',
