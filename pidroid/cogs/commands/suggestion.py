@@ -6,12 +6,13 @@ from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import commands # type: ignore
 from discord.errors import HTTPException
-from discord.ext.commands import BadArgument # type: ignore
+from discord.ext.commands import BadArgument, MissingRequiredArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.member import Member
 from typing import Dict, List
 
 from pidroid.client import Pidroid
+from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import UtilityCategory 
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.utils import truncate_string
@@ -49,13 +50,17 @@ class SuggestionCommand(commands.Cog): # type: ignore
         self.client = client
 
     @commands.command( # type: ignore
+        name="suggest",
         brief='Send a suggestion to the server suggestions channel.',
         usage='<suggestion>',
+        examples=[
+            ("Suggest a luxurious building", 'suggest A luxury pickle-themed building'),
+        ],
         category=UtilityCategory
     )
     @commands.guild_only()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
-    async def suggest(self, ctx: Context, *, suggestion: str):
+    async def suggest_command(self, ctx: Context, *, suggestion: str):
         assert isinstance(ctx.me, Member)
         assert ctx.guild
 
@@ -159,6 +164,13 @@ class SuggestionCommand(commands.Cog): # type: ignore
             # Let the suggestion author know that the suggestion was sent
             with suppress(HTTPException):
                 await ctx.reply(f'Your suggestion has been submitted to {channel.mention} channel successfully!')
+
+    @suggest_command.error
+    async def on_suggest_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "suggestion":
+                return await notify(ctx, "Please specify your suggestion.")
+        setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(SuggestionCommand(client))
