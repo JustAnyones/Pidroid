@@ -178,7 +178,12 @@ class MemberLevelInfo:
         return self.__current_level
     
     @property
-    def progress_character(self) -> str:
+    def default_progress_character(self) -> str:
+        """Returns default progress character for use in level progression display."""
+        return ":blue_square:"
+
+    @property
+    def progress_character(self) -> Optional[str]:
         """Returns a random character for use in level progression display."""
         # TODO: implement proper way, right now its random
         character = [
