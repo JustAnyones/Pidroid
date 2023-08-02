@@ -3,19 +3,21 @@ import random
 
 from discord.ext import commands # type: ignore
 from discord.errors import Forbidden
-from discord.ext.commands import BadArgument # type: ignore
+from discord.ext.commands import BadArgument, MissingRequiredArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.member import Member
 from typing import Optional
 
 from pidroid.client import Pidroid
+from pidroid.cogs.handlers.error_handler import notify
 from pidroid.constants import THEOTOWN_GUILD
 from pidroid.models.categories import TheoTownCategory
+from pidroid.models.view import PaginatingView
 from pidroid.utils import http, format_version_code
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed, SuccessEmbed
+from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.http import Route
-from pidroid.utils.paginators import PidroidPages, PluginListPaginator
+from pidroid.utils.paginators import PluginListPaginator
 from pidroid.utils.time import utcnow
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
@@ -116,10 +118,11 @@ class TheoTownCommands(commands.Cog): # type: ignore
         selected_mode = resolve_gallery_mode(mode)
 
         if selected_mode not in SUPPORTED_GALLERY_MODES:
-            self.gallery.reset_cooldown(ctx)
-            return await ctx.reply(embed=ErrorEmbed(
-                'Wrong mode specified. Allowed modes are `' + '`, `'.join(SUPPORTED_GALLERY_MODES) + '`.'
-            ))
+            raise BadArgument(
+                "Wrong mode specified. Allowed modes are `"
+                + "`, `".join(SUPPORTED_GALLERY_MODES)
+                + "`."
+            )
 
         if number is None:
             number = random.randint(1, 200) # nosec
@@ -127,17 +130,15 @@ class TheoTownCommands(commands.Cog): # type: ignore
         try:
             number = int(number)
         except Exception:
-            self.gallery.reset_cooldown(ctx)
-            return await ctx.reply(embed=ErrorEmbed('Your specified position is incorrect.'))
+            raise BadArgument("Your specified position is incorrect.")
 
         if number not in range(1, 201):
-            self.gallery.reset_cooldown(ctx)
-            return await ctx.reply(embed=ErrorEmbed('Number must be between 1 and 200!'))
+            raise BadArgument("Number must be between 1 and 200!")
         
         async with ctx.typing():
             res = await self.client.api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
             if not res["success"]:
-                return await ctx.reply(embed=ErrorEmbed("Unable to retrieve gallery data!"))
+                raise BadArgument("I was unable to retrieve gallery data.")
 
             data = res["data"]
             screenshot = data[number - 1]
@@ -152,12 +153,17 @@ class TheoTownCommands(commands.Cog): # type: ignore
         brief='Searches plugin store for the specified plugin.',
         usage='<query>',
         aliases=['findplugin'],
+        examples=[
+            ("Find plugins named road", 'find-plugin road'),
+            ("Find something more precise", 'find-plugin "Indonesia transport pack"'),
+            ("Find plugin using its ID", 'find-plugin #14')
+        ],
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user) # type: ignore
-    async def findplugin(self, ctx: Context, query: str): # noqa
+    async def find_plugin_command(self, ctx: Context, query: str): # noqa
         async with ctx.typing():
             is_id = query.startswith("#")
             pl_id = None
@@ -165,19 +171,13 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 try:
                     pl_id = int(query.replace("#", ""))
                 except ValueError:
-                    await ctx.reply(embed=ErrorEmbed('You specified an invalid plugin ID!'))
-                    self.findplugin.reset_cooldown(ctx)
-                    return
+                    raise BadArgument("You specified an invalid plugin ID!")
 
             if not is_id and len(query) <= 2:
-                await ctx.reply(embed=ErrorEmbed('Your query is too short! Please keep it at least 3 characters long.'))
-                self.findplugin.reset_cooldown(ctx)
-                return
+                raise BadArgument("Your query is too short! Please make sure it's at least 3 characters long.")
 
             if not is_id and len(query) > 30:
-                await ctx.reply(embed=ErrorEmbed('Your query is too long, please keep it below 30 characters!'))
-                self.findplugin.reset_cooldown(ctx)
-                return
+                raise BadArgument("Your query is too long, please keep it below 30 characters!")
 
             async with ctx.channel.typing():
                 if is_id:
@@ -200,10 +200,17 @@ class TheoTownCommands(commands.Cog): # type: ignore
                         break
 
                 if not found:
-                    pages = PidroidPages(PluginListPaginator(query, plugin_list), ctx=ctx)
-                    return await pages.start()
+                    pages = PaginatingView(self.client, ctx, source=PluginListPaginator(query, plugin_list))
+                    return await pages.send()
 
             await ctx.reply(embed=plugin_list[index].to_embed())
+
+    @find_plugin_command.error
+    async def on_find_plugin_command_error(self, ctx: Context, error):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "query":
+                return await notify(ctx, "Please specify plugin search query.")
+        setattr(error, 'unhandled', True)
 
     @commands.command( # type: ignore
         name='download-plugin',
