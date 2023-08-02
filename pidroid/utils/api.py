@@ -446,7 +446,19 @@ class API:
                 ).returning(PunishmentCounterTable.counter)
 
                 res = await session.execute(insert_stmt)
-                counter = res.fetchone()[0]
+                row = res.fetchone()
+                if row is None:
+                    raise RuntimeError((
+                        f"After trying to insert a punishment entry, row was None\n\n"
+                        "Information about punishment:\n"
+                        f"type: {type}\n"
+                        f"guild_id: {guild_id}\n"
+                        f"user_id: {user_id}\n"
+                        f"moderator_id: {moderator_id}\n"
+                        f"reason: {reason}\n"
+                        f"expire_date: {expire_date}"
+                    ))
+                counter = row[0]
 
                 entry = PunishmentTable(
                     case_id=counter,
