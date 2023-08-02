@@ -11,21 +11,22 @@ from typing_extensions import Annotated
 from pidroid.client import Pidroid
 from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import LevelCategory
+from pidroid.models.view import PaginatingView
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.levels import MemberLevelInfo
-from pidroid.utils.paginators import ListPageSource, PidroidPages
+from pidroid.utils.paginators import ListPageSource
 
 class LeaderboardPaginator(ListPageSource):
     def __init__(self, data: List[MemberLevelInfo]):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-    async def format_page(self, menu: PidroidPages, data: List[MemberLevelInfo]):
-        assert isinstance(menu.ctx.bot, Pidroid)
+    async def format_page(self, menu: PaginatingView, data: List[MemberLevelInfo]):
+        assert isinstance(menu._ctx.bot, Pidroid)
         self.embed.clear_fields()
         for info in data:
             self.embed.add_field(
-                name=f"{info.rank}. {await menu.ctx.bot.get_or_fetch_user(info.user_id)} (lvl. {info.current_level})",
+                name=f"{info.rank}. {await menu._ctx.bot.get_or_fetch_user(info.user_id)} (lvl. {info.current_level})",
                 value=f'{info.total_xp:,} XP',
                 inline=False
             )
@@ -108,8 +109,8 @@ class LevelCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         levels = await self.client.api.fetch_guild_level_rankings(ctx.guild.id, limit=100)
-        pages = PidroidPages(LeaderboardPaginator(levels), ctx=ctx)
-        return await pages.start()
+        pages = PaginatingView(self.client, ctx, source=LeaderboardPaginator(levels))
+        await pages.send()
 
     @commands.hybrid_group( # type: ignore
         name='rewards',
