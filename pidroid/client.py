@@ -19,7 +19,7 @@ from discord.message import Message
 from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
 
 from pidroid.models.punishments import Case, PunishmentType
-from pidroid.models.categories import get_command_categories, UncategorizedCategory
+from pidroid.models.categories import Category, register_categories
 from pidroid.models.guild_configuration import GuildConfiguration, GuildPrefixes
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.utils.api import API
@@ -115,7 +115,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         self.client_version = __VERSION__
 
-        self.command_categories = get_command_categories()
+        self.command_categories: List[Category] = []
 
         self.version_cache: Dict[str, Optional[str]] = {}
 
@@ -133,7 +133,14 @@ class Pidroid(commands.Bot): # type: ignore
         self.add_persistent_views()
 
     def add_persistent_views(self):
+        """Adds persistent views that do not timeout."""
         self.add_view(PersistentSuggestionDeletionView())
+
+    async def register_categories(self):
+        """Registers command categories.
+        
+        Should be called on command update or cog reload."""
+        self.command_categories = register_categories(self)
 
     @property
     def token(self) -> str:
@@ -291,7 +298,7 @@ class Pidroid(commands.Bot): # type: ignore
                 self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             await self.load_extension(ext)
-        await self.generate_help_documentation()
+        await self.register_categories()
 
     async def load_all_extensions(self):
         """Attempts to load all extensions as defined in client object."""
@@ -308,56 +315,12 @@ class Pidroid(commands.Bot): # type: ignore
                 self.logger.debug(f"Successfully loaded {ext}.")
             except Exception:
                 self.logger.exception(f"Failed to load {ext}.")
-        await self.generate_help_documentation()
+        await self.register_categories()
 
     async def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
         self.logger.info("Loading extensions")
         await self.load_all_extensions()
-
-    async def generate_help_documentation(self):
-        # TODO: implement
-        self.logger.warning("DOCUMENTATION GENERATION IS YET TO BE IMPLEMENTED")
-
-        commands = [c for c in self.walk_commands()]
-        categories = self.command_categories
-
-        mapping = {}
-
-        def get_full_command_name(command) -> str:
-            """Returns full command name including any command groups."""
-            name = ''
-            if len(command.parents) > 0:
-                for parent in reversed(command.parents):
-                    name += f'{parent.name} '
-            return name + command.name
-
-        for command in commands:
-            # Ignore commands that are hidden
-            if command.hidden:
-                continue
-
-            command_name = get_full_command_name(command)
-            # Ignore jishaku commands
-            if command_name.startswith("jishaku"):
-                continue
-
-            category = command.__original_kwargs__.get("category", UncategorizedCategory)
-
-            mapping[command_name] = {
-                "description": command.brief,
-                "aliases": command.aliases,
-                "category": category
-            }
-            #print(command)
-
-        #for command in mapping:
-        #    print(command, mapping[command])
-
-        #def get_commands_in_category(mapping: dict, category: Category):
-        #    return [command for command in mapping if isinstance(mapping['category'], category)]
-
-
 
     async def annoy_erksmit(self):
         if sys.platform != "win32":
