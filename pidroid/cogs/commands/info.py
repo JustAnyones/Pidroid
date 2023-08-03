@@ -110,8 +110,8 @@ class InfoCommands(commands.Cog): # type: ignore
         user = user or ctx.author
 
         embed = PidroidEmbed(description=user.mention)
-        embed.set_author(name=f'{user.name}#{user.discriminator}', icon_url=user.display_avatar.url)
-        embed.add_field(name='Username', value=f'{escape_markdown(user.name)}#{user.discriminator}')
+        embed.set_author(name=str(user), icon_url=user.display_avatar.url)
+        embed.add_field(name='Username', value=f'{escape_markdown(str(user))}')
         embed.add_field(name='ID', value=user.id)
         embed.add_field(name='Registered', value=format_dt(user.created_at), inline=False)
 

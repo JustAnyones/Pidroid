@@ -60,7 +60,7 @@ class StickerCommands(commands.Cog): # type: ignore
             # Returns bad request, possible problem with the library, henceforth, the command is disabled
             added_sticker: GuildSticker = await ctx.guild.create_sticker(
                 name=sticker.name, description=sticker.description, emoji=sticker.emoji, file=discord.File(b),
-                reason=f"Stolen by {ctx.author.name}#{ctx.author.discriminator}"
+                reason=f"Stolen by {str(ctx.author)}"
             )
             b.close()
         except HTTPException as exc:

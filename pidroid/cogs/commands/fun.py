@@ -257,7 +257,7 @@ class FunCommands(commands.Cog): # type: ignore
         while vc.is_playing():
             await asyncio.sleep(0.01)
         await member.edit(voice_channel=None)
-        await ctx.reply(f'{member.name}#{member.discriminator} has been cloaked!')
+        await ctx.reply(f'{str(member)} has been cloaked!')
         audio_source = discord.FFmpegPCMAudio(Resource(f'{random.choice(CLOAKER_LINES)}.mp3')) # nosec
         vc.play(audio_source)
         while vc.is_playing():

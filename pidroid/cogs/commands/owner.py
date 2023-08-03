@@ -78,7 +78,7 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def dm(self, ctx: Context, user: typing.Union[discord.Member, discord.User], *, message: str):
         await user.send(message)
-        await ctx.reply(f"Message to {user.name}#{user.discriminator} was sent succesfully")
+        await ctx.reply(f"Message to {str(user)} was sent succesfully")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommands(client))
