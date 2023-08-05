@@ -16,9 +16,11 @@ from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
 
 from pidroid.models.categories import TagCategory
+from pidroid.models.view import PaginatingView
 from pidroid.utils.checks import has_moderator_guild_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.utils.paginators import ListPageSource
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = [
@@ -32,6 +34,24 @@ if TYPE_CHECKING:
     from pidroid.client import Pidroid
     from pidroid.utils.api import TagTable
 
+class TagListPaginator(ListPageSource):
+    def __init__(self, title: str, data: List[Tag]):
+        super().__init__(data, per_page=20)
+        self.embed = PidroidEmbed(title=title)
+
+        amount = len(data)
+        if amount == 1:
+            self.embed.set_footer(text=f"{amount} tag")
+        else:
+            self.embed.set_footer(text=f"{amount} tags")
+
+    async def format_page(self, menu: PaginatingView, data: List[Tag]):
+        offset = menu._current_page * self.per_page + 1
+        values = ""
+        for i, item in enumerate(data):
+            values += f"{i + offset}. {item.name}\n"
+        self.embed.description = values.strip()
+        return self.embed
 
 class Tag:
     """This class represents a guild tag."""
@@ -220,11 +240,9 @@ class TagCommands(commands.Cog): # type: ignore
             elif tag_list[0].name.lower() == tag_name.lower():
                 message_content = tag_list[0].content
             else:
-                # TODO: figure out solution for a lot of entries
-                tag_name_list = [t.name for t in tag_list[:10]]
-                tag_list_str = '``, ``'.join(tag_name_list)
-                message_content = f"I found multiple tags matching your query: ``{tag_list_str}``"
-
+                source = TagListPaginator(f"Tags matching your query", tag_list)
+                view = PaginatingView(self.client, ctx, source=source)
+                return await view.send()
             if ctx.message.reference and ctx.message.reference.message_id:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
                 return await message.reply(
@@ -247,12 +265,9 @@ class TagCommands(commands.Cog): # type: ignore
         if len(guild_tags) == 0:
             raise BadArgument("This server has no defined tags!")
 
-        # TODO: implement pagination
-        embed = PidroidEmbed()
-        embed.title = f"{escape_markdown(ctx.guild.name)} server tags"
-        embed.description = f'({len(guild_tags)}) **' + '**, **'.join([t.name for t in guild_tags]) + '**'
-        await ctx.reply(embed=embed)
-
+        source = TagListPaginator(f"{escape_markdown(ctx.guild.name)} server tag list", guild_tags)
+        view = PaginatingView(self.client, ctx, source=source)
+        await view.send()
 
     @tag_command.command( # type: ignore
         name="info",
