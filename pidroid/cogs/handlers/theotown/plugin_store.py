@@ -11,6 +11,7 @@ from typing import List
 from pidroid.client import Pidroid
 from pidroid.utils import http, truncate_string, clean_inline_translations
 from pidroid.utils.cronjobs import start_cronjob
+from pidroid.utils.data import PersistentDataStore
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import timedelta_to_datetime
 
@@ -48,7 +49,13 @@ class PluginStoreTasks(commands.Cog): # type: ignore
         assert isinstance(channel, TextChannel)
 
         try:
-            last_approval_time = self.client.persistent_data.data.get("last plugin approval", -1)
+            async with PersistentDataStore() as store:
+                time = await store.get("last_plugin_approval_time")
+
+            if time is None:
+                last_approval_time = -1
+            else:
+                last_approval_time = int(time)
 
             plugins = await self.client.api.fetch_new_plugins(last_approval_time)
 
@@ -60,8 +67,8 @@ class PluginStoreTasks(commands.Cog): # type: ignore
 
             if latest_approval_time > last_approval_time:
 
-                self.client.persistent_data.data.update({"last plugin approval": latest_approval_time})
-                self.client.persistent_data.save()
+                async with PersistentDataStore() as store:
+                    await store.set("last_plugin_approval_time", str(latest_approval_time))
 
                 for plugin in plugins:
 
@@ -104,11 +111,16 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
         month_of_data = int(data["month"])
         month_name = calendar.month_name[month_of_data]
 
-        previous_month = client.persistent_data.data.get("last plugin info month", None)
+        async with PersistentDataStore() as store:
+            previous_month = await store.get("last_plugin_statistic_month")
+
+        if previous_month is None:
+            return
+        previous_month = int(previous_month)
 
         if month_of_data != previous_month:
-            client.persistent_data.data.update({"last plugin info month": month_of_data})
-            client.persistent_data.save()
+            async with PersistentDataStore() as store:
+                await store.set("last_plugin_statistic_month", str(month_of_data))
 
             top_creators_last = data['plugin creators last month']
             plugins_all_time = data['plugins all time']

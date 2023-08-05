@@ -24,7 +24,6 @@ from pidroid.models.guild_configuration import GuildConfiguration, GuildPrefixes
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
-from pidroid.utils.data import PersistentDataManager
 
 class VersionInfo(NamedTuple):
     major: int
@@ -122,8 +121,6 @@ class Pidroid(commands.Bot): # type: ignore
         self.session = None
 
         self.api = API(self, self.config["postgres_dsn"])
-
-        self.persistent_data = PersistentDataManager()
 
         self.logger = logging.getLogger('Pidroid') # backwards compatibility
 
