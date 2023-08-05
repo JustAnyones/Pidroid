@@ -3,6 +3,7 @@
 import aiohttp
 import asyncio
 import os
+import signal
 import sys
 import logging
 
@@ -126,6 +127,13 @@ async def main():  # noqa: C901
             await ctx.reply('The entirety of the bot has been reloaded!')
         except Exception as e:
             await ctx.reply(f'The following exception occurred while trying to reload the bot:\n```{e}```')
+
+    # Handle docker's sigterm signal gracefully
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(
+        signal.SIGTERM,
+        lambda: loop.create_task(bot.close())
+    ) 
 
     async with aiohttp.ClientSession() as session:
         async with bot:
