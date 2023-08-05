@@ -7,10 +7,12 @@ import sys
 
 from discord.ext import commands # type: ignore
 from discord.ext.commands.context import Context  # type: ignore
+from discord.ext.commands.errors import BadArgument
 
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID
 from pidroid.models.categories import OwnerCategory
+from pidroid.utils.data import PersistentDataStore
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import ErrorEmbed
 
@@ -79,6 +81,53 @@ class OwnerCommands(commands.Cog): # type: ignore
     async def dm(self, ctx: Context, user: typing.Union[discord.Member, discord.User], *, message: str):
         await user.send(message)
         await ctx.reply(f"Message to {str(user)} was sent succesfully")
+
+    @commands.command(
+        name="show-data-store",
+        category=OwnerCategory,
+        hidden=True
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def show_data_store_command(self, ctx: Context):
+        string = ""
+        async with PersistentDataStore() as store:
+            for key in await store.keys():
+                val = await store.get(key)
+                string += f"{key}: {val}\n"
+        await ctx.reply(
+            f"Displaying values stored in persistent data store:\n\n{string.strip()}"
+        )
+
+    @commands.command(
+        name="set-data-store",
+        category=OwnerCategory,
+        hidden=True
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def set_data_store_command(self, ctx: Context, key: str, value: str):
+        async with PersistentDataStore() as store:
+            await store.set(key, value)
+        await ctx.reply(
+            f"Set the data store value with key '{key}' to '{value}'"
+        )
+
+    @commands.command(
+        name="get-data-store",
+        category=OwnerCategory,
+        hidden=True
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def get_data_store_command(self, ctx: Context, key: str):
+        async with PersistentDataStore() as store:
+            value = await store.get(key)
+        if value is None:
+            raise BadArgument(f"Data store does not have a value for key '{key}'")
+        await ctx.reply(
+            f"The data store value for key '{key}' is {value}"
+        )
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommands(client))

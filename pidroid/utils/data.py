@@ -1,3 +1,4 @@
+import aiodbm # type: ignore
 import json
 import os
 
@@ -6,6 +7,9 @@ from typing import Dict, Optional
 from pidroid.constants import DATA_FILE_PATH
 
 PERSISTENT_DATA_FILE = os.path.join(DATA_FILE_PATH, 'data.json')
+NEW_PERSISTENT_DATA_FILE = os.path.join(DATA_FILE_PATH, "data.dbm")
+
+PersistentDataStore = lambda: aiodbm.open(NEW_PERSISTENT_DATA_FILE, "c")
 
 class PersistentDataManager:
     """This class manages Pidroid's persistent data."""
