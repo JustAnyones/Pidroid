@@ -139,7 +139,7 @@ class UserLevelsTable(Base): # type: ignore
     current_xp = Column(BigInteger, server_default="0")
     xp_to_next_level = Column(BigInteger, server_default="100")
     level = Column(BigInteger, server_default="0")
-    progress_character = Column(String, nullable=True)
+    theme_name = Column(String, nullable=True)
 
 class LevelRewardsTable(Base): # type: ignore
     __tablename__ = "LevelRewards"
@@ -1025,12 +1025,12 @@ class API:
             # I hate this, I couldn't figure out how to provide ORM entity + rank instead
             # If you have ideas, let me know
             # I spent 5 hours on this method
-            row, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, char, rank = r
+            row, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, theme_name, rank = r
             return MemberLevelInfo(
                 self,
                 row,
                 guild_id, user_id, total_xp, current_xp, xp_to_level_up, level,
-                progress_character=char,
+                theme_name=theme_name,
                 rank=rank
             )
         return None
@@ -1074,8 +1074,8 @@ class API:
             data.append(MemberLevelInfo.from_table(self, r[0]))
         return data
     
-    async def update_user_level_character(self, row_id: int, character: str):
-        """Updates the user level character."""
+    async def update_user_level_theme(self, row_id: int, theme_name: str):
+        """Updates the user level theme."""
         async with self.session() as session: # type: ignore
             assert isinstance(session, AsyncSession)
             async with session.begin():
@@ -1084,7 +1084,7 @@ class API:
                     filter(
                         UserLevelsTable.id == row_id
                     ).values(
-                        progress_character=character
+                        theme_name=theme_name
                     )
                 )
             await session.commit()
@@ -1157,7 +1157,7 @@ class API:
                     new_xp,
                     new_xp_to_next_level,
                     new_level,
-                    progress_character=info.progress_character
+                    theme_name=info.theme_name
                 )
             )
 

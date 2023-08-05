@@ -13,19 +13,8 @@ from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import LevelCategory
 from pidroid.models.view import PaginatingView
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.levels import MemberLevelInfo
+from pidroid.utils.levels import COLOUR_BINDINGS, MemberLevelInfo
 from pidroid.utils.paginators import ListPageSource
-
-ALLOWED_PROGRESS_CHARACTERS = {
-    "blue": ":blue_square:",
-    "brown": ":brown_square:",
-    "green": ":green_square:",
-    "orange": ":orange_square:",
-    "purple": ":purple_square:",
-    "red": ":red_square:",
-    "white": ":white_large_square:",
-    "yellow": ":yellow_square:"
-}
 
 class LeaderboardPaginator(ListPageSource):
     def __init__(self, data: List[MemberLevelInfo]):
@@ -94,6 +83,11 @@ class LevelCommands(commands.Cog): # type: ignore
         character = info.default_progress_character
         if info.progress_character:
             character = info.progress_character
+
+        # Select the colour to use
+        embed.colour = info.default_embed_colour
+        if info.embed_colour:
+            embed.colour = info.embed_colour
 
         current_prog = f'{character}' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
@@ -225,35 +219,36 @@ class LevelCommands(commands.Cog): # type: ignore
 
     @commands.command( # type: ignore
         name="level-card",
-        brief="Sets the custom level progress character in the level card.",
+        brief="Sets the custom level theme in the level card.",
         category=LevelCategory,
         aliases=['rank-card']
     )
     @commands.guild_only() # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def level_card_command(self, ctx: Context, progress_character: str):
+    async def level_card_command(self, ctx: Context, theme: str):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, ctx.author.id)
         if info is None:
-            raise BadArgument("You are not yet ranked, I cannot set the character.")
-
-        character = ALLOWED_PROGRESS_CHARACTERS.get(progress_character.strip().lower(), None)
-        if character is None:
+            raise BadArgument("You are not yet ranked, I cannot set the theme.")
+        
+        cleaned_theme = theme.strip().lower()
+        bindings = COLOUR_BINDINGS.get(cleaned_theme, None)
+        if bindings is None:
             raise BadArgument(
-                f"Specified character is not allowed. It must be one of {', '.join(ALLOWED_PROGRESS_CHARACTERS.keys())}"
+                f"Specified theme does not exist. It must be one of {', '.join(COLOUR_BINDINGS.keys())}"
             )
         
-        await info.update_progress_character(character)
+        await info.update_theme_name(cleaned_theme)
         await ctx.reply(embed=SuccessEmbed(
-            "Level card progress character has been updated."
+            "Level card theme has been updated."
         ))
 
     @level_card_command.error
     async def on_level_card_command_error(self, ctx: Context, error):
         if isinstance(error, MissingRequiredArgument):
-            if error.param.name == "progress_character":
-                return await notify(ctx, "Please specify the progress character you want to set.")
+            if error.param.name == "theme":
+                return await notify(ctx, "Please specify the theme you want to set.")
         setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:

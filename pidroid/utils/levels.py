@@ -2,30 +2,26 @@ from __future__ import annotations
 
 import logging
 
-from typing import TYPE_CHECKING, List, Optional
-
-from discord import Member, Role
+from discord import Member, Role, Colour
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from pidroid.models.guild_configuration import GuildConfiguration
-
-logger = logging.getLogger('Pidroid')
 
 if TYPE_CHECKING:
     from pidroid.utils.api import API, UserLevelsTable, LevelRewardsTable
 
-def get_total_xp(level: int) -> float:
-    """Returns the total amount of XP required to reach the specified level."""
-    return 5 / 6 * level * (2 * level * level + 27 * level + 91)
+logger = logging.getLogger('Pidroid')
 
-def get_level_from_xp(xp: int) -> float:
-    """Returns the level for the specified total XP."""
-    total_xp = 0.0
-    level = 0
-    while total_xp < xp:
-        level += 1
-        total_xp = get_total_xp(level)
-    previous_lvl_xp = get_total_xp(level - 1)
-    return level - 1 + (xp - previous_lvl_xp) / (total_xp - previous_lvl_xp)
+COLOUR_BINDINGS = {
+    "blue": (":blue_square:", "#55acee"),
+    "brown": (":brown_square:", "#c1694f"),
+    "green": (":green_square:", "#78b159"),
+    "orange": (":orange_square:", "#f4900c"),
+    "purple": (":purple_square:", "#aa8ed6"),
+    "red": (":red_square:", "#dd2e44"),
+    "white": (":white_large_square:", "#e6e7e8"),
+    "yellow": (":yellow_square:", "#fdcb58"), 
+}
 
 class LevelReward:
 
@@ -113,7 +109,7 @@ class MemberLevelInfo:
         xp_to_level_up: int,
         current_level: int,
         *,
-        progress_character: Optional[str],
+        theme_name: Optional[str],
         rank: int = -1
     ) -> None:
         self.__api = api
@@ -124,7 +120,7 @@ class MemberLevelInfo:
         self.__current_xp = current_xp
         self.__xp_to_level_up = xp_to_level_up
         self.__current_level = current_level
-        self.__progress_character = progress_character
+        self.__theme_name = theme_name
         self.__rank = rank
 
     def __repr__(self) -> str:
@@ -142,7 +138,7 @@ class MemberLevelInfo:
             table.current_xp, # type: ignore
             table.xp_to_next_level, # type: ignore
             table.level, # type: ignore
-            progress_character=table.progress_character, # type: ignore
+            theme_name=table.theme_name, # type: ignore
             rank=rank
         )
 
@@ -187,16 +183,43 @@ class MemberLevelInfo:
     def current_level(self) -> int:
         """Returns the current member level."""
         return self.__current_level
-    
+
+    @property
+    def theme_name(self) -> Optional[str]:
+        """Returns the name of the theme if available."""
+        return self.__theme_name
+
+    def _get_theme_bindings(self) -> Optional[Tuple[str, str]]:
+        """Returns theme bindings for the current user."""
+        if self.__theme_name is None:
+            return None
+        return COLOUR_BINDINGS.get(self.__theme_name)
+
     @property
     def default_progress_character(self) -> str:
         """Returns default progress character for use in level progression display."""
-        return ":blue_square:"
+        return COLOUR_BINDINGS["green"][0]
 
     @property
     def progress_character(self) -> Optional[str]:
-        """Returns a random character for use in level progression display."""
-        return self.__progress_character
+        """Returns custom progress character for use in level progression display."""
+        bindings = self._get_theme_bindings()
+        if bindings:
+            return bindings[0]
+        return None
+
+    @property
+    def default_embed_colour(self) -> Colour:
+        """Returns default embed colour for use in level progression display."""
+        return Colour.from_str(COLOUR_BINDINGS["green"][1])
+    
+    @property
+    def embed_colour(self) -> Optional[Colour]:
+        """Returns custom embed colour for use in level progression display."""
+        bindings = self._get_theme_bindings()
+        if bindings:
+            return Colour.from_str(bindings[1])
+        return None
 
     async def fetch_member(self) -> Optional[Member]:
         """Fetches the member object associated with this level information."""
@@ -214,6 +237,6 @@ class MemberLevelInfo:
         """Returns the most eligible level reward for the user."""
         return await self.__api.fetch_eligible_level_reward_for_level(self.__guild_id, self.__current_level)
 
-    async def update_progress_character(self, character: str) -> None:
-        """Updates the progress character."""
-        await self.__api.update_user_level_character(self.__id, character)
+    async def update_theme_name(self, theme_name: str) -> None:
+        """Updates the theme name."""
+        await self.__api.update_user_level_theme(self.__id, theme_name)
