@@ -14,3 +14,4 @@ httpx[http2]==0.23.3
 sqlalchemy[asyncio]==2.0.9
 asyncpg==0.27.0
 alembic==1.9.4
+aiodbm==0.4.2
