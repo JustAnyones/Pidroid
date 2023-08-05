@@ -33,7 +33,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=11, micro=0, releaselevel='alpha', commit_id=os.environ.get('GIT_COMMIT', ''))
+__VERSION__ = VersionInfo(major=5, minor=12, micro=0, releaselevel='alpha', commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
