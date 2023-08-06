@@ -16,7 +16,7 @@ from discord.partial_emoji import PartialEmoji # type: ignore
 from typing import TYPE_CHECKING, Dict, List, Optional, Type, Union
 
 from pidroid.client import Pidroid
-from pidroid.models.categories import AdministrationCategory, UtilityCategory
+from pidroid.models.categories import AdministrationCategory, BotCategory
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.setting_ui import BooleanSetting, ChannelSetting, NumberSetting, ReadonlySetting, RoleSetting, Submenu, TextButton, TextModal, TextSetting
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
@@ -669,7 +669,7 @@ class SettingsCommands(commands.Cog): # type: ignore
 
     @commands.command( # type: ignore
         brief='Returns current server bot prefix.',
-        category=UtilityCategory
+        category=BotCategory,
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
