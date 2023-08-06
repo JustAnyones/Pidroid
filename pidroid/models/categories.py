@@ -93,7 +93,12 @@ class RandomCategory(Category):
 
 class TheoTownCategory(Category):
     def __init__(self, client: Pidroid):
-        super().__init__(client, "TheoTown", "Commands for TheoTown specific information.", "🏙️")
+        super().__init__(
+            client,
+            "TheoTown",
+            "Commands for TheoTown specific information.",
+            PartialEmoji.from_str("theotown:1137770633988689960")
+        )
 
 class OwnerCategory(Category):
     def __init__(self, client: Pidroid):
