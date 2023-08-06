@@ -95,7 +95,7 @@ class TextSetting(Setting):
 class NumberSetting(Setting):
 
     if TYPE_CHECKING:
-        _value: Union[float, int]
+        _value: Union[float, int, str]
 
     def __init__(
         self,
@@ -103,7 +103,7 @@ class NumberSetting(Setting):
         cls: Type[TextButton],
         name: str,
         description: Optional[str] = None,
-        value: Union[float, int],
+        value: Union[float, int, str],
         label: str,
         callback: Callable[[Any], Coroutine[Any, Any, None]],
         disabled: bool = False
@@ -116,6 +116,8 @@ class NumberSetting(Setting):
 
     @property
     def value_as_str(self) -> str:
+        if isinstance(self._value, str):
+            return self._value
         return str(self._value)
     
     def as_item(self):
