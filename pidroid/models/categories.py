@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from discord import PartialEmoji
 from discord.ext.commands import Command
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -21,10 +22,10 @@ def get_command_usage(prefix: str, command: Command) -> str:
         usage += ' `' + command.usage + '`'
     return usage
 
-def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
+def get_command_documentation(c: Command) -> Tuple[str, str]:
     """Returns command documentation for display in lists."""
     usage = c.usage or ""
-    name = prefix + get_full_command_name(c) + " " + usage
+    name = get_full_command_name(c) + " " + usage
     value = c.brief or 'Not documented.'
 
     # Fetch command aliases
@@ -35,11 +36,17 @@ def get_command_documentation(prefix: str, c: Command) -> Tuple[str, str]:
     return name, value
 
 class Category:
-    def __init__(self, client: Pidroid, title: str, description: str, emote: Optional[str] = None):
+    def __init__(
+        self,
+        client: Pidroid,
+        title: str,
+        description: str,
+        emote: Optional[Union[PartialEmoji, str]] = None
+    ):
         self.client = client
         self.title = title
         self.description = description
-        self.emote = emote or ""
+        self.emote = emote
         self.__cached_commands: List[Command] = []
 
     def get_visible_commands(self) -> List[Command]:

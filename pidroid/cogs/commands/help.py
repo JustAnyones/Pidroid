@@ -21,15 +21,14 @@ from pidroid.utils.paginators import ListPageSource
 logger = logging.getLogger('Pidroid')
 
 class HelpCommandPaginator(ListPageSource):
-    def __init__(self, embed: Embed, prefix: str, data: List[Command]):
+    def __init__(self, embed: Embed, data: List[Command]):
         super().__init__(data, per_page=8)
-        self.prefix = prefix
         self.embed = embed
 
     async def format_page(self, _: PaginatingView, commands: List[Command]):
         self.embed.clear_fields()
         for command in commands:
-            name, description = get_command_documentation(self.prefix, command)
+            name, description = get_command_documentation(command)
             self.embed.add_field(name=name, value=description, inline=False)
         return self.embed
 
@@ -47,7 +46,7 @@ class CategorySelect(discord.ui.Select):
                 description=category.description,
                 value=str(i)
             ))
-        super().__init__(placeholder="Select category", options=options)
+        super().__init__(placeholder="Select command category", options=options)
 
     async def callback(self, interaction: Interaction):
         success = await self.view.change_category(interaction, self.values[0])
@@ -73,19 +72,44 @@ class HelpCategoryView(PaginatingView):
         self._embed = PidroidEmbed(
             title=f"{self._client.user.name} command category index",
             description=(
-                f"This is a category list of {self._client.user.name}'s commands. "
-                "You can view the category by selecting it using the selector provided below.\n\n"
-                f"You can check out any command in more detail by running {self._ctx.prefix}help [command name].\n"
-                "Commands that accept multiple arguments or specific arguments require quotations around the argument.\n"
-                "**Command categories:**"
+                f"This is a help page for {self._client.user.name} bot. "
+                "You can view a specific command category by selecting it in the dropdown menu below.\n\n"
+                f"You can check out any command in more detail by running {self._ctx.prefix}help [command name]."
             )
         )
-        for category in self.__categories:
-            self._embed.add_field(
-                name=f"**{category.emote} {category.title}**",
-                value=category.description,
-                inline=False
+
+        # lifted from robo danny by Rapptz and adapted for Pidroid
+        self._embed.add_field(
+            name="How do I use this bot?",
+            value="Reading the bot help signatures are pretty simple.",
+            inline=False,
+        )
+        self._embed.add_field(
+            name="<argument>",
+            value="This means the command argument is required.",
+        )
+        self._embed.add_field(
+            name="[argument]",
+            value="This means the command argument is optional."
+        )
+        self._embed.add_field(
+            name="[A/B]",
+            value=(
+                "This means that it can be either A or B.\n"
+                "Now that you know the basics, it should be noted that...\n"
+                "__**You do not type in the brackets!**__"
+            ),
+            inline=False,
+        )
+        self._embed.add_field(
+            name="Specifying multiple arguments",
+            value=(
+                "Commands that accept multiple arguments or specific arguments require quotations around the argument.\n"
+                'Example: ``Ptag create "My epic tag" Lots of text, blah blah blah``.\n'
+                "**Certain commands do not need quotations for the last argument** in the case of "
+                "``Ptag create``, ``Psuggest`` purely for convenience sake."
             )
+        )
 
         self.add_item(CategorySelect(self.__categories))
         self.add_item(self.close_button)
@@ -106,10 +130,15 @@ class HelpCategoryView(PaginatingView):
             title=f"{category.title} category command listing",
             description=category.description
         )
+        self._embed.set_footer(
+            text=(
+                "You can view a specific command in greater detail using "
+                f"{self._ctx.prefix}help [command name]"
+            )
+        )
 
         source = HelpCommandPaginator(
             self._embed,
-            self._prefix,
             category.get_visible_commands()
         )
 
