@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import discord
 import os
+import logging
 import typing
 import sys
 
@@ -10,11 +11,13 @@ from discord.ext.commands.context import Context  # type: ignore
 from discord.ext.commands.errors import BadArgument
 
 from pidroid.client import Pidroid
-from pidroid.constants import JUSTANYONE_ID
+from pidroid.constants import JUSTANYONE_ID, TEMPORARY_FILE_PATH
 from pidroid.models.categories import OwnerCategory
 from pidroid.utils.data import PersistentDataStore
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import ErrorEmbed
+
+logger = logging.getLogger('Pidroid')
 
 class OwnerCommands(commands.Cog): # type: ignore
     """This class implements a cog for special bot owner only commands."""
@@ -128,6 +131,58 @@ class OwnerCommands(commands.Cog): # type: ignore
         await ctx.reply(
             f"The data store value for key '{key}' is {value}"
         )
+
+    @commands.command(
+        name="load-temp-extension",
+        brief="Loads a temporary extension that will not survive a restart.",
+        category=OwnerCategory,
+        hidden=True,
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def load_temp_extension_command(self, ctx: Context):
+        if not ctx.message.attachments:
+            raise BadArgument("Please provide a single python extension file")
+        
+        extension_file = ctx.message.attachments[0]
+        if not extension_file.filename.endswith(".py"):
+            raise BadArgument("Please provide a single python extension file")
+        
+        logger.critical("Attempting to load a temp extension")
+        data = await extension_file.read()
+
+        file_name = os.path.join(TEMPORARY_FILE_PATH, "temp_extension.py")
+        if os.path.exists(file_name):
+            os.remove(file_name)
+
+        with open(file_name, "wb") as f:
+            f.write(data)
+
+        logger.critical("Modifying system path to load a temp extension")
+        if file_name not in sys.path:
+            sys.path.append(file_name)
+        await self.client.load_extension("data.temporary.temp_extension")
+        logger.critical("Temp extension has been loaded")
+        await ctx.reply("Extension loaded successfully")
+
+    @commands.command(
+        name="unload-temp-extension",
+        brief="Unloads a temporary extension that is currently loaded.",
+        category=OwnerCategory,
+        hidden=True,
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def unload_temp_extension_command(self, ctx: Context):
+        logger.critical("Attempting to unload a temp extension")
+        await self.client.unload_extension("data.temporary.temp_extension")
+        file_name = os.path.join(TEMPORARY_FILE_PATH, "temp_extension.py")
+        logger.critical("Removing temp extension file and updating path")
+        if os.path.exists(file_name):
+            os.remove(file_name)
+            sys.path.remove(file_name)
+        logger.critical("Temp extension has been unloaded")
+        await ctx.reply("Extension unloaded successfully")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommands(client))
