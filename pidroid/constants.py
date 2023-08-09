@@ -37,6 +37,5 @@ THEOTOWN_GUILD = 365478391719264276
 # Pidroid file structure
 DATA_FILE_PATH = os.path.join(os.getcwd(), 'data')
 RESOURCE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
-CACHE_FILE_PATH = os.path.join(DATA_FILE_PATH, 'cache.json')
 TEMPORARY_FILE_PATH = os.path.join(DATA_FILE_PATH, 'temporary')
 COOLDOWN_FILE_PATH = os.path.join(DATA_FILE_PATH, 'cooldowns')
