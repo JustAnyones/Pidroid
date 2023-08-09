@@ -152,7 +152,7 @@ class EconomyCommands(commands.Cog): # type: ignore
             raise BadArgument("I could not find an API token for unbelievaboat!")
 
         if random.randint(1, 100) >= 75: # nosec 25 %
-            cash = random.randint(9000, 130000)
+            cash = random.randint(9000, 90000)
             async with await http.patch(self.client, f"{BASE_API_URL}/{ctx.author.id}", json.dumps({'cash': cash}), headers=headers):
                 pass
             return await ctx.reply(random.choice(SUCCESSFUL_BEGGING_RESPONSES).replace('%cash%', get_currency(cash))) # nosec
