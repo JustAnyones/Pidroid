@@ -6,7 +6,7 @@ import logging
 import math
 import random
 
-from discord import Guild, Member, Message, Role, User, Object
+from discord import Guild, Member, Message, MessageType, Role, User, Object
 from discord.abc import Snowflake
 from discord.ext import commands, tasks
 from typing import TYPE_CHECKING, Dict, List
@@ -225,6 +225,9 @@ class LevelingHandler(commands.Cog):
         await self.client.wait_until_guild_configurations_loaded()
 
         if not message.guild or message.author.bot:
+            return
+        
+        if message.type != MessageType.default:
             return
 
         if isinstance(message.author, User):
