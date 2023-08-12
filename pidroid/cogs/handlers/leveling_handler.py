@@ -227,7 +227,9 @@ class LevelingHandler(commands.Cog):
         if not message.guild or message.author.bot:
             return
         
-        if message.type != MessageType.default:
+        # Auto moderation action messages have authors set as the people
+        # who are responsible for the infraction
+        if message.type == MessageType.auto_moderation_action:
             return
 
         if isinstance(message.author, User):
