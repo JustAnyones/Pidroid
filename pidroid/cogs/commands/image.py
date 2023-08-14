@@ -53,6 +53,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
     async def bonk_command(self, ctx: Context, member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot bonk yourself!")
@@ -85,6 +86,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
     async def memefy_command(self, ctx: Context, retain_aspect_ratio: bool = False):
         async with ctx.channel.typing():
             attachment, extension = await handle_attachment(ctx)
@@ -125,6 +127,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
     async def jpeg_command(self, ctx: Context, quality: int = 1):
         if quality < 1 or quality > 10:
             raise BadArgument("Quality value must be a number between 1 and 10.")
