@@ -1,6 +1,8 @@
+import asyncio
 import discord
 import re
 
+from functools import partial
 from typing import Optional, Union
 
 # Compile patters upon load for performance
@@ -76,3 +78,12 @@ async def try_message_user(
         return message
     except Exception: # nosec
         return None
+    
+async def run_in_executor(func, **kwargs):
+    """Runs the specified function in executor.
+    
+    Can be used to run blocking code."""
+    return await asyncio.get_event_loop().run_in_executor(
+        None,
+        partial(func, **kwargs)
+    )
