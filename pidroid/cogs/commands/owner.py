@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import aiofiles
 import discord
 import os
 import logging
@@ -155,8 +156,8 @@ class OwnerCommands(commands.Cog): # type: ignore
         if os.path.exists(file_name):
             os.remove(file_name)
 
-        with open(file_name, "wb") as f:
-            f.write(data)
+        async with aiofiles.open(file_name, "wb") as f:
+            await f.write(data)
 
         logger.critical("Modifying system path to load a temp extension")
         if file_name not in sys.path:
