@@ -6,28 +6,18 @@ from discord.ext.commands.context import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from io import BytesIO
 from PIL import Image # type: ignore
-from PIL import ImageFont
-from PIL import ImageDraw
 from typing import Tuple
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import RandomCategory
-from pidroid.utils import http
-from pidroid.utils.embeds import ErrorEmbed
+from pidroid.utils import http, run_in_executor
 from pidroid.utils.file import Resource
 
-COMIC_FONT_PATH = Resource("COMIC.TTF")
-
-def draw_text_with_border(draw, x, y, text, font, text_colour='white', border_colour='black') -> None:
-    """Draws text with borders."""
-    # Borders
-    draw.text((x - 1, y - 1), text, font=font, fill=border_colour)
-    draw.text((x + 1, y - 1), text, font=font, fill=border_colour)
-    draw.text((x - 1, y + 1), text, font=font, fill=border_colour)
-    draw.text((x + 1, y + 1), text, font=font, fill=border_colour)
-    # The actual text
-    draw.text((x, y), text, font=font, fill=text_colour)
-
+async def load_image_from_url(client: Pidroid, url: str):
+    """Loads the image from URL."""
+    async with await http.get(client, url) as r:
+        payload = await r.read()
+    return Image.open(BytesIO(payload))
 
 async def handle_attachment(ctx: Context) -> Tuple[discord.Attachment, str]:
     """Returns None or discord.Attachment after assuring it is safe to use."""
@@ -55,6 +45,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
         self.client = client
 
     @commands.command( # type: ignore
+        name="bonk",
         brief='Bonks the specified member.',
         usage='<member>',
         category=RandomCategory
@@ -62,24 +53,31 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    async def bonk(self, ctx: Context, member: discord.Member):
+    async def bonk_command(self, ctx: Context, member: discord.Member):
+        if ctx.author.id == member.id:
+            raise BadArgument("You cannot bonk yourself!")
+        
         async with ctx.channel.typing():
-            output_file = BytesIO()
-            img = Image.open(Resource('bonk.jpg'))
-            draw = ImageDraw.Draw(img)
-            font = ImageFont.truetype(COMIC_FONT_PATH, 14)
-            # Target
-            draw_text_with_border(draw, 165, 140, member.display_name, font)
-            # Issuer of command
-            draw_text_with_border(draw, 7, 43, ctx.author.display_name, font)
+            author_avatar = await load_image_from_url(self.client, ctx.author.display_avatar.with_size(128).url)
+            member_avatar = await load_image_from_url(self.client, member.display_avatar.with_size(128).url)
+            canvas_image = await run_in_executor(Image.open, fp=Resource('bonk.jpg'))
 
-            img.save(output_file, format='png')
-            img.close()
-            output_file.seek(0)
-            await ctx.reply(content=member.mention, file=discord.File(output_file, filename='image.png'))
-        output_file.close()
+            canvas_image.paste(author_avatar, (215, 80))
+            canvas_image.paste(member_avatar, (546, 290))
+            author_avatar.close()
+            member_avatar.close()
+
+            output_stream = BytesIO()
+            canvas_image.save(output_stream, format='jpeg')
+            canvas_image.close()
+            output_stream.seek(0)
+            await ctx.reply(content=member.mention, file=discord.File(output_stream, filename='image.jpg'))
+
+        # Close the streams
+        output_stream.close()
 
     @commands.command( # type: ignore
+        name="memefy",
         brief='Updates meme uploaded as attachment to comply within the German copyright regulations.',
         usage='[bool whether to retain ratio]',
         category=RandomCategory
@@ -87,64 +85,65 @@ class ImageManipCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    async def memefy(self, ctx: Context, retain_aspect: bool = False):
+    async def memefy_command(self, ctx: Context, retain_aspect_ratio: bool = False):
         async with ctx.channel.typing():
             attachment, extension = await handle_attachment(ctx)
 
-            output_file = BytesIO()
-            async with await http.get(self.client, attachment.url) as r:
-                payload = await r.read()
-            input_file = BytesIO(payload)
-            img = Image.open(input_file)
+            # Load the attachment
+            attachment_image = await load_image_from_url(self.client, attachment.url)
+            
+            # Change the image size
             sizes = (128, 128)
-            if retain_aspect:
-                orig_w, orig_h = img.size
-                sizes = (128, round(orig_w * 128 / orig_h))
-            img = img.resize(sizes, Image.ANTIALIAS)
-            img.save(output_file, format='png')
-            img.close()
-            input_file.close()
+            message = "Meme has been updated to comply with the German regulations"
+            if retain_aspect_ratio:
+                orig_w, orig_h = attachment_image.size
+                ratio = 12800 / orig_w
+                sizes = (128, round(ratio * orig_h / 100))
+                message += "-ish..."
+            attachment_image = attachment_image.resize(sizes, Image.ANTIALIAS)
+
+            # Save the file
+            output_file = BytesIO()
+            attachment_image.save(output_file, format='png')
+            attachment_image.close()
+
+            # Send it
             output_file.seek(0)
             await ctx.reply(
-                content='Meme has been updated to comply within German regulations.',
+                content=message,
                 file=discord.File(output_file, filename=f'image{extension}')
             )
         output_file.close()
 
     @commands.command( # type: ignore
-        brief='Upscales image to 4k resolution.',
+        name="jpeg",
+        brief='Downscales an image to glorious JPEG quality.',
         usage='<quality(1-10)>',
-        aliases=['jpeg'],
+        aliases=['hank'],
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
     @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    async def hank(self, ctx: Context, quality: int = 1):
+    async def jpeg_command(self, ctx: Context, quality: int = 1):
+        if quality < 1 or quality > 10:
+            raise BadArgument("Quality value must be a number between 1 and 10.")
+
         async with ctx.channel.typing():
             attachment, _ = await handle_attachment(ctx)
 
-            if quality < 1:
-                await ctx.reply(embed=ErrorEmbed('Quality must be a positive number!'))
-                return
+            attachment_image = await load_image_from_url(self.client, attachment.url)
 
-            if quality > 10:
-                await ctx.reply(embed=ErrorEmbed('Quality must be 10 or less!'))
-                return
+            # Convert to RGB
+            attachment_image = attachment_image.convert("RGB")
 
-            async with await http.get(self.client, attachment.url) as r:
-                payload = await r.read()
-            input_file = BytesIO(payload)
-
-            img = Image.open(input_file)
-            img = img.convert("RGB")
-            b = BytesIO()
-            img.save(b, format='JPEG', quality=quality)
-            img.close()
-            input_file.close()
-            b.seek(0)
-            await ctx.reply(content='Do I look like I know what a JPEG is?', file=discord.File(b, filename='compression.jpg'))
-        b.close()
+            # Save with the quality setting
+            output_stream = BytesIO()
+            attachment_image.save(output_stream, format='JPEG', quality=quality)
+            attachment_image.close()
+            output_stream.seek(0)
+            await ctx.reply(content='Do I look like I know what a JPEG is?', file=discord.File(output_stream, filename='compression.jpg'))
+        output_stream.close()
 
 
 async def setup(client: Pidroid):
