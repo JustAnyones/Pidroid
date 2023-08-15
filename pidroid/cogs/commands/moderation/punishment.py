@@ -527,6 +527,8 @@ class ModerationMenu(ui.View):
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def on_confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the punishment confirmation button."""
+        await interaction.response.defer()
+        self.stop()
 
         assert self.punishment is not None
         await self.punishment.issue()
@@ -562,6 +564,8 @@ class ModerationMenu(ui.View):
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user
         )
+        await interaction.response.defer()
+        self.stop()
         await self.punishment.revoke(reason=f"Unbanned by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
@@ -612,6 +616,8 @@ class ModerationMenu(ui.View):
             channel=self.channel, moderator=self.moderator, user=self.user,
             role=self._jail_role
         )
+        await interaction.response.defer()
+        self.stop()
         await self.punishment.revoke(reason=f"Released by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
@@ -634,6 +640,8 @@ class ModerationMenu(ui.View):
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user
         )
+        await interaction.response.defer()
+        self.stop()
         await self.punishment.revoke(reason=f"Time out removed by {str(self.moderator)}")
         await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
 
@@ -686,7 +694,7 @@ class ModerationMenu(ui.View):
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
 
-    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []) -> None:
+    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []):
         """Updates the original interaction response message.
         
         If interaction object is not provided, then the message itself will be edited."""
@@ -694,8 +702,17 @@ class ModerationMenu(ui.View):
             assert self._message is not None
             with suppress(NotFound):
                 await self._message.edit(embed=self._embed, view=self, attachments=attachments)
-        else:
-            await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
+            return
+
+        # If we have the interaction
+        use_followup = interaction.response.type is not None
+        if use_followup:
+            assert self._message is not None
+            return await interaction.followup.edit_message(
+                message_id=self._message.id,
+                embed=self._embed, view=self, attachments=attachments
+            )
+        await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
 
     """Utility"""
 
