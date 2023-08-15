@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import datetime
 import discord
 
 from contextlib import suppress
@@ -19,7 +20,7 @@ from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.utils import escape_markdown
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands.context import Context # type: ignore
 from discord.utils import get
 from discord.file import File
@@ -756,6 +757,7 @@ class ModerationMenu(ui.View):
 class UserSemaphoreDict(TypedDict):
     semaphore: asyncio.Semaphore
     message_url: Optional[str]
+    created: datetime.datetime
 
 
 class ModeratorCommands(commands.Cog): # type: ignore
@@ -763,9 +765,25 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
     def __init__(self, client: Pidroid):
         self.client = client
-        # {GUILD_ID: {USER_ID: {semaphore: Semaphore, message_url: Optional[str]}}}
+        # {GUILD_ID: {USER_ID: UserSemaphoreDict}}
         self.user_semaphores: Dict[int, Dict[int, UserSemaphoreDict]] = {}
-        self.allow_moderator_on_themselves: bool = True
+        self.unlock_semaphores.start()
+
+    def cog_unload(self):
+        self.unlock_semaphores.stop()
+
+    @tasks.loop(minutes=10)
+    async def unlock_semaphores(self) -> None:
+        current_timestamp = utcnow().timestamp()
+        for guild_id in self.user_semaphores.copy():
+            for member_id in self.user_semaphores[guild_id].copy():
+                item = self.user_semaphores[guild_id][member_id]
+                if current_timestamp - item["created"].timestamp() > 10 * 60:
+                    self.user_semaphores[guild_id].pop(member_id)
+
+    @unlock_semaphores.before_loop
+    async def before_unlock_semaphores(self) -> None:
+        await self.client.wait_until_guild_configurations_loaded()
 
     def _create_semaphore_if_not_exist(self, guild_id: int, user_id: int, message_url: Optional[str] = None) -> asyncio.Semaphore:
         if self.user_semaphores.get(guild_id) is None:
@@ -774,7 +792,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
         if user is None:
             self.user_semaphores[guild_id][user_id] = {
                 "semaphore": asyncio.Semaphore(1),
-                "message_url": message_url
+                "message_url": message_url,
+                "created": utcnow()
             }
         return self.user_semaphores[guild_id][user_id]["semaphore"]
 
