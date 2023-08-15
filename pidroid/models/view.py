@@ -43,8 +43,6 @@ class BaseView(View):
 
     async def timeout_view(self, interaction: Optional[Interaction]) -> None:
         """Called to clean up when the interaction or view timed out."""
-        self._embed.set_footer(text="Menu has timed out.")
-        self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
     async def finish_interface(
