@@ -146,7 +146,7 @@ class LevelCommands(commands.Cog): # type: ignore
             for reward in rewards:
                 role = await self.client.get_or_fetch_role(ctx.guild, reward.role_id)
                 role_name = role.mention if role else reward.role_id
-                embed.description += f"{reward.level}: {role_name}\n"
+                embed.description += f"{reward.level}. {role_name}\n"
             await ctx.reply(embed=embed)
 
     @rewards_command.command( # type: ignore
