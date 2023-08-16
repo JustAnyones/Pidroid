@@ -311,7 +311,7 @@ class TagCommands(commands.Cog): # type: ignore
         with BytesIO(tag.content.encode("utf-8")) as buffer:
             file = File(buffer, f"{tag.name[:40]}-content.txt")
 
-        await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}"), file=file)
+        await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}'"), file=file)
 
 
     @tag_command.command( # type: ignore
