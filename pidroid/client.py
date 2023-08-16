@@ -11,17 +11,19 @@ import logging
 
 from aiohttp import ClientSession
 from contextlib import suppress
-from discord.ext import commands # type: ignore
+from discord.ext import commands, tasks # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional
+from discord.utils import MISSING
+from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional, Union
 
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.categories import Category, register_categories
 from pidroid.models.guild_configuration import GuildConfiguration, GuildPrefixes
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 
@@ -123,6 +125,9 @@ class Pidroid(commands.Bot): # type: ignore
         self.api = API(self, self.config["postgres_dsn"])
 
         self.logger = logging.getLogger('Pidroid') # backwards compatibility
+
+        self.__queues: Dict[int, AbstractMessageQueue] = {}
+        self.__tasks: List[tasks.Loop] = []
 
     async def setup_hook(self):
         await self.api.connect()
@@ -318,6 +323,57 @@ class Pidroid(commands.Bot): # type: ignore
         """Attempts to load all extensions as defined in client object."""
         self.logger.info("Loading extensions")
         await self.load_all_extensions()
+
+    async def close(self) -> None:
+        """Called when Pidroid is being shut down."""
+        await super().close()
+        for task in self.__tasks:
+            task.stop()
+
+    def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False) -> AbstractMessageQueue:
+        """Creates a queue and returns the queue object."""
+        queue: Union[MessageQueue, EmbedMessageQueue]
+        if not embed_queue:
+            queue = MessageQueue(channel)
+        else:
+            queue = EmbedMessageQueue(channel)
+        self.__queues[channel.id] = queue
+        # Let's not reimplement wheel
+        # and use discord.py's Loop class
+        loop = tasks.Loop(
+            queue.handle_queue,
+            seconds=0,
+            minutes=0,
+            hours=0,
+            count=None,
+            time=MISSING,
+            reconnect=True,
+        )
+        loop._before_loop = self.wait_until_guild_configurations_loaded # type: ignore
+        self.__tasks.append(loop)
+        loop.start()
+        return queue
+
+    async def queue(self, channel: discord.TextChannel, item: Union[str, discord.Embed]):
+        """Adds the specified item to a text channel queue.
+        
+        The item can be a string or an embed.
+        
+        Mixed content cannot be sent to the same text channel."""
+        use_embed_queue = isinstance(item, discord.Embed)
+
+        queue = self.__queues.get(channel.id, None)
+        if queue is None:
+            queue = self.create_queue(channel, embed_queue=use_embed_queue)
+
+        # TODO: support mixed content
+        if (
+            (use_embed_queue and isinstance(queue, MessageQueue))
+            or (not use_embed_queue and isinstance(queue, EmbedMessageQueue))
+        ):
+            raise ValueError("Sending mixed content to a channel is currently unsupported.")
+
+        await queue.queue(item)
 
     async def annoy_erksmit(self):
         if sys.platform != "win32":

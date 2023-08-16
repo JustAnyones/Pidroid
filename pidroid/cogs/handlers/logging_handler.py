@@ -476,7 +476,7 @@ class LoggingHandler(commands.Cog):
         
         channel = await self.client.get_or_fetch_guild_channel(log.guild, conf.logging_channel_id)
         if channel:
-            await channel.send(embed=log.as_embed())
+            await self.client.queue(channel, log.as_embed())
         else:
             logger.warning(f"Could not resolve a guild channel {conf.logging_channel_id} to send a Pidroid log to")
 
