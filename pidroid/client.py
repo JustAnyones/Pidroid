@@ -330,13 +330,13 @@ class Pidroid(commands.Bot): # type: ignore
         for task in self.__tasks:
             task.stop()
 
-    def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False) -> AbstractMessageQueue:
+    def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False, delay: float = -1) -> AbstractMessageQueue:
         """Creates a queue and returns the queue object."""
         queue: Union[MessageQueue, EmbedMessageQueue]
         if not embed_queue:
-            queue = MessageQueue(channel)
+            queue = MessageQueue(channel, delay=delay)
         else:
-            queue = EmbedMessageQueue(channel)
+            queue = EmbedMessageQueue(channel, delay=delay)
         self.__queues[channel.id] = queue
         # Let's not reimplement wheel
         # and use discord.py's Loop class
@@ -354,7 +354,7 @@ class Pidroid(commands.Bot): # type: ignore
         loop.start()
         return queue
 
-    async def queue(self, channel: discord.TextChannel, item: Union[str, discord.Embed]):
+    async def queue(self, channel: discord.TextChannel, item: Union[str, discord.Embed], delay: float = -1):
         """Adds the specified item to a text channel queue.
         
         The item can be a string or an embed.
@@ -364,7 +364,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         queue = self.__queues.get(channel.id, None)
         if queue is None:
-            queue = self.create_queue(channel, embed_queue=use_embed_queue)
+            queue = self.create_queue(channel, embed_queue=use_embed_queue, delay=delay)
 
         # TODO: support mixed content
         if (

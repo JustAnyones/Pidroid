@@ -38,9 +38,12 @@ def split_text_into_chunks(text: str, max_chunk_length: int = 2000):
 class AbstractMessageQueue:
     """This is an abstract message queue."""
 
-    def __init__(self, channel: TextChannel) -> None:
+    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
         self._queue: Queue[Union[Embed, str]] = Queue(maxsize=0)
         self._channel = channel
+        self._delay = delay
+        if delay <= 0:
+            self._delay = 0.75
 
     async def queue(self, item: Any) -> None:
         """Adds the specified embed to the queue."""
@@ -53,8 +56,8 @@ class AbstractMessageQueue:
 class MessageQueue(AbstractMessageQueue):
     """This defines an generic message queue in a specific channel."""
 
-    def __init__(self, channel: TextChannel) -> None:
-        super().__init__(channel)
+    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
+        super().__init__(channel, delay=delay)
 
     async def queue(self, item: str) -> None:
         stripped = item.strip()
@@ -76,14 +79,14 @@ class MessageQueue(AbstractMessageQueue):
             if self._queue.qsize() > 0:
                 item = await self._queue.get()
                 await self._channel.send(content=item)
-            await sleep(0.75)
+            await sleep(self._delay)
         except Exception as e:
             logger.exception(e)
 
 class EmbedMessageQueue(AbstractMessageQueue):
 
-    def __init__(self, channel: TextChannel) -> None:
-        super().__init__(channel)
+    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
+        super().__init__(channel, delay=delay)
 
     async def handle_queue(self):
         try:
@@ -102,6 +105,6 @@ class EmbedMessageQueue(AbstractMessageQueue):
                 await self._channel.send(embeds=items)
 
             # Don't run this too often
-            await sleep(0.75)
+            await sleep(self._delay)
         except Exception as e:
             logger.exception(e)
