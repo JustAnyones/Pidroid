@@ -34,7 +34,6 @@ def split_text_into_chunks(text: str, max_chunk_length: int = 2000):
 
     return chunks
 
-
 class AbstractMessageQueue:
     """This is an abstract message queue."""
 
@@ -74,11 +73,30 @@ class MessageQueue(AbstractMessageQueue):
             return
         return await super().queue(item)
     
+    async def _combine_if_possible(self, value: str) -> str:
+        """Tries to combine multiple queue elements into a single message."""
+        if not self._queue.empty():
+
+            # WARN: usually, this is a very bad idea in multi consumer flows, but
+            # since there's only a single consumer for our messages queues,
+            # this doesn't matter in this specific case
+            next_value: str = self._queue._queue[0] # type: ignore
+            #print("Peeking:", next_value)
+
+            combined = value + "\n" + next_value
+            if len(combined) <= 2000:
+                #print("Combining", len(value), "->", len(combined))
+                await self._queue.get()
+                return await self._combine_if_possible(combined)
+        #print("Leaving combining loop")
+        return value
+
     async def handle_queue(self):
         try:
-            if self._queue.qsize() > 0:
-                item = await self._queue.get()
-                await self._channel.send(content=item)
+            item = await self._queue.get()
+            #print("Grabbed:", item)
+            content = await self._combine_if_possible(item)
+            await self._channel.send(content=content)
             await sleep(self._delay)
         except Exception as e:
             logger.exception(e)
