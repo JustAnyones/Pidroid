@@ -1,7 +1,7 @@
 import logging
 
 from asyncio import Queue, sleep
-from discord import Embed, TextChannel
+from discord import AllowedMentions, Embed, TextChannel
 from typing import Any, Union
 
 logger = logging.getLogger('Pidroid')
@@ -96,7 +96,13 @@ class MessageQueue(AbstractMessageQueue):
             item = await self._queue.get()
             #print("Grabbed:", item)
             content = await self._combine_if_possible(item)
-            await self._channel.send(content=content)
+            await self._channel.send(
+                content=content,
+                allowed_mentions=AllowedMentions(
+                    everyone=False, replied_user=False,
+                    users=False, roles=False
+                )
+            )
             await sleep(self._delay)
         except Exception as e:
             logger.exception(e)
