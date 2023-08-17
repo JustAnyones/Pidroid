@@ -38,7 +38,11 @@ class PersistentSuggestionDeletionView(discord.ui.View):
         if interaction.message is None:
             await interaction.response.send_message('Associated message could not be found', ephemeral=True)
             return False
-        
+
+        # Check if it's JustAnyone
+        if interaction.user.id == JUSTANYONE_ID:
+            return True
+
         icon_url = interaction.message.embeds[0].author.icon_url
         author_id_from_icon = None
         if icon_url:
@@ -47,7 +51,7 @@ class PersistentSuggestionDeletionView(discord.ui.View):
                 author_id_from_icon = int(split)
             except Exception:
                 author_id_from_icon = None
-        
+
         # If it's the message author
         if author_id_from_icon and author_id_from_icon == interaction.user.id:
 
@@ -59,9 +63,6 @@ class PersistentSuggestionDeletionView(discord.ui.View):
             )
             return False
 
-        # Otherwise, check if it's JustAnyone
-        if interaction.user.id == JUSTANYONE_ID:
-            return True
-
+        # Otherwise, say no
         await interaction.response.send_message("You are not authorized to remove the suggestions here.", ephemeral=True)
         return False
