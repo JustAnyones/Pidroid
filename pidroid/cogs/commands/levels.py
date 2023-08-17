@@ -25,8 +25,9 @@ class LeaderboardPaginator(ListPageSource):
         assert isinstance(menu._ctx.bot, Pidroid)
         self.embed.clear_fields()
         for info in data:
+            user = menu._ctx.bot.get_user(info.user_id)
             self.embed.add_field(
-                name=f"{info.rank}. {await menu._ctx.bot.get_or_fetch_user(info.user_id)} (lvl. {info.current_level})",
+                name=f"{info.rank}. {user if user else info.user_id} (lvl. {info.current_level})",
                 value=f'{info.total_xp:,} XP',
                 inline=False
             )
