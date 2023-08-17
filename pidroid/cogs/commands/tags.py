@@ -226,7 +226,10 @@ class TagCommands(commands.Cog): # type: ignore
         usage='[tag name]',
         category=TagCategory,
         invoke_without_command=True,
-        fallback="get"
+        fallback="get",
+        examples=[
+            ("Show a tag that contains the name files", 'tag files'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
@@ -271,9 +274,12 @@ class TagCommands(commands.Cog): # type: ignore
 
     @tag_command.command( # type: ignore
         name="info",
-        brief='Returns information about a server tag.',
+        brief='Returns information about a specific server tag.',
         usage='<tag name>',
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Show tag information. Note how you have to use the full name.", 'tag info role explanations'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.guild_only() # type: ignore
@@ -301,7 +307,10 @@ class TagCommands(commands.Cog): # type: ignore
         name="raw",
         brief='Returns raw tag content.',
         usage='<tag name>',
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Show raw tag content. Note how you have to use the full name.", 'tag raw role explanations'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
     @commands.guild_only() # type: ignore
@@ -318,7 +327,10 @@ class TagCommands(commands.Cog): # type: ignore
         name="create",
         brief="Create a server tag.",
         usage="<tag name> <tag content>",
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Create a tag called Role explanations", 'tag create "Role explanations" amazing role tag'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.cooldown(rate=10, per=60, type=commands.BucketType.user) # type: ignore
@@ -347,7 +359,10 @@ class TagCommands(commands.Cog): # type: ignore
         name="edit",
         brief="Edit a server tag.",
         usage="<tag name> <tag content>",
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Edit a tag called Role explanations", 'tag edit "Role explanations" amazingly edited tag'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
@@ -375,7 +390,10 @@ class TagCommands(commands.Cog): # type: ignore
         name="add-author",
         brief="Add a new tag co-author.",
         usage="<tag name> <member>",
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Allow JustAnyone to edit role tag", 'tag add-author "Role explanations" JustAnyone'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
@@ -400,7 +418,10 @@ class TagCommands(commands.Cog): # type: ignore
         name="remove-author",
         brief="Remove a tag co-author.",
         usage="<tag name> <member>",
-        category=TagCategory
+        category=TagCategory,
+        examples=[
+            ("Remove JustAnyone from authors", 'tag remove-author "Role explanations" JustAnyone'),
+        ],
     )
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @command_checks.can_modify_tags()
