@@ -165,7 +165,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
 
             # Let the suggestion author know that the suggestion was sent
             with suppress(HTTPException):
-                await ctx.reply(f'Your suggestion has been submitted to {channel.mention} channel successfully!')
+                await ctx.reply(f'Your suggestion has been submitted to {message.jump_url} successfully!')
 
     @suggest_command.error
     async def on_suggest_command_error(self, ctx: Context, error):

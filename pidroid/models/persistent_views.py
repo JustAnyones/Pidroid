@@ -2,6 +2,7 @@ import discord
 import logging
 
 from pidroid.constants import JUSTANYONE_ID
+from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
 
@@ -31,8 +32,36 @@ class PersistentSuggestionDeletionView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Ensure that the interaction is called by a user authorized to delete suggestions.
 
-        JustAnyone, in this case."""
-        if interaction.user and interaction.user.id == JUSTANYONE_ID:
+        JustAnyone or the suggestion author, in this case."""
+
+        # If I cannot locate the message, the interaction check fails
+        if interaction.message is None:
+            await interaction.response.send_message('Associated message could not be found', ephemeral=True)
+            return False
+        
+        icon_url = interaction.message.embeds[0].author.icon_url
+        author_id_from_icon = None
+        if icon_url:
+            try:
+                split = icon_url.split('https://cdn.discordapp.com/avatars/')[1].split('/')[0]
+                author_id_from_icon = int(split)
+            except Exception:
+                author_id_from_icon = None
+        
+        # If it's the message author
+        if author_id_from_icon and author_id_from_icon == interaction.user.id:
+
+            if utcnow().timestamp() - interaction.message.created_at.timestamp() <= 3*60:
+                return True
+            await interaction.response.send_message(
+                'Suggestion can only be deleted within 3 minutes of sending it.',
+                ephemeral=True
+            )
+            return False
+
+        # Otherwise, check if it's JustAnyone
+        if interaction.user.id == JUSTANYONE_ID:
             return True
+
         await interaction.response.send_message("You are not authorized to remove the suggestions here.", ephemeral=True)
         return False
