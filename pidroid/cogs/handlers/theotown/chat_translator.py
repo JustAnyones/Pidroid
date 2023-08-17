@@ -254,8 +254,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
                 footer = FLAG_FOOTERS.get(flag)
                 if footer is not None:
                     embed.set_footer(text=f"{footer} | {embed.footer.text}")
-
-        await channel.send(embeds=embeds)
+            
+            await self.client.queue(channel, embed)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TranslationEventHandler(client))
