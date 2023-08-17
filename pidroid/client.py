@@ -353,6 +353,20 @@ class Pidroid(commands.Bot): # type: ignore
         self.__tasks.append(loop)
         loop.start()
         return queue
+    
+    def remove_queue(self, channel: discord.TextChannel):
+        """Removes queue which was created in the specific text channel."""
+
+        queue = self.__queues.get(channel.id, None)
+        if queue is None:
+            return
+
+        for loop in self.__tasks.copy():
+            if loop.coro == queue.handle_queue:
+                loop.stop()
+                self.__tasks.remove(loop)
+                del self.__queues[channel.id]
+                return
 
     async def queue(self, channel: discord.TextChannel, item: Union[str, discord.Embed], delay: float = -1):
         """Adds the specified item to a text channel queue.
