@@ -150,7 +150,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
     @commands.command( # type: ignore
         name='find-plugin',
-        brief='Searches plugin store for the specified plugin.',
+        brief='Searches the plugin store for the specified plugin.',
         usage='<query>',
         aliases=['findplugin'],
         examples=[

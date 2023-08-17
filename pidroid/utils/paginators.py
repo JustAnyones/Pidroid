@@ -346,7 +346,7 @@ class PluginListPaginator(ListPageSource):
     def __init__(self, original_query: str, data: List[Plugin]):
         super().__init__(data, per_page=12)
         self.embed = PidroidEmbed(title=f'{len(data)} plugins have been found matching your query')
-        self.embed.set_footer(text=f"Queried: {original_query}")
+        self.embed.set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin #ID to find out more")
 
     async def format_page(self, menu: PidroidPages, plugins: List[Plugin]):
         self.embed.clear_fields()
