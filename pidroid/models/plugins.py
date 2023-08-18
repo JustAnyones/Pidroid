@@ -105,7 +105,7 @@ class Plugin:
     def to_embed(self) -> Embed:
         """Returns a discord Embed object."""
         name = truncate_string(self.clean_title)
-        description = truncate_string(self.clean_description, 1024)
+        description = truncate_string(escape_markdown(self.clean_description), 1024)
         author = f'[{escape_markdown(self.author.username)}]({self.author.url})'
         if self.price == 0:
             price = "🎁 Free"
