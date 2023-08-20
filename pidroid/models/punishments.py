@@ -15,8 +15,8 @@ from discord.user import User
 from discord.utils import format_dt
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
-from pidroid.utils import try_message_user
 
+from pidroid.utils import try_message_user
 from pidroid.utils.aliases import GuildTextChannel
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
