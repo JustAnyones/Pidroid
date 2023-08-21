@@ -1,7 +1,9 @@
 import discord
 import logging
 
-from pidroid.constants import JUSTANYONE_ID
+from discord import Member, TextChannel
+
+from pidroid.utils.checks import TheoTownChecks, is_guild_theotown, member_has_channel_permission
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
@@ -39,8 +41,18 @@ class PersistentSuggestionDeletionView(discord.ui.View):
             await interaction.response.send_message('Associated message could not be found', ephemeral=True)
             return False
 
-        # Check if it's JustAnyone
-        if interaction.user.id == JUSTANYONE_ID:
+        assert isinstance(interaction.message.channel, TextChannel)
+
+        # If user who interacted in TheoTown guild is a developer
+        if is_guild_theotown(interaction.message.guild):
+            if TheoTownChecks.is_developer(interaction.user):
+                return True
+            
+        # If it is not TheoTown guild, check if member has manage_messages permission
+        elif (
+            isinstance(interaction.user, Member)
+            and member_has_channel_permission(interaction.message.channel, interaction.user, 'manage_messages')
+        ):
             return True
 
         icon_url = interaction.message.embeds[0].author.icon_url
@@ -55,10 +67,10 @@ class PersistentSuggestionDeletionView(discord.ui.View):
         # If it's the message author
         if author_id_from_icon and author_id_from_icon == interaction.user.id:
 
-            if utcnow().timestamp() - interaction.message.created_at.timestamp() <= 3*60:
+            if utcnow().timestamp() - interaction.message.created_at.timestamp() <= 5*60:
                 return True
             await interaction.response.send_message(
-                'Suggestion can only be deleted within 3 minutes of sending it.',
+                'Suggestion can only be deleted within 5 minutes of sending it.',
                 ephemeral=True
             )
             return False

@@ -137,11 +137,13 @@ class SuggestionCommand(commands.Cog): # type: ignore
             # Add the reaction legend to the footer
             embed.set_footer(text=reaction_legend)
 
+            view = PersistentSuggestionDeletionView()
+
             # Send the suggestion message
             if file:
-                message = await channel.send(embed=embed, file=file)
+                message = await channel.send(embed=embed, file=file, view=view)
             else:
-                message = await channel.send(embed=embed)
+                message = await channel.send(embed=embed, view=view)
 
             # Add reactions to the sent message
             for key in reactions:
@@ -154,7 +156,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
                     suggestion_attachments.append(message.embeds[0].image.url)
                 s_id = await self.client.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
                 embed.set_footer(text=f"{embed.footer.text}\n#{s_id}")
-                await message.edit(embed=embed, view=PersistentSuggestionDeletionView())
+                await message.edit(embed=embed, view=view)
 
             if config.suggestion_threads_enabled:
                 await self.client.create_expiring_thread(
