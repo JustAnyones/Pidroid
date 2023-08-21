@@ -112,7 +112,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
             if len(suggestion) > 2048:
                 raise BadArgument("The suggestion is too long! Keep it within 2048 character limit.")
 
-            embed = PidroidEmbed(description=suggestion)
+            embed = PidroidEmbed(description=suggestion.replace("# ", "\# "))
             embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
 
             # Deal with attachments
