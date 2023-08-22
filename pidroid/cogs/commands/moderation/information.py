@@ -15,9 +15,9 @@ from pidroid.utils.paginators import CasePaginator, ListPageSource
 
 
 class GuildPaginator(ListPageSource):
-    def __init__(self, data: List[Guild]):
+    def __init__(self, title: str, data: List[Guild]):
         super().__init__(data, per_page=20)
-        self.embed = PidroidEmbed(title="Servers matching your query")
+        self.embed = PidroidEmbed(title=title)
         self.embed.set_footer(text=f"{len(data)} servers")
 
     async def format_page(self, menu: PaginatingView, data: List[Guild]):
@@ -212,7 +212,7 @@ class ModeratorInfoCommands(commands.Cog):
     @moderation_logs_command.command( # type: ignore
         name="server",
         brief='Displays all moderation logs for you in the specified server.',
-        usage='<server>',
+        usage='[server]',
         category=ModerationCategory
     )
     @app_commands.rename(guild_argument="server")
@@ -221,8 +221,19 @@ class ModeratorInfoCommands(commands.Cog):
     async def moderation_logs_guild_subcommand(
         self,
         ctx: Context,
-        guild_argument: str
+        guild_argument: Optional[str]
     ):
+        # If guild wasn't provided, list all guilds where user was punished it
+        if guild_argument is None:
+            guilds = await self.client.api.fetch_guilds_user_was_punished_in(ctx.author.id)
+            pages = PaginatingView(
+                self.client,
+                ctx=ctx,
+                source=GuildPaginator("Servers, in which you have been punished", guilds),
+            )
+            return await pages.send()
+
+
         guilds = await self.find_guilds(ctx.author.id, guild_argument)
 
         # If we found no guilds, explain the user
@@ -240,7 +251,7 @@ class ModeratorInfoCommands(commands.Cog):
             pages = PaginatingView(
                 self.client,
                 ctx=ctx,
-                source=GuildPaginator(guilds),
+                source=GuildPaginator("Servers matching your search", guilds),
             )
             return await pages.send()
 
@@ -251,7 +262,11 @@ class ModeratorInfoCommands(commands.Cog):
         pages = PaginatingView(
             self.client,
             ctx=ctx,
-            source=CasePaginator(f"Displaying moderation logs in {guild.name}", cases),
+            source=CasePaginator(
+                f"Displaying moderation logs in {guild.name}",
+                cases,
+                include_original_user_name=True
+            ),
         )
         await pages.send()
 
