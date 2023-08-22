@@ -1,38 +1,26 @@
 from __future__ import annotations
 
-import datetime
-
+from discord import AllowedMentions, Attachment, File, Member, Message
 from discord.ext import commands # type: ignore
 from discord.ext.commands import Context # type: ignore
 from discord.ext.commands.errors import BadArgument # type: ignore
-from discord.file import File
-from discord.message import Attachment
-from discord.user import User
-from discord.member import Member
-from discord.mentions import AllowedMentions
-from discord.message import Message
 from discord.utils import escape_markdown, format_dt
 from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
 
 from pidroid.models.categories import TagCategory
+from pidroid.models.event_types import EventName, EventType
+from pidroid.models.tags import Tag
 from pidroid.models.view import PaginatingView
 from pidroid.utils.checks import has_moderator_guild_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.paginators import ListPageSource
 
-FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
-RESERVED_WORDS = [
-    "create", "edit", "remove", "claim", "transfer", "list", "info",
-    "add-author", "add_author", "raw",
-    "remove-author", "remove_author"
-]
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
-    from pidroid.utils.api import TagTable
 
 class TagListPaginator(ListPageSource):
     def __init__(self, title: str, data: List[Tag]):
@@ -52,134 +40,6 @@ class TagListPaginator(ListPageSource):
             values += f"{i + offset}. {item.name}\n"
         self.embed.description = values.strip()
         return self.embed
-
-class Tag:
-    """This class represents a guild tag."""
-
-    if TYPE_CHECKING:
-        _id: int
-        guild_id: int
-        _name: str
-        _content: str
-        _author_ids: List[int]
-        aliases: List[str]
-        locked: bool
-        _date_created: datetime.datetime
-
-    def __init__(self, client: Pidroid, data: Optional[TagTable] = None) -> None:
-        self._client = client
-        self._api = client.api
-        self._author_ids = []
-        if data:
-            self._deserialize(data)
-
-    @property
-    def name(self) -> str:
-        """Returns the name of the tag."""
-        return self._name
-
-    @name.setter
-    def name(self, value: str):
-        """Sets the name of the tag.
-        
-        Will raise BadArgument if the name is deemed invalid."""
-        if len(value) < 3:
-            raise BadArgument("Tag name is too short! Please keep it above 2 characters!")
-        if len(value) > 30:
-            raise BadArgument("Tag name is too long! Please keep it below 30 characters!")
-        if any(w in RESERVED_WORDS for w in value.split(" ")):
-            raise BadArgument("Tag name cannot contain reserved words!")
-        if any(c in FORBIDDEN_CHARS for c in value):
-            raise BadArgument("Tag name cannot contain forbidden characters!")
-        self._name = value
-
-    @property
-    def content(self) -> str:
-        """Returns the content of the tag."""
-        return self._content
-
-    @content.setter
-    def content(self, value: str):
-        """Sets the content of the tag.
-        
-        Will raise BadArgument if the content string is too long."""
-        if len(value) > 2000:
-            raise BadArgument("Tag content is too long! Please keep it below 2000 characters!")
-        self._content = value
-
-    @property
-    def author_id(self) -> int:
-        """Returns the user ID of the tag author."""
-        return self._author_ids[0]
-
-    @author_id.setter
-    def author_id(self, value: int) -> None:
-        """Sets the tag author to the specified user ID."""
-        # If it was in list before hand, like a co-author
-        if value in self.co_author_ids:
-            self._author_ids.remove(value)
-
-        if len(self._author_ids) == 0:
-            return self._author_ids.append(value)
-        self._author_ids[0] = value
-
-    @property
-    def co_author_ids(self) -> List[int]:
-        """Returns a list of tag's co-authors' user IDs."""
-        return self._author_ids[1:]
-
-    def add_co_author(self, author_id: int) -> None:
-        """Adds the specified author to tag co-authors.
-        
-        Will raise BadArgument if author ID is not valid."""
-        if self.author_id == author_id:
-            raise BadArgument("You cannot add yourself as a co-author!")
-        if len(self._author_ids) > 4:
-            raise BadArgument("A tag can only have up to 4 co-authors!")
-        if author_id in self.co_author_ids:
-            raise BadArgument("Specifed member is already a co-author!")
-        self._author_ids.append(author_id)
-
-    def remove_co_author(self, author_id: int) -> None:
-        """Removes the specified author ID from co-authors.
-        
-        Will raise BadArgument if specified member is not a co-author."""
-        if author_id not in self.co_author_ids:
-            raise BadArgument("Specified member is not a co-author!")
-        self._author_ids.remove(author_id)
-
-    def is_author(self, user_id: int) -> bool:
-        """Returns true if specified user is an author."""
-        return user_id in self._author_ids
-
-    async def fetch_authors(self) -> List[Optional[User]]:
-        """Returns a list of optional user objects which represent the tag authors."""
-        return [await self._client.get_or_fetch_user(auth_id) for auth_id in self._author_ids]
-
-    def _deserialize(self, data: TagTable) -> None:
-        self._id = data.id # type: ignore
-        self.guild_id = data.guild_id # type: ignore
-        self._name = data.name # type: ignore
-        self._content = data.content # type: ignore
-        self._author_ids = data.authors # type: ignore
-        self.aliases = data.aliases # type: ignore
-        self.locked = data.locked # type: ignore
-        self._date_created = data.date_created # type: ignore
-
-    async def create(self) -> None:
-        """Creates a tag by inserting an entry to the database."""
-        self._id = await self._api.insert_tag(self.guild_id, self.name, self.content, self._author_ids)
-
-    async def edit(self) -> None:
-        """Edits the tag by updating the entry in the database."""
-        await self._api.update_tag(self._id, self.content, self._author_ids, self.aliases, self.locked)
-
-    async def remove(self) -> None:
-        """Removes the tag entry from the database."""
-        if not self._api:
-            raise BadArgument("API attribute is missing!")
-        await self._api.delete_tag(self._id)
-
 
 class TagCommands(commands.Cog): # type: ignore
     """This class implements a cog for dealing with guild tag related commands.."""
@@ -337,7 +197,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_create_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
-        assert ctx.guild is not None
+        assert ctx.guild
         tag = Tag(self.client)
         tag.guild_id = ctx.guild.id
         tag.author_id = ctx.author.id
@@ -353,6 +213,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.create()
         await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
+        self.client.log_event(
+            EventType.tag_create, EventName.tag_create, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command( # type: ignore
@@ -368,6 +232,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_edit_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if tag.locked:
@@ -384,6 +249,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
+        self.client.log_event(
+            EventType.tag_update, EventName.tag_edit, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command(
@@ -399,6 +268,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_add_author_command(self, ctx: Context, tag_name: str, member: Member):
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
@@ -412,6 +282,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully!"))
+        self.client.log_event(
+            EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command(
@@ -427,6 +301,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_remove_author_command(self, ctx: Context, tag_name: str, member: Member):
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
@@ -437,6 +312,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully!"))
+        self.client.log_event(
+            EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command(
@@ -449,7 +328,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_claim_command(self, ctx: Context, *, tag_name: str):
-        assert ctx.guild is not None
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if ctx.author.id == tag.author_id:
@@ -472,6 +351,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed("Tag claimed successfully!"))
+        self.client.log_event(
+            EventType.tag_update, EventName.tag_claim, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command(
@@ -484,6 +367,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_transfer_command(self, ctx: Context, tag_name: str, member: Member):
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
@@ -500,6 +384,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.edit()
         await ctx.reply(embed=SuccessEmbed(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
+        self.client.log_event(
+            EventType.tag_update, EventName.tag_transfer, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
     @tag_command.command(
@@ -512,6 +400,7 @@ class TagCommands(commands.Cog): # type: ignore
     @command_checks.can_modify_tags()
     @commands.guild_only() # type: ignore
     async def tag_remove_command(self, ctx: Context, *, tag_name: str):
+        assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
         if tag.locked:
@@ -523,6 +412,10 @@ class TagCommands(commands.Cog): # type: ignore
 
         await tag.remove()
         await ctx.reply(embed=SuccessEmbed("Tag removed successfully!"))
+        self.client.log_event(
+            EventType.tag_delete, EventName.tag_delete, ctx.guild.id, tag.row, ctx.author.id,
+            extra=tag.to_dict()
+        )
 
 
 async def setup(client: Pidroid) -> None:

@@ -17,12 +17,13 @@ from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
 
-from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.categories import Category, register_categories
+from pidroid.models.event_types import EventName, EventType
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
@@ -387,6 +388,26 @@ class Pidroid(commands.Bot): # type: ignore
             raise ValueError("Sending mixed content to a channel is currently unsupported.")
 
         await queue.queue(item)
+
+    def log_event(
+        self,
+        event_type: EventType,
+        event_name: EventName,
+        guild_id: int,
+        target_id: Any,
+        responsible_id: int,
+        *,
+        extra: Optional[dict] = None
+    ):
+        """Logs the event to Pidroid's database."""
+        self.logger.debug(f"{event_type.name}: {event_name.value} {guild_id=} {target_id=} {responsible_id=} {extra=}")
+
+
+        # TODO: implement
+        #self.dispatch(
+        #    'log_event',
+        #    event_type,
+        #)
 
     async def annoy_erksmit(self):
         if sys.platform != "win32":
