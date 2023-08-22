@@ -33,9 +33,8 @@ if sys.platform == 'win32':
 
 # Setup Pidroid level logging
 logger = logging.getLogger("Pidroid")
-logger.setLevel(logging.WARNING)
-if __VERSION__[3] == "development" or __VERSION__[3] == "alpha":
-    logger.setLevel(logging.DEBUG)
+#logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
 ch.setFormatter(formatter)
