@@ -24,7 +24,7 @@ class AuditLogDiffWrapper:
     def __getattr__(self, item: str) -> Any:
         val = self.__dict.get(item, None)
         if self.__logging_on:
-            logger.debug(f"Asking for attribute {item}: {val}")
+            logger.debug(f"Asking for attribute {item} ({type(val)}): {val}")
         return val
 
 
