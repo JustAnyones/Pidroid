@@ -37,6 +37,7 @@ class LinkedAccountTable(Base): # type: ignore
     id = Column(BigInteger, primary_key=True)
     user_id = Column(BigInteger)
     forum_id = Column(BigInteger)
+    roles = Column(ARRAY(BigInteger), server_default="{}") # type: ignore
     date_wage_last_redeemed = Column(DateTime(timezone=True), nullable=True)
 
 class PunishmentCounterTable(Base): # type: ignore
