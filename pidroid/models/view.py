@@ -121,6 +121,11 @@ class PaginatingView(BaseView):
         self.set_source(source)
 
     @property
+    def current_page(self) -> int:
+        """Returns the current paginator page."""
+        return self._current_page
+
+    @property
     def source(self) -> PageSource:
         """Returns the pagination source of the view, if it was set.
         

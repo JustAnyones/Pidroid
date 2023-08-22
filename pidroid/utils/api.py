@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime
 
-from discord import Message, Member
+from discord import Message, Member, Guild
 from typing import TYPE_CHECKING, List, Optional
 
 from pidroid.cogs.commands.tags import Tag
@@ -504,6 +504,25 @@ class API:
             await c._from_table(r[0])
             return c
         return None
+
+    async def fetch_guilds_user_was_punished_in(self, user_id: int) -> List[Guild]:
+        """Fetches and returns a list of guilds where user was punished."""
+        async with self.session() as session:
+            result = await session.execute(
+                select(PunishmentTable.guild_id).
+                filter(
+                    PunishmentTable.user_id == user_id,
+                    PunishmentTable.visible == True
+                )
+                .distinct(PunishmentTable.guild_id)
+            )
+
+        guilds = []
+        for row in result.fetchall():
+            guild = self.client.get_guild(row[0])
+            if guild:
+                guilds.append(guild)
+        return guilds
 
     async def _fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
         """Fetches and returns a list of deserialized cases."""

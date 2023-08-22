@@ -1,10 +1,7 @@
-from discord import app_commands
+from discord import app_commands, Member, User, Guild
 from discord.ext import commands
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument
-from discord.member import Member
-from discord.user import User
-from typing import Optional, Union
+from discord.ext.commands import BadArgument, Context
+from typing import Optional, Union, List
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
@@ -14,14 +11,50 @@ from pidroid.models.view import PaginatingView
 from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.paginators import CasePaginator
+from pidroid.utils.paginators import CasePaginator, ListPageSource
 
 
-class ModeratorInfoCommands(commands.Cog): # type: ignore
+class GuildPaginator(ListPageSource):
+    def __init__(self, data: List[Guild]):
+        super().__init__(data, per_page=20)
+        self.embed = PidroidEmbed(title="Servers matching your query")
+        self.embed.set_footer(text=f"{len(data)} servers")
+
+    async def format_page(self, menu: PaginatingView, data: List[Guild]):
+        offset = menu.current_page * self.per_page + 1
+        values = ""
+        for i, guild in enumerate(data):
+            values += f"{i + offset}. {guild.name} by {guild.owner} (ID: {guild.id})\n"
+        self.embed.description = values.strip()
+        return self.embed
+
+class ModeratorInfoCommands(commands.Cog):
     """This class implements cog which contains commands for viewing and editing moderation logs and statistics."""
 
     def __init__(self, client: Pidroid):
         self.client = client
+
+    async def find_guilds(self, user_id: int, argument: str) -> List[Guild]:
+        """Attempts to resolve guild by specified argument.
+
+        It only searches guilds where user was punished once
+        for privacy reasons."""
+        guilds = await self.client.api.fetch_guilds_user_was_punished_in(user_id)
+
+        # Search by ID
+        if argument.isdigit():
+            argument_as_int = int(argument)
+            for guild in guilds:
+                if guild.id == argument_as_int:
+                    return [guild]
+
+        # If we didn't find by ID, search by name
+        found = []
+        for guild in guilds:
+            if guild.name == argument:
+                found.append(guild)
+
+        return found
 
     @commands.hybrid_command(
         name="case",
@@ -96,7 +129,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if user.id != ctx.author.id:
             check_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no warnings."
-        
+
         warnings = await self.client.fetch_active_warnings(ctx.guild.id, user.id)
         if len(warnings) == 0:
             raise GeneralCommandError(error_msg)
@@ -129,7 +162,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if user.id != ctx.author.id:
             check_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no warnings."
-        
+
         warnings = await self.client.fetch_warnings(ctx.guild.id, user.id)
         if len(warnings) == 0:
             raise GeneralCommandError(error_msg)
@@ -142,10 +175,11 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         await pages.send()
 
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_group( # type: ignore
         name="modlogs",
         brief='Displays all moderation logs for the specified user.',
         usage='[user]',
+        fallback="user",
         category=ModerationCategory
     )
     @app_commands.describe(user="Member or user you are trying to query.")
@@ -172,6 +206,52 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
             self.client,
             ctx=ctx,
             source=CasePaginator(f"Displaying moderation logs for {str(user)}", cases),
+        )
+        await pages.send()
+
+    @moderation_logs_command.command( # type: ignore
+        name="server",
+        brief='Displays all moderation logs for you in the specified server.',
+        usage='<server>',
+        category=ModerationCategory
+    )
+    @app_commands.rename(guild_argument="server")
+    @app_commands.describe(guild_argument="Server ID or name to query your modlogs from.")
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    async def moderation_logs_guild_subcommand(
+        self,
+        ctx: Context,
+        guild_argument: str
+    ):
+        guilds = await self.find_guilds(ctx.author.id, guild_argument)
+
+        # If we found no guilds, explain the user
+        if len(guilds) == 0:
+            raise BadArgument(
+                f"I could not find any servers that would match {guild_argument!r} where you were punished"
+            )
+
+        # If we found one guild, choose it
+        if len(guilds) == 1:
+            guild = guilds[0]
+
+        # Otherwise, list all guilds that got matched
+        else:
+            pages = PaginatingView(
+                self.client,
+                ctx=ctx,
+                source=GuildPaginator(guilds),
+            )
+            return await pages.send()
+
+        cases = await self.client.fetch_cases(guild.id, ctx.author.id)
+        if len(cases) == 0:
+            raise GeneralCommandError(f"I could not find any modlogs related to you in the {guild.name} server!")
+
+        pages = PaginatingView(
+            self.client,
+            ctx=ctx,
+            source=CasePaginator(f"Displaying moderation logs in {guild.name}", cases),
         )
         await pages.send()
 
@@ -223,7 +303,7 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
 
         if len(username) < 2:
             raise BadArgument("Username is too short to search. Make sure it's at least 2 characters long.")
-        
+
         cases = await self.client.api._fetch_cases_by_username(ctx.guild.id, username)
         if len(cases) == 0:
             raise BadArgument("I could not find any cases that had the specified user as punished.")
