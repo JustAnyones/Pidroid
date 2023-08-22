@@ -16,7 +16,6 @@ from discord.ext.commands.errors import BadArgument
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
-from discord.threads import ThreadArchiveDuration
 from discord.utils import MISSING
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
 
@@ -28,6 +27,9 @@ from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
+
+if TYPE_CHECKING:
+    from discord.types.threads import ThreadArchiveDuration
 
 class VersionInfo(NamedTuple):
     major: int
