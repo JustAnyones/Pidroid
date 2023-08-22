@@ -1,7 +1,7 @@
 import datetime
 import re
 
-from dateutil.relativedelta import relativedelta # type: ignore
+from dateutil.relativedelta import relativedelta
 from typing import Optional, Union
 
 from pidroid.models.exceptions import InvalidDuration
@@ -65,7 +65,7 @@ def duration_string_to_relativedelta(duration_str: str) -> relativedelta:
         ))
 
     duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
-    return relativedelta(**duration_dict)
+    return relativedelta(**duration_dict) # type: ignore # we never pass dt1, dt2 regardless
 
 def duration_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
     """Converts a duration string to a relativedelta object."""
@@ -74,7 +74,7 @@ def duration_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
         return None
 
     duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
-    return relativedelta(**duration_dict)
+    return relativedelta(**duration_dict) # type: ignore # we never pass dt1, dt2 regardless
 
 def datetime_to_timedelta(date: datetime.datetime) -> datetime.timedelta:
     """Converts a datetime object to a timedelta object."""

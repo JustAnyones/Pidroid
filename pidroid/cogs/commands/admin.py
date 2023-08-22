@@ -1,25 +1,24 @@
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument
+from discord.ext import commands
+from discord.ext.commands import BadArgument, Context
 from discord.utils import escape_markdown
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory
 from pidroid.utils.embeds import PidroidEmbed
 
-class AdminCommands(commands.Cog): # type: ignore
+class AdminCommands(commands.Cog):
     """This class implements cog which contains commands for administrators."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.group( # type: ignore
+    @commands.group(
         brief='DEPRECATED: Returns server configuration for Pidroid.',
         category=AdministrationCategory,
         invoke_without_command=True
     )
-    @commands.has_permissions(administrator=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def configuration(self, ctx: Context):
         assert ctx.guild is not None
         if ctx.invoked_subcommand is None:
@@ -57,9 +56,9 @@ class AdminCommands(commands.Cog): # type: ignore
         category=AdministrationCategory,
         hidden=True
     )
-    @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True) # type: ignore
-    @commands.has_permissions(administrator=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True)
+    @commands.has_permissions(administrator=True)
+    @commands.guild_only()
     async def setupjail(self, ctx: Context):
         raise BadArgument(f"Command has been replaced by {ctx.prefix}configure setup-jail-system.")
 
@@ -69,9 +68,9 @@ class AdminCommands(commands.Cog): # type: ignore
         category=AdministrationCategory,
         hidden=True
     )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setjailchannel(self, ctx: Context):
         raise BadArgument(f"Command has been replaced by {ctx.prefix}configure.")
 
@@ -81,9 +80,9 @@ class AdminCommands(commands.Cog): # type: ignore
         category=AdministrationCategory,
         hidden=True
     )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setjailrole(self, ctx: Context):
         raise BadArgument(f"Command has been replaced by {ctx.prefix}configure.")
 
@@ -93,9 +92,9 @@ class AdminCommands(commands.Cog): # type: ignore
         category=AdministrationCategory,
         hidden=True
     )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def setprefix(self, ctx: Context):
         raise BadArgument(f"Command has been replaced by {ctx.prefix}configure.")
 
@@ -106,9 +105,9 @@ class AdminCommands(commands.Cog): # type: ignore
         category=AdministrationCategory,
         hidden=True
     )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def toggle_tags(self, ctx: Context):
         raise BadArgument(f"Command has been replaced by {ctx.prefix}configure.")
 

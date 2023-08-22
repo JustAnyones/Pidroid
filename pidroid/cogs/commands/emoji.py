@@ -3,8 +3,7 @@ import re
 from discord.emoji import Emoji
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import BadArgument, MissingRequiredArgument, PartialEmojiConversionFailure # type: ignore
+from discord.ext.commands import BadArgument, Context, MissingRequiredArgument, PartialEmojiConversionFailure
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
 from typing import Optional, Union, List
@@ -49,7 +48,7 @@ def get_emoji_name(emoji: Union[Emoji, PartialEmoji]) -> str:
     return f":\N{zero width space}{emoji.name}\N{zero width space}:"
 
 
-class EmojiCommands(commands.Cog): # type: ignore
+class EmojiCommands(commands.Cog):
     """This class implements a cog for dealing with custom emojis."""
 
     def __init__(self, client: Pidroid):
@@ -61,7 +60,7 @@ class EmojiCommands(commands.Cog): # type: ignore
         usage='<emoji>',
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def emoji_command(self, ctx: Context, emoji: PartialEmoji):
         embed = PidroidEmbed(title=get_emoji_name(emoji))
         embed.set_image(url=emoji.url)
@@ -82,9 +81,9 @@ class EmojiCommands(commands.Cog): # type: ignore
         aliases=['steal-emoji', 'clone-emoji'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True, manage_emojis=True) # type: ignore
-    @commands.has_permissions(manage_emojis=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True, manage_emojis=True)
+    @commands.has_permissions(manage_emojis=True)
+    @commands.guild_only()
     async def copy_emoji_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         assert ctx.guild is not None
         if ctx.message.reference and ctx.message.reference.message_id:
@@ -123,7 +122,7 @@ class EmojiCommands(commands.Cog): # type: ignore
         aliases=['get-emoji'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def get_emojis_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)

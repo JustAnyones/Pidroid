@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from discord import Member, User, Guild, GroupChannel
-from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context # type: ignore
+from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 

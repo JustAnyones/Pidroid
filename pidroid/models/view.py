@@ -4,7 +4,7 @@ import discord
 import logging
 
 from contextlib import suppress
-from discord import Interaction, NotFound
+from discord import ClientUser, Interaction, NotFound
 from discord.ext.commands import Context
 from discord.ui import Item, View
 from typing import TYPE_CHECKING, Optional
@@ -34,8 +34,11 @@ class BaseView(View):
 
     async def send(self):
         """Sends the message with the view."""
-        if self._check_embed_permissions and not self._ctx.channel.permissions_for(self._ctx.me).embed_links:
-            return await self._ctx.reply("Bot does not have embed links permission in this channel.")
+
+        # If it's not a client user, that means we are not in a DM
+        if not isinstance(self._ctx.me, ClientUser):
+            if self._check_embed_permissions and not self._ctx.channel.permissions_for(self._ctx.me).embed_links:
+                return await self._ctx.reply("Bot does not have embed links permission in this channel.")
 
         self._message = await self._ctx.reply(embed=self._embed, view=self)
 
@@ -154,21 +157,21 @@ class PaginatingView(BaseView):
         max_pages = self.source.get_max_pages()
         use_last_and_first = max_pages is not None and max_pages >= 2
         if use_last_and_first:
-            self.add_item(self.go_to_first_page)  # type: ignore
-        self.add_item(self.go_to_previous_page)  # type: ignore
-        self.add_item(self.go_to_current_page)  # type: ignore
-        self.add_item(self.go_to_next_page)  # type: ignore
+            self.add_item(self.go_to_first_page)
+        self.add_item(self.go_to_previous_page)
+        self.add_item(self.go_to_current_page)
+        self.add_item(self.go_to_next_page)
         if use_last_and_first:
-            self.add_item(self.go_to_last_page)  # type: ignore
+            self.add_item(self.go_to_last_page)
         if close_button:
-            self.add_item(self.close_button)  # type: ignore
+            self.add_item(self.close_button)
 
     async def send(self):
         if self._source is not None:
             await self.initialize_paginator()
         return await super().send()
 
-    async def _get_embed_from_page(self, page: int) -> discord.Embed: # type: ignore
+    async def _get_embed_from_page(self, page: int) -> discord.Embed:
         value = await discord.utils.maybe_coroutine(self.source.format_page, self, page) # type: ignore
         return value
 

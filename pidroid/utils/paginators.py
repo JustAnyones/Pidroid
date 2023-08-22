@@ -23,6 +23,7 @@ DEALINGS IN THE SOFTWARE.
 
 https://github.com/Rapptz/discord-ext-menus/commits/fbb8803779373357e274e1540b368365fd9d8074/discord/ext/menus/__init__.py
 """
+from __future__ import annotations
 
 import discord
 
@@ -31,11 +32,10 @@ from typing import TYPE_CHECKING, List
 
 from pidroid.models.plugins import Plugin
 from pidroid.models.punishments import Case
-from pidroid.models.view import PaginatingView
 from pidroid.utils.embeds import PidroidEmbed
 
 if TYPE_CHECKING:
-    from pidroid.client import Pidroid
+    from pidroid.models.view import PaginatingView
 
 class PageSource:
     """An interface representing a menu page's data source for the actual menu page.
@@ -84,19 +84,17 @@ class PageSource:
         """
         raise NotImplementedError
 
-    def get_max_pages(self):
+    def get_max_pages(self) -> int:
         """An optional abstract method that retrieves the maximum number of pages
         this page source has. Useful for UX purposes.
 
-        The default implementation returns ``None``.
-
         Returns
         --------
-        Optional[:class:`int`]
+        :class:`int`
             The maximum number of pages required to properly
             paginate the elements, if given.
         """
-        return None
+        raise NotImplementedError
 
     async def get_page(self, page_number):
         """|coro|

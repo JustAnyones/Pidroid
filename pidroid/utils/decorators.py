@@ -1,6 +1,6 @@
+from discord import Member
 from discord.ext import commands
-from discord.ext.commands.context import Context # type: ignore
-from discord.member import Member
+from discord.ext.commands import Context
 
 from pidroid.constants import EMERGENCY_SHUTDOWN, CHEESE_EATERS
 from pidroid.models.exceptions import ClientIsNotPidroid, NotInTheoTownGuild, MissingUserPermissions

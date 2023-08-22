@@ -9,7 +9,7 @@ import logging
 
 from argparse import ArgumentParser
 from discord.ext import commands
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands import Context
 
 # Allows us to not set the Python path
 sys.path.append(os.getcwd())

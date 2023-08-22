@@ -3,10 +3,9 @@ import discord
 import random
 import re
 
-from discord.channel import DMChannel, GroupChannel, PartialMessageable
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument, MissingRequiredArgument # type: ignore
+from discord import DMChannel, GroupChannel, PartialMessageable
+from discord.ext import commands
+from discord.ext.commands import BadArgument, Context, MissingRequiredArgument
 from typing import List, Union, Optional
 
 from pidroid.client import Pidroid
@@ -89,7 +88,7 @@ def get_owo(text: str) -> str:
     r = re.sub('[!]', " " + random.choice(faces) + " ", r) # nosec
     return r
 
-class AnimeCommands(commands.Cog): # type: ignore
+class AnimeCommands(commands.Cog):
     """This class implements cog which contains commands for anime related APIs."""
 
     def __init__(self, client):
@@ -101,8 +100,8 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory,
         hidden=True
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def yourebanned_command(self, ctx: Context):
         async with ctx.typing():
             await ctx.reply(file=discord.File(Resource('you_were_banned.mp4')))
@@ -113,7 +112,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         hidden=True,
         invoke_without_command=True
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def neko_command(self, ctx: Context):
         if ctx.invoked_subcommand is None:
             raise BadArgument((
@@ -126,7 +125,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         brief='Tells a random fact as provided by the API.',
         category=RandomCategory,
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def neko_fact_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/fact") as r:
             data = await r.json()
@@ -137,7 +136,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         brief='Generates a random name from the API.',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def neko_name_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/name") as r:
             data = await r.json()
@@ -148,7 +147,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         brief='Questions that make you think as provided by the API.',
         category=RandomCategory,
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def neko_why_command(self, ctx: Context):
         async with await http.get(self.client, f"{NEKO_API}/why") as r:
             data = await r.json()
@@ -160,7 +159,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         usage='[image type]',
         category=RandomCategory,
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def neko_image_command(self, ctx: Context, endpoint: Optional[str]):
         if endpoint is None:
             endpoint = random.choice(NEKO_ENDPOINTS) # nosec
@@ -184,7 +183,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         usage='<text to be converted>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def owo_command(self, ctx: Context, *, text: str):
         owo = get_owo(text)
         if len(owo) > 4096:
@@ -205,9 +204,9 @@ class AnimeCommands(commands.Cog): # type: ignore
         enabled=False,
         hidden=True
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
     async def waifu(self, ctx: Context, *, selection: Optional[str]):
         api = self.waifu_list_api
 
@@ -247,7 +246,7 @@ class AnimeCommands(commands.Cog): # type: ignore
         usage="[media type]",
         category=RandomCategory,
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def anime_media_command(self, ctx: Context, endpoint: Optional[str]):
         if endpoint is None:
             endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
@@ -271,10 +270,10 @@ class AnimeCommands(commands.Cog): # type: ignore
         category=RandomCategory,
         hidden=True
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.guild, wait=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild, wait=True)
     @command_checks.is_theotown_guild()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def weeb_command(self, ctx: Context):
         for _ in range(7):
             await asyncio.sleep(random.randint(2, 5)) # nosec

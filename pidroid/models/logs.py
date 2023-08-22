@@ -151,7 +151,7 @@ class PidroidLog:
         self.__guild = data.guild
         self.__embed = Embed(title=self.__logname__, timestamp=data.created_at)
         self.__set_author(data.user)
-        self.__embed.colour = EMBED_COLOUR # type: ignore
+        self.__embed.colour = Colour(EMBED_COLOUR)
 
     @property
     def guild(self) -> Guild:

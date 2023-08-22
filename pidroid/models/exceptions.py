@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from discord.ext.commands import CheckFailure, BadArgument # type: ignore
+from discord.ext.commands import CheckFailure, BadArgument
 from typing import Optional
 
 class NotInTheoTownGuild(CheckFailure):

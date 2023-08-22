@@ -2,8 +2,7 @@ import json
 import random
 
 from discord.ext import commands
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands import BadArgument, Context
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import RandomCategory
@@ -125,7 +124,7 @@ COOLDOWN_RESPONSES = [
 def get_currency(money_amount: int):
     return f"{CURRENCY_SYMBOL}{money_amount:,}"
 
-class EconomyCommands(commands.Cog): # type: ignore
+class EconomyCommands(commands.Cog):
     """This class implements a cog which contains interactions with unbelievaboat bot API."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -140,10 +139,10 @@ class EconomyCommands(commands.Cog): # type: ignore
         brief='Beg Pidroid to print some money for you.',
         category=RandomCategory
     )
-    @commands.cooldown(rate=1, per=60 * 60 * 24 * 3, type=commands.BucketType.user) # type: ignore
+    @commands.cooldown(rate=1, per=60 * 60 * 24 * 3, type=commands.BucketType.user)
     @command_checks.is_theotown_guild()
     @command_checks.client_is_pidroid()
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
     async def beg_command(self, ctx: Context):
         try:
             token = self.client.config['unbelievaboat_api_key']
@@ -171,7 +170,7 @@ class EconomyCommands(commands.Cog): # type: ignore
 
     @beg_command.error
     async def on_beg_command_error(self, ctx: Context, error):
-        if isinstance(error, commands.CommandOnCooldown): # type: ignore
+        if isinstance(error, commands.CommandOnCooldown):
             return await ctx.reply(
                 random.choice(COOLDOWN_RESPONSES).replace("%time%", humanize(error.retry_after, False, max_units=2))
             )

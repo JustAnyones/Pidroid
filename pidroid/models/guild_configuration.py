@@ -21,33 +21,33 @@ class GuildConfiguration:
 
     def __from_table(self, table: GuildConfigurationTable) -> None:
         """Creates a GuildConfiguration object from a table object."""
-        self.__id: int = table.id # type: ignore
-        self.__guild_id: int = table.guild_id # type: ignore
+        self.__id = table.id
+        self.__guild_id = table.guild_id
 
-        self.__prefixes: List[str] = table.prefixes # type: ignore
+        self.__prefixes = table.prefixes
 
-        self.__jail_channel_id: Optional[int] = table.jail_channel # type: ignore
-        self.__jail_role_id: Optional[int] = table.jail_role # type: ignore
-        self.__log_channel_id: Optional[int] = table.log_channel # type: ignore
+        self.__jail_channel_id = table.jail_channel
+        self.__jail_role_id = table.jail_role
+        self.__log_channel_id = table.log_channel
 
-        self.__public_tags: bool = table.public_tags # type: ignore
-        self.__allow_punishing_moderators: bool = table.punishing_moderators # type: ignore
+        self.__public_tags = table.public_tags
+        self.__allow_punishing_moderators = table.punishing_moderators
 
-        self.__appeal_url: Optional[str] = table.appeal_url # type: ignore
+        self.__appeal_url = table.appeal_url
 
         # XP system related information
-        self.__xp_system_active: bool = table.xp_system_active # type: ignore
-        self.__xp_multiplier: float = table.xp_multiplier # type: ignore
-        self.__xp_per_message_min: int = table.xp_per_message_min # type: ignore
-        self.__xp_per_message_max: int = table.xp_per_message_max # type: ignore
-        self.__xp_exempt_roles: List[int] = table.xp_exempt_roles # type: ignore
-        self.__xp_exempt_channels: List[int] = table.xp_exempt_channels # type: ignore
-        self.__stack_level_rewards: bool = table.stack_level_rewards # type: ignore
+        self.__xp_system_active = table.xp_system_active
+        self.__xp_multiplier = table.xp_multiplier
+        self.__xp_per_message_min = table.xp_per_message_min
+        self.__xp_per_message_max = table.xp_per_message_max
+        self.__xp_exempt_roles = table.xp_exempt_roles
+        self.__xp_exempt_channels = table.xp_exempt_channels
+        self.__stack_level_rewards = table.stack_level_rewards
 
         # Suggestion system related information
-        self.__suggestion_system_active: bool = table.suggestion_system_active # type: ignore
-        self.__suggestion_channel_id: Optional[int] = table.suggestion_channel # type: ignore
-        self.__suggestion_threads_enabled: bool = table.suggestion_threads_enabled # type: ignore
+        self.__suggestion_system_active = table.suggestion_system_active
+        self.__suggestion_channel_id = table.suggestion_channel
+        self.__suggestion_threads_enabled = table.suggestion_threads_enabled
 
     async def _update(self) -> None:
         await self.api._update_guild_configuration(
@@ -200,7 +200,7 @@ class GuildConfiguration:
     @property
     def xp_system_active(self) -> bool:
         """Returns true if the XP system is active for the server."""
-        return self.__xp_system_active # type: ignore
+        return self.__xp_system_active
 
     @property
     def xp_multiplier(self) -> float:

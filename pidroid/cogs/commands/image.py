@@ -1,11 +1,10 @@
 import discord
 import os
 
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext import commands
+from discord.ext.commands import BadArgument, Context
 from io import BytesIO
-from PIL import Image, ImageSequence # type: ignore
+from PIL import Image, ImageSequence
 from typing import Tuple
 
 from pidroid.client import Pidroid
@@ -38,7 +37,7 @@ async def handle_attachment(ctx: Context) -> Tuple[discord.Attachment, str]:
     return attachment, extension
 
 
-class ImageManipCommands(commands.Cog): # type: ignore
+class ImageManipCommands(commands.Cog):
     """This class implements cog which contains commands for image manipulation."""
 
     def __init__(self, client):
@@ -50,10 +49,10 @@ class ImageManipCommands(commands.Cog): # type: ignore
         usage='<member>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild)
     async def bonk_command(self, ctx: Context, member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot bonk yourself!")
@@ -83,10 +82,10 @@ class ImageManipCommands(commands.Cog): # type: ignore
         usage='[bool whether to retain ratio]',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild)
     async def memefy_command(self, ctx: Context, retain_aspect_ratio: bool = False):
         async with ctx.channel.typing():
             attachment, extension = await handle_attachment(ctx)
@@ -124,10 +123,10 @@ class ImageManipCommands(commands.Cog): # type: ignore
         aliases=['hank'],
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=10, per=commands.BucketType.guild) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
+    @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.max_concurrency(number=10, per=commands.BucketType.guild)
     async def jpeg_command(self, ctx: Context, quality: int = 1):
         if quality < 1 or quality > 10:
             raise BadArgument("Quality value must be a number between 1 and 10.")
@@ -154,10 +153,10 @@ class ImageManipCommands(commands.Cog): # type: ignore
         usage='<member>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    @commands.cooldown(rate=1, per=25, type=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.user) # type: ignore
-    @commands.max_concurrency(number=5, per=commands.BucketType.guild) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
+    @commands.cooldown(rate=1, per=25, type=commands.BucketType.user)
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.max_concurrency(number=5, per=commands.BucketType.guild)
     async def headpat_command(self, ctx: Context, member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot headpat yourself, ask someone else to be nice")

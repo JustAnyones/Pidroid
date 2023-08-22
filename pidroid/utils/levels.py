@@ -28,6 +28,7 @@ class LevelReward:
     def __init__(
         self,
         api: API,
+        *,
         id: int,
         guild_id: int,
         role_id: int,
@@ -43,14 +44,14 @@ class LevelReward:
         return f'<LevelReward id={self.__id} guild_id={self.__guild_id} role_id={self.__role_id} level={self.__level}>'
 
     @classmethod
-    def from_table(cls: type[LevelReward], api: API, table: LevelRewardsTable) -> LevelReward:
+    def from_table(cls, api: API, table: LevelRewardsTable) -> LevelReward:
         """Constructs level reward from a LevelRewardsTable object."""
         return cls(
             api,
-            table.id, # type: ignore
-            table.guild_id, # type: ignore
-            table.role_id, # type: ignore
-            table.level # type: ignore
+            id=table.id,
+            guild_id=table.guild_id,
+            role_id=table.role_id,
+            level=table.level,
         )
 
     @property
@@ -127,7 +128,7 @@ class MemberLevelInfo:
         return f'<MemberLevelInfo guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
 
     @classmethod
-    def from_table(cls: type[MemberLevelInfo], api: API, table: UserLevelsTable, rank: int = -1) -> MemberLevelInfo:
+    def from_table(cls, api: API, table: UserLevelsTable, rank: int = -1) -> MemberLevelInfo:
         """Constructs level information from a UserLevelsTable object."""
         return cls(
             api,

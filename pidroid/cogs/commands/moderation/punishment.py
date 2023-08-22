@@ -6,22 +6,19 @@ import discord
 
 from contextlib import suppress
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta # type: ignore
-from discord import Thread, VoiceChannel, ui, ButtonStyle, Interaction, app_commands
+from dateutil.relativedelta import relativedelta
+from discord import Thread, VoiceChannel, ui, ButtonStyle, Interaction, app_commands, Member, Message
 from discord.channel import TextChannel, DMChannel, GroupChannel, PartialMessageable, StageChannel
 from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
 from discord.emoji import Emoji
 from discord.errors import NotFound
-from discord.ext.commands.errors import BadArgument, MissingPermissions, MissingRequiredArgument, BadUnionArgument, UserNotFound
-from discord.member import Member
-from discord.message import Message
+from discord.ext.commands import BadArgument, BadUnionArgument, Context, MissingPermissions, MissingRequiredArgument, UserNotFound
 from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.utils import escape_markdown
 from discord.ext import commands, tasks
-from discord.ext.commands.context import Context # type: ignore
 from discord.utils import get
 from discord.file import File
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, TypedDict
@@ -844,7 +841,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
             await ctx.message.delete(delay=0)
 
-            assert hasattr(ctx.channel, 'purge')
+            assert not isinstance(ctx.channel, (DMChannel, PartialMessageable, GroupChannel))
             deleted = await ctx.channel.purge(limit=amount)
             await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
@@ -869,7 +866,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("The maximum amount of messages I can purge at once is 500!")
 
         await ctx.message.delete(delay=0)
-        assert hasattr(ctx.channel, 'purge')
+        assert not isinstance(ctx.channel, (DMChannel, PartialMessageable, GroupChannel))
         deleted = await ctx.channel.purge(limit=amount, check=is_member)
         await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
@@ -892,8 +889,8 @@ class ModeratorCommands(commands.Cog): # type: ignore
         category=ModerationCategory
     )
     @app_commands.describe(user="Member or user you are trying to punish.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def moderation_menu_command(
         self,
         ctx: Context,

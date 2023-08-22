@@ -7,9 +7,8 @@ from discord import AllowedMentions
 from discord.channel import VoiceChannel, StageChannel
 from discord.colour import Color, Colour
 from discord.embeds import Embed
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.errors import BadArgument, MissingRequiredArgument # type: ignore
+from discord.ext import commands
+from discord.ext.commands import BadArgument, Context, MissingRequiredArgument
 from discord.voice_client import VoiceClient
 from typing import Optional
 
@@ -75,7 +74,7 @@ def colour_from_hex(hex_str: str) -> Colour:
     return Colour((r << 16) + (g << 8) + b)
 
 
-class FunCommands(commands.Cog): # type: ignore
+class FunCommands(commands.Cog):
     """This class implements a cog which contains commands for entertainment."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -96,7 +95,7 @@ class FunCommands(commands.Cog): # type: ignore
         aliases=['colour'],  # Bri'ish spelling
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def color_command(self, ctx: Context, hex_str: Optional[str]):        
         if hex_str is not None:
             try:
@@ -113,7 +112,7 @@ class FunCommands(commands.Cog): # type: ignore
         brief='Noot noot!',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def pingu_command(self, ctx: Context):
         async with ctx.typing():
             text, file_path = random.choice(PINGU_RESPONSES) # nosec
@@ -124,7 +123,7 @@ class FunCommands(commands.Cog): # type: ignore
         brief='Summons a very slow creature.',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def sloth_command(self, ctx: Context):
         async with ctx.typing():
             await ctx.reply(content="The myth, the legend.", file=discord.File(Resource('sloth.gif')))
@@ -137,7 +136,7 @@ class FunCommands(commands.Cog): # type: ignore
         hidden=True
     )
     @command_checks.is_theotown_developer()
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def happiness_command(self, ctx: Context):
         res = await self.client.api.get(Route("/private/review/fetch_random"))
         data = res["data"]
@@ -152,7 +151,7 @@ class FunCommands(commands.Cog): # type: ignore
         category=RandomCategory
     )
     @command_checks.is_theotown_guild()
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def fire_command(self, ctx: Context):
         async with ctx.typing():
             await ctx.reply(
@@ -167,7 +166,7 @@ class FunCommands(commands.Cog): # type: ignore
         usage='<search term>',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def gif_command(self, ctx: Context, *, query: str):
         async with ctx.typing():
             async with await get(
@@ -193,7 +192,7 @@ class FunCommands(commands.Cog): # type: ignore
         brief='Rolls a dice.',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def dice_command(self, ctx: Context):
         await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!") # nosec
 
@@ -202,7 +201,7 @@ class FunCommands(commands.Cog): # type: ignore
         brief='Rolls a random number between 1 and the specified value.\nThe default value is 6.',
         category=RandomCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def roll_command(self, ctx: Context, limit: int = 6):
         if limit <= 1:
             raise BadArgument("Limit cannot be 1 or less. It'd be stupid")
@@ -213,8 +212,8 @@ class FunCommands(commands.Cog): # type: ignore
         brief='Asks Pidroid to tell one of his own facts.',
         category=RandomCategory
     )
-    @commands.cooldown(rate=2, per=6, type=commands.BucketType.user) # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.cooldown(rate=2, per=6, type=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True)
     async def fact_command(self, ctx: Context):
         await ctx.reply(random.choice(FUN_FACTS)) # nosec
 
@@ -226,8 +225,8 @@ class FunCommands(commands.Cog): # type: ignore
         category=RandomCategory,
         hidden=True
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     @command_checks.is_cheese_consumer()
     async def cloaker_command(self, ctx: Context, member: discord.Member):
         assert isinstance(ctx.author, discord.Member)

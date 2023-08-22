@@ -6,10 +6,7 @@ import logging
 from discord import Interaction
 from discord.embeds import Embed
 from discord.ext import commands
-from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.core import Command # type: ignore
-from discord.ext.commands.context import Context
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands import BadArgument, Command, Context
 from typing import TYPE_CHECKING, List, Optional
 
 from pidroid.client import Pidroid
@@ -156,7 +153,7 @@ class HelpCategoryView(PaginatingView):
         await self._update_view(interaction)
         return True
 
-class HelpCommand(commands.Cog): # type: ignore
+class HelpCommand(commands.Cog):
     """This class implements a cog which manages the help command of the bot."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -180,7 +177,7 @@ class HelpCommand(commands.Cog): # type: ignore
         ],
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def help_command(self, ctx: Context, *, search_string: Optional[str] = None):
         # Browse categories
         if search_string is None:

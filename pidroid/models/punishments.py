@@ -4,14 +4,9 @@ import datetime
 import discord
 
 from datetime import timedelta
-from dateutil.relativedelta import relativedelta # type: ignore
-from discord.embeds import Embed
-from discord.ext.commands.errors import BadArgument # type: ignore
-from discord.file import File
-from discord.guild import Guild
-from discord.member import Member
-from discord.role import Role
-from discord.user import User
+from dateutil.relativedelta import relativedelta
+from discord import Embed, File, Guild, Member, Role, User
+from discord.ext.commands import BadArgument
 from discord.utils import format_dt
 from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
@@ -67,26 +62,26 @@ class Case:
         self.__api = api
 
     async def _from_table(self, data: PunishmentTable):
-        self.__id = data.id # type: ignore
-        self.__case_id = data.case_id # type: ignore
-        self.__type = PunishmentType[data.type] # type: ignore
-        self.__guild_id = data.guild_id # type: ignore
+        self.__id = data.id
+        self.__case_id = data.case_id
+        self.__type = PunishmentType[data.type]
+        self.__guild_id = data.guild_id
 
-        self.__user_id: int = data.user_id # type: ignore
-        self.__moderator_id: int = data.moderator_id # type: ignore
+        self.__user_id = data.user_id
+        self.__moderator_id = data.moderator_id
 
-        self.__user_name = data.user_name # type: ignore
-        self.__moderator_name = data.moderator_name # type: ignore
+        self.__user_name = data.user_name
+        self.__moderator_name = data.moderator_name
 
         self.__user = await self.__api.client.get_or_fetch_user(self.__user_id)
         self.__moderator = await self.__api.client.get_or_fetch_user(self.__moderator_id)
 
-        self.__reason = data.reason # type: ignore
-        self.__date_issued = data.issue_date # type: ignore
-        self.__date_expires = data.expire_date # type: ignore
+        self.__reason = data.reason
+        self.__date_issued = data.issue_date
+        self.__date_expires = data.expire_date
 
-        self.__visible = data.visible # type: ignore
-        self.__handled = data.handled # type: ignore
+        self.__visible = data.visible
+        self.__handled = data.handled
 
     async def _update(self) -> None:
         await self.__api.update_case_by_internal_id(self.__id, self.__reason, self.__date_expires, self.__visible, self.__handled)
@@ -580,14 +575,14 @@ class Jail(BasePunishment):
         await super().create_case()
         return await self._create_case_record()
 
-    async def issue(self) -> Case: # type: ignore
+    async def issue(self) -> Case:
         """Jails the member."""
         await self.user.add_roles(self.__role, reason=self.audit_log_issue_reason) # type: ignore
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_jail_issue", self)
         return self.case
 
-    async def revoke(self, *, reason: Optional[str] = None) -> None: # type: ignore
+    async def revoke(self, *, reason: Optional[str] = None):
         self.reason = reason
         await self.user.remove_roles(self.__role, reason=self.audit_log_revoke_reason) # type: ignore
         await self._expire_cases_by_type(PunishmentType.jail)

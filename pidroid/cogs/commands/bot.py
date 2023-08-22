@@ -1,11 +1,11 @@
 import discord
 import platform
-import psutil # type: ignore
+import psutil
 import os
 import sys
 
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext import commands
+from discord.ext.commands import Context
 from discord.message import Message
 from typing import Optional
 
@@ -15,7 +15,7 @@ from pidroid.models.categories import BotCategory
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import humanize, timestamp_to_date, utcnow
 
-class BotCommands(commands.Cog): # type: ignore
+class BotCommands(commands.Cog):
     """This class implements cog which contains commands primarily used to diagnose Pidroid."""
 
     def __init__(self, client: Pidroid):
@@ -26,8 +26,8 @@ class BotCommands(commands.Cog): # type: ignore
         brief='Returns the ping of the bot.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.cooldown(rate=1, per=1, type=commands.BucketType.user) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.cooldown(rate=1, per=1, type=commands.BucketType.user)
     async def ping_command(self, ctx: Context):
         msg: Message = await ctx.reply("**Pinging...**")
         client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
@@ -40,7 +40,7 @@ class BotCommands(commands.Cog): # type: ignore
         brief='Returns an invite link for the bot.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def invite_command(self, ctx: Context):
         await ctx.reply('You can invite the bot to your server with the following url: https://ja.theotown.com/pidroid/invite')
 
@@ -49,7 +49,7 @@ class BotCommands(commands.Cog): # type: ignore
         brief='Returns general information about the bot.',
         category=BotCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def info_command(self, ctx: Context, mode: Optional[str]):
         async with ctx.typing():
             # Fetch data from config file
@@ -80,7 +80,7 @@ class BotCommands(commands.Cog): # type: ignore
             
             assert self.client.user is not None
 
-            if mode == "extended" and await self.client.is_owner(ctx.author): # type: ignore
+            if mode == "extended" and await self.client.is_owner(ctx.author):
                 total_memory = round(psutil.virtual_memory().total / 1024 / 1024, 2)
                 extended_message = (
                     f'```{self.client.user.name} ({self.client.user.id}) build {version} information\n\n'

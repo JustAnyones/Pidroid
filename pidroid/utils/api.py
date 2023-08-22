@@ -64,7 +64,7 @@ class PunishmentTable(Base):
     reason: Mapped[Optional[str]]
 
     issue_date: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # date of issue
-    expire_date: Mapped[Optional[DateTime]] = mapped_column(DateTime(timezone=True)) # date when punishment expires, null means never
+    expire_date: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True)) # date when punishment expires, null means never
 
     # This let's us now if Pidroid already dealt with this case automatically
     handled: Mapped[bool] = mapped_column(Boolean, server_default="false")

@@ -1,10 +1,9 @@
 import datetime
 import discord
-import pytz # type: ignore
+import pytz
 
-from discord.ext import commands # type: ignore
-from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import MissingRequiredArgument, BadUnionArgument, UserNotFound
+from discord.ext import commands
+from discord.ext.commands import BadUnionArgument, Context, MissingRequiredArgument, UserNotFound
 from discord.embeds import Embed
 from discord.member import Member
 from discord.role import Role
@@ -22,7 +21,7 @@ from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import utcnow
 
 
-class InfoCommands(commands.Cog): # type: ignore
+class InfoCommands(commands.Cog):
     """This class implements a cog for various discord information commands."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -34,7 +33,7 @@ class InfoCommands(commands.Cog): # type: ignore
         usage='[user]',
         category=InformationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def profile_avatar_command(
         self,
         ctx: Context,
@@ -43,9 +42,9 @@ class InfoCommands(commands.Cog): # type: ignore
         user = user or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
         if isinstance(user, discord.User):
-            embed.set_image(url=user.display_avatar.with_size(4096).url) # type: ignore
+            embed.set_image(url=user.display_avatar.with_size(4096).url)
         else:
-            embed.set_image(url=user._user.display_avatar.with_size(4096).url) # type: ignore
+            embed.set_image(url=user._user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
     @profile_avatar_command.error
@@ -64,8 +63,8 @@ class InfoCommands(commands.Cog): # type: ignore
         aliases=['server-avatar'],
         category=InformationCategory
     )
-    @commands.guild_only() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
     async def server_avatar_command(
         self,
         ctx: Context,
@@ -73,7 +72,7 @@ class InfoCommands(commands.Cog): # type: ignore
     ):
         user = user or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
-        embed.set_image(url=user.display_avatar.with_size(4096).url) # type: ignore
+        embed.set_image(url=user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
     @server_avatar_command.error
@@ -100,8 +99,8 @@ class InfoCommands(commands.Cog): # type: ignore
         ],
         category=InformationCategory
     )
-    @commands.guild_only() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
     async def user_info_command(
         self,
         ctx: Context,
@@ -152,7 +151,7 @@ class InfoCommands(commands.Cog): # type: ignore
             embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
             embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
 
-        embed.set_thumbnail(url=user.display_avatar.with_size(4096).url) # type: ignore
+        embed.set_thumbnail(url=user.display_avatar.with_size(4096).url)
         await ctx.reply(embed=embed)
 
     @user_info_command.error
@@ -170,15 +169,15 @@ class InfoCommands(commands.Cog): # type: ignore
         aliases=['si', 'serverinfo'],
         category=InformationCategory
     )
-    @commands.guild_only() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
     async def server_info_command(self, ctx: Context):
         assert ctx.guild is not None
         guild = ctx.guild
         embed = PidroidEmbed(timestamp=guild.created_at)
         if guild.icon:
             embed.set_author(name=guild.name, icon_url=guild.icon.url)
-            embed.set_thumbnail(url=guild.icon.with_size(4096).url) # type: ignore
+            embed.set_thumbnail(url=guild.icon.with_size(4096).url)
         else:
             embed.set_author(name=guild.name)
         embed.add_field(name='Owner', value=guild.owner)
@@ -200,12 +199,12 @@ class InfoCommands(commands.Cog): # type: ignore
         ],
         category=InformationCategory
     )
-    @commands.guild_only() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
     async def role_info_command(self, ctx: Context, role: Role):
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         if role.icon:
-            embed.set_thumbnail(url=role.icon.with_size(4096).url) # type: ignore
+            embed.set_thumbnail(url=role.icon.with_size(4096).url)
         embed.add_field(name="Name", value=role.name)
         embed.add_field(name="ID", value=role.id)
         embed.add_field(name="Position", value=role.position)
@@ -225,7 +224,7 @@ class InfoCommands(commands.Cog): # type: ignore
         brief='Displays time information across the globe.',
         category=InformationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def time(self, ctx: Context):
         def stringify(date: datetime.datetime):
             return date.strftime("%d %B %Y %H:%M")

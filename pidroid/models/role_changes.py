@@ -20,7 +20,8 @@ class MemberRoleChanges:
     def __init__(
         self,
         api: API,
-        guild_id: int, member_id: int,
+        guild_id: int,
+        member_id: int,
         ids: List[int],
         roles_added: Optional[List[int]], roles_removed: Optional[List[int]]
     ) -> None:
@@ -35,7 +36,7 @@ class MemberRoleChanges:
     @property
     def member_id(self) -> int:
         """Returns the ID of the member."""
-        return self.__member_id # type: ignore
+        return self.__member_id
 
     @property
     def roles_added(self) -> List[int]:

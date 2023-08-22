@@ -56,12 +56,12 @@ def can_member_vote_on_message(member: Member, message: Message) -> bool:
         and member.id != message.author.id
     )
 
-class EventChannelHandler(commands.Cog): # type: ignore
+class EventChannelHandler(commands.Cog):
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_ready(self) -> None:
         """Called when bot is ready.
         
@@ -124,7 +124,7 @@ class EventChannelHandler(commands.Cog): # type: ignore
             if message.attachments:
                 return await message.add_reaction("👍")
             else:
-                assert isinstance(message, (ForumChannel, Thread))
+                assert isinstance(message.channel, (ForumChannel, Thread))
                 await try_message_user(
                     message.author,
                     content=(

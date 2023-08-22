@@ -18,7 +18,7 @@ from pidroid.utils.time import timedelta_to_datetime
 PLUGIN_SHOWCASE_CHANNEL_ID = 640522649033769000
 PLUGIN_INFORMATION_CHANNEL_ID = 640521916943171594
 
-class PluginStoreTasks(commands.Cog): # type: ignore
+class PluginStoreTasks(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
 
     def __init__(self, client: Pidroid) -> None:

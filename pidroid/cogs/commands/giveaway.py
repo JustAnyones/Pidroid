@@ -3,10 +3,8 @@ import datetime
 from asyncio import exceptions
 from discord import utils
 from discord.channel import TextChannel
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from discord.ext.commands.converter import TextChannelConverter # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext import commands
+from discord.ext.commands import BadArgument, Context, TextChannelConverter
 from discord.message import Message
 
 from pidroid.client import Pidroid
@@ -18,7 +16,7 @@ from pidroid.utils.time import datetime_to_duration
 GIVEAWAY_TIMEOUT = 180
 
 # TODO: refactor with discord's UI toolkit
-class GiveawayCommand(commands.Cog): # type: ignore
+class GiveawayCommand(commands.Cog):
     """This class implements a cog with commands for dealing with giveaway creation."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -66,8 +64,8 @@ class GiveawayCommand(commands.Cog): # type: ignore
         category=UtilityCategory,
         hidden=True
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
     async def giveaway(self, ctx: Context):
         await ctx.reply((
             ":tada: Alright, let's begin!\n\n"

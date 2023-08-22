@@ -12,12 +12,12 @@ from pidroid.utils.checks import is_guild_theotown
 SPOILERS_CHANNEL_ID = 416906073207996416
 SUGGESTIONS_CHANNEL_ID = 409800607466258445
 
-class ReactionEventHandler(commands.Cog): # type: ignore
+class ReactionEventHandler(commands.Cog):
     """This class implements a cog for handling of events related to reactions."""
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_message(self, message: Message):
         if message.author.bot:
             return
@@ -28,7 +28,7 @@ class ReactionEventHandler(commands.Cog): # type: ignore
         if message.channel.id == SPOILERS_CHANNEL_ID:
             await message.add_reaction("<:bear_think:431390001721376770>")
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
         """Lgeacy way of removing suggestions based on the reaction, to be removed eventually.
         

@@ -11,11 +11,12 @@ import logging
 
 from aiohttp import ClientSession
 from contextlib import suppress
-from discord.ext import commands, tasks # type: ignore
+from discord.ext import commands, tasks
 from discord.ext.commands.errors import BadArgument
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
+from discord.threads import ThreadArchiveDuration
 from discord.utils import MISSING
 from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
 
@@ -37,7 +38,7 @@ class VersionInfo(NamedTuple):
 
 __VERSION__ = VersionInfo(major=5, minor=14, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
 
-class Pidroid(commands.Bot): # type: ignore
+class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
 
     if TYPE_CHECKING:
@@ -199,9 +200,9 @@ class Pidroid(commands.Bot): # type: ignore
         """Removes guild prefixes from internal cache."""
         self.__cached_guild_prefixes.pop(guild_id)
 
-    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: int = 60):
+    async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: ThreadArchiveDuration = 60):
         """Creates a new expiring thread"""
-        thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration) # type: ignore
+        thread = await message.create_thread(name=name, auto_archive_duration=auto_archive_duration)
         await self.api.insert_expiring_thread(thread.id, expire_timestamp)
         return thread
 
@@ -284,7 +285,7 @@ class Pidroid(commands.Bot): # type: ignore
     async def get_prefix(self, message: Message):
         """Returns a prefix for client to respond to."""
         await self.wait_until_guild_configurations_loaded()
-        return commands.when_mentioned_or(*await self.get_prefixes(message))(self, message) # type: ignore
+        return commands.when_mentioned_or(*await self.get_prefixes(message))(self, message)
 
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
