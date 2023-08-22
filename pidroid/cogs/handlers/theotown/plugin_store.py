@@ -39,7 +39,7 @@ class PluginStoreTasks(commands.Cog): # type: ignore
         self.retrieve_new_plugins.cancel()
         self.monthly_plugin_cronjob.cancel()
 
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def retrieve_new_plugins(self) -> None:
         """Retrieves new plugin store plugins and publishes them to TheoTown guild channel."""
 

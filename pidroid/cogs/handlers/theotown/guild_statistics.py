@@ -15,7 +15,7 @@ class GuildStatisticsTask(commands.Cog): # type: ignore
         """Ensure that tasks are cancelled on cog unload."""
         self.update_statistics.cancel()
 
-    @tasks.loop(seconds=120)
+    @tasks.loop(seconds=300)
     async def update_statistics(self) -> None:
         """Updates TheoTown API with guild member count."""
         try:
