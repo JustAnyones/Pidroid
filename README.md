@@ -143,16 +143,6 @@ If you want to access a service on host device through a docker container, you'l
 ip addr show | grep "\binet\b.*\bdocker0\b" | awk '{print $2}' | cut -d '/' -f 1
 ```
 
-## Versioning scheme
-
-For the most part Pidroid uses a modified semantic versioning scheme.
-|Version|Name                |Description                                               |
-|-------|--------------------|----------------------------------------------------------|
-| 1.0.0 |Major update        |Contains major incompatible changes with previous version.|
-| 0.1.0 |Minor update        |Contains major new features or minor incompatibilies.     |
-| 0.0.1 |Bugfix/patch update |Contains a hotfix or a bugfix.                            |
-
-
 ## For development
 
 ### Converters
