@@ -300,13 +300,13 @@ class RoleUpdateLog(PidroidLog):
         if before.hoist != after.hoist:
             self.add_field("Is hoisted?", f"{before.hoist} -> {after.hoist}")
 
-        # TODO: Icon change
-        #if before.icon != after.icon:
-        #    self.add_field("Icon", f"{before.icon.url} -> {after.icon.url}")
+        # Role icon change
+        if before.icon != after.icon:
+            self.add_field("Icon", f"{before.icon} -> {after.icon}")
 
-        # TODO: Emoji change
-        #if before.unicode_emoji != after.unicode_emoji:
-        #    self.add_field("Emoji", f"{before.unicode_emoji} -> {after.unicode_emoji}")
+        # Role emoji change
+        if before.unicode_emoji != after.unicode_emoji:
+            self.add_field("Role emoji", f"{before.unicode_emoji} -> {after.unicode_emoji}")
 
         # Permission change
         if before.permissions != after.permissions:
