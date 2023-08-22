@@ -22,10 +22,10 @@ class LeaderboardPaginator(ListPageSource):
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
     async def format_page(self, menu: PaginatingView, data: List[MemberLevelInfo]):
-        assert isinstance(menu._ctx.bot, Pidroid)
+        assert isinstance(menu.ctx.bot, Pidroid)
         self.embed.clear_fields()
         for info in data:
-            user = menu._ctx.bot.get_user(info.user_id)
+            user = menu.ctx.bot.get_user(info.user_id)
             self.embed.add_field(
                 name=f"{info.rank}. {user if user else info.user_id} (lvl. {info.current_level})",
                 value=f'{info.total_xp:,} XP',

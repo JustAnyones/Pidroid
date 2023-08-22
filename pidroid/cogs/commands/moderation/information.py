@@ -10,10 +10,11 @@ from typing_extensions import Annotated
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import GeneralCommandError
+from pidroid.models.view import PaginatingView
 from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.paginators import PidroidPages, CasePaginator
+from pidroid.utils.paginators import CasePaginator
 
 
 class ModeratorInfoCommands(commands.Cog): # type: ignore
@@ -100,11 +101,12 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if len(warnings) == 0:
             raise GeneralCommandError(error_msg)
 
-        pages = PidroidPages(
+        pages = PaginatingView(
+            self.client,
+            ctx=ctx,
             source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, compact=True),
-            ctx=ctx
         )
-        await pages.start()
+        await pages.send()
 
     @warnings_command.command( # type: ignore
         name="all",
@@ -132,11 +134,12 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if len(warnings) == 0:
             raise GeneralCommandError(error_msg)
 
-        pages = PidroidPages(
+        pages = PaginatingView(
+            self.client,
+            ctx=ctx,
             source=CasePaginator(f"Displaying warnings for {str(user)}", warnings, compact=True),
-            ctx=ctx
         )
-        await pages.start()
+        await pages.send()
 
 
     @commands.hybrid_command( # type: ignore
@@ -165,11 +168,12 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if len(cases) == 0:
             raise GeneralCommandError(error_msg)
 
-        pages = PidroidPages(
+        pages = PaginatingView(
+            self.client,
+            ctx=ctx,
             source=CasePaginator(f"Displaying moderation logs for {str(user)}", cases),
-            ctx=ctx
         )
-        await pages.start()
+        await pages.send()
 
 
     @commands.hybrid_command(
@@ -224,14 +228,15 @@ class ModeratorInfoCommands(commands.Cog): # type: ignore
         if len(cases) == 0:
             raise BadArgument("I could not find any cases that had the specified user as punished.")
 
-        pages = PidroidPages(
+        pages = PaginatingView(
+            self.client,
+            ctx=ctx,
             source=CasePaginator(
                 f"Displaying cases matching '{username}' username", cases,
                 include_original_user_name=True, compact=True
             ),
-            ctx=ctx
         )
-        await pages.start()
+        await pages.send()
 
 async def setup(client: Pidroid):
     await client.add_cog(ModeratorInfoCommands(client))

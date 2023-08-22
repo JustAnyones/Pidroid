@@ -14,12 +14,13 @@ from pidroid.constants import JESSE_ID
 from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import RandomCategory
 from pidroid.models.exceptions import APIException
+from pidroid.models.view import PaginatingView
 from pidroid.models.waifulistapi import MyWaifuListAPI, Waifu, WaifuSearchResult
 from pidroid.utils.decorators import command_checks
 from pidroid.utils import http, truncate_string
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed, ErrorEmbed
 from pidroid.utils.file import Resource
-from pidroid.utils.paginators import ListPageSource, PidroidPages
+from pidroid.utils.paginators import ListPageSource
 
 NEKO_API = "https://nekos.life/api/v2"
 NEKO_ENDPOINTS = [
@@ -50,7 +51,7 @@ class WaifuCommandPaginator(ListPageSource):
         super().__init__(data, per_page=1)
         self.embed = PidroidEmbed()
 
-    async def format_page(self, menu: PidroidPages, waifu: Union[Waifu, WaifuSearchResult]):
+    async def format_page(self, menu: PaginatingView, waifu: Union[Waifu, WaifuSearchResult]):
         self.embed.clear_fields()
         assert not isinstance(menu.ctx.channel, PartialMessageable)
         if isinstance(waifu, WaifuSearchResult):
@@ -237,8 +238,8 @@ class AnimeCommands(commands.Cog): # type: ignore
         else:
             waifus.append(await api.fetch_random_waifu())
 
-        pages = PidroidPages(WaifuCommandPaginator(waifus), ctx=ctx)
-        return await pages.start()
+        pages = PaginatingView(self.client, ctx=ctx, source=WaifuCommandPaginator(waifus))
+        return await pages.send()
 
     @commands.command( # type: ignore
         name="animedia",

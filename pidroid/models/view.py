@@ -4,7 +4,7 @@ import discord
 import logging
 
 from contextlib import suppress
-from discord import Colour, Interaction, NotFound
+from discord import Interaction, NotFound
 from discord.ext.commands import Context
 from discord.ui import Item, View
 from typing import TYPE_CHECKING, Optional
@@ -26,6 +26,11 @@ class BaseView(View):
         self._embed = PidroidEmbed()
         self._check_embed_permissions = False
         self.clear_items()
+
+    @property
+    def ctx(self) -> Context:
+        """Returns the context associated with the view."""
+        return self._ctx
 
     async def send(self):
         """Sends the message with the view."""
