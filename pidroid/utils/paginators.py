@@ -244,16 +244,23 @@ class CasePaginator(ListPageSource):
                 return f"\"{case.clean_reason}\" issued to {case.user_name} ({case.user_id}) on {format_dt(case.date_issued)}"
             return f"\"{case.clean_reason}\" issued on {format_dt(case.date_issued)}"
         
+        if case.has_expired:
+            expires = "Expired."
+        else:
+            expires = "Never" if case.date_expires is None else format_dt(case.date_expires)
+        
         if self.__include_original_user_name:
             return (
                 f"**Issued to:** {case.user_name} ({case.user_id})\n"
                 f"**Issued by:** {case.moderator_name}\n"
                 f"**Issued on:** {format_dt(case.date_issued)}\n"
+                f"**Expires on:** {expires}\n"
                 f"**Reason:** {case.clean_reason.capitalize()}"
             )
         return (
             f"**Issued by:** {case.moderator_name}\n"
             f"**Issued on:** {format_dt(case.date_issued)}\n"
+            f"**Expires on:** {expires}\n"
             f"**Reason:** {case.clean_reason.capitalize()}"
         )
 
