@@ -31,11 +31,10 @@ class VersionInfo(NamedTuple):
     major: int
     minor: int
     micro: int
-    releaselevel: Literal["alpha", "beta", "candidate", "final"]
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=12, micro=0, releaselevel='alpha', commit_id=os.environ.get('GIT_COMMIT', ''))
+__VERSION__ = VersionInfo(major=5, minor=13, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot): # type: ignore
     """This class represents the Pidroid bot client object."""
@@ -159,7 +158,7 @@ class Pidroid(commands.Bot): # type: ignore
     def full_version(self) -> str:
         """Returns full client version."""
         version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
-        return f"{version_str} {self.client_version.releaselevel} {self.client_version.commit_id}"
+        return f"{version_str} {self.client_version.commit_id}"
 
     async def wait_until_guild_configurations_loaded(self):
         """Waits until the internal guild configuration cache is ready.
