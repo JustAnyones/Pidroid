@@ -102,7 +102,7 @@ class ImageManipCommands(commands.Cog): # type: ignore
                 ratio = 12800 / orig_w
                 sizes = (128, round(ratio * orig_h / 100))
                 message += "-ish..."
-            attachment_image = attachment_image.resize(sizes, Image.ANTIALIAS)
+            attachment_image = attachment_image.resize(sizes, Image.LANCZOS)
 
             # Save the file
             output_file = BytesIO()
