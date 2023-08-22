@@ -188,21 +188,23 @@ class CloseButton(discord.ui.Button):
 class GeneralSubmenu(Submenu):
 
     def __init__(self, *, configuration: GuildConfiguration) -> None:
-        prefixes = configuration.guild_prefixes.prefixes or configuration.api.client.prefixes
+        prefixes = configuration.prefixes or configuration.api.client.prefixes
         settings=[
             TextSetting(
                 cls=ChangePrefixesButton,
                 name="Prefixes",
                 value=', '.join(prefixes),
                 label="Change prefixes",
-                callback=configuration.update_prefixes
+                callback=lambda prefixes: configuration.edit(prefixes=prefixes),
             ),
             BooleanSetting(
                 name="Everyone can manage tags",
                 value=configuration.public_tags,
                 label_true="Allow everyone to manage tags",
                 label_false="Don't allow everyone to manage tags",
-                callback=configuration.toggle_public_tags
+                callback=lambda: configuration.edit(
+                    public_tags=not configuration.public_tags
+                ),
             ),
         ]
         super().__init__(
@@ -220,7 +222,7 @@ class ModerationSubmenu(Submenu):
                 value=configuration.jail_role_id,
                 configuration=configuration,
                 placeholder="Change jail role",
-                callback=configuration.update_jail_role_id
+                callback=lambda role_id: configuration.edit(jail_role_id=role_id),
             ),
             ChannelSetting(
                 name="Jail channel",
@@ -228,21 +230,23 @@ class ModerationSubmenu(Submenu):
                 configuration=configuration,
                 channel_types=[discord.ChannelType.text],
                 placeholder="Change jail channel",
-                callback=configuration.update_jail_channel_id
+                callback=lambda channel_id: configuration.edit(jail_channel_id=channel_id),
             ),
             BooleanSetting(
                 name="Allow to punish moderators",
                 value=configuration.allow_to_punish_moderators,
                 label_true="Allow to punish moderators",
                 label_false="Don't allow to punish moderators",
-                callback=configuration.toggle_moderator_punishing
+                callback=lambda: configuration.edit(
+                    allow_moderator_punishing=not configuration.allow_to_punish_moderators
+                ),
             ),
             TextSetting(
                 cls=ChangeBanAppealUrlButton,
                 name="Ban appeal URL",
                 value=configuration.appeal_url,
                 label="Change ban appeal URL",
-                callback=configuration.update_appeal_url
+                callback=lambda appeal_url: configuration.edit(appeal_url=appeal_url),
             )
         ]
         super().__init__(
@@ -273,14 +277,18 @@ class LevelingSubmenu(Submenu):
                 value=configuration.xp_system_active,
                 label_true="Enable leveling system",
                 label_false="Disable leveling system",
-                callback=configuration.toggle_xp_system
+                callback=lambda: configuration.edit(
+                    xp_system_active=not configuration.xp_system_active
+                ),
             ),
             NumberSetting(
                 cls=XpMultiplierButton,
                 name="XP multiplier",
                 value=configuration.xp_multiplier,
                 label="Change XP multiplier",
-                callback=configuration.update_xp_multiplier
+                callback=lambda multiplier: configuration.edit(
+                    xp_multiplier=multiplier
+                ),
             ),
             ReadonlySetting(
                 name="XP exempt channels",
@@ -297,7 +305,9 @@ class LevelingSubmenu(Submenu):
                 value=configuration.level_rewards_stacked,
                 label_true="Enable level reward stacking",
                 label_false="Disable level reward stacking",
-                callback=configuration.toggle_level_reward_stacking
+                callback=lambda: configuration.edit(
+                    stack_level_rewards=not configuration.level_rewards_stacked
+                ),
             ),
         ]
         super().__init__(
@@ -315,14 +325,18 @@ class SuggestionSubmenu(Submenu):
                 value=configuration.suggestion_system_active,
                 label_true="Enable suggestion system",
                 label_false="Disable suggestion system",
-                callback=configuration.toggle_suggestion_system
+                callback=lambda: configuration.edit(
+                    suggestion_system_active=not configuration.suggestion_system_active
+                ),
             ),
             BooleanSetting(
                 name="Create threads for suggestions",
                 value=configuration.suggestion_threads_enabled,
                 label_true="Enable threads for suggestions",
                 label_false="Disable threads for suggestions",
-                callback=configuration.toggle_suggestion_threads
+                callback=lambda: configuration.edit(
+                    suggestion_threads_enabled=not configuration.suggestion_threads_enabled
+                ),
             ),
             ChannelSetting(
                 name="Suggestion channel",
@@ -330,7 +344,7 @@ class SuggestionSubmenu(Submenu):
                 configuration=configuration,
                 channel_types=[discord.ChannelType.text],
                 placeholder="Change suggestion channel",
-                callback=configuration.update_suggestions_channel_id
+                callback=lambda channel_id: configuration.edit(suggestion_channel_id=channel_id),
             ),
         ]
         super().__init__(
@@ -660,10 +674,10 @@ class SettingsCommands(commands.Cog): # type: ignore
 
             # Acquire config and submit changes to the database
             config = await self.client.fetch_guild_configuration(ctx.guild.id)
-
-            config.jail_role_id = jail_role.id
-            config.jail_channel_id = jail_channel.id
-            await config._update()
+            await config.edit(
+                jail_channel_id=jail_channel.id,
+                jail_role_id=jail_role.id
+            )
 
         await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
 
@@ -677,7 +691,7 @@ class SettingsCommands(commands.Cog): # type: ignore
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
-        prefixes = config.guild_prefixes.prefixes or self.client.prefixes
+        prefixes = config.prefixes or self.client.prefixes
         prefix_str = '**, **'.join(prefixes)
 
         await ctx.reply(f"My prefixes are: **{prefix_str}**")

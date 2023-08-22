@@ -29,7 +29,7 @@ class AdminCommands(commands.Cog): # type: ignore
             embed = PidroidEmbed(title=f'Displaying configuration for {escape_markdown(guild.name)}')
             embed.description = "WARNING: this command is deprecated and will be removed in the future"
 
-            prefixes = data.guild_prefixes.prefixes or self.client.prefixes
+            prefixes = data.prefixes or self.client.prefixes
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
             if data.jail_role_id:

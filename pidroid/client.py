@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Dict, List, Literal, NamedTuple, Optional, Uni
 
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.categories import Category, register_categories
-from pidroid.models.guild_configuration import GuildConfiguration, GuildPrefixes
+from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionDeletionView
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
@@ -112,7 +112,7 @@ class Pidroid(commands.Bot): # type: ignore
 
         # This holds cached guild configurations
         self._guild_prefix_cache_ready = asyncio.Event()
-        self.__cached_guild_prefixes: Dict[int, GuildPrefixes] = {}
+        self.__cached_guild_prefixes: Dict[int, List[str]] = {}
 
         self.client_version = __VERSION__
 
@@ -183,19 +183,19 @@ class Pidroid(commands.Bot): # type: ignore
                 guild_id
             )
             config = await self.api.insert_guild_configuration(guild_id)
-        self._update_guild_prefixes(guild_id, config)
+        self.update_guild_prefixes_from_config(guild_id, config)
         return config
     
-    def _get_guild_prefixes(self, guild_id: int) -> Optional[GuildPrefixes]:
+    def get_guild_prefixes(self, guild_id: int) -> Optional[List[str]]:
         """Returns guild prefixes from internal cache."""
         return self.__cached_guild_prefixes.get(guild_id)
 
-    def _update_guild_prefixes(self, guild_id: int, config: GuildConfiguration) -> GuildConfiguration:
-        """Updates guild prefixes in the internal cache and returns its object."""
-        self.__cached_guild_prefixes[guild_id] = config.guild_prefixes
-        return self._get_guild_prefixes(guild_id) # type: ignore
+    def update_guild_prefixes_from_config(self, guild_id: int, config: GuildConfiguration) -> List[str]:
+        """Updates guild prefixes in the internal cache and returns the prefix list."""
+        self.__cached_guild_prefixes[guild_id] = config.prefixes
+        return config.prefixes
 
-    def _remove_guild_prefixes(self, guild_id: int) -> None:
+    def remove_guild_prefixes(self, guild_id: int) -> None:
         """Removes guild prefixes from internal cache."""
         self.__cached_guild_prefixes.pop(guild_id)
 
@@ -276,9 +276,9 @@ class Pidroid(commands.Bot): # type: ignore
             return self.prefixes
 
         if message.guild:
-            guild_prefixes = self._get_guild_prefixes(message.guild.id)
+            guild_prefixes = self.get_guild_prefixes(message.guild.id)
             if guild_prefixes:
-                return guild_prefixes.prefixes or self.prefixes
+                return guild_prefixes or self.prefixes
         return self.prefixes
 
     async def get_prefix(self, message: Message):

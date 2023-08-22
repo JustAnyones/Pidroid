@@ -1,20 +1,11 @@
 from __future__ import annotations
 
 from discord import Guild
+from discord.utils import MISSING
 from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from pidroid.utils.api import API, GuildConfigurationTable
-
-class GuildPrefixes:
-
-    def __init__(self, prefixes: List[str]) -> None:
-        self.__prefixes = prefixes
-
-    @property
-    def prefixes(self) -> List[str]:
-        """A list of guild prefixes."""
-        return self.__prefixes
 
 class GuildConfiguration:
 
@@ -58,93 +49,16 @@ class GuildConfiguration:
         self.__suggestion_channel_id: Optional[int] = table.suggestion_channel # type: ignore
         self.__suggestion_threads_enabled: bool = table.suggestion_threads_enabled # type: ignore
 
-    @property
-    def guild_id(self) -> int:
-        """The ID of the guild this configuration belongs to."""
-        return self.__guild_id
-
-    @property
-    def guild(self) -> Optional[Guild]:
-        """The guild this configuration belongs to."""
-        return self.api.client.get_guild(self.__guild_id)
-
-    @property
-    def guild_prefixes(self) -> GuildPrefixes:
-        """Returns GuildPrefixes object."""
-        return GuildPrefixes(self.__prefixes)
-    
-    async def update_prefixes(self, prefixes: List[str]) -> None:
-        """Updates the guild bot prefixes."""
-        self.__prefixes = prefixes.copy()
-        await self._update()
-    
-    @property
-    def jail_channel_id(self) -> Optional[int]:
-        """Returns the ID of the jail channel, if available."""
-        return self.__jail_channel_id
-    
-    @jail_channel_id.setter
-    def jail_channel_id(self, id: int) -> None:
-        self.__jail_channel_id = id
-
-    async def update_jail_channel_id(self, channel_id: Optional[int]) -> None:
-        """Updates the jail channel ID."""
-        if channel_id is None:
-            self.__jail_channel_id = None
-        else:
-            self.__jail_channel_id = channel_id
-        await self._update()
-
-    @property
-    def jail_role_id(self) -> Optional[int]:
-        """Returns the ID of the jail role, if available."""
-        return self.__jail_role_id
-
-    @jail_role_id.setter
-    def jail_role_id(self, id: int) -> None:
-        self.__jail_role_id = id
-
-    async def update_jail_role_id(self, role_id: Optional[int]) -> None:
-        """Updates the jail role ID."""
-        if role_id is None:
-            self.__jail_role_id = None
-        else:
-            self.__jail_role_id = role_id
-        await self._update()
-
-    @property
-    def logging_channel_id(self) -> Optional[int]:
-        """Returns the ID of the logging channel if available."""
-        return self.__log_channel_id
-
-    @property
-    def public_tags(self) -> bool:
-        """Returns true if tag system can be management by regular members."""
-        return self.__public_tags
-    
-    async def toggle_public_tags(self) -> None:
-        """Updates public tags permission."""
-        self.__public_tags = not self.__public_tags
-        await self._update()
-
-    @property
-    def allow_to_punish_moderators(self) -> bool:
-        """Returns true if moderators are allowed to punish lower ranking moderators."""
-        return self.__allow_punishing_moderators
-    
-    async def toggle_moderator_punishing(self) -> None:
-        """Updates moderator punishing permission."""
-        self.__allow_punishing_moderators = not self.__allow_punishing_moderators
-        await self._update()
-
     async def _update(self) -> None:
         await self.api._update_guild_configuration(
             self.__id,
+
+            prefixes=self.__prefixes,
+            public_tags=self.__public_tags,
+
             jail_channel=self.__jail_channel_id,
             jail_role=self.__jail_role_id,
             log_channel=self.__log_channel_id,
-            prefixes=self.__prefixes,
-            public_tags=self.__public_tags,
             punishing_moderators=self.__allow_punishing_moderators,
             appeal_url=self.__appeal_url,
 
@@ -159,9 +73,127 @@ class GuildConfiguration:
             suggestion_threads_enabled=self.__suggestion_threads_enabled
         )
 
+    @property
+    def guild_id(self) -> int:
+        """The ID of the guild this configuration belongs to."""
+        return self.__guild_id
+
+    @property
+    def guild(self) -> Optional[Guild]:
+        """The guild this configuration belongs to."""
+        return self.api.client.get_guild(self.__guild_id)
+
+    async def edit(
+        self,
+        *,
+        prefixes: List[str] = MISSING,
+        public_tags: bool = MISSING,
+
+        jail_channel_id: Optional[int] = MISSING,
+        jail_role_id: Optional[int] = MISSING,
+        allow_moderator_punishing: bool = MISSING,
+        appeal_url: Optional[str] = MISSING,
+
+        xp_system_active: bool = MISSING,
+        xp_multiplier: float = MISSING,
+        stack_level_rewards: bool = MISSING,
+
+        suggestion_system_active: bool = MISSING,
+        suggestion_channel_id: Optional[int] = MISSING,
+        suggestion_threads_enabled: bool = MISSING,
+    ) -> None:
+        """Edits the guild configuration."""
+
+        # General
+        if prefixes is not MISSING:
+            self.__prefixes = prefixes.copy()
+
+        if public_tags is not MISSING:
+            self.__public_tags = public_tags
+
+        # Moderation
+        if jail_channel_id is not MISSING:
+            self.__jail_channel_id = jail_channel_id
+
+        if jail_role_id is not MISSING:
+            self.__jail_role_id = jail_role_id
+
+        if allow_moderator_punishing is not MISSING:
+            self.__allow_punishing_moderators = allow_moderator_punishing
+
+        if appeal_url is not MISSING:
+            self.__appeal_url = appeal_url
+
+        # XP System
+        if xp_system_active is not MISSING:
+            self.__xp_system_active = xp_system_active
+
+        if xp_multiplier is not MISSING:
+            self.__xp_multiplier = xp_multiplier
+
+        if stack_level_rewards is not MISSING:
+            self.__stack_level_rewards = stack_level_rewards
+
+        # Suggestions
+        if suggestion_system_active is not MISSING:
+            self.__suggestion_system_active = suggestion_system_active
+
+        if suggestion_channel_id is not MISSING:
+            self.__suggestion_channel_id = suggestion_channel_id
+
+        if suggestion_threads_enabled is not MISSING:
+            self.__suggestion_threads_enabled = suggestion_threads_enabled
+
+        await self._update()
+
+        # Dispatch level stacking change
+        if stack_level_rewards is not MISSING:
+            self.api.client.dispatch("pidroid_level_stacking_change", self.guild)
+
+        # Update guild prefixes
+        if prefixes is not MISSING:
+            self.api.client.update_guild_prefixes_from_config(self.guild_id, self)
+
     async def delete(self) -> None:
         """Deletes the current guild configuration from the database."""
         await self.api.delete_guild_configuration(self.__id)
+    
+    @property
+    def prefixes(self) -> List[str]:
+        """Returns guild prefixes."""
+        return self.__prefixes.copy()
+
+    @property
+    def public_tags(self) -> bool:
+        """Returns true if tag system can be management by regular members."""
+        return self.__public_tags
+
+    """Moderation related"""
+
+    @property
+    def jail_channel_id(self) -> Optional[int]:
+        """Returns the ID of the jail channel, if available."""
+        return self.__jail_channel_id
+
+    @property
+    def jail_role_id(self) -> Optional[int]:
+        """Returns the ID of the jail role, if available."""
+        return self.__jail_role_id
+
+    @property
+    def logging_channel_id(self) -> Optional[int]:
+        """Returns the ID of the logging channel if available."""
+        return self.__log_channel_id
+
+    @property
+    def allow_to_punish_moderators(self) -> bool:
+        """Returns true if moderators are allowed to punish lower ranking moderators."""
+        return self.__allow_punishing_moderators
+
+    @property
+    def appeal_url(self) -> Optional[str]:
+        """Returns the ban appeal URL."""
+        return self.__appeal_url
 
     """XP system related"""
 
@@ -169,21 +201,11 @@ class GuildConfiguration:
     def xp_system_active(self) -> bool:
         """Returns true if the XP system is active for the server."""
         return self.__xp_system_active # type: ignore
-    
-    async def toggle_xp_system(self) -> None:
-        """Toggles XP system."""
-        self.__xp_system_active = not self.__xp_system_active
-        await self._update()
 
     @property
     def xp_multiplier(self) -> float:
         """Returns the XP multiplier per message."""
         return self.__xp_multiplier
-    
-    async def update_xp_multiplier(self, multiplier: float) -> None:
-        """Updates XP multiplier."""
-        self.__xp_multiplier = multiplier
-        await self._update()
     
     @property
     def xp_per_message_min(self) -> int:
@@ -237,12 +259,6 @@ class GuildConfiguration:
     def level_rewards_stacked(self) -> bool:
         """Returns true if level rewards obtained from the level system should be stacked."""
         return self.__stack_level_rewards
-    
-    async def toggle_level_reward_stacking(self) -> None:
-        """Toggles level reward stacking."""
-        self.__stack_level_rewards = not self.__stack_level_rewards
-        await self._update()
-        self.api.client.dispatch("pidroid_level_stacking_change", self.guild)
 
     """Logging system related"""
     
@@ -258,55 +274,16 @@ class GuildConfiguration:
     def suggestion_system_active(self) -> bool:
         """Returns true if suggestion system is enabled for the server."""
         return self.__suggestion_system_active
-    
-    async def toggle_suggestion_system(self) -> None:
-        """Toggles suggestion system."""
-        self.__suggestion_system_active = not self.__suggestion_system_active
-        await self._update()
 
     @property
     def suggestions_channel_id(self) -> Optional[int]:
         """Returns the ID of the suggestions channel if available."""
         return self.__suggestion_channel_id
-    
-    @suggestions_channel_id.setter
-    def suggestions_channel_id(self, id: int) -> None:
-        self.__suggestion_channel_id = id
-    
-    async def update_suggestions_channel_id(self, channel_id: Optional[int]) -> None:
-        """Updates the suggestions channel ID."""
-        if channel_id is None:
-            self.__suggestion_channel_id = None
-        else:
-            self.__suggestion_channel_id = channel_id
-        await self._update()
 
     @property
     def suggestion_threads_enabled(self) -> bool:
         """Returns true if expiring thread creation is enabled for the suggestion system."""
         return self.__suggestion_threads_enabled
-
-    async def toggle_suggestion_threads(self) -> None:
-        """Toggles threads for the suggestion system."""
-        self.__suggestion_threads_enabled = not self.__suggestion_threads_enabled
-        await self._update()
-
-    """Punishment system related"""
-
-    @property
-    def appeal_url(self) -> Optional[str]:
-        """Returns the ban appeal URL."""
-        return self.__appeal_url
-    
-    async def update_appeal_url(self, appeal_url: Optional[str]) -> None:
-        """Updates the ban appeal URL. If None is specified, the URL is removed."""
-        self.__appeal_url = appeal_url
-        await self._update()
-
-    async def update_public_tag_permission(self, allow_public: bool) -> None:
-        """Updates public tag permission."""
-        self.__public_tags = allow_public
-        await self._update()
 
     async def fetch_all_level_rewards(self):
         """Returns a list of all level rewards in the guild."""

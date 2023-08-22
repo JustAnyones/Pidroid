@@ -27,7 +27,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         config = await self.client.api.fetch_guild_configuration(guild.id)
         if config:
             await config.delete()
-            self.client._remove_guild_prefixes(guild.id)
+            self.client.remove_guild_prefixes(guild.id)
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_role_delete(self, role: Role) -> None:
@@ -37,7 +37,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         guild_id = role.guild.id
         config = await self.client.fetch_guild_configuration(guild_id)
         if config.jail_role_id == role.id:
-            await config.update_jail_role_id(None)
+            await config.edit(jail_role_id=None)
 
     @commands.Cog.listener() # type: ignore
     async def on_guild_channel_delete(self, guild_channel: GuildChannel) -> None:
@@ -52,7 +52,7 @@ class GuildEventHandler(commands.Cog): # type: ignore
         guild_id = guild_channel.guild.id
         config = await self.client.fetch_guild_configuration(guild_id)
         if config.jail_channel_id == guild_channel.id:
-            await config.update_jail_channel_id(None)
+            await config.edit(jail_channel_id=None)
 
 
 async def setup(client: Pidroid) -> None:

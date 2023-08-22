@@ -33,17 +33,17 @@ class InvocationEventHandler(commands.Cog): # type: ignore
         self.log.debug("Filling guild prefix cache")
         raw_configs = await self.client.api.fetch_guild_configurations()
         for config in raw_configs:
-            self.client._update_guild_prefixes(config.guild_id, config)
+            self.client.update_guild_prefixes_from_config(config.guild_id, config)
         self.log.debug("Guild prefix cache filled")
 
         # Generate configurations for guilds that do not already have it
         self.log.debug("Generating missing guild configurations")
         for guild in self.client.guilds:
-            prefixes = self.client._get_guild_prefixes(guild.id)
+            prefixes = self.client.get_guild_prefixes(guild.id)
             # If there's no prefix entry, there's no guild configuration either
             if prefixes is None:
                 config = await self.client.api.insert_guild_configuration(guild.id)
-                self.client._update_guild_prefixes(guild.id, config)
+                self.client.update_guild_prefixes_from_config(guild.id, config)
                 self.log.warn(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
 
         self.client._guild_prefix_cache_ready.set()
