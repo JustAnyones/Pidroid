@@ -27,12 +27,6 @@ def get_command_documentation(c: Command) -> Tuple[str, str]:
     usage = c.usage or ""
     name = get_full_command_name(c) + " " + usage
     value = c.brief or 'Not documented.'
-
-    # Fetch command aliases
-    aliases = c.aliases
-    if len(aliases) > 0:
-        value += '\n'
-        value += '**Aliases:** `' + '`, `'.join(aliases) + '`.'
     return name, value
 
 class Category:
