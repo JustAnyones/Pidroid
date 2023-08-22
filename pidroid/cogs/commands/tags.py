@@ -146,7 +146,7 @@ class TagCommands(commands.Cog): # type: ignore
     async def tag_info_command(self, ctx: Context, *, tag_name: str):
         tag = await self.fetch_tag(ctx, tag_name)
 
-        authors = await tag.fetch_authors()
+        authors = tag.get_authors()
 
         embed = PidroidEmbed(title=tag.name, description=tag.content)
         if authors[0]:
@@ -159,7 +159,7 @@ class TagCommands(commands.Cog): # type: ignore
                 else:
                     author_value += f'{user.mention} '
             embed.add_field(name="Co-authors", value=author_value.strip())
-        embed.add_field(name="Date created", value=format_dt(tag._date_created))
+        embed.add_field(name="Date created", value=format_dt(tag.date_created))
         await ctx.reply(embed=embed)
 
 
@@ -198,20 +198,25 @@ class TagCommands(commands.Cog): # type: ignore
     @commands.guild_only() # type: ignore
     async def tag_create_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
         assert ctx.guild
-        tag = Tag(self.client)
-        tag.guild_id = ctx.guild.id
-        tag.author_id = ctx.author.id
-        tag.name = tag_name
 
-        if await self.client.api.fetch_guild_tag(tag.guild_id, tag.name) is not None:
+        stripped_name = tag_name.strip()
+
+        if await self.client.api.fetch_guild_tag(ctx.guild.id, stripped_name) is not None:
             raise BadArgument("There's already a tag by the specified name!")
 
         attachment_url = await self.resolve_attachments(ctx.message) # The file from interactions are also obtained this way
         if content is None and attachment_url is None:
             raise BadArgument("Please provide content or an attachment for the tag!")
-        tag.content = ((content or "") + "\n" + (attachment_url or "")).strip()
+        parsed_content = ((content or "") + "\n" + (attachment_url or "")).strip()
 
-        await tag.create()
+        tag = await Tag.create(
+            self.client,
+            guild_id=ctx.guild.id,
+            name=stripped_name,
+            content=parsed_content,
+            author=ctx.author.id
+        )
+
         await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
         self.client.log_event(
             EventType.tag_create, EventName.tag_create, ctx.guild.id, tag.row, ctx.author.id,
@@ -245,9 +250,9 @@ class TagCommands(commands.Cog): # type: ignore
         attachment_url = await self.resolve_attachments(ctx.message) # The file from interactions are also obtained this way
         if content is None and attachment_url is None:
             raise BadArgument("Please provide content or an attachment for the tag!")
-        tag.content = ((content or "") + "\n" + (attachment_url or "")).strip()
+        parsed_content = ((content or "") + "\n" + (attachment_url or "")).strip()
 
-        await tag.edit()
+        await tag.edit(content=parsed_content)
         await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
         self.client.log_event(
             EventType.tag_update, EventName.tag_edit, ctx.guild.id, tag.row, ctx.author.id,
@@ -278,9 +283,7 @@ class TagCommands(commands.Cog): # type: ignore
         if member.bot:
             raise BadArgument("You cannot add a bot as co-author, that'd be stupid!")
 
-        tag.add_co_author(member.id)
-
-        await tag.edit()
+        await tag.add_co_author(member.id)
         await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully!"))
         self.client.log_event(
             EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
@@ -308,9 +311,7 @@ class TagCommands(commands.Cog): # type: ignore
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot remove a co-author from a tag you don't own!")
 
-        tag.remove_co_author(member.id)
-
-        await tag.edit()
+        await tag.remove_co_author(member.id)
         await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully!"))
         self.client.log_event(
             EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
@@ -347,9 +348,7 @@ class TagCommands(commands.Cog): # type: ignore
                     if await self.client.get_or_fetch_member(ctx.guild, co_author_id):
                         raise BadArgument("There are still tag co-authors in the server! They can claim the tag too!")
 
-        tag.author_id = ctx.author.id
-
-        await tag.edit()
+        await tag.edit(owner_id=ctx.author.id)
         await ctx.reply(embed=SuccessEmbed("Tag claimed successfully!"))
         self.client.log_event(
             EventType.tag_update, EventName.tag_claim, ctx.guild.id, tag.row, ctx.author.id,
@@ -380,9 +379,7 @@ class TagCommands(commands.Cog): # type: ignore
         if member.bot:
             raise BadArgument("You cannot transfer a tag to a bot, that'd be stupid!")
 
-        tag.author_id = member.id
-
-        await tag.edit()
+        await tag.edit(owner_id=member.id)
         await ctx.reply(embed=SuccessEmbed(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
         self.client.log_event(
             EventType.tag_update, EventName.tag_transfer, ctx.guild.id, tag.row, ctx.author.id,
@@ -410,7 +407,7 @@ class TagCommands(commands.Cog): # type: ignore
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot remove a tag you don't own!")
 
-        await tag.remove()
+        await tag.delete()
         await ctx.reply(embed=SuccessEmbed("Tag removed successfully!"))
         self.client.log_event(
             EventType.tag_delete, EventName.tag_delete, ctx.guild.id, tag.row, ctx.author.id,

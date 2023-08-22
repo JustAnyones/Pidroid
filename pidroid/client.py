@@ -12,7 +12,7 @@ import logging
 from aiohttp import ClientSession
 from contextlib import suppress
 from discord.ext import commands, tasks # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext.commands.errors import BadArgument
 from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
