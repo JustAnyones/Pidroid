@@ -9,45 +9,84 @@ if TYPE_CHECKING:
 
 class GuildConfiguration:
 
-    def __init__(self, api: API) -> None:
+    def __init__(
+        self,
+        api: API,
+        *,
+        row: int,
+        guild_id: int,
+
+        prefixes: List[str],
+        public_tags: bool,
+
+        jail_channel_id: Optional[int],
+        jail_role_id: Optional[int],
+        log_channel_id: Optional[int],
+        allow_moderator_punishing: bool,
+        appeal_url: Optional[str],
+
+        xp_system_active: bool,
+        xp_multiplier: float,
+        xp_per_message_min: int,
+        xp_per_message_max: int,
+        xp_exempt_roles: List[int],
+        xp_exempt_channels: List[int],
+        stack_level_rewards: bool,
+
+        suggestion_system_active: bool,
+        suggestion_channel_id: Optional[int],
+        suggestion_threads_enabled: bool,
+    ):
         self.api = api
+        self.__id = row
+        self.__guild_id = guild_id
+
+        self.__prefixes = prefixes
+        self.__public_tags = public_tags
+
+        self.__jail_channel_id = jail_channel_id
+        self.__jail_role_id = jail_role_id
+        self.__log_channel_id = log_channel_id
+        self.__allow_punishing_moderators = allow_moderator_punishing
+        self.__appeal_url = appeal_url
+
+        self.__xp_system_active = xp_system_active
+        self.__xp_multiplier = xp_multiplier
+        self.__xp_per_message_min = xp_per_message_min
+        self.__xp_per_message_max = xp_per_message_max
+        self.__xp_exempt_roles = xp_exempt_roles
+        self.__xp_exempt_channels = xp_exempt_channels
+        self.__stack_level_rewards = stack_level_rewards
+
+        self.__suggestion_system_active = suggestion_system_active
+        self.__suggestion_channel_id = suggestion_channel_id
+        self.__suggestion_threads_enabled = suggestion_threads_enabled
 
     @classmethod
-    def from_table(cls: type[GuildConfiguration], api: API, table: GuildConfigurationTable) -> GuildConfiguration:
-        """Constructs level reward from a LevelRewardsTable object."""
-        obj = cls(api)
-        obj.__from_table(table)
-        return obj
-
-    def __from_table(self, table: GuildConfigurationTable) -> None:
-        """Creates a GuildConfiguration object from a table object."""
-        self.__id = table.id
-        self.__guild_id = table.guild_id
-
-        self.__prefixes = table.prefixes
-
-        self.__jail_channel_id = table.jail_channel
-        self.__jail_role_id = table.jail_role
-        self.__log_channel_id = table.log_channel
-
-        self.__public_tags = table.public_tags
-        self.__allow_punishing_moderators = table.punishing_moderators
-
-        self.__appeal_url = table.appeal_url
-
-        # XP system related information
-        self.__xp_system_active = table.xp_system_active
-        self.__xp_multiplier = table.xp_multiplier
-        self.__xp_per_message_min = table.xp_per_message_min
-        self.__xp_per_message_max = table.xp_per_message_max
-        self.__xp_exempt_roles = table.xp_exempt_roles
-        self.__xp_exempt_channels = table.xp_exempt_channels
-        self.__stack_level_rewards = table.stack_level_rewards
-
-        # Suggestion system related information
-        self.__suggestion_system_active = table.suggestion_system_active
-        self.__suggestion_channel_id = table.suggestion_channel
-        self.__suggestion_threads_enabled = table.suggestion_threads_enabled
+    def from_table(cls, api: API, table: GuildConfigurationTable) -> GuildConfiguration:
+        """Constructs a GuildConfiguration object from a GuildConfigurationTable object."""
+        return cls(
+            api,
+            row=table.id,
+            guild_id=table.guild_id,
+            prefixes=table.prefixes,
+            public_tags=table.public_tags,
+            jail_channel_id=table.jail_channel,
+            jail_role_id=table.jail_role,
+            log_channel_id=table.log_channel,
+            allow_moderator_punishing=table.punishing_moderators,
+            appeal_url=table.appeal_url,
+            xp_system_active=table.xp_system_active,
+            xp_multiplier=table.xp_multiplier,
+            xp_per_message_min=table.xp_per_message_min,
+            xp_per_message_max=table.xp_per_message_max,
+            xp_exempt_roles=table.xp_exempt_roles,
+            xp_exempt_channels=table.xp_exempt_channels,
+            stack_level_rewards=table.stack_level_rewards,
+            suggestion_system_active=table.suggestion_system_active,
+            suggestion_channel_id=table.suggestion_channel,
+            suggestion_threads_enabled=table.suggestion_threads_enabled,
+        )
 
     async def _update(self) -> None:
         await self.api._update_guild_configuration(
