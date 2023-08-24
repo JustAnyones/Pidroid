@@ -3,23 +3,49 @@ import discord
 import pytz
 
 from discord.ext import commands
-from discord.ext.commands import BadUnionArgument, Context, MissingRequiredArgument, UserNotFound
+from discord.ext.commands import BadArgument, BadUnionArgument, Context, MissingRequiredArgument, UserNotFound
 from discord.embeds import Embed
 from discord.member import Member
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, format_dt
-from typing import Union, Optional
+from typing import List, Union, Optional
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
 from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import InformationCategory
+from pidroid.models.view import PaginatingView
 from pidroid.utils import normalize_permission_name
 from pidroid.utils.checks import is_guild_moderator, is_guild_administrator
 from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.paginators import ListPageSource
 from pidroid.utils.time import utcnow
 
+class RolePaginator(ListPageSource):
+    def __init__(self, title: str, data: List[Role]):
+        super().__init__(data, per_page=20)
+        self.embed = PidroidEmbed(title=title)
+        role_count = len(data)
+        if role_count == 1:
+            self.embed.set_footer(text=f"1 role")
+        else:
+            self.embed.set_footer(text=f"{role_count} roles")
+
+    async def format_page(self, menu: PaginatingView, data: List[Role]):
+        offset = menu.current_page * self.per_page + 1
+        values = ""
+        for i, role in enumerate(data):
+            member_count = len(role.members)
+            if member_count == 1:
+                count = "1 member"
+            elif member_count > 1:
+                count = f"{member_count} members"
+            else:
+                count = "no members"
+            values += f"{i + offset}. {role.mention} ({count})\n"
+        self.embed.description = values.strip()
+        return self.embed
 
 class InfoCommands(commands.Cog):
     """This class implements a cog for various discord information commands."""
@@ -219,6 +245,30 @@ class InfoCommands(commands.Cog):
             if error.param.name == "role":
                 return await notify(ctx, "Please specify the role to view the information for.")
         setattr(error, 'unhandled', True)
+
+    @commands.command( # type: ignore
+        name='roles',
+        brief='Displays a list of server roles.',
+        aliases=['role-list'],
+        category=InformationCategory
+    )
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True, embed_links=True)
+    async def roles_command(self, ctx: Context):
+        assert ctx.guild
+
+        roles = [
+            r for r in reversed(ctx.guild.roles) if r.name != "@everyone"
+        ]
+
+        if not roles:
+            raise BadArgument("This server does not have any roles")
+
+        view = PaginatingView(client=self.client, ctx=ctx, source=RolePaginator(
+            f"Roles in {ctx.guild.name}",
+            roles
+        ))
+        await view.send()
 
     @commands.command( # type: ignore
         brief='Displays time information across the globe.',
