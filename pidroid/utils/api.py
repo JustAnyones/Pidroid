@@ -84,7 +84,7 @@ class SuggestionTable(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     author_id: Mapped[int] = mapped_column(BigInteger)
-    message_id: Mapped[int] = mapped_column(BigInteger)
+    message_id: Mapped[Optional[int]] = mapped_column(BigInteger)
     suggestion: Mapped[str]
     date_submitted: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     attachments: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
