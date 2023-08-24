@@ -37,7 +37,7 @@ from pidroid.utils.checks import (
     check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
     is_guild_moderator, is_guild_theotown
 )
-from pidroid.utils.time import delta_to_datetime, duration_string_to_relativedelta, utcnow
+from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
 
 BUNNY_ID = 793465265237000212
 
@@ -92,12 +92,12 @@ class LengthButton(ValueButton):
                 return await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
 
             try:
-                value = duration_string_to_relativedelta(value)
+                value = try_convert_duration_to_relativedelta(value)
             except InvalidDuration as e:
                 return await interaction.response.send_message(str(e), ephemeral=True)
 
             now = utcnow()
-            delta: timedelta = now - (now - value)
+            delta = now - (now - value)
 
             if delta.total_seconds() < 5 * 60:
                 return await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)

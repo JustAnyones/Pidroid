@@ -16,6 +16,18 @@ DURATION_PATTERN = re.compile(
     r"((?P<seconds>\d+?) ?(seconds|second|S|s))?"
 )
 
+HELP_FORMATTING: str = (
+    "Pidroid supports the following symbols for each unit of time:\n"
+    "- years: `Y`, `y`, `year`, `years`\n"
+    "- months: `mo`, `month`, `months`\n"
+    "- weeks: `w`, `W`, `week`, `weeks`\n"
+    "- days: `d`, `D`, `day`, `days`\n"
+    "- hours: `H`, `h`, `hour`, `hours`\n"
+    "- minutes: `m`, `minute`, `minutes`\n"
+    "- seconds: `S`, `s`, `second`, `seconds`\n"
+    "The units need to be provided in descending order of magnitude."
+)
+
 DATE_STYLES = {
     "custom": "%d/%m/%Y @ %I:%M %p (UTC)",
     "iso-8601": "%Y-%m-%dT%H:%M:%S+00:00",
@@ -47,25 +59,16 @@ def utcnow() -> datetime.datetime:
     """Returns current datetime."""
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
-def duration_string_to_relativedelta(duration_str: str) -> relativedelta:
-    """Converts a duration string to a relativedelta object."""
-    match = DURATION_PATTERN.fullmatch(duration_str)
-    if not match:
-        raise InvalidDuration((
-            f"'{duration_str}' is not a valid duration!\n"
-            "Pidroid supports the following symbols for each unit of time:\n"
-            "- years: `Y`, `y`, `year`, `years`\n"
-            "- months: `mo`, `month`, `months`\n"
-            "- weeks: `w`, `W`, `week`, `weeks`\n"
-            "- days: `d`, `D`, `day`, `days`\n"
-            "- hours: `H`, `h`, `hour`, `hours`\n"
-            "- minutes: `m`, `minute`, `minutes`\n"
-            "- seconds: `S`, `s`, `second`, `seconds`\n"
-            "The units need to be provided in descending order of magnitude."
-        ))
-
-    duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
-    return relativedelta(**duration_dict) # type: ignore # we never pass dt1, dt2 regardless
+def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
+    """Attempts to convert a duration string to a relativedelta object.
+    
+    Raises InvalidDuration error."""
+    delta = duration_to_relativedelta(duration_str)
+    if delta is None:
+        raise InvalidDuration(
+            f"{duration_str!r} is not a valid duration!\n{HELP_FORMATTING}"
+        )
+    return delta
 
 def duration_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
     """Converts a duration string to a relativedelta object."""

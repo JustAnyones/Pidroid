@@ -3,28 +3,7 @@ import datetime
 from dateutil import relativedelta
 from discord.ext.commands import BadArgument, Context, Converter
 
-from pidroid.models.exceptions import InvalidDuration
-from pidroid.utils.time import duration_to_relativedelta, utcnow
-
-def try_convert_duration_to_relativedelta(duration: str) -> relativedelta.relativedelta:
-    """Tries to convert a duration string to relativedelta object.
-    
-    Raises InvalidDuration on failure."""
-    delta = duration_to_relativedelta(duration)
-    if delta is None:
-        raise InvalidDuration((
-            f"'{duration}' is not a valid duration!\n"
-            "Pidroid supports the following symbols for each unit of time:\n"
-            "- years: `Y`, `y`, `year`, `years`\n"
-            "- months: `mo`, `month`, `months`\n"
-            "- weeks: `w`, `W`, `week`, `weeks`\n"
-            "- days: `d`, `D`, `day`, `days`\n"
-            "- hours: `H`, `h`, `hour`, `hours`\n"
-            "- minutes: `m`, `minute`, `minutes`\n"
-            "- seconds: `S`, `s`, `second`, `seconds`\n"
-            "The units need to be provided in descending order of magnitude."
-        ))
-    return delta
+from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta
 
 class DurationDelta(Converter):
     """Convert duration strings into dateutil.relativedelta.relativedelta objects."""
@@ -55,6 +34,6 @@ class Duration(Converter):
         delta = try_convert_duration_to_relativedelta(duration)
 
         try:
-            return utcnow() + delta
+            return delta_to_datetime(delta)
         except (ValueError, OverflowError):
             raise BadArgument(f"`{duration}` results in a datetime outside the supported range.")
