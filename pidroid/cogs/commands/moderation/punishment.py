@@ -7,8 +7,7 @@ import discord
 from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-from discord import Thread, VoiceChannel, ui, ButtonStyle, Interaction, app_commands, Member, Message
-from discord.channel import TextChannel, DMChannel, GroupChannel, PartialMessageable, StageChannel
+from discord import ui, ButtonStyle, Interaction, app_commands, Member, Message
 from discord.colour import Colour
 from discord.user import User
 from discord.embeds import Embed
@@ -29,7 +28,7 @@ from pidroid.models.punishments import Ban, Kick, Timeout, Jail, Warning
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import InvalidDuration, MissingUserPermissions
 from pidroid.utils import user_mention
-from pidroid.utils.aliases import GuildTextChannel
+from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
@@ -237,11 +236,11 @@ class ModerationMenu(ui.View):
         self._api = self._client.api
 
         # Aqcuire guild, channel and users from the context
-        assert ctx.guild is not None
-        assert isinstance(ctx.channel, (TextChannel, Thread, VoiceChannel))
+        assert ctx.guild
+        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
 
         self.guild = ctx.guild
-        self.channel: GuildTextChannel = ctx.channel
+        self.channel: MessageableGuildChannel = ctx.channel
         self.moderator = ctx.author
         self.user = user
 
@@ -295,7 +294,7 @@ class ModerationMenu(ui.View):
         if length == -1:
             length = None
 
-        assert self.punishment is not None
+        assert self.punishment
         self.punishment.set_length(length)
         assert isinstance(self._embed.description, str)
         self._embed.description += f"\nLength: {self.punishment.length_as_string}"
@@ -303,7 +302,7 @@ class ModerationMenu(ui.View):
     def _select_reason(self, reason: str):
         assert isinstance(self._embed.description, str)
         self._embed.description += f"\nReason: {reason}"
-        assert self._punishment is not None
+        assert self._punishment
         self._punishment.reason = reason
 
     """Checks"""
@@ -311,7 +310,7 @@ class ModerationMenu(ui.View):
     async def is_user_banned(self) -> bool:
         """Returns true if user is currently banned."""
         try:
-            await self.guild.fetch_ban(self.user) # type: ignore
+            await self.guild.fetch_ban(self.user)
             return True
         except Exception:
             return False
@@ -528,7 +527,7 @@ class ModerationMenu(ui.View):
         await interaction.response.defer()
         self.stop()
 
-        assert self.punishment is not None
+        assert self.punishment
         await self.punishment.issue()
 
         # Regardless, we clean up
@@ -582,7 +581,7 @@ class ModerationMenu(ui.View):
     async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the jail type button."""
         assert isinstance(self.user, Member)
-        assert self._jail_role is not None
+        assert self._jail_role
         self.punishment = Jail(
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user,
@@ -595,7 +594,7 @@ class ModerationMenu(ui.View):
     async def on_type_kidnap_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the kidnap type button."""
         assert isinstance(self.user, Member)
-        assert self._jail_role is not None
+        assert self._jail_role
         self.punishment = Jail(
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user,
@@ -608,7 +607,7 @@ class ModerationMenu(ui.View):
     async def on_type_unjail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the unjail type button."""
         assert isinstance(self.user, Member)
-        assert self._jail_role is not None
+        assert self._jail_role
         self.punishment = Jail(
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user,
@@ -697,7 +696,7 @@ class ModerationMenu(ui.View):
         
         If interaction object is not provided, then the message itself will be edited."""
         if interaction is None:
-            assert self._message is not None
+            assert self._message
             with suppress(NotFound):
                 await self._message.edit(embed=self._embed, view=self, attachments=attachments)
             return
@@ -705,7 +704,7 @@ class ModerationMenu(ui.View):
         # If we have the interaction
         use_followup = interaction.response.type is not None
         if use_followup:
-            assert self._message is not None
+            assert self._message
             return await interaction.followup.edit_message(
                 message_id=self._message.id,
                 embed=self._embed, view=self, attachments=attachments
@@ -757,7 +756,7 @@ class UserSemaphoreDict(TypedDict):
     created: datetime.datetime
 
 
-class ModeratorCommands(commands.Cog): # type: ignore
+class ModeratorCommands(commands.Cog):
     """This class implements cog which contains commands for moderation."""
 
     def __init__(self, client: Pidroid):
@@ -841,7 +840,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
 
             await ctx.message.delete(delay=0)
 
-            assert not isinstance(ctx.channel, (DMChannel, PartialMessageable, GroupChannel))
+            assert isinstance(ctx.channel, MessageableGuildChannelTuple)
             deleted = await ctx.channel.purge(limit=amount)
             await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
@@ -866,18 +865,18 @@ class ModeratorCommands(commands.Cog): # type: ignore
             raise BadArgument("The maximum amount of messages I can purge at once is 500!")
 
         await ctx.message.delete(delay=0)
-        assert not isinstance(ctx.channel, (DMChannel, PartialMessageable, GroupChannel))
+        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         deleted = await ctx.channel.purge(limit=amount, check=is_member)
         await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @commands.command(hidden=True) # type: ignore
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True) # type: ignore
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
     @command_checks.is_junior_moderator(manage_messages=True)
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def deletethis(self, ctx: Context):
-        assert hasattr(ctx.channel, 'purge')
+        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         await ctx.message.delete(delay=0)
-        await ctx.channel.purge(limit=1) # type: ignore
+        await ctx.channel.purge(limit=1)
         await ctx.send(file=File(Resource('delete_this.png')))
 
 
@@ -896,7 +895,7 @@ class ModeratorCommands(commands.Cog): # type: ignore
         ctx: Context,
         user: Union[Member, User]
     ):
-        assert ctx.guild is not None
+        assert ctx.guild
         assert isinstance(ctx.message.author, Member)
         
         conf = await self.client.fetch_guild_configuration(ctx.guild.id)
@@ -953,17 +952,17 @@ class ModeratorCommands(commands.Cog): # type: ignore
         category=ModerationCategory
     )
     @app_commands.describe(member="Member you are trying to suspend.")
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True)
     @command_checks.is_junior_moderator(moderate_members=True)
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def suspend_command(
         self,
         ctx: Context,
         member: Member
     ):
-        assert ctx.guild is not None
+        assert ctx.guild
         assert isinstance(ctx.message.author, Member)
-        assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable, StageChannel))
+        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         
         conf = await self.client.fetch_guild_configuration(ctx.guild.id)
         
@@ -998,16 +997,16 @@ class ModeratorCommands(commands.Cog): # type: ignore
         hidden=True,
         category=ModerationCategory
     )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True) # type: ignore
+    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True)
     @command_checks.is_junior_moderator(moderate_members=True)
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def punish_bunny_command(
         self,
         ctx: Context
     ):
-        assert ctx.guild is not None
+        assert ctx.guild
         assert isinstance(ctx.message.author, Member)
-        assert not isinstance(ctx.channel, (DMChannel, GroupChannel, PartialMessageable, StageChannel))
+        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
 
         member = await self.client.get_or_fetch_member(ctx.guild, BUNNY_ID)
 

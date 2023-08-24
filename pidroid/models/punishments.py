@@ -12,7 +12,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Optional, Union
 
 from pidroid.utils import try_message_user
-from pidroid.utils.aliases import GuildTextChannel
+from pidroid.utils.aliases import MessageableGuildChannel
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
 from pidroid.utils.time import delta_to_datetime, humanize, time_since, utcnow
@@ -193,7 +193,7 @@ class BasePunishment:
     if TYPE_CHECKING:
         _api: API
         case: Optional[Case]
-        _channel: Optional[GuildTextChannel]
+        _channel: Optional[MessageableGuildChannel]
 
         guild: Guild
         user: DiscordUser
@@ -369,7 +369,7 @@ class Ban(BasePunishment):
         api: API,
         guild: Guild,
         *,
-        channel: Optional[GuildTextChannel],
+        channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
         user: DiscordUser
     ) -> None:
@@ -454,7 +454,7 @@ class Kick(BasePunishment):
         api: API,
         guild: Guild,
         *,
-        channel: Optional[GuildTextChannel],
+        channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
         user: DiscordUser
     ) -> None:
@@ -509,7 +509,7 @@ class Jail(BasePunishment):
         api: API,
         guild: Guild,
         *,
-        channel: Optional[GuildTextChannel],
+        channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
         user: DiscordUser,
         role: Role,
@@ -600,7 +600,7 @@ class Warning(BasePunishment):
         api: API,
         guild: Guild,
         *,
-        channel: Optional[GuildTextChannel],
+        channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
         user: DiscordUser
     ) -> None:
@@ -639,7 +639,7 @@ class Timeout(BasePunishment):
         api: API,
         guild: Guild,
         *,
-        channel: Optional[GuildTextChannel],
+        channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
         user: DiscordUser
     ) -> None:
