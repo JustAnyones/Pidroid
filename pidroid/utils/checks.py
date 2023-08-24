@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from discord import Member, User, Guild, GroupChannel
 from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context
+from discord.flags import flag_value
 from discord.utils import get
 from typing import TYPE_CHECKING, Optional, Union
 
@@ -18,7 +19,7 @@ def _member_has_role(member: Member, role_id: int) -> bool:
     """Returns true if member has the specified role by ID."""
     return get(member.guild.roles, id=role_id) in member.roles
 
-def member_has_guild_permission(member: Member, permission: str) -> bool:
+def member_has_guild_permission(member: Member, permission: Union[str, flag_value]) -> bool:
     """Returns true if member has the specified guild permission.
     
     This only takes into consideration the guild permissions and
@@ -27,9 +28,12 @@ def member_has_guild_permission(member: Member, permission: str) -> bool:
 
     This does take into consideration guild ownership,
     the administrator implication, and whether the member is timed out."""
-    return getattr(member.guild_permissions, permission)
+    permissions = member.guild_permissions
+    if isinstance(permission, flag_value):
+        return permissions.value & permission.flag != 0
+    return getattr(permissions, permission)
 
-def member_has_channel_permission(channel: GuildChannel, member: Member, permission: str) -> bool:
+def member_has_channel_permission(channel: GuildChannel, member: Member, permission: Union[str, flag_value]) -> bool:
     """Returns true if member has the specified channel permission.
     
     This function takes into consideration the following cases:
@@ -39,7 +43,10 @@ def member_has_channel_permission(channel: GuildChannel, member: Member, permiss
     - Channel overrides
     - Member overrides
     - Member timeout"""
-    return getattr(channel.permissions_for(member), permission)
+    permissions = channel.permissions_for(member)
+    if isinstance(permission, flag_value):
+        return permissions.value & permission.flag != 0
+    return getattr(permissions, permission)
 
 
 
