@@ -149,7 +149,7 @@ class UtilityCommands(commands.Cog): # type: ignore
             except KeyError:
                 raise BadArgument(data['message'])
 
-    @commands.command( # type: ignore
+    @commands.hybrid_command( # type: ignore
         name="remind-me",
         brief="Create a reminder that Pidroid will send you in the specified amount of time.",
         usage="<duration> <content>",
@@ -159,8 +159,7 @@ class UtilityCommands(commands.Cog): # type: ignore
         ],
         category=UtilityCategory
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def remind_me_command(self, ctx: Context, date: Duration, *, content: str):
         assert isinstance(date, datetime.datetime)
 
