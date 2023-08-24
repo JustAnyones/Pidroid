@@ -14,6 +14,7 @@ from pidroid.models.categories import Category, BotCategory, get_command_documen
 from pidroid.models.view import PaginatingView
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
+from pidroid.utils.time import HELP_FORMATTING
 
 logger = logging.getLogger('Pidroid')
 
@@ -106,6 +107,10 @@ class HelpCategoryView(PaginatingView):
                 "**Certain commands do not need quotations for the last argument** in the case of "
                 "``Ptag create``, ``Psuggest`` purely for convenience sake."
             )
+        )
+        self._embed.add_field(
+            name="Specifying duration",
+            value=HELP_FORMATTING
         )
 
         self.add_item(CategorySelect(self.__categories))
