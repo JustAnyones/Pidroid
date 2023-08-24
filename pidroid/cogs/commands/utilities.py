@@ -1,15 +1,19 @@
+import datetime
 import re
 
 from aiohttp.client_exceptions import ContentTypeError
 from discord.ext import commands
-from discord.ext.commands import Context, BadArgument # type: ignore
+from discord.ext.commands import BadArgument, Context
+from discord.utils import format_dt
 from urllib.parse import quote_plus as urlencode
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory
 from pidroid.utils import http, truncate_string
-from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
-from pidroid.utils.time import timestamp_to_date
+from pidroid.utils.aliases import MessageableGuildChannelTuple
+from pidroid.utils.converters import Duration
+from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.time import datetime_to_duration, timestamp_to_date
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')
 
@@ -38,6 +42,7 @@ def get_corona_endpoint(location: str) -> str:
 
 class UtilityCommands(commands.Cog): # type: ignore
     """This class implements a cog for various utility commands."""
+
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
@@ -142,8 +147,43 @@ class UtilityCommands(commands.Cog): # type: ignore
                 await ctx.reply(embed=embed)
 
             except KeyError:
-                await ctx.reply(embed=ErrorEmbed(data["message"]))
+                raise BadArgument(data['message'])
 
+    @commands.command( # type: ignore
+        name="remind-me",
+        brief="Create a reminder that Pidroid will send you in the specified amount of time.",
+        usage="<duration> <content>",
+        examples=[
+            ("Send reminder 10 hours from now", 'remind-me "10h" feed the fish'),
+            ("Send reminder 10 days and 12 hours from now", 'remind-me "10d 12h" update pidroid'),
+        ],
+        category=UtilityCategory
+    )
+    @commands.is_owner() # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    async def remind_me_command(self, ctx: Context, date: Duration, *, content: str):
+        assert isinstance(date, datetime.datetime)
+
+        if datetime_to_duration(date) <= 290: # tolerance
+            raise BadArgument("Duration should be at least 5 minutes")
+
+        if len(content) > 1024:
+            raise BadArgument("Please keep the reminder content at most 1024 characters")
+
+        channel_id = None
+        if isinstance(ctx.channel, MessageableGuildChannelTuple):
+            channel_id = ctx.channel.id
+
+        await self.client.api.insert_reminder(
+            user_id=ctx.author.id,
+            channel_id=channel_id,
+            message_id=ctx.message.id,
+            message_url=ctx.message.jump_url,
+            content=content,
+            date_remind=date
+        )
+
+        await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(UtilityCommands(client))

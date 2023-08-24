@@ -106,11 +106,13 @@ class GuildConfigurationTable(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger)
+
+    prefixes: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
+    public_tags: Mapped[bool] = mapped_column(Boolean, server_default="false")
+
     jail_channel: Mapped[Optional[int]] = mapped_column(BigInteger)
     jail_role: Mapped[Optional[int]] = mapped_column(BigInteger)
     log_channel: Mapped[Optional[int]] = mapped_column(BigInteger)
-    prefixes: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
-    public_tags: Mapped[bool] = mapped_column(Boolean, server_default="false")
     punishing_moderators: Mapped[bool] = mapped_column(Boolean, server_default="false")
     appeal_url: Mapped[Optional[str]]
     
@@ -165,6 +167,20 @@ class RoleChangeQueueTable(Base):
     guild_id: Mapped[int]= mapped_column(BigInteger)
     member_id: Mapped[int] = mapped_column(BigInteger)
     role_id: Mapped[int] = mapped_column(BigInteger)
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+
+class ReminderTable(Base):
+    __tablename__ = "Reminders"
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
+
+    user_id: Mapped[int] = mapped_column(BigInteger)
+    channel_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    message_id: Mapped[int] = mapped_column(BigInteger)
+    message_url: Mapped[str]
+
+    content: Mapped[str]
+    date_remind: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
     date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
 class API:
@@ -1188,6 +1204,69 @@ class API:
         async with self.session() as session: 
             async with session.begin():
                 await session.execute(delete(RoleChangeQueueTable).filter(RoleChangeQueueTable.id.in_(ids)))
+            await session.commit()
+
+    """Remind me related"""
+
+    async def insert_reminder(
+        self,
+        *,
+        user_id: int,
+        channel_id: Optional[int],
+        message_id: int,
+        message_url: str,
+        content: str,
+        date_remind: datetime.datetime,
+    ):
+        """Inserts a reminder to the database."""
+        async with self.session() as session: 
+            async with session.begin():
+                entry = ReminderTable(
+                    user_id=user_id,
+                    channel_id=channel_id,
+                    message_id=message_id,
+                    message_url=message_url,
+                    content=content,
+                    date_remind=date_remind,
+                )
+                session.add(entry)
+            await session.commit()
+        return entry.id
+
+    async def fetch_reminder(self, *, row: int) -> Optional[ReminderTable]:
+        """Fetches reminder entry at the specified row."""
+        async with self.session() as session: 
+            result = await session.execute(
+                select(
+                    ReminderTable
+                ).
+                filter(
+                    ReminderTable.id == row
+                )
+            )
+        r = result.fetchone()
+        if r:
+            return r[0]
+        return None
+
+    async def fetch_reminders(self, *, user_id: int) -> List[ReminderTable]:
+        """Fetches reminders for the specified user."""
+        async with self.session() as session: 
+            result = await session.execute(
+                select(
+                    ReminderTable
+                ).
+                filter(
+                    ReminderTable.user_id == user_id
+                )
+            )
+        return [r[0] for r in result.fetchall()]
+
+    async def delete_reminder(self, *, row: int):
+        """Deletes reminder at the specified row."""
+        async with self.session() as session: 
+            async with session.begin():
+                await session.execute(delete(ReminderTable).filter(ReminderTable.id==row))
             await session.commit()
 
     """TheoTown backend related"""

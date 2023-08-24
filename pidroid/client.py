@@ -95,6 +95,7 @@ class Pidroid(commands.Bot):
             'cogs.handlers.leveling_handler',
             'cogs.handlers.logging_handler',
             'cogs.handlers.punishment_handler',
+            'cogs.handlers.reminder_handler',
             'cogs.handlers.thread_archiver',
 
             # TheoTown specific handler extensions
@@ -110,7 +111,7 @@ class Pidroid(commands.Bot):
             'cogs.handlers.error_handler',
 
             # Debugging tool jishaku
-            'jishaku'
+            'jishaku',
         ]
 
         # This holds cached guild configurations
