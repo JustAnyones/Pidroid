@@ -31,6 +31,8 @@ from pidroid.utils.checks import is_client_pidroid
 if TYPE_CHECKING:
     from discord.types.threads import ThreadArchiveDuration
 
+logger = logging.getLogger("Pidroid")
+
 class VersionInfo(NamedTuple):
     major: int
     minor: int
@@ -182,7 +184,7 @@ class Pidroid(commands.Bot):
         """
         config = await self.api.fetch_guild_configuration(guild_id)
         if config is None:
-            self.logger.warning(
+            logger.warning(
                 "Could not fetch guild configuration for %s, create new configuration",
                 guild_id
             )
@@ -293,7 +295,7 @@ class Pidroid(commands.Bot):
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
-        self.logger.critical("Reloading bot configuration data and all cogs")
+        logger.critical("Reloading bot configuration data and all cogs")
         is_pidroid = is_client_pidroid(self)
         for ext in self._extensions_to_load:
             if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
@@ -301,7 +303,7 @@ class Pidroid(commands.Bot):
             await self.unload_extension(ext)
         for ext in self._extensions_to_load:
             if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
-                self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
+                logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             await self.load_extension(ext)
         await self.register_categories()
@@ -312,20 +314,20 @@ class Pidroid(commands.Bot):
         is_pidroid = is_client_pidroid(self)
 
         for ext in self._extensions_to_load:
-            self.logger.debug(f"Loading {ext}.")
+            logger.debug(f"Loading {ext}.")
             if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
-                self.logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
+                logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             try:
                 await self.load_extension(ext)
-                self.logger.debug(f"Successfully loaded {ext}.")
+                logger.debug(f"Successfully loaded {ext}.")
             except Exception:
-                self.logger.exception(f"Failed to load {ext}.")
+                logger.exception(f"Failed to load {ext}.")
         await self.register_categories()
 
     async def load_cogs(self):
         """Attempts to load all extensions as defined in client object."""
-        self.logger.info("Loading extensions")
+        logger.info("Loading extensions")
         await self.load_all_extensions()
 
     async def close(self) -> None:
@@ -404,7 +406,7 @@ class Pidroid(commands.Bot):
         extra: Optional[dict] = None
     ):
         """Logs the event to Pidroid's database."""
-        self.logger.debug(f"{event_type.name}: {event_name.value} {guild_id=} {target_id=} {responsible_id=} {extra=}")
+        logger.debug(f"{event_type.name}: {event_name.value} {guild_id=} {target_id=} {responsible_id=} {extra=}")
 
 
         # TODO: implement

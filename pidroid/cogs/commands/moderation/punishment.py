@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import datetime
 import discord
+import logging
 
 from contextlib import suppress
 from datetime import timedelta
@@ -38,6 +39,8 @@ from pidroid.utils.checks import (
     is_guild_moderator, is_guild_theotown
 )
 from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
+
+logger = logging.getLogger("Pidroid")
 
 BUNNY_ID = 793465265237000212
 
@@ -731,8 +734,8 @@ class ModerationMenu(ui.View):
 
     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item) -> None:
         """Called when view catches an error."""
-        self._client.logger.exception(error)
-        self._client.logger.error(f"The above exception is caused by {str(item)} item")
+        logger.exception(error)
+        logger.error(f"The above exception is caused by {str(item)} item")
         if interaction.response.is_done():
             await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
         else:

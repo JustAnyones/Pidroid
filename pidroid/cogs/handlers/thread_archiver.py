@@ -1,3 +1,5 @@
+import logging
+
 from discord import NotFound
 from discord.ext import tasks, commands # type: ignore
 from discord.threads import Thread
@@ -5,6 +7,7 @@ from discord.threads import Thread
 from pidroid.client import Pidroid
 from pidroid.utils.time import utcnow
 
+logger = logging.getLogger("Pidroid")
 
 class ThreadTasks(commands.Cog): # type: ignore
     """This class implements a cog for automatic handling of threads that get archived after some time."""
@@ -27,12 +30,12 @@ class ThreadTasks(commands.Cog): # type: ignore
                 thread = await self.client.fetch_channel(thread_entry.thread_id) # type: ignore
                 assert isinstance(thread, Thread)
             except Exception as e:
-                self.client.logger.exception(f"Failure to look up a thread, ID is {thread_entry.thread_id}\nException: {e}")
+                logger.exception(f"Failure to look up a thread, ID is {thread_entry.thread_id}\nException: {e}")
 
                 if isinstance(e, NotFound):
                     # If thread channel was deleted completely
                     if e.code == 10003:
-                        self.client.logger.warning("Thread channel does not exist, deleting entry from the database")
+                        logger.warning("Thread channel does not exist, deleting entry from the database")
                         await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
                 continue
 

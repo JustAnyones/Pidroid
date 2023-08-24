@@ -62,7 +62,7 @@ class OwnerCommands(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def stop(self, ctx: Context):
         user = await self.client.get_or_fetch_user(JUSTANYONE_ID)
-        self.client.logger.critical(f'Kill request received by {ctx.message.author}')
+        logger.critical(f'Kill request received by {ctx.message.author}')
         if user:
             await user.send(f'The bot was manually shut down by {ctx.message.author}')
         await ctx.reply('Shutting down!')
