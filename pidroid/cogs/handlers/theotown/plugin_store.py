@@ -1,5 +1,6 @@
 import aiocron # type: ignore
 import calendar
+import logging
 
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
@@ -17,6 +18,8 @@ from pidroid.utils.time import timedelta_to_datetime
 
 PLUGIN_SHOWCASE_CHANNEL_ID = 640522649033769000
 PLUGIN_INFORMATION_CHANNEL_ID = 640521916943171594
+
+logger = logging.getLogger("Pidroid")
 
 class PluginStoreTasks(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
@@ -45,7 +48,7 @@ class PluginStoreTasks(commands.Cog):
 
         channel = await self.client.get_or_fetch_channel(PLUGIN_SHOWCASE_CHANNEL_ID)
         if channel is None:
-            return self.client.logger.warning("Showcase channel could not be resolved!")
+            return logger.warning("Showcase channel could not be resolved!")
         assert isinstance(channel, TextChannel)
 
         try:
@@ -88,9 +91,9 @@ class PluginStoreTasks(commands.Cog):
                             timedelta_to_datetime(timedelta(days=14))
                         )
         except ServerDisconnectedError:
-            self.client.logger.exception("An server disconnection was encountered while trying to retrieve and publish new plugin information")
+            logger.exception("An server disconnection was encountered while trying to retrieve and publish new plugin information")
         except Exception:
-            self.client.logger.exception("An exception was encountered while trying to retrieve and publish new plugin information")
+            logger.exception("An exception was encountered while trying to retrieve and publish new plugin information")
 
     @retrieve_new_plugins.before_loop
     async def before_new_plugin_retriever(self) -> None:
@@ -157,7 +160,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
 
             await channel.send(embeds=[initial_embed, top_plugins_embed, top_creators_embed])
     except Exception:
-        client.logger.exception("An exception was encountered while trying announce monthly plugin information")
+        logger.exception("An exception was encountered while trying announce monthly plugin information")
 
 
 async def setup(client: Pidroid) -> None:

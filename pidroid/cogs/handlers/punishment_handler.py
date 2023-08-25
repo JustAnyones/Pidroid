@@ -1,4 +1,5 @@
 import discord
+import logging
 
 from contextlib import suppress
 from discord.ext import tasks, commands # type: ignore
@@ -7,6 +8,8 @@ from typing import Union
 from pidroid.client import Pidroid
 from pidroid.models.punishments import PunishmentType, Ban, Warning, Jail, Kick, Timeout
 from pidroid.utils import try_message_user
+
+logger = logging.getLogger("Pidroid")
 
 class PunishmentHandlerTask(commands.Cog): # type: ignore
     """This class implements a cog for automatic punishment revocation and reassignment."""
@@ -36,7 +39,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
                     with suppress(Exception):
                         await guild.unban(ban.user, reason=f"Ban expired | Case #{ban.case_id}")
         except Exception:
-            self.client.logger.exception("An exception was encountered while trying remove expired bans")
+            logger.exception("An exception was encountered while trying remove expired bans")
 
     @remove_expired_bans.before_loop
     async def before_remove_expired_bans(self) -> None:

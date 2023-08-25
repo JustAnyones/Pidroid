@@ -1,5 +1,6 @@
 import datetime
 import random
+import logging
 
 from discord.ext import commands # type: ignore
 from discord.errors import Forbidden
@@ -19,6 +20,8 @@ from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.http import Route
 from pidroid.utils.paginators import PluginListPaginator
 from pidroid.utils.time import utcnow
+
+logger = logging.getLogger("Pidroid")
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
@@ -61,13 +64,13 @@ class TheoTownCommands(commands.Cog): # type: ignore
                 version = format_version_code(version_data[version_name]['version'])
                 url: Optional[str] = None
                 if version not in cache or cache[version] is None:
-                    self.client.logger.info(f'URL for version {version} not found in internal cache, querying the API')
+                    logger.info(f'URL for version {version} not found in internal cache, querying the API')
 
                     res = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
 
                     if res["success"]:
                         url = res["data"]["url"]
-                        self.client.logger.info(f'Version URL found, internal cache updated with {url}')
+                        logger.info(f'Version URL found, internal cache updated with {url}')
 
                     cache[version] = url
                 url = cache[version]

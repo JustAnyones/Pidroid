@@ -97,7 +97,7 @@ class ReminderHandler(commands.Cog): # type: ignore
                 # Commit it
                 await session.commit()
         except Exception:
-            self.client.logger.exception("An exception was encountered while trying to deliver due reminders")
+            logger.exception("An exception was encountered while trying to deliver due reminders")
 
     @deliver_due_reminders.before_loop
     async def before_deliver_due_reminders(self) -> None:

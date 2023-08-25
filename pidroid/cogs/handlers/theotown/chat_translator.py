@@ -1,6 +1,7 @@
 import asyncio
 import emoji # type: ignore # I am not updating the emoji regex myself every time there's a new one
 import re
+import logging
 
 from contextlib import suppress
 from discord.ext import commands # type: ignore
@@ -53,6 +54,8 @@ SOURCE_CHANNEL_ID = 692830641728782336
 CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
 BASE64_PATTERN = re.compile(r'^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$')
+
+logger = logging.getLogger("Pidroid")
 
 def remove_emojis(string: str) -> str:
     """Removes all emojis from a string."""
@@ -131,8 +134,8 @@ class TranslationEventHandler(commands.Cog): # type: ignore
             }) as r:
                 data = await r.json()
         except Exception as e:
-            self.client.logger.critical(f"Failure while translating: {text}")
-            self.client.logger.exception(e)
+            logger.critical(f"Failure while translating: {text}")
+            logger.exception(e)
             self._translating.set()
             return []
         self._translating.set()
@@ -159,7 +162,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # Check if daily limit is not reached, if it is, stop translating
         if len(clean_text) + self.used_chars > self.daily_char_limit:
-            self.client.logger.warning("Failure translating encountered, the daily character limit was exceeded")
+            logger.warning("Failure translating encountered, the daily character limit was exceeded")
             return []
         self.used_chars += len(clean_text)
 
@@ -173,7 +176,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
 
         # If message could not be translated, log it as a warning
         if len(translations) == 0:
-            self.client.logger.warning(f"Unable to translate '{message.clean_content}'")
+            logger.warning(f"Unable to translate '{message.clean_content}'")
 
         return translations
 
@@ -200,7 +203,7 @@ class TranslationEventHandler(commands.Cog): # type: ignore
         assert message.guild is not None
         channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL_ID)
         if channel is None:
-            return self.client.logger.warning("Translation output channel is None!")
+            return logger.warning("Translation output channel is None!")
         assert isinstance(channel, TextChannel)
         await self.dispatch_translation(channel, message, translations, flag)
 
