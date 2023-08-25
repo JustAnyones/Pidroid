@@ -40,7 +40,7 @@ class VersionInfo(NamedTuple):
     commit_id: str
 
 
-__VERSION__ = VersionInfo(major=5, minor=15, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
+__VERSION__ = VersionInfo(major=5, minor=16, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
@@ -129,8 +129,6 @@ class Pidroid(commands.Bot):
         self.session = None
 
         self.api = API(self, self.config["postgres_dsn"])
-
-        self.logger = logging.getLogger('Pidroid') # backwards compatibility
 
         self.__queues: Dict[int, AbstractMessageQueue] = {}
         self.__tasks: List[tasks.Loop] = []
