@@ -911,6 +911,10 @@ class ModeratorCommands(commands.Cog):
         if user.id == ctx.message.author.id:
             raise BadArgument("You cannot punish yourself! That's what PHP is for.")
 
+        # Prevent modmenu use on Pidroid explicitly
+        if user.id == ctx.guild.me.id:
+            raise BadArgument("You cannot punish me, it would be pointless")
+
         # Generic check to only invoke the menu if author is a moderator
         is_moderator = isinstance(user, Member) and is_guild_moderator(user)
         if is_moderator and not conf.allow_to_punish_moderators:
@@ -971,6 +975,9 @@ class ModeratorCommands(commands.Cog):
         
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
+
+        if member.id == ctx.guild.me.id:
+            raise BadArgument("You cannot suspend me, it would be pointless")
 
         if member.top_role >= ctx.message.author.top_role:
             raise BadArgument("Specified member is above or shares the same role with you, you cannot suspend them!")
