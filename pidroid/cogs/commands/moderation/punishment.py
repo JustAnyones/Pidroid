@@ -907,13 +907,12 @@ class ModeratorCommands(commands.Cog):
         if not is_guild_moderator(ctx.message.author):
             raise BadArgument("You need to be a moderator to run this command!")
 
+        if user.bot:
+            raise BadArgument("You cannot punish bots, that would be pointless.")
+
         # Prevent moderator from punishing himself
         if user.id == ctx.message.author.id:
             raise BadArgument("You cannot punish yourself! That's what PHP is for.")
-
-        # Prevent modmenu use on Pidroid explicitly
-        if user.id == ctx.guild.me.id:
-            raise BadArgument("You cannot punish me, it would be pointless")
 
         # Generic check to only invoke the menu if author is a moderator
         is_moderator = isinstance(user, Member) and is_guild_moderator(user)
@@ -932,9 +931,6 @@ class ModeratorCommands(commands.Cog):
         sem = self.get_user_semaphore(ctx.guild.id, user.id)
         if sem is not None and sem["semaphore"].locked():
             raise BadArgument(f"The moderation menu is already open for the user at {sem['message_url']}")
-
-        if user.bot:
-            raise BadArgument("You cannot punish a bot!")
 
         menu = ModerationMenu(ctx, user, is_moderator)
         await menu.display()
@@ -973,11 +969,11 @@ class ModeratorCommands(commands.Cog):
         
         conf = await self.client.fetch_guild_configuration(ctx.guild.id)
         
+        if member.bot:
+            raise BadArgument("You cannot suspend bots, that would be pointless.")
+
         if member.id == ctx.message.author.id:
             raise BadArgument("You cannot suspend yourself!")
-
-        if member.id == ctx.guild.me.id:
-            raise BadArgument("You cannot suspend me, it would be pointless")
 
         if member.top_role >= ctx.message.author.top_role:
             raise BadArgument("Specified member is above or shares the same role with you, you cannot suspend them!")
@@ -991,9 +987,6 @@ class ModeratorCommands(commands.Cog):
 
         if is_guild_moderator(member) and not conf.allow_to_punish_moderators:
             raise BadArgument("You cannot suspend a moderator!")
-
-        if member.bot:
-            raise BadArgument("You cannot suspend a bot!")
 
         t = Timeout(self.client.api, ctx.guild, channel=ctx.channel, moderator=ctx.author, user=member)
         t.reason = "Suspended communications"
