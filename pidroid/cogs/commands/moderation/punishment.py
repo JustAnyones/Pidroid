@@ -258,7 +258,7 @@ class ModerationMenu(ui.View):
         config = await self._client.fetch_guild_configuration(self.guild.id)
 
         if config.jail_role_id is not None:
-            role = await self._client.get_or_fetch_role(self.guild, config.jail_role_id)
+            role = self.guild.get_role(config.jail_role_id)
             if role is not None:
                 self._jail_role = role
 

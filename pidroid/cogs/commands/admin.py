@@ -32,7 +32,7 @@ class AdminCommands(commands.Cog):
             embed.add_field(name='Prefixes', value=', '.join(prefixes))
 
             if data.jail_role_id:
-                jail_role = await self.client.get_or_fetch_role(guild, data.jail_role_id)
+                jail_role = guild.get_role(data.jail_role_id)
                 if jail_role is not None:
                     embed.add_field(name='Jail role', value=jail_role.mention)
 

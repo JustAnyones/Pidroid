@@ -56,7 +56,7 @@ class PunishmentHandlerTask(commands.Cog): # type: ignore
         if c.jail_role_id is None:
             return
 
-        jail_role = await self.client.get_or_fetch_role(member.guild, c.jail_role_id)
+        jail_role = member.guild.get_role(c.jail_role_id)
         if jail_role is not None:
             if await self.client.api.is_currently_jailed(member.guild.id, member.id):
                 await member.add_roles(

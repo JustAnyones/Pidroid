@@ -264,15 +264,6 @@ class Pidroid(commands.Bot):
                 return await self.fetch_channel(channel_id)
         return channel
 
-    async def get_or_fetch_role(self, guild: Guild, role_id: int):
-        """Attempts to resolve a role from role_id by any means. Returns None if everything failed."""
-        role = guild.get_role(role_id)
-        if role is None:
-            for role in await guild.fetch_roles():
-                if role.id == role_id:
-                    return role
-        return role
-
 
     async def get_prefixes(self, message: Message) -> List[str]:
         """Returns a string list of prefixes for a message using message's context."""

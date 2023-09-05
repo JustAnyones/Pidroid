@@ -84,14 +84,6 @@ class LevelReward:
     async def fetch_previous_reward(self):
         return await self.__api._fetch_previous_level_reward(self.guild_id, self.level)
 
-    async def fetch_role(self) -> Optional[Role]:
-        """Fetches the role object associated with this level reward."""
-        guild = self.__api.client.get_guild(self.guild_id)
-        if guild is None:
-            logger.warning(f'Failed to acquire guild {self.guild_id} while fetching role from LevelReward')
-            return None
-        return await self.__api.client.get_or_fetch_role(guild, self.role_id)
-
     async def delete(self):
         """Deletes the current level reward from the database."""
         await self.__api._delete_level_reward(self.internal_id)

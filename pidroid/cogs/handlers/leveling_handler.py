@@ -364,7 +364,7 @@ class LevelingHandler(commands.Cog):
         # Fetch the role object
         guild = self.client.get_guild(reward.guild_id)
         assert guild is not None
-        role = await self.client.get_or_fetch_role(guild, reward.role_id)
+        role = guild.get_role(reward.role_id)
         role_exists = role is not None
 
         # Fetch a list of potentially affected users' level info due to reward removal
