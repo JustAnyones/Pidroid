@@ -42,7 +42,7 @@ class AbstractMessageQueue:
         self._channel = channel
         self._delay = delay
         if delay <= 0:
-            self._delay = 0.75
+            self._delay = 5
 
     async def queue(self, item: Any) -> None:
         """Adds the specified embed to the queue."""
