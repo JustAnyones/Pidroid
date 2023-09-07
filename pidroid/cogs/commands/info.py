@@ -289,7 +289,7 @@ class InfoCommands(commands.Cog):
         embed = PidroidEmbed(title="Displaying different times across the globe")
         embed.add_field(name="Pacific Time", value=stringify(pt))
         embed.add_field(name="Eastern Standard Time", value=stringify(ny))
-        embed.add_field(name="Coordinated Universal Time", value=stringify(utc))
+        embed.add_field(name="Coordinated Universal Time (GMT)", value=stringify(utc))
         embed.add_field(name="Central European Time", value=stringify(cet))
         embed.add_field(name="Indian Standard Time", value=stringify(ist))
         embed.add_field(name="Japanese Standard Time", value=stringify(ja))
