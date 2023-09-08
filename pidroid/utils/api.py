@@ -757,6 +757,7 @@ class API:
         self,
         user_id: int,
         date_wage_last_redeemed: Optional[datetime.datetime],
+        roles: List[int]
     ) -> None:
         """Updates a linked account entry by specified user ID."""
         async with self.session() as session: 
@@ -765,7 +766,8 @@ class API:
                     update(LinkedAccountTable).
                     filter(LinkedAccountTable.user_id == user_id).
                     values(
-                       date_wage_last_redeemed=date_wage_last_redeemed
+                       date_wage_last_redeemed=date_wage_last_redeemed,
+                       roles=roles
                     )
                 )
             await session.commit()

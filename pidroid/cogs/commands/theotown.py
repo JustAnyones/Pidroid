@@ -311,7 +311,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
         ))
         if res["success"]:
             data = res["data"]
-            await self.client.api.update_linked_account_by_user_id(member.id, utcnow())
+            await self.client.api.update_linked_account_by_user_id(member.id, utcnow(), linked_acc.roles)
             return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
         raise BadArgument(res["details"])
 
