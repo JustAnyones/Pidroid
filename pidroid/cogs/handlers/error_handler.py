@@ -46,7 +46,9 @@ use_default = (
     # Quoted argument parser errors
     commands.UnexpectedQuoteError, # type: ignore
     commands.InvalidEndOfQuotedStringError, # type: ignore
-    commands.ExpectedClosingQuoteError # type: ignore
+    commands.ExpectedClosingQuoteError, # type: ignore
+
+    ValueError
 )
 
 async def notify(ctx: Context, message: str, delete_after: Optional[int] = None):
