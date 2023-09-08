@@ -378,6 +378,7 @@ class LevelingHandler(commands.Cog):
                 return
             
             # If it does exist, remove it from every potentially affected person
+            assert role
             for level_info in affected_user_level_infos:
                 member = await level_info.fetch_member()
                 if member:
@@ -399,6 +400,7 @@ class LevelingHandler(commands.Cog):
             return
 
         # If role does exist, remove it from all eligible members and try to assign them a new role
+        assert role
         for level_info in affected_user_level_infos:
             member = await level_info.fetch_member()
             if member:
