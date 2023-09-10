@@ -223,8 +223,8 @@ class HelpCommand(commands.Cog):
             can_run = False
             try:
                 can_run = await command.can_run(ctx)
-            except Exception as e:
-                print(e)
+            except Exception:
+                pass
             embed.add_field(name="Can you run it here?", value="yes" if can_run else "no")
 
             # List custom examples

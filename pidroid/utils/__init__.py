@@ -121,6 +121,9 @@ class Decorator:
         if self.func[-1] == "guild_only":
             return "Inside a server"
         
+        if self.func[-1] == "client_is_pidroid":
+            return  "I am Pidroid"
+        
         if self.keywords:
             return ', '.join(
                 [f'{keyword[0]}: {keyword[1]}' for keyword in self.keywords]
