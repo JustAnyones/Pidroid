@@ -173,6 +173,9 @@ class Pidroid(commands.Bot):
         """
         await self._guild_prefix_cache_ready.wait()
 
+    async def wait_until_ready(self) -> None:
+        await super().wait_until_ready()
+
     async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration:
         """Returns the latest available guild configuration from the database.
 
