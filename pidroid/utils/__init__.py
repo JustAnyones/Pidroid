@@ -95,17 +95,40 @@ async def run_in_executor(func, **kwargs):
 @dataclass
 class Decorator:
     func: List[str]
-    keywords: list
+    keywords: List[tuple]
 
     def is_a_check(self) -> bool:
         """Returns true if this decorator is a check."""
 
-        if self.func[-1] == "command":
+        if self.func[-1] in [
+            "command", "group",
+            "hybrid_command", "hybrid_group",
+            "describe", "cooldown", "max_concurrency"
+        ]:
             return False
 
         return True
+    
+    @property
+    def requirement_text(self) -> str:
+        
+        if self.func[-1] == "is_nsfw":
+            return "Inside a NSFW channel"
+        
+        if self.func[-1] == "is_theotown_developer":
+            return "TheoTown developer"
+        
+        if self.func[-1] == "guild_only":
+            return "Inside a server"
+        
+        if self.keywords:
+            return ', '.join(
+                [f'{keyword[0]}: {keyword[1]}' for keyword in self.keywords]
+            )
+        
+        return '.'.join(self.func)
 
-def parse_attribute(
+def _parse_attribute(
     attribute: ast.Attribute,
     *,
     attributes: Optional[List[str]] = None
@@ -122,14 +145,14 @@ def parse_attribute(
 
     # If it's another attribute
     elif isinstance(attribute.value, ast.Attribute):
-        parse_attribute(attribute.value, attributes=attributes)
+        _parse_attribute(attribute.value, attributes=attributes)
         attributes.append(attribute.attr)
 
     return attributes
 
-def parse_call_name(call: ast.Call) -> List[str]:
+def _parse_call_name(call: ast.Call) -> List[str]:
     if isinstance(call.func, ast.Attribute):
-        return parse_attribute(call.func)
+        return _parse_attribute(call.func)
 
     elif isinstance(call.func, ast.Name):
         return [call.func.id]
@@ -160,10 +183,10 @@ def get_function_decorators(func) -> List[Decorator]:
     parsed = []
     for dec in decorators:
 
-        call_name = parse_call_name(dec)
+        call_name = _parse_call_name(dec)
 
         # Parse every keyword
-        keywords = []
+        keywords: List[tuple] = []
         for keyword in dec.keywords:
             assert isinstance(keyword, ast.keyword)
 

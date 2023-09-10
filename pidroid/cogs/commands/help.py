@@ -208,27 +208,24 @@ class HelpCommand(commands.Cog):
 
             # List aliases
             if len(command.aliases) > 0:
-                embed.add_field(name="Aliases", value=', '.join(command.aliases))
+                embed.add_field(name="Aliases", value=', '.join(command.aliases), inline=False)
 
-            # List permissions, DEPRECATED
-            permissions = command.__original_kwargs__.get("permissions", [])
-            if len(permissions) > 0:
-                embed.add_field(name="Permissions", value=', '.join(permissions))
-
-            # Display a field whether the command can be ran
-            #embed.add_field(name="Can run", value="yes" if await command.can_run(ctx) else "no")
-
-            # Acquire check decorators
-            checks = []
+            # Display the requirements to run the command
+            requirements = []
             for decorator in get_function_decorators(command.callback):
                 print(decorator)
                 if decorator.is_a_check():
-                    checks.append("...")
-            embed.add_field(name="???", value='\n'.join(checks), inline=False)
+                    requirements.append("- " + decorator.requirement_text)
+            if requirements:
+                embed.add_field(name="Run requirements", value='\n'.join(requirements))
 
-
-                #print(get_decorators_with_values(command.callback))
-            print()
+            # Display whether the command can be ran
+            can_run = False
+            try:
+                can_run = await command.can_run(ctx)
+            except Exception as e:
+                print(e)
+            embed.add_field(name="Can you run it here?", value="yes" if can_run else "no")
 
             # List custom examples
             examples = command.__original_kwargs__.get("examples", [])
