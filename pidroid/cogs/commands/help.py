@@ -225,7 +225,7 @@ class HelpCommand(commands.Cog):
                 can_run = await command.can_run(ctx)
             except Exception:
                 pass
-            embed.add_field(name="Can you run it here?", value="yes" if can_run else "no")
+            embed.add_field(name="Can you run it here?", value="Yes" if can_run else "No")
 
             # List custom examples
             examples = command.__original_kwargs__.get("examples", [])
