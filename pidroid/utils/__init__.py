@@ -1,9 +1,13 @@
+import ast
 import asyncio
+import inspect
+import textwrap
 import discord
 import re
 
+from dataclasses import dataclass
 from functools import partial
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 # Compile patters upon load for performance
 INLINE_TRANSLATION_PATTERN = re.compile(r'\[.*].*', flags=re.DOTALL)
@@ -87,3 +91,109 @@ async def run_in_executor(func, **kwargs):
         None,
         partial(func, **kwargs)
     )
+
+@dataclass
+class Decorator:
+    func: List[str]
+    keywords: list
+
+    def is_a_check(self) -> bool:
+        """Returns true if this decorator is a check."""
+
+        if self.func[-1] == "command":
+            return False
+
+        return True
+
+def parse_attribute(
+    attribute: ast.Attribute,
+    *,
+    attributes: Optional[List[str]] = None
+):
+
+    # If list was not passed, create it
+    if attributes is None:
+        attributes = []
+
+    # If it's value
+    if isinstance(attribute.value, ast.Name):
+        attributes.append(attribute.value.id)
+        attributes.append(attribute.attr)
+
+    # If it's another attribute
+    elif isinstance(attribute.value, ast.Attribute):
+        parse_attribute(attribute.value, attributes=attributes)
+        attributes.append(attribute.attr)
+
+    return attributes
+
+def parse_call_name(call: ast.Call) -> List[str]:
+    if isinstance(call.func, ast.Attribute):
+        return parse_attribute(call.func)
+
+    elif isinstance(call.func, ast.Name):
+        return [call.func.id]
+
+    raise ValueError("Unknown call func attribute")
+
+
+def get_function_decorators(func) -> List[Decorator]:
+    # Get the source code of the function
+    source_code = inspect.getsource(func)
+
+    # Remove identation
+    dedented_code = textwrap.dedent(source_code)
+
+    # Parse the source code into an AST
+    tree = ast.parse(dedented_code)
+
+    # Extract decorator information from the AST
+    decorators: List[ast.Call] = []
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            for decorator_node in node.decorator_list:
+                assert isinstance(decorator_node, ast.Call)
+                decorators.append(decorator_node)
+                print(f"Decorator:", ast.dump(decorator_node))
+
+    print()
+    parsed = []
+    for dec in decorators:
+
+        call_name = parse_call_name(dec)
+
+        # Parse every keyword
+        keywords = []
+        for keyword in dec.keywords:
+            assert isinstance(keyword, ast.keyword)
+
+
+            value = None
+            if isinstance(keyword.value, ast.Constant):
+                value = keyword.value.value
+
+            elif isinstance(keyword.value, ast.Name):
+                value = keyword.value.id
+
+            elif isinstance(keyword.value, ast.List):
+                value = []
+                for elem in keyword.value.elts:
+                    print(elem)
+
+            else:
+                print(keyword.__dict__)
+                print(keyword.value)
+                print(dir(keyword.value))
+                print(keyword.value.__dict__)
+
+            keywords.append((
+                keyword.arg, value
+            ))
+
+        parsed.append(
+            Decorator(
+                func=call_name,
+                keywords=keywords
+            )
+        )
+    return parsed

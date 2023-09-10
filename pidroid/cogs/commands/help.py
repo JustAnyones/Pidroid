@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, List, Optional
 from pidroid.client import Pidroid
 from pidroid.models.categories import Category, BotCategory, get_command_documentation, get_command_usage, get_full_command_name
 from pidroid.models.view import PaginatingView
+from pidroid.utils import get_function_decorators
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
 from pidroid.utils.time import HELP_FORMATTING
@@ -163,6 +164,7 @@ class HelpCommand(commands.Cog):
 
     def __init__(self, client: Pidroid) -> None:
         self.client = client
+        self.show_usable = True
 
     def search_command(self, query: str) -> Optional[Command]:
         """Returns a single command matching the query."""
@@ -175,7 +177,7 @@ class HelpCommand(commands.Cog):
 
     @commands.hybrid_command( # type: ignore
         name="help",
-        brief="Returns the help command.",
+        brief="Returns the help menu with all the commands that you can use.",
         usage="[command]",
         examples=[
             ("View help page for the help command", 'help help')
@@ -183,7 +185,12 @@ class HelpCommand(commands.Cog):
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def help_command(self, ctx: Context, *, search_string: Optional[str] = None):
+    async def help_command(
+        self,
+        ctx: Context,
+        *,
+        search_string: Optional[str] = None
+    ):
         # Browse categories
         if search_string is None:
             view = HelpCategoryView(self.client, ctx)
@@ -207,6 +214,21 @@ class HelpCommand(commands.Cog):
             permissions = command.__original_kwargs__.get("permissions", [])
             if len(permissions) > 0:
                 embed.add_field(name="Permissions", value=', '.join(permissions))
+
+            # Display a field whether the command can be ran
+            #embed.add_field(name="Can run", value="yes" if await command.can_run(ctx) else "no")
+
+            # Acquire check decorators
+            checks = []
+            for decorator in get_function_decorators(command.callback):
+                print(decorator)
+                if decorator.is_a_check():
+                    checks.append("...")
+            embed.add_field(name="???", value='\n'.join(checks), inline=False)
+
+
+                #print(get_decorators_with_values(command.callback))
+            print()
 
             # List custom examples
             examples = command.__original_kwargs__.get("examples", [])
