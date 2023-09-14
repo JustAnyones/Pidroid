@@ -56,7 +56,7 @@ class LevelCommands(commands.Cog): # type: ignore
     )
     @app_commands.describe(member="Member or user you to view rank of.")
     @commands.guild_only()
-    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.bot_has_permissions(send_messages=True)
     async def level_command(
         self,
         ctx: Context,
@@ -115,7 +115,7 @@ class LevelCommands(commands.Cog): # type: ignore
         category=LevelCategory
     )
     @commands.guild_only()
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True) # type: ignore
     async def leaderboard_command(self, ctx: Context):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
