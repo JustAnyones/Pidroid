@@ -121,9 +121,24 @@ class Decorator:
         if self.func[-1] == "guild_only":
             return "Inside a server"
         
+        if self.func[-1] == "can_purge":
+            return "Can purge"
+
         if self.func[-1] == "client_is_pidroid":
-            return  "I am Pidroid"
+            return "I am Pidroid"
         
+        if self.func[-1] == "bot_has_permissions" or self.func[-1] == "bot_has_guild_permissions":
+            builder = "Bot permissions:\n"
+            for name, value in self.keywords:
+                builder += f" - {name}: {value}\n"
+            return builder.strip()
+        
+        if self.func[-1] == "has_permissions" or self.func[-1] == "has_guild_permissions":
+            builder = "Your permissions:\n"
+            for name, value in self.keywords:
+                builder += f" - {name}: {value}\n"
+            return builder.strip()
+
         if self.keywords:
             return ', '.join(
                 [f'{keyword[0]}: {keyword[1]}' for keyword in self.keywords]
