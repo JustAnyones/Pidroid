@@ -1,12 +1,15 @@
+import base64
 import datetime
 import random
 import logging
 
+from discord import File
 from discord.ext import commands # type: ignore
 from discord.errors import Forbidden
 from discord.ext.commands import BadArgument, MissingRequiredArgument # type: ignore
 from discord.ext.commands.context import Context # type: ignore
 from discord.member import Member
+from io import BytesIO
 from typing import Optional
 
 from pidroid.client import Pidroid
@@ -314,6 +317,47 @@ class TheoTownCommands(commands.Cog): # type: ignore
             await self.client.api.update_linked_account_by_user_id(member.id, utcnow(), linked_acc.roles)
             return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
         raise BadArgument(res["details"])
+
+    @commands.command(
+        name='encrypt-plugin',
+        brief='Encrypts the provided zip to a .plugin file.',
+        category=TheoTownCategory
+    )
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.dm_only()
+    async def encrypt_plugin_command(self, ctx: Context):
+
+        if not ctx.message.attachments:
+            raise BadArgument("Please provide the plugin zip file as an attachment.")
+        
+        attachment = ctx.message.attachments[0]
+        if attachment.size > 25*1000*1000:
+            raise BadArgument("Your plugin file size must be at most 25 MiB")
+
+        payload = {
+            "file": await attachment.read()
+        }
+
+        parts = attachment.filename.split(".")
+        if len(parts) == 1:
+            filename = parts[0] + ".plugin"
+        else:
+            filename = '.'.join(parts[:-1]) + ".plugin"
+
+        async with await http.post(
+            self.client,
+            url="https://api.svetikas.lt/v1/theotown/encrypt",
+            data=payload
+        ) as r:
+            data = await r.json()
+
+        if data["success"]:
+            decoded = base64.b64decode(data["data"])
+            io = BytesIO(decoded)
+            await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
+            return io.close()
+        raise BadArgument(data["details"])
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommands(client))
