@@ -100,12 +100,20 @@ class TagCommands(commands.Cog): # type: ignore
 
             if len(tag_list) == 1:
                 message_content = tag_list[0].content
-            elif tag_list[0].name.lower() == tag_name.lower():
-                message_content = tag_list[0].content
-            else:
-                source = TagListPaginator(f"Tags matching your query", tag_list)
-                view = PaginatingView(self.client, ctx, source=source)
-                return await view.send()
+
+            else:            
+                found = False
+                for tag in tag_list:
+                    if tag.name.lower() == tag_name.lower():
+                        message_content = tag.content
+                        found = True
+                        break
+
+                if not found:
+                    source = TagListPaginator(f"Tags matching your query", tag_list)
+                    view = PaginatingView(self.client, ctx, source=source)
+                    return await view.send()
+
             if ctx.message.reference and ctx.message.reference.message_id:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
                 return await message.reply(
