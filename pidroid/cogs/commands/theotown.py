@@ -336,7 +336,8 @@ class TheoTownCommands(commands.Cog): # type: ignore
 
         async with ctx.typing():
             payload = {
-                "file": await attachment.read()
+                "file": await attachment.read(),
+                "enforce_manifest": True
             }
 
             parts = attachment.filename.split(".")
