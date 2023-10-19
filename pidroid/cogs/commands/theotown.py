@@ -325,7 +325,6 @@ class TheoTownCommands(commands.Cog): # type: ignore
     )
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
-    @commands.dm_only()
     async def encrypt_plugin_command(self, ctx: Context):
 
         if not ctx.message.attachments:
@@ -335,28 +334,29 @@ class TheoTownCommands(commands.Cog): # type: ignore
         if attachment.size > 25*1000*1000:
             raise BadArgument("Your plugin file size must be at most 25 MiB")
 
-        payload = {
-            "file": await attachment.read()
-        }
+        async with ctx.typing():
+            payload = {
+                "file": await attachment.read()
+            }
 
-        parts = attachment.filename.split(".")
-        if len(parts) == 1:
-            filename = parts[0] + ".plugin"
-        else:
-            filename = '.'.join(parts[:-1]) + ".plugin"
+            parts = attachment.filename.split(".")
+            if len(parts) == 1:
+                filename = parts[0] + ".plugin"
+            else:
+                filename = '.'.join(parts[:-1]) + ".plugin"
 
-        async with await http.post(
-            self.client,
-            url="https://api.svetikas.lt/v1/theotown/encrypt",
-            data=payload
-        ) as r:
-            data = await r.json()
+            async with await http.post(
+                self.client,
+                url="https://api.svetikas.lt/v1/theotown/encrypt",
+                data=payload
+            ) as r:
+                data = await r.json()
 
-        if data["success"]:
-            decoded = base64.b64decode(data["data"])
-            io = BytesIO(decoded)
-            await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
-            return io.close()
+            if data["success"]:
+                decoded = base64.b64decode(data["data"])
+                io = BytesIO(decoded)
+                await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
+                return io.close()
         raise BadArgument(data["details"])
 
 async def setup(client: Pidroid) -> None:

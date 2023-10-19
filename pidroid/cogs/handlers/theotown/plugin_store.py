@@ -131,7 +131,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
 
             initial_embed = PidroidEmbed(
                 title=f"Plugin store statistics for {month_name}",
-                description=f"In total **{data['plugin count last month']}** new plugins have been submitted in **{month_name} of {year_of_data}**.\nMost of them were contributed by:"
+                description=f"In total **{data['plugin count last month']}** new plugins have been released in **{month_name} of {year_of_data}**.\nMost of them were contributed by:"
             )
             top_plugins_embed = PidroidEmbed(title="Most popular plugins of all time")
             top_creators_embed = PidroidEmbed(title="Most popular plugin creators of all time")
@@ -140,7 +140,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             for creator in top_creators_last:
                 initial_embed.add_field(
                     name=f"• {escape_markdown(creator['author_name'])}",
-                    value=f"{creator['plugins']} plugins which reached {int(creator['downloads']):,} downloads!",
+                    value=f"{creator['plugins']} plugin(s) which reached {int(creator['downloads']):,} downloads!",
                     inline=False
                 )
 
@@ -154,7 +154,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
                 )
                 top_creators_embed.add_field(
                     name=f"{i+1}. {escape_markdown(top_creator['author_name'])}",
-                    value=f"And its {top_creator['plugins']} plugins reaching {int(top_creator['downloads']):,} downloads!",
+                    value=f"And their {top_creator['plugins']} plugin(s) reaching {int(top_creator['downloads']):,} downloads!",
                     inline=False
                 )
 
