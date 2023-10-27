@@ -6,13 +6,17 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
 from discord.utils import format_dt
 from urllib.parse import quote_plus as urlencode
+from typing import List
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory
+from pidroid.models.view import PaginatingView
 from pidroid.utils import http, truncate_string
 from pidroid.utils.aliases import MessageableGuildChannelTuple
+from pidroid.utils.api import ReminderTable
 from pidroid.utils.converters import Duration
 from pidroid.utils.embeds import PidroidEmbed
+from pidroid.utils.paginators import ListPageSource
 from pidroid.utils.time import datetime_to_duration, timestamp_to_date
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')
@@ -39,6 +43,20 @@ def get_corona_endpoint(location: str) -> str:
         return f'{CORONA_API_URL}/continents/{location}'
     return f'{CORONA_API_URL}/countries/{location}'
 
+
+class ReminderPaginator(ListPageSource):
+    def __init__(self, title: str, data: List[ReminderTable]):
+        super().__init__(data, per_page=12)
+        self.embed = PidroidEmbed(title=title)
+        self.embed.set_footer(text=f"{len(data)} reminders")
+
+    async def format_page(self, menu: PaginatingView, data: List[ReminderTable]):
+        offset = menu.current_page * self.per_page + 1
+        values = ""
+        for i, reminder in enumerate(data):
+            values += f"{i + offset}. \"{truncate_string(reminder.content, 10)}\" created at {format_dt(reminder.date_created)} in {reminder.message_url}\n"
+        self.embed.description = values.strip()
+        return self.embed
 
 class UtilityCommands(commands.Cog): # type: ignore
     """This class implements a cog for various utility commands."""
@@ -186,6 +204,43 @@ class UtilityCommands(commands.Cog): # type: ignore
         )
 
         await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
+
+    @commands.hybrid_command( # type: ignore
+        name="reminders",
+        brief="List all reminders that you have created and are currently active.",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    async def reminders_command(self, ctx: Context):
+        reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
+        if not reminders:
+            raise BadArgument("You have no active reminders")
+
+        view = PaginatingView(
+            self.client, ctx,
+            source=ReminderPaginator(f"Active reminders for {ctx.author}", reminders)
+        )
+        await view.send()
+
+    @commands.hybrid_command( # type: ignore
+        name="remove-reminder",
+        brief="Remove the specified reminder.",
+        usage="<reminder number>",
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    async def remove_reminder_command(self, ctx: Context, reminder_no: int):
+        reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
+        if not reminders:
+            raise BadArgument("You have no active reminders")
+        
+        if reminder_no <= 0 or reminder_no > len(reminders):
+            raise BadArgument("Invalid reminder number")
+        
+        to_remove = reminders[reminder_no - 1]
+
+        await self.client.api.delete_reminder(row=to_remove.id)
+        await ctx.reply("Reminder removed successfully")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(UtilityCommands(client))
