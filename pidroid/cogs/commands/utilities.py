@@ -48,13 +48,13 @@ class ReminderPaginator(ListPageSource):
     def __init__(self, title: str, data: List[ReminderTable]):
         super().__init__(data, per_page=12)
         self.embed = PidroidEmbed(title=title)
-        self.embed.set_footer(text=f"{len(data)} reminders")
+        self.embed.set_footer(text=f"{len(data)} reminder(s)")
 
     async def format_page(self, menu: PaginatingView, data: List[ReminderTable]):
         offset = menu.current_page * self.per_page + 1
         values = ""
         for i, reminder in enumerate(data):
-            values += f"{i + offset}. \"{truncate_string(reminder.content, 10)}\" created at {format_dt(reminder.date_created)} in {reminder.message_url}\n"
+            values += f"{i + offset}. \"{truncate_string(reminder.content, 10)}\" to be reminded {format_dt(reminder.date_remind, 'R')} in {reminder.message_url}\n"
         self.embed.description = values.strip()
         return self.embed
 
