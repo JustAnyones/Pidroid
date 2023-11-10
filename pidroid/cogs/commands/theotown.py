@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import random
 import logging
 
@@ -337,7 +338,7 @@ class TheoTownCommands(commands.Cog): # type: ignore
         async with ctx.typing():
             payload = {
                 "file": await attachment.read(),
-                "enforce_manifest": True
+                "enforce_manifest": "true"
             }
 
             parts = attachment.filename.split(".")
