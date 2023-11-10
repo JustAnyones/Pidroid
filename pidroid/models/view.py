@@ -46,7 +46,8 @@ class BaseView(View):
         """Called to clean up when the view is closed by the user."""
         if self._message:
             await self._message.delete()
-        await interaction.response.send_message("Menu has been closed.", ephemeral=True)
+        #await interaction.response.send_message("Menu has been closed.", ephemeral=True)
+        await interaction.response.defer()
         self.stop()
 
     async def timeout_view(self, interaction: Optional[Interaction]) -> None:
