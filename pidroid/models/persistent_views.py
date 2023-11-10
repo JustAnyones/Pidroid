@@ -27,6 +27,7 @@ class PersistentSuggestionManagementView(discord.ui.View):
         embed = message.embeds[0]
 
         liked = hated = 0
+        message = await message.channel.fetch_message(message.id)
         for reaction in message.reactions:
             if reaction.emoji == "✅":
                 liked = reaction.count - 1
@@ -34,15 +35,15 @@ class PersistentSuggestionManagementView(discord.ui.View):
                 hated = reaction.count - 1
 
         embed.set_footer(
-            text=f"{liked} people liked the idea, {hated} hated the idea | Marked as {message}"
+            text=f"{liked} user(s) liked the idea, {hated} hated the idea | Marked as {reason}"
         )
-        await message.edit(embed=embed)
-        # TODO: remove reactions
+        await message.edit(embed=embed, view=None)
+        await message.clear_reactions()
 
 
         # Lock the suggestion thread, if available
         if thread:
-            await thread.send(f"{responsible_user} marked this suggestion as {reason}")
+            await thread.send(f":lock: {responsible_user} marked this suggestion as {reason}.")
             await thread.edit(locked=True)
 
     @discord.ui.button(
