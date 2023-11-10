@@ -1,27 +1,77 @@
 import discord
 import logging
 
-from discord import Member, TextChannel
+from discord import Member, Message, TextChannel, Interaction
 
 from pidroid.utils.checks import TheoTownChecks, is_guild_theotown, member_has_channel_permission
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
 
-class PersistentSuggestionDeletionView(discord.ui.View):
+class PersistentSuggestionManagementView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label='Remove', style=discord.ButtonStyle.red, custom_id='persistent_suggestion_deletion_view:delete_button')
+    @staticmethod
+    def get_thread_from_message(message: Message):
+        channel = message.channel
+        assert isinstance(channel, discord.TextChannel)
+        return channel.get_thread(message.id) # the thread starter message ID is the same ID as the thread
+
+    @staticmethod
+    async def close_suggestion(message: Message, responsible_user: str, reason: str):
+        # Get the thread for the suggestion
+        thread = PersistentSuggestionManagementView.get_thread_from_message(message)
+
+        # Update the original suggestion message to remove reactions
+        embed = message.embeds[0]
+
+        liked = hated = 0
+        for reaction in message.reactions:
+            if reaction.emoji == "✅":
+                liked = reaction.count - 1
+            elif reaction.emoji == "❌":
+                hated = reaction.count - 1
+
+        embed.set_footer(
+            text=f"{liked} people liked the idea, {hated} hated the idea | Marked as {message}"
+        )
+        await message.edit(embed=embed)
+        # TODO: remove reactions
+
+
+        # Lock the suggestion thread, if available
+        if thread:
+            await thread.send(f"{responsible_user} marked this suggestion as {reason}")
+            await thread.edit(locked=True)
+
+    @discord.ui.button(
+        label='Mark as completed',
+        style=discord.ButtonStyle.green,
+        custom_id='persistent_suggestion_management_view:mark_as_completed_button'
+    )
+    async def mark_as_completed_button(self, interaction: Interaction, button: discord.ui.Button):
+        if interaction.message is None:
+            return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
+        
+        await PersistentSuggestionManagementView.close_suggestion(
+            interaction.message, str(interaction.user), "completed"
+        )
+        await interaction.response.defer()
+
+    @discord.ui.button(
+        label='Remove',
+        style=discord.ButtonStyle.red,
+        custom_id='persistent_suggestion_deletion_view:delete_button'
+    )
     async def delete_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.message is None:
             return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
         
-        channel = interaction.message.channel
-        assert isinstance(channel, discord.TextChannel)
+        thread = PersistentSuggestionManagementView.get_thread_from_message(interaction.message)
 
-        thread = channel.get_thread(interaction.message.id) # the thread starter message ID is the same ID as the thread
         await interaction.message.delete(delay=0)
+
         if thread:
             await thread.delete()
         await interaction.response.defer()

@@ -22,7 +22,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
 from pidroid.models.categories import Category, register_categories
 from pidroid.models.event_types import EventName, EventType
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.models.persistent_views import PersistentSuggestionManagementView
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
@@ -140,7 +140,7 @@ class Pidroid(commands.Bot):
 
     def add_persistent_views(self):
         """Adds persistent views that do not timeout."""
-        self.add_view(PersistentSuggestionDeletionView())
+        self.add_view(PersistentSuggestionManagementView())
 
     async def register_categories(self):
         """Registers command categories.

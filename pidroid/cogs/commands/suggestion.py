@@ -15,7 +15,7 @@ from typing import Dict, List
 from pidroid.client import Pidroid
 from pidroid.cogs.handlers.error_handler import notify
 from pidroid.models.categories import UtilityCategory 
-from pidroid.models.persistent_views import PersistentSuggestionDeletionView
+from pidroid.models.persistent_views import PersistentSuggestionManagementView
 from pidroid.utils import truncate_string
 from pidroid.utils.checks import check_bot_channel_permissions, is_guild_theotown
 from pidroid.utils.embeds import PidroidEmbed
@@ -137,7 +137,7 @@ class SuggestionCommand(commands.Cog): # type: ignore
             # Add the reaction legend to the footer
             embed.set_footer(text=reaction_legend)
 
-            view = PersistentSuggestionDeletionView()
+            view = PersistentSuggestionManagementView()
 
             # Send the suggestion message
             if file:

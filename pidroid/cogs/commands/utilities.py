@@ -185,7 +185,7 @@ class UtilityCommands(commands.Cog): # type: ignore
             raise BadArgument("Duration should be at least 5 minutes")
         
         if datetime_to_duration(date) >= 60*60*24*365*10:
-            raise BadArgument("Your reminder cannot be set as far into the future as 10 years from now.")
+            raise BadArgument("Your reminder cannot be set to be reminded more than 10 years from now.")
 
         if len(content) > 1024:
             raise BadArgument("Please keep the reminder content at most 1024 characters")
