@@ -51,7 +51,6 @@ class LevelCommands(commands.Cog): # type: ignore
         name="level",
         brief="Displays the member level rank.",
         usage="[user/member]",
-        aliases=['rank'],
         category=LevelCategory
     )
     @app_commands.describe(member="Member or user you to view rank of.")
@@ -221,6 +220,7 @@ class LevelCommands(commands.Cog): # type: ignore
     @commands.command( # type: ignore
         name="level-card",
         brief="Sets the custom level theme in the level card.",
+        usage="<theme name>",
         category=LevelCategory,
         aliases=['rank-card']
     )
