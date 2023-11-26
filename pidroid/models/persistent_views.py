@@ -52,6 +52,9 @@ class PersistentSuggestionManagementView(discord.ui.View):
         custom_id='persistent_suggestion_management_view:mark_as_completed_button'
     )
     async def mark_as_completed_button(self, interaction: Interaction, button: discord.ui.Button):
+        if not await self.check_permissions(interaction, button):
+            return
+
         if interaction.message is None:
             return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
         
@@ -66,6 +69,9 @@ class PersistentSuggestionManagementView(discord.ui.View):
         custom_id='persistent_suggestion_deletion_view:delete_button'
     )
     async def delete_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not await self.check_permissions(interaction, button):
+            return
+
         if interaction.message is None:
             return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
         
@@ -82,12 +88,8 @@ class PersistentSuggestionManagementView(discord.ui.View):
         """Called when view catches an error."""
         logger.exception(error)
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        """Ensure that the interaction is called by a user authorized to delete suggestions.
-
-        JustAnyone or the suggestion author, in this case."""
-
-        # If I cannot locate the message, the interaction check fails
+    async def check_permissions(self, interaction: discord.Interaction, item: discord.ui.Item) -> bool:
+        # If I cannot locate the message, the permission check fails
         if interaction.message is None:
             await interaction.response.send_message('Associated message could not be found', ephemeral=True)
             return False
@@ -105,6 +107,12 @@ class PersistentSuggestionManagementView(discord.ui.View):
             and member_has_channel_permission(interaction.message.channel, interaction.user, 'manage_messages')
         ):
             return True
+        
+        # If it's sent by the author, but it's not deletion
+        if isinstance(item, discord.ui.Button):
+            if item.custom_id != "persistent_suggestion_deletion_view:delete_button":
+                await interaction.response.send_message("You are not authorized to perform this operation here.", ephemeral=True)
+                return False
 
         icon_url = interaction.message.embeds[0].author.icon_url
         author_id_from_icon = None
@@ -118,14 +126,25 @@ class PersistentSuggestionManagementView(discord.ui.View):
         # If it's the message author
         if author_id_from_icon and author_id_from_icon == interaction.user.id:
 
-            if utcnow().timestamp() - interaction.message.created_at.timestamp() <= 5*60:
+            if utcnow().timestamp() - interaction.message.created_at.timestamp() <= 10*60:
                 return True
             await interaction.response.send_message(
-                'Suggestion can only be deleted within 5 minutes of sending it.',
+                'Suggestion can only be deleted within 10 minutes of sending it.',
                 ephemeral=True
             )
             return False
 
         # Otherwise, say no
-        await interaction.response.send_message("You are not authorized to remove the suggestions here.", ephemeral=True)
+        await interaction.response.send_message("You are not authorized to perform this operation here.", ephemeral=True)
         return False
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """Ensure that the interaction is called for a manageable message.
+        
+        The actual permission checking occurs in check_permissions and should be called by every callback."""
+
+        # If I cannot locate the message, the interaction check fails
+        if interaction.message is None:
+            await interaction.response.send_message('Associated message could not be found', ephemeral=True)
+            return False
+        return True
