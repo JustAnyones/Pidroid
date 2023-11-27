@@ -834,6 +834,10 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def purge_command(self, ctx: Context, amount: int):
         if ctx.invoked_subcommand is None:
+
+            def is_not_pinned(message: Message):
+                return not message.pinned
+
             if amount <= 0:
                 raise BadArgument("That's not a valid amount!")
 
@@ -844,7 +848,7 @@ class ModeratorCommands(commands.Cog):
             await ctx.message.delete(delay=0)
 
             assert isinstance(ctx.channel, MessageableGuildChannelTuple)
-            deleted = await ctx.channel.purge(limit=amount)
+            deleted = await ctx.channel.purge(limit=amount, check=is_not_pinned)
             await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @purge_command.command(
@@ -858,7 +862,7 @@ class ModeratorCommands(commands.Cog):
     @commands.guild_only()
     async def purge_user_command(self, ctx: Context, member: Member, amount: int):
         def is_member(message: Message):
-            return message.author.id == member.id
+            return message.author.id == member.id and not message.pinned
 
         if amount <= 0:
             raise BadArgument("That's not a valid amount!")
