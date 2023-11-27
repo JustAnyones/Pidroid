@@ -163,11 +163,11 @@ def time_since(past_datetime: datetime.datetime, precision: str = "seconds", max
 
     return f"{humanized} ago"
 
-def timestamp_to_datetime(timestamp: int) -> datetime.datetime:
+def timestamp_to_datetime(timestamp: float) -> datetime.datetime:
     """Converts a timestamp to a UTC datetime object."""
     return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
-def timestamp_to_date(timestamp: int, style: str = "default", custom_format: Optional[str] = None) -> str:
+def timestamp_to_date(timestamp: float, style: str = "default", custom_format: Optional[str] = None) -> str:
     """Converts a timestamp to a UTC human readable date string."""
     datetime = timestamp_to_datetime(timestamp)
     return datetime_to_date(datetime, style, custom_format)
