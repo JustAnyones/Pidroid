@@ -823,7 +823,7 @@ class ModeratorCommands(commands.Cog):
 
     @commands.hybrid_group( # type: ignore
         name="purge",
-        brief='Removes a specified amount of messages from the channel.',
+        brief='Removes messages from the channel, that are not pinned. The amount corresponds to the amount of messages to search.',
         usage='<amount>',
         category=ModerationCategory,
         invoke_without_command=True,
@@ -853,7 +853,7 @@ class ModeratorCommands(commands.Cog):
 
     @purge_command.command(
         name="user",
-        brief="Removes a specified amount of messages sent by specified user.",
+        brief="Removes a specified amount of messages sent by specified user, that are not pinned. The amount corresponds to the amount of messages to search, not purge.",
         usage="<user> <amount>",
         category=ModerationCategory
     )
