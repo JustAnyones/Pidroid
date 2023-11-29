@@ -63,8 +63,23 @@ def clean_inline_translations(string: str) -> str:
 
 def truncate_string(string: str, max_length: int = 2048, replace_value: str = '...') -> str:
     """Shortens string to a specified length."""
-    if len(string) > max_length:
+
+    if max_length <= 0:
+        raise ValueError("Max length cannot be less or equal to 0")
+
+    str_len = len(string)
+    replace_val_len = len(replace_value)
+
+    # If it's longer than the allowed length
+    if str_len > max_length:
+
+        # If replace value is longer or equal to string length
+        if max_length < replace_val_len:
+            return string[:max_length]
+
         return string[:max_length - len(replace_value)] + replace_value
+
+    # If it's not, can just return the original string
     return string
 
 async def try_message_user(
