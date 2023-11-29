@@ -12,3 +12,6 @@ data/*
 
 # Virtual environment
 venv/*
+
+# Disallow the coverage file
+.coverage
