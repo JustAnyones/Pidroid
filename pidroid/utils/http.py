@@ -38,11 +38,11 @@ class HTTP:
                 raise APIException(r.status, "Requested API resource is not yet implemented!")
 
             if r.status >= 500:
-                raise APIException(r.status, "Internal backend error detected. Please try again later!")
+                raise APIException(r.status, "Requested API resource has an internal backend error. Please try again later!")
 
             if r.status == 400:
                 res = await r.json()
-                raise APIException(r.status, f"Bad request: {res['details']}")
+                raise APIException(r.status, f"Bad request sent to the API resource: {res['details']}")
 
             if r.status == 401:
                 raise APIException(r.status, "Client is not authorized to make calls to the specified API endpoint!")
