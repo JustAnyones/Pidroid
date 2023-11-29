@@ -2,7 +2,7 @@ import datetime
 
 import pytest
 
-from pidroid.utils.time import utcnow, humanize, timestamp_to_datetime, datetime_to_date
+from pidroid.utils.time import utcnow, humanize, timestamp_to_datetime, datetime_to_date, datetime_to_duration
 
 FAKE_TIME = datetime.datetime(2023, 12, 26, 12, 14, 46, tzinfo=datetime.timezone.utc)
 
@@ -46,3 +46,7 @@ def test_datetime_to_date():
     date = FAKE_TIME
     assert datetime_to_date(date, style="default") == "Tue, Dec 26, 2023 12:14 PM"
     assert datetime_to_date(date, style="iso-8601") == "2023-12-26T12:14:46+00:00"
+
+def test_datetime_to_duration(patch_datetime_now):
+    date = FAKE_TIME + datetime.timedelta(days=5)
+    assert datetime_to_duration(date) == 5*24*60*60
