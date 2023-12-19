@@ -256,6 +256,7 @@ class ModerationMenu(ui.View):
     async def _init(self):
         """Acquires the guild configuration and related items."""
         config = await self._client.fetch_guild_configuration(self.guild.id)
+        self._config = config
 
         if config.jail_role_id is not None:
             role = self.guild.get_role(config.jail_role_id)
@@ -552,7 +553,8 @@ class ModerationMenu(ui.View):
         """Reacts to the ban type button."""
         self.punishment = Ban(
             self._api, self.guild,
-            channel=self.channel, moderator=self.moderator, user=self.user
+            channel=self.channel, moderator=self.moderator, user=self.user,
+            appeal_url=self._config.appeal_url
         )
         await self.show_length_selection_menu()
         await self._update_view(interaction)

@@ -371,12 +371,14 @@ class Ban(BasePunishment):
         *,
         channel: Optional[MessageableGuildChannel],
         moderator: Moderator,
-        user: DiscordUser
+        user: DiscordUser,
+        appeal_url: Optional[str] = None
     ) -> None:
         super().__init__(api, guild)
         self._channel = channel
         self._set_moderator(moderator)
         self._set_user(user)
+        self._appeal_url = appeal_url
 
     @property
     def audit_log_issue_reason(self) -> str:
