@@ -382,7 +382,7 @@ class Ban(BasePunishment):
 
     @property
     def audit_log_issue_reason(self) -> str:
-        reason = f"Banned on behalf of {self.moderator_name}"
+        reason = f"Banned on behalf of {self.moderator_name} ({self.moderator_id‎})"
         if reason:
             reason += f" for the following reason: {self.reason}"
         else:
@@ -393,7 +393,7 @@ class Ban(BasePunishment):
 
     @property
     def audit_log_revoke_reason(self) -> str:
-        reason = f"Unbanned on behalf of {self.moderator_name}"
+        reason = f"Unbanned on behalf of {self.moderator_name} ({self.moderator_id‎})"
         if reason:
             reason += f" for the following reason: {self.reason}"
         else:
