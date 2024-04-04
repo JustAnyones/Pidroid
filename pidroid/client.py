@@ -3,11 +3,8 @@ from __future__ import annotations
 import asyncio
 import datetime
 import discord
-import random
-import subprocess # nosec
-import sys
-import os
 import logging
+import os
 
 from aiohttp import ClientSession
 from contextlib import suppress
@@ -39,6 +36,9 @@ class VersionInfo(NamedTuple):
     micro: int
     commit_id: str
 
+def _is_theotown_service(service: str):
+    return service.startswith("services.theotown")
+
 
 __VERSION__ = VersionInfo(major=5, minor=17, micro=1, commit_id=os.environ.get('GIT_COMMIT', ''))
 
@@ -66,51 +66,49 @@ class Pidroid(commands.Bot):
         # This defines hot-reloadable cogs and various files
         self._extensions_to_load = [
             # Commands
-            'cogs.commands.admin',
-            'cogs.commands.anime',
-            'cogs.commands.bot',
-            'cogs.commands.economy',
-            'cogs.commands.emoji',
-            'cogs.commands.forum',
-            'cogs.commands.fun',
-            'cogs.commands.giveaway',
-            'cogs.commands.help',
-            'cogs.commands.image',
-            'cogs.commands.info',
-            'cogs.commands.levels',
-            'cogs.commands.owner',
-            'cogs.commands.setting',
-            'cogs.commands.sticker',
-            'cogs.commands.suggestion',
-            'cogs.commands.tags',
-            'cogs.commands.theotown',
-            'cogs.commands.utilities',
-
-            # Moderation related commands
-            'cogs.commands.moderation.punishment',
-            'cogs.commands.moderation.information',
+            'commands.anime',
+            'commands.bot',
+            'commands.economy',
+            'commands.emoji',
+            'commands.forum',
+            'commands.fun',
+            'commands.giveaway',
+            'commands.help',
+            'commands.image',
+            'commands.information',
+            'commands.level',
+            'commands.moderation_information',
+            'commands.moderation',
+            'commands.owner',
+            'commands.setting',
+            'commands.sticker',
+            'commands.suggestion',
+            'commands.tag',
+            'commands.theotown',
+            'commands.utility',
 
             # Extensions related to handling or responding
             # to certain events and running tasks
-            'cogs.handlers.guild_events',
-            'cogs.handlers.initialization',
-            'cogs.handlers.leveling_handler',
-            'cogs.handlers.logging_handler',
-            'cogs.handlers.punishment_handler',
-            'cogs.handlers.reminder_handler',
-            'cogs.handlers.thread_archiver',
+            'services.configuration',
+            'services.leveling',
+            'services.logging',
+            'services.presence',
+            'services.punishment',
+            'services.reminders',
+            'services.thread_archiver',
 
             # TheoTown specific handler extensions
             # NOTE: these handlers are not loaded if current client ID is not Pidroid.
-            'cogs.handlers.theotown.chat_translator',
-            'cogs.handlers.theotown.copypasta',
-            'cogs.handlers.theotown.events_handler',
-            'cogs.handlers.theotown.guild_statistics',
-            'cogs.handlers.theotown.plugin_store',
-            'cogs.handlers.theotown.reaction_handler',
+            'services.theotown.chat_translator',
+            'services.theotown.copypasta',
+            'services.theotown.events',
+            'services.theotown.guild_statistics',
+            'services.theotown.plugin_store',
+            'services.theotown.spoiler_reactions',
+            'services.theotown.suggestion_deletion',
 
             # Load the error handler last
-            'cogs.handlers.error_handler',
+            'services.error_handler',
 
             # Debugging tool jishaku
             'jishaku',
@@ -290,11 +288,11 @@ class Pidroid(commands.Bot):
         logger.critical("Reloading bot configuration data and all cogs")
         is_pidroid = is_client_pidroid(self)
         for ext in self._extensions_to_load:
-            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
+            if not is_pidroid and _is_theotown_service(ext):
                 continue
             await self.unload_extension(ext)
         for ext in self._extensions_to_load:
-            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
+            if not is_pidroid and _is_theotown_service(ext):
                 logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             await self.load_extension(ext)
@@ -307,7 +305,7 @@ class Pidroid(commands.Bot):
 
         for ext in self._extensions_to_load:
             logger.debug(f"Loading {ext}.")
-            if not is_pidroid and ext.startswith("cogs.handlers.theotown"):
+            if not is_pidroid and _is_theotown_service(ext):
                 logger.info(f"Skipping loading {ext} as the current client is not Pidroid.")
                 continue
             try:
@@ -406,28 +404,3 @@ class Pidroid(commands.Bot):
         #    'log_event',
         #    event_type,
         #)
-
-    async def annoy_erksmit(self):
-        if sys.platform != "win32":
-            return
-
-        urls = [
-            "https://nekobot.xyz/imagegen/a/a/c/857b16eddc3c22a65b78e8d431a22.mp4",
-            "https://www.youtube.com/watch?v=veaKOM1HYAw",
-            "https://www.youtube.com/watch?v=UIp6_0kct_U",
-            "https://www.youtube.com/watch?v=h_JJm5ETNSA"
-        ]
-
-        """proc1 = subprocess.Popen('powershell [Environment]::UserName', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        win_user_name = proc1.stdout.read().decode("utf-8").strip()"""
-        proc2 = subprocess.Popen(['git', 'config', 'user.name'], stdout=subprocess.PIPE, stderr=subprocess.PIPE) # nosec
-        if proc2.stdout is None:
-            return
-        git_user_name = proc2.stdout.read().decode("utf-8").strip()
-
-        # We do a miniscule amount of trolling
-        if git_user_name == "erksmit":
-            subprocess.Popen([ # nosec
-                'powershell',
-                f'[system.Diagnostics.Process]::Start("firefox", "{random.choice(urls)}")' # nosec
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

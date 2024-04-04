@@ -10,7 +10,7 @@ from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.utils.embeds import PidroidEmbed
 
 if TYPE_CHECKING:
-    from pidroid.cogs.commands.setting import GuildConfigurationView
+    from pidroid.commands.setting import GuildConfigurationView
 
 class Setting:
 

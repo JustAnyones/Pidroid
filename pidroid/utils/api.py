@@ -5,7 +5,7 @@ import datetime
 from discord import Message, Member, Guild
 from typing import TYPE_CHECKING, List, Optional
 
-from pidroid.cogs.commands.tags import Tag
+from pidroid.commands.tag import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.punishments import Case, PunishmentType
