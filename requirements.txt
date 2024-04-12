@@ -27,7 +27,7 @@ hpack==4.0.0
 httpcore==0.17.3
 httpx==0.24.1
 hyperframe==6.0.1
-idna==3.4
+idna==3.7
 import-expression==1.1.4
 jishaku==2.5.1
 line-profiler==4.1.1
