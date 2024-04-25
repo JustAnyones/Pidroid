@@ -17,7 +17,7 @@ click==8.1.7
 croniter==1.4.1
 dill==0.3.7
 discord.py==2.3.2
-dnspython==2.4.2
+dnspython==2.6.1
 emoji==2.8.0
 frozenlist==1.4.0
 greenlet==2.0.2
