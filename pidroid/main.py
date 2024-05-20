@@ -69,7 +69,7 @@ def get_postgres_dsn() -> str:
         postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
     return postgres_dsn
 
-def config_from_env() -> dict:
+def config_from_env() -> dict[str, list[str] | str | bool | None]:
 
     if os.environ.get("TOKEN", None) is None:
         exit("No bot token was specified. Please specify it using the TOKEN environment variable.")

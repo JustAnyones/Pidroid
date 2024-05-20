@@ -56,3 +56,4 @@ types-pytz==2023.3.0.1
 typing_extensions==4.7.1
 tzlocal==5.0.1
 yarl==1.9.2
+pytest

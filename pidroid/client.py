@@ -14,7 +14,7 @@ from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Any, Dict, List, NamedTuple, Optional, Union
+from typing import TYPE_CHECKING, Any, NamedTuple
 from typing_extensions import override
 
 from pidroid.models.categories import Category, register_categories
@@ -47,9 +47,9 @@ class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
 
     if TYPE_CHECKING:
-        session: Optional[ClientSession]
+        session: ClientSession | None
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict[str, str]):
         intents = discord.Intents.all()
         intents.presences = False
         allowed_mentions = AllowedMentions(everyone=False, replied_user=False)
@@ -62,7 +62,7 @@ class Pidroid(commands.Bot):
         # Load configuration
         self.config = config
         self.debugging = config["debugging"]
-        self.prefixes = config["prefixes"]
+        self.prefixes: list[str] = config["prefixes"]
 
         # This defines hot-reloadable cogs and various files
         self._extensions_to_load = [
@@ -117,20 +117,20 @@ class Pidroid(commands.Bot):
 
         # This holds cached guild configurations
         self._guild_prefix_cache_ready = asyncio.Event()
-        self.__cached_guild_prefixes: Dict[int, List[str]] = {}
+        self.__cached_guild_prefixes: dict[int, list[str]] = {}
 
         self.client_version = __VERSION__
 
-        self.command_categories: List[Category] = []
+        self.command_categories: list[Category] = []
 
-        self.version_cache: Dict[str, Optional[str]] = {}
+        self.version_cache: dict[str, str | None] = {}
 
         self.session = None
 
         self.api = API(self, self.config["postgres_dsn"])
 
-        self.__queues: Dict[int, AbstractMessageQueue] = {}
-        self.__tasks: List[tasks.Loop] = []
+        self.__queues: dict[int, AbstractMessageQueue] = {}
+        self.__tasks: list[tasks.Loop] = []
 
     @override
     async def setup_hook(self):
@@ -171,7 +171,7 @@ class Pidroid(commands.Bot):
         It also waits for internal bot cache to be ready, therefore calling client.wait_until_ready()
         is no longer needed.
         """
-        await self._guild_prefix_cache_ready.wait()
+        _ = await self._guild_prefix_cache_ready.wait()
 
     @override
     async def wait_until_ready(self) -> None:
@@ -194,18 +194,18 @@ class Pidroid(commands.Bot):
         self.update_guild_prefixes_from_config(guild_id, config)
         return config
     
-    def get_guild_prefixes(self, guild_id: int) -> Optional[List[str]]:
+    def get_guild_prefixes(self, guild_id: int) -> list[str] | None:
         """Returns guild prefixes from internal cache."""
         return self.__cached_guild_prefixes.get(guild_id)
 
-    def update_guild_prefixes_from_config(self, guild_id: int, config: GuildConfiguration) -> List[str]:
+    def update_guild_prefixes_from_config(self, guild_id: int, config: GuildConfiguration) -> list[str]:
         """Updates guild prefixes in the internal cache and returns the prefix list."""
         self.__cached_guild_prefixes[guild_id] = config.prefixes
         return config.prefixes
 
     def remove_guild_prefixes(self, guild_id: int) -> None:
         """Removes guild prefixes from internal cache."""
-        self.__cached_guild_prefixes.pop(guild_id)
+        _ = self.__cached_guild_prefixes.pop(guild_id)
 
     async def create_expiring_thread(self, message: Message, name: str, expire_timestamp: datetime.datetime, auto_archive_duration: ThreadArchiveDuration = 60):
         """Creates a new expiring thread"""
@@ -220,15 +220,15 @@ class Pidroid(commands.Bot):
             raise BadArgument("Specified case could not be found!")
         return case
 
-    async def fetch_cases(self, guild_id: int, user_id: int) -> List[Case]:
+    async def fetch_cases(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of cases for specified guild and user."""
         return await self.api._fetch_cases(guild_id, user_id)
 
-    async def fetch_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+    async def fetch_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of warning cases for specified guild and user."""
         return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType.warning]
 
-    async def fetch_active_warnings(self, guild_id: int, user_id: int) -> List[Case]:
+    async def fetch_active_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of active warning cases for specified guild and user."""
         return [
             c
@@ -236,7 +236,7 @@ class Pidroid(commands.Bot):
             if c.type == PunishmentType.warning and not c.has_expired
         ]
 
-    async def get_or_fetch_member(self, guild: Guild, member_id: int) -> Optional[discord.Member]:
+    async def get_or_fetch_member(self, guild: Guild, member_id: int) -> discord.Member | None:
         """Attempts to resolve member from member_id by any means. Returns None if everything failed."""
         member = guild.get_member(member_id)
         if member is None:
@@ -244,7 +244,7 @@ class Pidroid(commands.Bot):
                 return await guild.fetch_member(member_id)
         return member
 
-    async def get_or_fetch_user(self, user_id: int) -> Optional[discord.User]:
+    async def get_or_fetch_user(self, user_id: int) -> discord.User | None:
         """Attempts to resolve user from user_id by any means. Returns None if everything failed."""
         user = self.get_user(user_id)
         if user is None:
@@ -269,7 +269,7 @@ class Pidroid(commands.Bot):
         return channel
 
 
-    async def get_prefixes(self, message: Message) -> List[str]:
+    async def get_prefixes(self, message: Message) -> list[str]:
         """Returns a string list of prefixes for a message using message's context."""
         if not is_client_pidroid(self):
             return self.prefixes
@@ -280,6 +280,7 @@ class Pidroid(commands.Bot):
                 return guild_prefixes or self.prefixes
         return self.prefixes
 
+    @override
     async def get_prefix(self, message: Message):
         """Returns a prefix for client to respond to."""
         await self.wait_until_guild_configurations_loaded()
@@ -323,6 +324,7 @@ class Pidroid(commands.Bot):
         logger.info("Loading extensions")
         await self.load_all_extensions()
 
+    @override
     async def close(self) -> None:
         """Called when Pidroid is being shut down."""
         await super().close()
@@ -331,7 +333,7 @@ class Pidroid(commands.Bot):
 
     def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False, delay: float = -1) -> AbstractMessageQueue:
         """Creates a queue and returns the queue object."""
-        queue: Union[MessageQueue, EmbedMessageQueue]
+        queue: MessageQueue | EmbedMessageQueue
         if not embed_queue:
             queue = MessageQueue(channel, delay=delay)
         else:
@@ -367,7 +369,7 @@ class Pidroid(commands.Bot):
                 del self.__queues[channel.id]
                 return
 
-    async def queue(self, channel: discord.TextChannel, item: Union[str, discord.Embed], delay: float = -1):
+    async def queue(self, channel: discord.TextChannel, item: str | discord.Embed, delay: float = -1):
         """Adds the specified item to a text channel queue.
         
         The item can be a string or an embed.
@@ -396,7 +398,7 @@ class Pidroid(commands.Bot):
         target_id: Any,
         responsible_id: int,
         *,
-        extra: Optional[dict] = None
+        extra: dict | None = None
     ):
         """Logs the event to Pidroid's database."""
         logger.debug(f"{event_type.name}: {event_name.value} {guild_id=} {target_id=} {responsible_id=} {extra=}")

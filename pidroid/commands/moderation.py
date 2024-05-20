@@ -8,7 +8,7 @@ import logging
 from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-from discord import ui, ButtonStyle, Interaction, app_commands, Member, Message
+from discord import ui, ButtonStyle, Interaction, app_commands, Member, Message, RawMessageDeleteEvent
 from discord.colour import Colour
 from discord.embeds import Embed
 from discord.emoji import Emoji
@@ -271,7 +271,11 @@ class ModerationMenu(ui.View):
             raise BadArgument("Semaphore is already locked")
 
         # Lock the punishment menu with a semaphore
-        await self._cog.lock_punishment_menu(self.guild.id, self.user.id, self._ctx.message.jump_url)
+        await self._cog.lock_punishment_menu(
+            self.guild.id, self.user.id,
+            self._ctx.message.id,
+            self._ctx.message.jump_url
+        )
 
     @property
     def embed(self) -> Embed:
@@ -664,13 +668,13 @@ class ModerationMenu(ui.View):
 
     """Clean up related methods"""
 
-    async def timeout_interface(self, interaction: Optional[Interaction]) -> None:
+    async def timeout_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when the interaction or interface timed out."""
         self._embed.set_footer(text="Moderation menu has timed out")
         self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
-    async def error_interface(self, interaction: Optional[Interaction]) -> None:
+    async def error_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when an error is encountered."""
         self._embed.set_footer(text="Moderation menu has encountered an error")
         self._embed.colour = Colour.red()
@@ -684,19 +688,23 @@ class ModerationMenu(ui.View):
 
     async def finish_interface(
         self,
-        interaction: Optional[Interaction],
-        embed: Optional[Embed] = None,
-        file: Optional[File] = None
+        interaction: Interaction | None,
+        embed: Embed | None = None,
+        file: File | None = None
     ) -> None:
         """Removes all buttons and updates the interface. No more calls can be done to the interface."""
         self.remove_items() # Remove all buttons
         # If embed is provided, update it
         if embed:
             self._embed = embed
-        files = []
+        files: list[File] = []
         if file:
             files.append(file)
-        await self._update_view(interaction, files) # Update message with latest information
+        # If we can't for some reason update the view, ignore the exception
+        try:
+            _ = await self._update_view(interaction, files) # Update message with latest information
+        except:
+            pass
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
 
@@ -725,8 +733,9 @@ class ModerationMenu(ui.View):
     def remove_items(self) -> None:
         """Removes all items from the view."""
         for child in self.children.copy():
-            self.remove_item(child)
+            _ = self.remove_item(child)
 
+    @override
     def stop(self) -> None:
         """Stops listening to all and any interactions for this view."""
         self.remove_items()
@@ -734,10 +743,12 @@ class ModerationMenu(ui.View):
 
     """Event listeners"""
 
+    @override
     async def on_timeout(self) -> None:
         """Called when view times out."""
         await self.timeout_interface(None)
 
+    @override
     async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item) -> None:
         """Called when view catches an error."""
         logger.exception(error)
@@ -749,6 +760,7 @@ class ModerationMenu(ui.View):
 
         await self.error_interface(None)
 
+    @override
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Ensure that the interaction is called by the message author.
 
@@ -761,7 +773,8 @@ class ModerationMenu(ui.View):
 
 class UserSemaphoreDict(TypedDict):
     semaphore: asyncio.Semaphore
-    message_url: Optional[str]
+    message_id: int | None
+    message_url: str | None
     created: datetime.datetime
 
 
@@ -775,8 +788,24 @@ class ModerationCommandCog(commands.Cog):
         self.user_semaphores: dict[int, dict[int, UserSemaphoreDict]] = {}
         self.unlock_semaphores.start()
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         self.unlock_semaphores.stop()
+
+    @commands.Cog.listener()
+    async def on_raw_message_delete(self, payload: RawMessageDeleteEvent) -> None:
+        """Handles removal of semaphore from users if their modmenu message was deleted."""
+        if payload.guild_id is None:
+            return
+
+        guild_semaphores = self.user_semaphores.get(payload.guild_id)
+        if guild_semaphores is None:
+            return
+
+        for user_id in guild_semaphores.copy().keys():
+            if guild_semaphores[user_id]["message_id"] is not None and guild_semaphores[user_id]["message_id"] == payload.message_id:
+                await self.unlock_punishment_menu(payload.guild_id, user_id)
+                return
 
     @tasks.loop(minutes=10)
     async def unlock_semaphores(self) -> None:
@@ -785,13 +814,18 @@ class ModerationCommandCog(commands.Cog):
             for member_id in self.user_semaphores[guild_id].copy():
                 item = self.user_semaphores[guild_id][member_id]
                 if current_timestamp - item["created"].timestamp() > 10 * 60:
-                    self.user_semaphores[guild_id].pop(member_id)
+                    await self.unlock_punishment_menu(guild_id, member_id)
 
     @unlock_semaphores.before_loop
     async def before_unlock_semaphores(self) -> None:
         await self.client.wait_until_guild_configurations_loaded()
 
-    def _create_semaphore_if_not_exist(self, guild_id: int, user_id: int, message_url: Optional[str] = None) -> asyncio.Semaphore:
+    def _create_semaphore_if_not_exist(
+        self,
+        guild_id: int, user_id: int,
+        message_id: int | None = None,
+        message_url: str | None = None
+    ) -> asyncio.Semaphore:
         if self.user_semaphores.get(guild_id) is None:
             self.user_semaphores[guild_id] = {}
         user = self.user_semaphores[guild_id].get(user_id)
@@ -799,21 +833,27 @@ class ModerationCommandCog(commands.Cog):
             self.user_semaphores[guild_id][user_id] = {
                 "semaphore": asyncio.Semaphore(1),
                 "message_url": message_url,
+                "message_id": message_id,
                 "created": utcnow()
             }
         return self.user_semaphores[guild_id][user_id]["semaphore"]
 
-    async def lock_punishment_menu(self, guild_id: int, user_id : int, message_url: Optional[str] = None) -> None:
-        sem = self._create_semaphore_if_not_exist(guild_id, user_id, message_url)
-        await sem.acquire()
+    async def lock_punishment_menu(
+        self,
+        guild_id: int, user_id : int,
+        message_id: int | None = None,
+        message_url: str | None = None
+    ) -> None:
+        sem = self._create_semaphore_if_not_exist(guild_id, user_id, message_id, message_url)
+        _ = await sem.acquire()
 
     async def unlock_punishment_menu(self, guild_id: int, user_id: int) -> None:
         sem = self._create_semaphore_if_not_exist(guild_id, user_id)
         sem.release()
         # Save memory with this simple trick
-        self.user_semaphores[guild_id].pop(user_id)
+        _ = self.user_semaphores[guild_id].pop(user_id)
 
-    def get_user_semaphore(self, guild_id: int, user_id: int) -> Optional[UserSemaphoreDict]:
+    def get_user_semaphore(self, guild_id: int, user_id: int) -> UserSemaphoreDict | None:
         guild = self.user_semaphores.get(guild_id)
         if guild is None:
             return None
@@ -856,7 +896,7 @@ class ModerationCommandCog(commands.Cog):
 
             assert isinstance(ctx.channel, MessageableGuildChannelTuple)
             deleted = await ctx.channel.purge(limit=amount, check=is_not_pinned)
-            await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
+            _ = await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @purge_command.command(
         name="user",
@@ -881,7 +921,7 @@ class ModerationCommandCog(commands.Cog):
         await ctx.message.delete(delay=0)
         assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         deleted = await ctx.channel.purge(limit=amount, check=is_member)
-        await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
+        _ = await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @commands.command(hidden=True)
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
@@ -890,8 +930,8 @@ class ModerationCommandCog(commands.Cog):
     async def deletethis(self, ctx: Context):
         assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         await ctx.message.delete(delay=0)
-        await ctx.channel.purge(limit=1)
-        await ctx.send(file=File(Resource('delete_this.png')))
+        _ = await ctx.channel.purge(limit=1)
+        _ = await ctx.send(file=File(Resource('delete_this.png')))
 
 
     @commands.hybrid_command(
@@ -947,7 +987,7 @@ class ModerationCommandCog(commands.Cog):
         await menu.display()
 
     @moderation_menu_command.error
-    async def handle_moderation_menu_command_error(self, ctx: Context, error):
+    async def handle_moderation_menu_command_error(self, ctx: Context, error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "user":
                 return await notify(ctx, "Please specify the member or the user you are trying to punish!")
@@ -959,7 +999,7 @@ class ModerationCommandCog(commands.Cog):
                         return await notify(ctx, str(_err))
         setattr(error, 'unhandled', True)
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="suspend",
         brief='Immediately suspends member\'s ability to send messages for a week.',
         usage='<member>',
@@ -1035,8 +1075,8 @@ class ModerationCommandCog(commands.Cog):
         
         timed_out_until = delta_to_datetime(timedelta(weeks=4))
 
-        await member.edit(reason=":)", timed_out_until=timed_out_until)
-        await ctx.reply(f"{user_mention(BUNNY_ID)}, can you hear me now?")
+        _ = await member.edit(reason=":)", timed_out_until=timed_out_until)
+        _ = await ctx.reply(f"{user_mention(BUNNY_ID)}, can you hear me now?")
 
 async def setup(client: Pidroid):
     await client.add_cog(ModerationCommandCog(client))
