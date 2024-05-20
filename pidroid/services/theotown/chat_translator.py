@@ -1,14 +1,13 @@
 import asyncio
-import emoji # type: ignore # I am not updating the emoji regex myself every time there's a new one
+import emoji # I am not updating the emoji regex myself every time there's a new one
 import re
 import logging
 
 from contextlib import suppress
-from discord.ext import commands # type: ignore
+from discord.ext import commands
 from discord.channel import TextChannel
 from discord.utils import remove_markdown
 from discord.message import Message
-from typing import List, Tuple
 
 from pidroid.client import Pidroid
 from pidroid.utils.embeds import PidroidEmbed
@@ -82,6 +81,7 @@ FLAG_FOOTERS = {
 
 class TextParser:
     def __init__(self, text: str, remove_markdown: bool = True) -> None:
+        super().__init__()
         self.original = text
         self.remove_markdown = remove_markdown
 
@@ -100,7 +100,7 @@ class TextParser:
     def should_translate(self) -> bool:
         return len(self.stripped_text) > 0
 
-    def get_parsed_text(self) -> Tuple[int, str]:
+    def get_parsed_text(self) -> tuple[int, str]:
         # If 50% of all characters are uppercase, lowercase the entire string
         #print("Value of capitalized letters in string", sum(1 for c in self.text if c.isupper()) / len(self.text))
         if not self.text.isupper() and sum(1 for c in self.text if c.isupper()) / len(self.text) >= 0.50:
@@ -109,10 +109,11 @@ class TextParser:
         # Otherwise, just return normal string
         return ParserFlags.NORMAL, self.text
 
-class ChatTranslationService(commands.Cog): # type: ignore
+class ChatTranslationService(commands.Cog):
     """This class implements a cog for handling TheoTown guild chat translations."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
         self.endpoint = "https://api.deepl.com/v2"
         self.auth_key = self.client.config.get("deepl_api_key", None)
@@ -124,7 +125,7 @@ class ChatTranslationService(commands.Cog): # type: ignore
         self.used_chars = 0
         self.last_reset = utcnow()
 
-    async def translate(self, text: str) -> List[dict]:
+    async def translate(self, text: str) -> list[dict]:
         self._translating.clear()
         try:
             async with await post(self.client, self.endpoint + "/translate", {
@@ -156,7 +157,7 @@ class ChatTranslationService(commands.Cog): # type: ignore
             and message.channel.id == SOURCE_CHANNEL_ID
         )
 
-    async def translate_message(self, message: Message, clean_text: str) -> List[dict]:
+    async def translate_message(self, message: Message, clean_text: str) -> list[dict]:
         # Await previous translation jobs to finish
         await self._translating.wait()
 
@@ -180,7 +181,7 @@ class ChatTranslationService(commands.Cog): # type: ignore
 
         return translations
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_message(self, message: Message):
         # Check whether message is valid for further processing
         if not self.is_valid(message):
@@ -207,7 +208,7 @@ class ChatTranslationService(commands.Cog): # type: ignore
         assert isinstance(channel, TextChannel)
         await self.dispatch_translation(channel, message, translations, flag)
 
-    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: List[dict], flag: int) -> None: # noqa C901
+    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: list[dict], flag: int) -> None: # noqa C901
         # If message contains a reply, track down the reference author
         action = None
         if message.reference:

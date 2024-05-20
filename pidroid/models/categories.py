@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from discord import PartialEmoji
 from discord.ext.commands import Command
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -22,11 +22,11 @@ def get_command_usage(prefix: str, command: Command) -> str:
         usage += ' `' + command.usage + '`'
     return usage
 
-def get_command_documentation(c: Command) -> Tuple[str, str]:
+def get_command_documentation(command: Command) -> tuple[str, str]:
     """Returns command documentation for display in lists."""
-    usage = c.usage or ""
-    name = get_full_command_name(c) + " " + usage
-    value = c.brief or 'Not documented.'
+    usage = command.usage or ""
+    name = get_full_command_name(command) + " " + usage
+    value = command.brief or 'Not documented.'
     return name, value
 
 class Category:
@@ -35,21 +35,22 @@ class Category:
         client: Pidroid,
         title: str,
         description: str,
-        emote: Optional[Union[PartialEmoji, str]] = None
+        emote: PartialEmoji | str | None = None
     ):
+        super().__init__()
         self.client = client
         self.title = title
         self.description = description
         self.emote = emote
-        self.__cached_commands: List[Command] = []
+        self.__cached_commands: list[Command] = []
 
-    def get_visible_commands(self) -> List[Command]:
+    def get_visible_commands(self) -> list[Command]:
         """Returns a list of visible bot commands."""
         if self.__cached_commands:
             return self.__cached_commands
 
         # Create a command list, sort it and cache it
-        cmd_list: List[Command] = []
+        cmd_list: list[Command] = []
         for command in self.client.walk_commands():
             if command.hidden:
                 continue

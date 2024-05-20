@@ -20,7 +20,7 @@ from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, get
-from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, TypedDict, override
+from typing import TYPE_CHECKING, Any, Optional, Union, TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
@@ -376,7 +376,7 @@ class ModerationMenu(ui.View):
     - Confirming or cancelling the action
     """
 
-    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[str | None, Interaction, bool]:
+    async def custom_reason_modal(self, interaction: Interaction) -> tuple[str | None, Interaction, bool]:
         modal = ReasonModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
@@ -384,7 +384,7 @@ class ModerationMenu(ui.View):
             await self.timeout_interface(interaction)
         return modal.reason_input.value, modal.interaction, timed_out
 
-    async def custom_length_modal(self, interaction: Interaction) -> Tuple[str | None, Interaction, bool]:
+    async def custom_length_modal(self, interaction: Interaction) -> tuple[str | None, Interaction, bool]:
         modal = LengthModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
@@ -670,19 +670,19 @@ class ModerationMenu(ui.View):
 
     async def timeout_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when the interaction or interface timed out."""
-        self._embed.set_footer(text="Moderation menu has timed out")
+        _ = self._embed.set_footer(text="Moderation menu has timed out")
         self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
     async def error_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when an error is encountered."""
-        self._embed.set_footer(text="Moderation menu has encountered an error")
+        _ = self._embed.set_footer(text="Moderation menu has encountered an error")
         self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
     async def cancel_interface(self, interaction: Interaction) -> None:
         """Called to clean up when the interface is cancelled by user."""
-        self._embed.set_footer(text="Punishment creation has been cancelled")
+        _ = self._embed.set_footer(text="Punishment creation has been cancelled")
         self._embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
@@ -702,30 +702,31 @@ class ModerationMenu(ui.View):
             files.append(file)
         # If we can't for some reason update the view, ignore the exception
         try:
-            _ = await self._update_view(interaction, files) # Update message with latest information
+            await self._update_view(interaction, files) # Update message with latest information
         except:
             pass
         self.stop() # Stop responding to any interaction
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
 
-    async def _update_view(self, interaction: Optional[Interaction], attachments: List[File] = []):
+    async def _update_view(self, interaction: Interaction | None, attachments: list[File] = []):
         """Updates the original interaction response message.
         
         If interaction object is not provided, then the message itself will be edited."""
         if interaction is None:
             assert self._message
             with suppress(NotFound):
-                await self._message.edit(embed=self._embed, view=self, attachments=attachments)
+                _ = await self._message.edit(embed=self._embed, view=self, attachments=attachments)
             return
 
         # If we have the interaction
         use_followup = interaction.response.type is not None
         if use_followup:
             assert self._message
-            return await interaction.followup.edit_message(
+            _ = await interaction.followup.edit_message(
                 message_id=self._message.id,
                 embed=self._embed, view=self, attachments=attachments
             )
+            return
         await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
 
     """Utility"""

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 
 from discord import Member, Role, Colour
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 
@@ -34,12 +34,14 @@ class LevelReward:
         role_id: int,
         level: int
     ) -> None:
+        super().__init__()
         self.__api = api
         self.__id = id
         self.__guild_id = guild_id
         self.__role_id = role_id
         self.__level = level
 
+    @override
     def __repr__(self) -> str:
         return f'<LevelReward id={self.__id} guild_id={self.__guild_id} role_id={self.__role_id} level={self.__level}>'
 
@@ -102,9 +104,10 @@ class MemberLevelInfo:
         xp_to_level_up: int,
         current_level: int,
         *,
-        theme_name: Optional[str],
+        theme_name: str | None,
         rank: int = -1
     ) -> None:
+        super().__init__()
         self.__api = api
         self.__id = id
         self.__guild_id = guild_id
@@ -116,6 +119,7 @@ class MemberLevelInfo:
         self.__theme_name = theme_name
         self.__rank = rank
 
+    @override
     def __repr__(self) -> str:
         return f'<MemberLevelInfo guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
 
@@ -178,11 +182,11 @@ class MemberLevelInfo:
         return self.__current_level
 
     @property
-    def theme_name(self) -> Optional[str]:
+    def theme_name(self) -> str | None:
         """Returns the name of the theme if available."""
         return self.__theme_name
 
-    def _get_theme_bindings(self) -> Optional[Tuple[str, str]]:
+    def _get_theme_bindings(self) -> tuple[str, str] | None:
         """Returns theme bindings for the current user."""
         if self.__theme_name is None:
             return None
@@ -194,7 +198,7 @@ class MemberLevelInfo:
         return COLOUR_BINDINGS["green"][0]
 
     @property
-    def progress_character(self) -> Optional[str]:
+    def progress_character(self) -> str | None:
         """Returns custom progress character for use in level progression display."""
         bindings = self._get_theme_bindings()
         if bindings:
@@ -222,7 +226,7 @@ class MemberLevelInfo:
             return None
         return await self.__api.client.get_or_fetch_member(guild, self.__user_id)
 
-    async def fetch_eligible_level_rewards(self) -> List[LevelReward]:
+    async def fetch_eligible_level_rewards(self) -> list[LevelReward]:
         """Returns a list of eligible level rewards for the user."""
         return await self.__api.fetch_eligible_level_rewards_for_level(self.__guild_id, self.__current_level)
 

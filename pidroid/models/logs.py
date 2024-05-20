@@ -3,7 +3,7 @@ import datetime
 from dataclasses import dataclass
 from discord import Asset, ChannelFlags, ChannelType, Colour, Embed, Member, Object, PermissionOverwrite, Permissions, Role, User, Guild, VideoQualityMode, abc
 from discord.utils import format_dt
-from typing import List, Tuple, Union, Optional
+from typing import Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
 from pidroid.utils import channel_mention, normalize_permission_name, role_mention, user_mention
@@ -11,43 +11,43 @@ from pidroid.utils import channel_mention, normalize_permission_name, role_menti
 @dataclass
 class BaseData:
     guild: Guild
-    user: Union[Member, User, None]
-    reason: Optional[str]
+    user: Member | User | None
+    reason: str | None
     created_at: datetime.datetime
 
 @dataclass
 class BaseChannelData(BaseData):
-    channel: Union[abc.GuildChannel, Object]
+    channel: abc.GuildChannel | Object
 
 @dataclass
 class ChannelCreateData(BaseChannelData):
     name: str
     type: ChannelType
-    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
+    overwrites: list[tuple[Member | User | Role | Object, PermissionOverwrite]]
 
 @dataclass
 class ChannelDeleteData(BaseChannelData):
     name: str
     type: ChannelType
-    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
+    overwrites: list[tuple[Member | User | Role | Object, PermissionOverwrite]]
     flags: ChannelFlags
     nsfw: bool
     slowmode_delay: int
 
 @dataclass
 class _ChannelData:
-    name: Optional[str]
+    name: str | None
     type: Optional[ChannelType]
-    position: Optional[int]
-    overwrites: List[Tuple[Union[Member, User, Role, Object], PermissionOverwrite]]
-    topic: Optional[str]
-    bitrate: Optional[int]
-    rtc_region: Optional[str]
+    position: int | None
+    overwrites: list[tuple[Member | User | Role | Object, PermissionOverwrite]]
+    topic: str | None
+    bitrate: int | None
+    rtc_region: str | None
     video_quality_mode: Optional[VideoQualityMode]
-    default_auto_archive_duration: Optional[int]
-    nsfw: Optional[bool]
-    slowmode_delay: Optional[int]
-    user_limit: Optional[int]
+    default_auto_archive_duration: int | None
+    nsfw: bool | None
+    slowmode_delay: int | None
+    user_limit: int | None
 
 @dataclass
 class ChannelUpdateData(BaseChannelData):
@@ -85,11 +85,11 @@ class BaseMemberData(BaseData):
 
 @dataclass
 class _MemberUpdateData:
-    nick: Optional[str]
+    nick: str | None
     # Whether the member is being server muted.
-    mute: Optional[bool]
+    mute: bool | None
     # Whether the member is being server deafened.
-    deaf: Optional[bool]
+    deaf: bool | None
     timed_out_until: Optional[datetime.datetime]
 
 @dataclass
@@ -99,7 +99,7 @@ class MemberUpdateData(BaseMemberData):
 
 @dataclass
 class _MemberRoleUpdateData:
-    roles: List[Union[Role, Object]]
+    roles: list[Union[Role, Object]]
 
 @dataclass
 class MemberRoleUpdateData(BaseMemberData):
@@ -113,29 +113,29 @@ class BaseRoleData(BaseData):
 @dataclass
 class RoleCreateData(BaseRoleData):
     colour: Optional[Colour]
-    mentionable: Optional[bool]
-    hoist: Optional[bool]
+    mentionable: bool | None
+    hoist: bool | None
     icon: Optional[Asset]
-    unicode_emoji: Optional[str]
-    name: Optional[str]
+    unicode_emoji: str | None
+    name: str | None
     permissions: Optional[Permissions]
 
 @dataclass
 class RoleDeleteData(BaseRoleData):
     colour: Optional[Colour]
-    mentionable: Optional[bool]
-    hoist: Optional[bool]
-    name: Optional[str]
+    mentionable: bool | None
+    hoist: bool | None
+    name: str | None
     permissions: Optional[Permissions]
 
 @dataclass
 class _RoleUpdateData:
     colour: Optional[Colour]
-    mentionable: Optional[bool]
-    hoist: Optional[bool]
+    mentionable: bool | None
+    hoist: bool | None
     icon: Optional[Asset]
-    unicode_emoji: Optional[str]
-    name: Optional[str]
+    unicode_emoji: str | None
+    name: str | None
     permissions: Optional[Permissions]
 
 @dataclass
@@ -148,6 +148,7 @@ class PidroidLog:
     __logname__ = "A new Pidroid log"
 
     def __init__(self, data: BaseData) -> None:
+        super().__init__()
         self.__guild = data.guild
         self.__embed = Embed(title=self.__logname__, timestamp=data.created_at)
         self.__set_author(data.user)
@@ -158,7 +159,7 @@ class PidroidLog:
         """Returns the guild object associated with the Pidroid log."""
         return self.__guild
 
-    def __set_author(self, user: Union[Member, User, None]):
+    def __set_author(self, user: Member | User | None):
         """Sets the author of the current Pidroid log."""
         name = "Unknown"
         icon_url = None
@@ -224,7 +225,7 @@ class RoleCreateLog(PidroidLog):
             self.add_field("Emoji", data.unicode_emoji)
 
         if data.permissions:
-            filtered = []
+            filtered: list[str] = []
             for permission in data.permissions:
                 name, value = permission
                 filtered.append(f"{normalize_permission_name(name)}: {value}")
@@ -259,7 +260,7 @@ class RoleDeleteLog(PidroidLog):
             self.add_field("Is hoisted?", str(data.hoist))
 
         if data.permissions:
-            filtered = []
+            filtered: list[str] = []
             for permission in data.permissions:
                 name, value = permission
                 filtered.append(f"{normalize_permission_name(name)}: {value}")
@@ -313,7 +314,7 @@ class RoleUpdateLog(PidroidLog):
             assert after.permissions is not None
             assert before.permissions is not None
             after_permissions = [p for p in after.permissions]
-            filtered = []
+            filtered: list[str] = []
             for i, before_perm in enumerate(before.permissions):
                 before_perm_name, before_perm_value = before_perm
                 if before_perm_value != after_permissions[i][1]:
@@ -419,7 +420,7 @@ class OverwriteCreateLog(_OverwriteLog):
             self.add_field("Member", f"{user_mention(data.role_or_user.id)} ({data.role_or_user.id})")
 
 
-        filtered = []
+        filtered: list[str] = []
         for permission in data.deny:
             name, value = permission
             filtered.append(f"{normalize_permission_name(name)}: {value}")
@@ -456,7 +457,7 @@ class OverwriteDeleteLog(_OverwriteLog):
             self.add_field("Member", f"{user_mention(data.role_or_user.id)} ({data.role_or_user.id})")
 
 
-        filtered = []
+        filtered: list[str] = []
         for permission in data.deny:
             name, value = permission
             filtered.append(f"{normalize_permission_name(name)}: {value}")

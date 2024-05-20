@@ -5,7 +5,6 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
 from io import BytesIO
 from PIL import Image, ImageSequence
-from typing import Tuple
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import RandomCategory
@@ -18,7 +17,7 @@ async def load_image_from_url(client: Pidroid, url: str):
         payload = await r.read()
     return Image.open(BytesIO(payload))
 
-async def handle_attachment(ctx: Context) -> Tuple[discord.Attachment, str]:
+async def handle_attachment(ctx: Context) -> tuple[discord.Attachment, str]:
     """Returns None or discord.Attachment after assuring it is safe to use."""
     attachments = ctx.message.attachments
     if len(attachments) < 1:
