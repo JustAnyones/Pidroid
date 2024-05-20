@@ -20,7 +20,7 @@ discord.py==2.3.2
 dnspython==2.6.1
 emoji==2.8.0
 frozenlist==1.4.0
-greenlet==2.0.2
+#greenlet==2.0.2
 h11==0.14.0
 h2==4.1.0
 hpack==4.0.0
@@ -30,12 +30,12 @@ hyperframe==6.0.1
 idna==3.7
 import-expression==1.1.4
 jishaku==2.5.1
-line-profiler==4.1.1
+#line-profiler==4.1.1
 lxml==4.9.3
 lxml-stubs==0.4.0
 Mako==1.2.4
 MarkupSafe==2.1.3
-multidict==6.0.4
+#multidict==6.0.4
 mypy==1.5.1
 mypy-extensions==1.0.0
 Pillow==10.3.0

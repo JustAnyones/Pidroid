@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # Obtain the base image to be used
-FROM python:3.9.16-slim-bullseye
+FROM python:3.12.3-slim-bookworm
 
 # Install the required packages
 RUN apt-get update

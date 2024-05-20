@@ -19,12 +19,12 @@ from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH # noqa: E402
 
 # Use uvloop if possible
 try:
-    import uvloop # type: ignore # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
+    import uvloop # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
     uvloop.install()
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     pass
-else:
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    
 
 # Use selector event loop since proactor has some issues
 if sys.platform == 'win32':

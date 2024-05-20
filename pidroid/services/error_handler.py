@@ -6,9 +6,9 @@ import traceback
 
 from contextlib import suppress
 from discord.errors import HTTPException
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
-from jishaku.paginators import PaginatorInterface, WrappedPaginator # type: ignore
+from discord.ext import commands
+from discord.ext.commands.context import Context
+from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from typing import TYPE_CHECKING, Optional
 
 from pidroid.models import exceptions
@@ -17,21 +17,21 @@ from pidroid.utils.time import humanize
 
 # Errors which command error handler will ignore
 ignored_exceptions = (
-    commands.CommandNotFound, # type: ignore
-    commands.DisabledCommand, # type: ignore
+    commands.CommandNotFound,
+    commands.DisabledCommand,
     exceptions.ClientIsNotPidroid
 )
 
 # Errors which command error handler won't modify the behaviour of
 use_default = (
     # Permission exceptions
-    commands.BotMissingPermissions, # type: ignore
-    commands.MissingPermissions, # type: ignore
+    commands.BotMissingPermissions,
+    commands.MissingPermissions,
     exceptions.MissingUserPermissions,
     exceptions.NotInTheoTownGuild,
 
     # Cooldown and concurrency exceptions
-    commands.MaxConcurrencyReached, # type: ignore
+    commands.MaxConcurrencyReached,
 
     # Argument exceptions
     commands.BadArgument, # type: ignore
