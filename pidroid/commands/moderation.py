@@ -20,7 +20,7 @@ from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, get
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union, TypedDict
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Union, TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
@@ -63,11 +63,11 @@ class BaseButton(ui.Button):
     if TYPE_CHECKING:
         view: ModerationMenu
 
-    def __init__(self, style: ButtonStyle, label: Optional[str], disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+    def __init__(self, style: ButtonStyle, label: str | None, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
 
 class ValueButton(BaseButton):
-    def __init__(self, label: Optional[str], value: Optional[Any]):
+    def __init__(self, label: str | None, value: Optional[Any]):
         super().__init__(ButtonStyle.gray, label)
         # If value doesn't exist, mark it as custom
         if value is None:
@@ -78,10 +78,14 @@ class ValueButton(BaseButton):
             self.style = ButtonStyle.red
         self.value = value
 
+    def copy(self):
+        return type(self)(self.label, self.value)
+
 class LengthButton(ValueButton):
-    def __init__(self, label: Optional[str], value: Optional[Union[int, timedelta]]):
+    def __init__(self, label: str | None, value: Optional[Union[int, timedelta]]):
         super().__init__(label, value)
 
+    @override
     async def callback(self, interaction: Interaction) -> None:
         value = self.value
         if value is None:
@@ -117,9 +121,10 @@ class LengthButton(ValueButton):
         await self.view._update_view(interaction)
 
 class ReasonButton(ValueButton):
-    def __init__(self, label: Optional[str], value: Optional[str]):
+    def __init__(self, label: str | None, value: str | None):
         super().__init__(label, value)
 
+    @override
     async def callback(self, interaction: Interaction) -> None:
         value = self.value
         if value is None:
@@ -211,7 +216,7 @@ REASON_MAPPING = {
 class ModerationMenu(ui.View):
 
     if TYPE_CHECKING:
-        _message: Optional[Message]
+        _message: Message | None
         _embed: Embed
 
     def __init__(
@@ -367,7 +372,7 @@ class ModerationMenu(ui.View):
     - Confirming or cancelling the action
     """
 
-    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction, bool]:
+    async def custom_reason_modal(self, interaction: Interaction) -> Tuple[str | None, Interaction, bool]:
         modal = ReasonModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
@@ -375,7 +380,7 @@ class ModerationMenu(ui.View):
             await self.timeout_interface(interaction)
         return modal.reason_input.value, modal.interaction, timed_out
 
-    async def custom_length_modal(self, interaction: Interaction) -> Tuple[Optional[str], Interaction, bool]:
+    async def custom_length_modal(self, interaction: Interaction) -> Tuple[str | None, Interaction, bool]:
         modal = LengthModal()
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
@@ -482,14 +487,14 @@ class ModerationMenu(ui.View):
         # Add timeout/un-timeout buttons
         # TODO: these buttons need to check for state whether user got jailed while the menu was opening
         if not await self.is_user_timed_out():
-            self.add_item(self.on_type_timeout_button)
+            _ = self.add_item(self.on_type_timeout_button)
         else:
-            self.add_item(self.on_type_timeout_remove_button)
+            _ = self.add_item(self.on_type_timeout_remove_button)
 
         # Warn button
-        self.add_item(self.on_type_warn_button)
-
-        self.add_item(self.on_cancel_button)
+        _ = self.add_item(self.on_type_warn_button)
+        # Cancel button
+        _ = self.add_item(self.on_cancel_button)
 
     async def show_length_selection_menu(self) -> None:
         """Shows the punishment length selection menu."""
@@ -498,9 +503,9 @@ class ModerationMenu(ui.View):
         if mapping is None or len(mapping) == 0:
             return await self.show_reason_selection_menu()
 
-        self.clear_items()
+        _ = self.clear_items()
         for button in mapping:
-            self.add_item(button)
+            self.add_item(button.copy())
         self.add_item(self.on_cancel_button)
         self._embed.set_footer(text="Select the punishment length")
 
@@ -513,7 +518,7 @@ class ModerationMenu(ui.View):
 
         self.clear_items()
         for button in mapping:
-            self.add_item(button)
+            self.add_item(button.copy())
         self.add_item(self.on_cancel_button)
         self._embed.set_footer(text="Select reason for the punishment")
 
@@ -764,9 +769,10 @@ class ModerationCommandCog(commands.Cog):
     """This class implements cog which contains commands for moderation."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
         # {GUILD_ID: {USER_ID: UserSemaphoreDict}}
-        self.user_semaphores: Dict[int, Dict[int, UserSemaphoreDict]] = {}
+        self.user_semaphores: dict[int, dict[int, UserSemaphoreDict]] = {}
         self.unlock_semaphores.start()
 
     def cog_unload(self):
@@ -822,7 +828,7 @@ class ModerationCommandCog(commands.Cog):
             return True
         return False
 
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name="purge",
         brief='Removes messages from the channel, that are not pinned. The amount corresponds to the amount of messages to search.',
         usage='<amount>',
@@ -877,7 +883,7 @@ class ModerationCommandCog(commands.Cog):
         deleted = await ctx.channel.purge(limit=amount, check=is_member)
         await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
-    @commands.command(hidden=True) # type: ignore
+    @commands.command(hidden=True)
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
     @command_checks.is_junior_moderator(manage_messages=True)
     @commands.guild_only()
@@ -888,7 +894,7 @@ class ModerationCommandCog(commands.Cog):
         await ctx.send(file=File(Resource('delete_this.png')))
 
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="modmenu",
         brief="Open user moderation and punishment menu.",
         usage="<user/member>",
@@ -901,11 +907,11 @@ class ModerationCommandCog(commands.Cog):
     async def moderation_menu_command(
         self,
         ctx: Context,
-        user: Union[Member, User]
+        user: Member | User
     ):
         assert ctx.guild
         assert isinstance(ctx.message.author, Member)
-        
+
         conf = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         # Check initial permissions
@@ -999,7 +1005,7 @@ class ModerationCommandCog(commands.Cog):
         await t.issue()
         await ctx.reply(embed=t.public_message_issue_embed)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="punish-bunny",
         brief='Bans (times out) bunny for 4 weeks.',
         hidden=True,

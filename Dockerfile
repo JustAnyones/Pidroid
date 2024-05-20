@@ -7,6 +7,7 @@ FROM python:3.12.3-slim-bookworm
 RUN apt-get update
 RUN apt-get upgrade -y
 RUN apt-get install -y ffmpeg
+RUN apt-get install -y gcc
 
 # Create Pidroid user account
 #RUN groupadd -g 999 pidroid
