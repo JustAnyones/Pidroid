@@ -1,0 +1,11 @@
+[tool.mypy]
+exclude = [
+    "venv", 
+    "alembic",
+    "data",
+    ".venv"
+]
+
+[tool.basedpyright]
+reportMissingTypeStubs = false
+pythonVersion = "3.12"
