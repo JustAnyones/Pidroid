@@ -1,11 +1,11 @@
-import aiocron # type: ignore
+import aiocron
 import calendar
 import logging
 
 from aiohttp.client_exceptions import ServerDisconnectedError
 from datetime import timedelta
 from discord.channel import TextChannel
-from discord.ext import tasks, commands # type: ignore
+from discord.ext import tasks, commands
 from discord.utils import escape_markdown
 from typing import List
 

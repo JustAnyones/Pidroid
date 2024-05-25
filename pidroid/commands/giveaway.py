@@ -59,7 +59,7 @@ class GiveawayCommandCog(commands.Cog):
             raise BadArgument("I can't count higher than 31 days, can we go a little lower?")
         return datetime
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief='An experimental command for possible inclusion of the giveaway system.',
         category=UtilityCategory,
         hidden=True

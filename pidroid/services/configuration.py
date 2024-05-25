@@ -2,7 +2,7 @@ import logging
 
 from discord.abc import GuildChannel
 from discord.channel import TextChannel
-from discord.ext import commands # type: ignore
+from discord.ext import commands
 from discord.guild import Guild
 from discord.role import Role
 
@@ -10,12 +10,12 @@ from pidroid.client import Pidroid
 
 logger = logging.getLogger("Pidroid")
 
-class GuildConfigurationService(commands.Cog): # type: ignore
+class GuildConfigurationService(commands.Cog):
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_ready(self) -> None:
         """This notifies the host of the bot that the client is ready to use."""
         await self.__fill_guild_prefix_cache()
@@ -43,7 +43,7 @@ class GuildConfigurationService(commands.Cog): # type: ignore
         self.client._guild_prefix_cache_ready.set()
         logger.debug("Guild prefix cache ready")
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild):
         await self.client.wait_until_guild_configurations_loaded()
 
@@ -52,7 +52,7 @@ class GuildConfigurationService(commands.Cog): # type: ignore
         # and get cached
         await self.client.fetch_guild_configuration(guild.id)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):
         await self.client.wait_until_guild_configurations_loaded()
 
@@ -61,7 +61,7 @@ class GuildConfigurationService(commands.Cog): # type: ignore
             await config.delete()
             self.client.remove_guild_prefixes(guild.id)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_guild_role_delete(self, role: Role) -> None:
         """Handles configuration updates based on role removals."""
         await self.client.wait_until_guild_configurations_loaded()
@@ -71,7 +71,7 @@ class GuildConfigurationService(commands.Cog): # type: ignore
         if config.jail_role_id == role.id:
             await config.edit(jail_role_id=None)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_guild_channel_delete(self, guild_channel: GuildChannel) -> None:
         """Handles configuration updates based on text channel removals."""
         # Only care about text channels, as Pidroid doesn't do anything moderative with

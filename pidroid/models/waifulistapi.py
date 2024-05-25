@@ -5,7 +5,7 @@ import urllib.parse
 
 from enum import Enum
 from io import StringIO
-from lxml import etree # type: ignore # nosec
+from lxml import etree
 from httpx._models import Response
 from typing import Any, TYPE_CHECKING, Dict, Optional, List, Union
 

@@ -4,8 +4,8 @@ import typing
 from discord.enums import StickerFormatType
 from discord.errors import HTTPException
 from discord.ext import commands
-from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext.commands import Context
+from discord.ext.commands.errors import BadArgument
 from discord.message import Message
 from discord.sticker import GuildSticker, StandardSticker, StickerItem
 from io import BytesIO
@@ -15,7 +15,7 @@ from pidroid.models.categories import UtilityCategory
 from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
 
 
-def get_message_stickers(message: Message) -> typing.List[StickerItem]:
+def get_message_stickers(message: Message) -> list[StickerItem]:
     """Returns a list of StickerItem found in a message."""
     stickers = message.stickers
     if len(stickers) == 0:
@@ -23,22 +23,23 @@ def get_message_stickers(message: Message) -> typing.List[StickerItem]:
     return stickers
 
 
-class StickerCommandCog(commands.Cog): # type: ignore
+class StickerCommandCog(commands.Cog):
     """This class implements a cog for dealing with sticker related commands."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='clone-sticker',
         brief='Retrieves the sticker from a referenced message and adds it to server sticker list.',
         aliases=['steal-sticker', 'stealsticker', 'clonesticker'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True, manage_emojis_and_stickers=True) # type: ignore# type: ignore
-    @commands.has_permissions(manage_emojis_and_stickers=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def steal_sticker(self, ctx: Context, message: typing.Optional[Message]):
+    @commands.bot_has_permissions(send_messages=True, manage_emojis_and_stickers=True)
+    @commands.has_permissions(manage_emojis_and_stickers=True)
+    @commands.guild_only()
+    async def steal_sticker(self, ctx: Context[Pidroid], message: typing.Optional[Message]):
         assert ctx.guild is not None
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -70,14 +71,14 @@ class StickerCommandCog(commands.Cog): # type: ignore
         else:
             await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='get-sticker',
         brief='Retrieves a sticker from a referenced message.',
         aliases=['getsticker'],
         category=UtilityCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def get_sticker(self, ctx: Context, message: typing.Optional[Message]):
+    @commands.bot_has_permissions(send_messages=True)
+    async def get_sticker(self, ctx: Context[Pidroid], message: typing.Optional[Message]):
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 

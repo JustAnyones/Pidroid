@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from discord import AllowedMentions, Attachment, File, Member, Message
-from discord.ext import commands # type: ignore
-from discord.ext.commands import Context # type: ignore
-from discord.ext.commands.errors import BadArgument # type: ignore
+from discord.ext import commands
+from discord.ext.commands import Context
+from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown, format_dt
 from io import BytesIO
 from typing import TYPE_CHECKING, List, Optional
@@ -41,7 +41,7 @@ class TagListPaginator(ListPageSource):
         self.embed.description = values.strip()
         return self.embed
 
-class TagCommandCog(commands.Cog): # type: ignore
+class TagCommandCog(commands.Cog):
     """This class implements a cog for dealing with guild tag related commands.."""
 
     def __init__(self, client: Pidroid):
@@ -80,7 +80,7 @@ class TagCommandCog(commands.Cog): # type: ignore
         return attachment.url
 
 
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name="tag",
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
@@ -91,8 +91,8 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Show a tag that contains the name files", 'tag files'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def tag_command(self, ctx: Context, *, tag_name: str):
         if ctx.invoked_subcommand is None:
             tag_list = await self.find_tags(ctx, tag_name)
@@ -123,13 +123,13 @@ class TagCommandCog(commands.Cog): # type: ignore
             return await ctx.reply(message_content, allowed_mentions=ALLOWED_MENTIONS)
 
 
-    @tag_command.command( # type: ignore
+    @tag_command.command(
         name="list",
         brief="Returns a list of available server tags.",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def tag_list_command(self, ctx: Context):
         assert ctx.guild is not None
         guild_tags = await self.client.api.fetch_guild_tags(ctx.guild.id)
@@ -140,7 +140,7 @@ class TagCommandCog(commands.Cog): # type: ignore
         view = PaginatingView(self.client, ctx, source=source)
         await view.send()
 
-    @tag_command.command( # type: ignore
+    @tag_command.command(
         name="info",
         brief='Returns information about a specific server tag.',
         usage='<tag name>',
@@ -149,8 +149,8 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Show tag information. Note how you have to use the full name.", 'tag info role explanations'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def tag_info_command(self, ctx: Context, *, tag_name: str):
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -171,7 +171,7 @@ class TagCommandCog(commands.Cog): # type: ignore
         await ctx.reply(embed=embed)
 
 
-    @tag_command.command( # type: ignore
+    @tag_command.command(
         name="raw",
         brief='Returns raw tag content.',
         usage='<tag name>',
@@ -180,8 +180,8 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Show raw tag content. Note how you have to use the full name.", 'tag raw role explanations'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True, attach_files=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True, attach_files=True)
+    @commands.guild_only()
     async def tag_raw_command(self, ctx: Context, *, tag_name: str):
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -191,7 +191,7 @@ class TagCommandCog(commands.Cog): # type: ignore
         await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}'"), file=file)
 
 
-    @tag_command.command( # type: ignore
+    @tag_command.command(
         name="create",
         brief="Create a server tag.",
         usage="<tag name> <tag content>",
@@ -200,10 +200,10 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Create a tag called Role explanations", 'tag create "Role explanations" amazing role tag'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.cooldown(rate=10, per=60, type=commands.BucketType.user) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.cooldown(rate=10, per=60, type=commands.BucketType.user)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_create_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
         assert ctx.guild
 
@@ -232,7 +232,7 @@ class TagCommandCog(commands.Cog): # type: ignore
         )
 
 
-    @tag_command.command( # type: ignore
+    @tag_command.command(
         name="edit",
         brief="Edit a server tag.",
         usage="<tag name> <tag content>",
@@ -241,9 +241,9 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Edit a tag called Role explanations", 'tag edit "Role explanations" amazingly edited tag'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_edit_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
@@ -277,9 +277,9 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Allow JustAnyone to edit role tag", 'tag add-author "Role explanations" JustAnyone'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_add_author_command(self, ctx: Context, tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
@@ -308,9 +308,9 @@ class TagCommandCog(commands.Cog): # type: ignore
             ("Remove JustAnyone from authors", 'tag remove-author "Role explanations" JustAnyone'),
         ],
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_remove_author_command(self, ctx: Context, tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
@@ -333,9 +333,9 @@ class TagCommandCog(commands.Cog): # type: ignore
         usage="<tag name>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_claim_command(self, ctx: Context, *, tag_name: str):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
@@ -370,9 +370,9 @@ class TagCommandCog(commands.Cog): # type: ignore
         usage="<tag name> <member>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_transfer_command(self, ctx: Context, tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
@@ -401,9 +401,9 @@ class TagCommandCog(commands.Cog): # type: ignore
         usage="<tag name>",
         category=TagCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def tag_remove_command(self, ctx: Context, *, tag_name: str):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)

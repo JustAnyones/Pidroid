@@ -1,6 +1,6 @@
 import datetime
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, override
 
 from pidroid.constants import THEOTOWN_FORUM_URL
 from pidroid.utils.time import timestamp_to_datetime
@@ -15,14 +15,15 @@ class ForumAccount:
         post_count: int
         reaction_count: int
         date_registered: datetime.datetime
-        date_latest_login: Optional[datetime.datetime]
+        date_latest_login: datetime.datetime | None
         _avatar: str
 
     def __init__(self, data: dict) -> None:
+        super().__init__()
         self.id = data["user_id"]
         self.name = data["username"]
 
-        self.group_name: str = data["group_name"]
+        self.group_name = data["group_name"]
         if self.group_name.isupper():
             self.group_name = self.group_name.replace("_", " ").capitalize()
 
@@ -38,6 +39,7 @@ class ForumAccount:
 
         self._avatar = data["user_avatar"]
 
+    @override
     def __repr__(self) -> str:
         return f'<ForumAccount id={self.id} name="{self.name}">'
 
@@ -64,6 +66,7 @@ class ForumAccount:
 class TheoTownAccount:
 
     def __init__(self, data: dict) -> None:
+        super().__init__()
         self.id: int = data["id"]
         self.name: str = data["name"]
         self.forum_account = ForumAccount(data["forum_account"])

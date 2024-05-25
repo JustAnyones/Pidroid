@@ -179,7 +179,7 @@ class PaginatingView(BaseView):
         return await super().send()
 
     async def _get_embed_from_page(self, page: int) -> discord.Embed:
-        value = await discord.utils.maybe_coroutine(self.source.format_page, self, page) # type: ignore
+        value = await discord.utils.maybe_coroutine(self.source.format_page, self, page)
         return value
 
     async def show_page(self, interaction: discord.Interaction, page_number: int) -> None:

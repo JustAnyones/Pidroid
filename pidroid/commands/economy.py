@@ -134,7 +134,7 @@ class EconomyCommandCog(commands.Cog):
     def cog_unload(self):
         save_command_cooldowns(self.beg_command, "beg.dill")
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="beg",
         brief='Beg Pidroid to print some money for you.',
         category=RandomCategory

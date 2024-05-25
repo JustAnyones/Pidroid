@@ -80,7 +80,7 @@ class MessageQueue(AbstractMessageQueue):
             # WARN: usually, this is a very bad idea in multi consumer flows, but
             # since there's only a single consumer for our messages queues,
             # this doesn't matter in this specific case
-            next_value: str = self._queue._queue[0] # type: ignore
+            next_value: str = self._queue._queue[0]
             #print("Peeking:", next_value)
 
             combined = value + "\n" + next_value

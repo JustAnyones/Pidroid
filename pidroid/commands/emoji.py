@@ -54,7 +54,7 @@ class EmojiCommandCog(commands.Cog):
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="emoji",
         brief='Displays the source image or the GIF of the specified custom emoji.',
         usage='<emoji>',
@@ -75,7 +75,7 @@ class EmojiCommandCog(commands.Cog):
             return await notify(ctx, f'"{error.argument}" is not a valid custom emoji.')
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='copy-emoji',
         brief='Retrieves the first emoji from a referenced message and adds it to server custom emoji list.',
         aliases=['steal-emoji', 'clone-emoji'],
@@ -116,7 +116,7 @@ class EmojiCommandCog(commands.Cog):
         else:
             await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='get-emojis',
         brief='Retrieves all custom emojis from a referenced message.',
         aliases=['get-emoji'],

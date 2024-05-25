@@ -3,7 +3,7 @@ import datetime
 
 from discord import File
 from discord.message import Message
-from discord.ext import commands # type: ignore
+from discord.ext import commands
 from random import randint
 
 from pidroid.client import Pidroid
@@ -89,7 +89,7 @@ LITHUANIA_COPYPASTA: str = (
     "🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹 LIETUVA PASAULIO GALIA %YEAR% 🇱🇹🇱🇹🇱🇹🇱🇹💪💪🥇💪💪💪🏆🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🥇🥇🥇🏆🏆💪💪💪🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹"
 )
 
-class CopypastaService(commands.Cog): # type: ignore
+class CopypastaService(commands.Cog):
     """
     This class implements a cog for handling invocation of copypastas and other memes
     invoked by events like on_message in the TheoTown guild.
@@ -154,7 +154,7 @@ class CopypastaService(commands.Cog): # type: ignore
             or find_whole_word('gansu', content) # https://www.reddit.com/r/okbuddygenshin/comments/11ey07z/quaso_and_ganyu_reall/
         )
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_message(self, message: Message): # noqa: C901
         if message.author.bot or not message.guild or not is_guild_theotown(message.guild):
             return

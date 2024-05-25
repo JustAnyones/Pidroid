@@ -7,8 +7,8 @@ import os
 import sys
 import typing
 
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context  # type: ignore
+from discord.ext import commands
+from discord.ext.commands.context import Context 
 from discord.ext.commands.errors import BadArgument
 
 from pidroid.client import Pidroid
@@ -20,20 +20,20 @@ from pidroid.utils.embeds import ErrorEmbed
 
 logger = logging.getLogger('Pidroid')
 
-class OwnerCommandCog(commands.Cog): # type: ignore
+class OwnerCommandCog(commands.Cog):
     """This class implements a cog for special bot owner only commands."""
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief="Sends a message to a specified guild channel as the bot.",
         usage="<channel> <message>",
         aliases=["say"],
         category=OwnerCategory,
         hidden=True
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_guild_permissions(send_messages=True, manage_messages=True) # type: ignore
+    @commands.is_owner()
+    @commands.bot_has_guild_permissions(send_messages=True, manage_messages=True)
     async def speak(self, ctx: Context, channel: discord.TextChannel, *, message: str):
         try:
             await ctx.message.delete(delay=0)
@@ -41,25 +41,25 @@ class OwnerCommandCog(commands.Cog): # type: ignore
         except Exception as e:
             await ctx.reply(embed=ErrorEmbed(str(e)))
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief="Set the bot's playing game status to the specified game.",
         usage="<game>",
         aliases=["setgame", "play"],
         category=OwnerCategory
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
     async def playgame(self, ctx: Context, *, game: str):
         await self.client.change_presence(activity=discord.Game(game))
         await ctx.reply(f"Now playing {game}!")
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief="Stops the bot by killing the process with a SIGKILL signal.",
         aliases=["pulltheplug", "shutdown"],
         category=OwnerCategory
     )
     @command_checks.can_shutdown_bot()
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def stop(self, ctx: Context):
         user = await self.client.get_or_fetch_user(JUSTANYONE_ID)
         logger.critical(f'Kill request received by {ctx.message.author}')
@@ -74,14 +74,14 @@ class OwnerCommandCog(commands.Cog): # type: ignore
             from signal import SIGKILL
             os.kill(os.getpid(), SIGKILL)
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief="Sends a message to the specified user as the bot.",
         usage="<user> <message>",
         category=OwnerCategory,
         hidden=True
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
     async def dm(self, ctx: Context, user: typing.Union[discord.Member, discord.User], *, message: str):
         await user.send(message)
         await ctx.reply(f"Message to {str(user)} was sent succesfully")

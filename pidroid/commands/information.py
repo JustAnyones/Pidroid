@@ -53,7 +53,7 @@ class InformationCommandCog(commands.Cog):
     def __init__(self, client: Pidroid) -> None:
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='profile-avatar',
         brief='Displays the real profile picture of a user.',
         usage='[user]',
@@ -82,7 +82,7 @@ class InformationCommandCog(commands.Cog):
                         return await notify(ctx, str(_err))
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='avatar',
         brief='Displays the server profile picture of a user.',
         usage='[user]',
@@ -110,7 +110,7 @@ class InformationCommandCog(commands.Cog):
                         return await notify(ctx, str(_err))
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='user-info',
         brief='Displays the user information.',
         usage='[user]',
@@ -189,7 +189,7 @@ class InformationCommandCog(commands.Cog):
                         return await notify(ctx, str(_err))
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='server-info',
         brief='Displays the server information.',
         aliases=['si', 'serverinfo'],
@@ -215,7 +215,7 @@ class InformationCommandCog(commands.Cog):
         embed.set_footer(text='Server created')
         await ctx.reply(embed=embed)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='role-info',
         brief='Displays the role information.',
         aliases=['ri', 'roleinfo'],
@@ -246,7 +246,7 @@ class InformationCommandCog(commands.Cog):
                 return await notify(ctx, "Please specify the role to view the information for.")
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name='roles',
         brief='Displays a list of server roles.',
         aliases=['role-list'],
@@ -270,7 +270,7 @@ class InformationCommandCog(commands.Cog):
         ))
         await view.send()
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief='Displays time information across the globe.',
         category=InformationCategory
     )

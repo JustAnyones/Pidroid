@@ -350,7 +350,7 @@ class Pidroid(commands.Bot):
             time=MISSING,
             reconnect=True,
         )
-        loop._before_loop = self.wait_until_guild_configurations_loaded # type: ignore
+        loop._before_loop = self.wait_until_guild_configurations_loaded
         self.__tasks.append(loop)
         loop.start()
         return queue

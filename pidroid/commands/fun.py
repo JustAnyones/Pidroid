@@ -15,7 +15,7 @@ from typing import Optional
 from pidroid.client import Pidroid
 from pidroid.models.categories import RandomCategory
 from pidroid.services.error_handler import notify
-from pidroid.utils.checks import check_bot_channel_permissions
+from pidroid.utils.checks import assert_bot_channel_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
 from pidroid.utils.file import Resource
@@ -88,7 +88,7 @@ class FunCommandCog(commands.Cog):
         except KeyError:
             raise BadArgument("Credentials for TENOR GIF API could not be found!")
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="color",
         brief='Returns a random color.',
         usage="[hex color]",
@@ -107,7 +107,7 @@ class FunCommandCog(commands.Cog):
         embed = Embed(title=color.__str__(), color=color)
         await ctx.reply(embed=embed)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="pingu",
         brief='Noot noot!',
         category=RandomCategory
@@ -118,7 +118,7 @@ class FunCommandCog(commands.Cog):
             text, file_path = random.choice(PINGU_RESPONSES) # nosec
             await ctx.reply(text, file=discord.File(file_path))
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="sloth",
         brief='Summons a very slow creature.',
         category=RandomCategory
@@ -128,7 +128,7 @@ class FunCommandCog(commands.Cog):
         async with ctx.typing():
             await ctx.reply(content="The myth, the legend.", file=discord.File(Resource('sloth.gif')))
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="happiness",
         brief='Returns a positive review from TheoTown listing on play store.',
         permissions=["TheoTown developer"],
@@ -145,7 +145,7 @@ class FunCommandCog(commands.Cog):
         embed.set_footer(text=f"{data['rating']} ⭐")
         await ctx.reply(embed=embed)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="fire",
         brief='I smell fire, do you? In either case, lets call a fireman!',
         category=RandomCategory
@@ -160,7 +160,7 @@ class FunCommandCog(commands.Cog):
                 file=discord.File(Resource('evan.png'))
             )
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="gif",
         brief='Queries a GIF from TENOR.',
         usage='<search term>',
@@ -187,7 +187,7 @@ class FunCommandCog(commands.Cog):
                 return await notify(ctx, "Please specify a value to query GIFs with.")
         setattr(error, 'unhandled', True)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="dice",
         brief='Rolls a dice.',
         category=RandomCategory
@@ -196,7 +196,7 @@ class FunCommandCog(commands.Cog):
     async def dice_command(self, ctx: Context):
         await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!") # nosec
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="roll",
         brief='Rolls a random number between 1 and the specified value.\nThe default value is 6.',
         category=RandomCategory
@@ -207,7 +207,7 @@ class FunCommandCog(commands.Cog):
             raise BadArgument("Limit cannot be 1 or less. It'd be stupid")
         await ctx.reply(f"You rolled a {random.randint(1, limit)}!") # nosec
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="fact",
         brief='Asks Pidroid to tell one of his own facts.',
         category=RandomCategory
@@ -217,7 +217,7 @@ class FunCommandCog(commands.Cog):
     async def fact_command(self, ctx: Context):
         await ctx.reply(random.choice(FUN_FACTS)) # nosec
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="cloaker",
         brief='Calls a cloaker to kickdrop your friends in a voice channel.',
         usage='<member in voice channel>',
@@ -243,7 +243,7 @@ class FunCommandCog(commands.Cog):
             raise BadArgument("Bro, I am already in that channel. What do you want me to do?")
 
         assert isinstance(ctx.me, discord.Member)
-        check_bot_channel_permissions(ctx.me, channel, move_members=True, speak=True, connect=True)
+        assert_bot_channel_permissions(ctx.me, channel, move_members=True, speak=True, connect=True)
 
         try:
             vc: VoiceClient = await channel.connect(reconnect=False)

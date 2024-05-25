@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 
-from discord import Member, Role, Colour
-from typing import TYPE_CHECKING, Optional, override
+from discord import Member, Colour
+from typing import TYPE_CHECKING, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 
@@ -211,14 +211,14 @@ class MemberLevelInfo:
         return Colour.from_str(COLOUR_BINDINGS["green"][1])
     
     @property
-    def embed_colour(self) -> Optional[Colour]:
+    def embed_colour(self) -> Colour | None:
         """Returns custom embed colour for use in level progression display."""
         bindings = self._get_theme_bindings()
         if bindings:
             return Colour.from_str(bindings[1])
         return None
 
-    async def fetch_member(self) -> Optional[Member]:
+    async def fetch_member(self) -> Member | None:
         """Fetches the member object associated with this level information."""
         guild = self.__api.client.get_guild(self.__guild_id)
         if guild is None:
@@ -230,7 +230,7 @@ class MemberLevelInfo:
         """Returns a list of eligible level rewards for the user."""
         return await self.__api.fetch_eligible_level_rewards_for_level(self.__guild_id, self.__current_level)
 
-    async def fetch_eligible_level_reward(self) -> Optional[LevelReward]:
+    async def fetch_eligible_level_reward(self) -> LevelReward | None:
         """Returns the most eligible level reward for the user."""
         return await self.__api.fetch_eligible_level_reward_for_level(self.__guild_id, self.__current_level)
 

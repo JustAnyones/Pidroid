@@ -428,7 +428,7 @@ class Ban(BasePunishment):
         """Bans the user and creates new database entry."""
         message = await try_message_user(self.user, embed=self.private_message_issue_embed)
         try:
-            await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1) # type: ignore
+            await self.guild.ban(user=self.user, reason=self.audit_log_issue_reason, delete_message_days=1)
         except Exception as e:
             if message:
                 await message.delete()
@@ -440,7 +440,7 @@ class Ban(BasePunishment):
     async def revoke(self, *, reason: Optional[str] = None) -> None:
         """Unbans the user and updates database entry."""
         self.reason = reason
-        await self.guild.unban(self.user, reason=self.audit_log_revoke_reason) # type: ignore
+        await self.guild.unban(self.user, reason=self.audit_log_revoke_reason)
         await self._expire_cases_by_type(PunishmentType.ban)
         self._api.client.dispatch("pidroid_ban_revoke", self)
 
@@ -579,14 +579,14 @@ class Jail(BasePunishment):
 
     async def issue(self) -> Case:
         """Jails the member."""
-        await self.user.add_roles(self.__role, reason=self.audit_log_issue_reason) # type: ignore
+        await self.user.add_roles(self.__role, reason=self.audit_log_issue_reason)
         self.case = await self.create_case()
         self._api.client.dispatch("pidroid_jail_issue", self)
         return self.case
 
     async def revoke(self, *, reason: Optional[str] = None):
         self.reason = reason
-        await self.user.remove_roles(self.__role, reason=self.audit_log_revoke_reason) # type: ignore
+        await self.user.remove_roles(self.__role, reason=self.audit_log_revoke_reason)
         await self._expire_cases_by_type(PunishmentType.jail)
         self._api.client.dispatch("pidroid_jail_revoke", self)
 

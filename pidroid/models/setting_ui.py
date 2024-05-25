@@ -271,7 +271,7 @@ class TextModal(discord.ui.Modal):
         # Since this is strictly a TextInput modal, we
         # add some glue to add type hinting when handling
         # chilren values
-        children: List[discord.ui.TextInput[Self]] # type: ignore
+        children: List[discord.ui.TextInput[Self]]
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction

@@ -44,16 +44,16 @@ logger = logging.getLogger("Pidroid")
 BUNNY_ID = 793465265237000212
 
 class ReasonModal(ui.Modal, title='Custom reason modal'):
-    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason") # type: ignore
-    interaction: Interaction = None # type: ignore
+    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason")
+    interaction: Interaction = None
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
         self.stop()
 
 class LengthModal(ui.Modal, title='Custom length modal'):
-    length_input = ui.TextInput(label="Length", placeholder="Please provide the length") # type: ignore
-    interaction: Interaction = None # type: ignore
+    length_input = ui.TextInput(label="Length", placeholder="Please provide the length")
+    interaction: Interaction = None
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction

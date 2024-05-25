@@ -213,7 +213,7 @@ class ChatTranslationService(commands.Cog):
         action = None
         if message.reference:
             with suppress(Exception):
-                reference = await message.channel.fetch_message(message.reference.message_id) # type: ignore
+                reference = await message.channel.fetch_message(message.reference.message_id)
                 action = f"Replying to {str(reference.author)}"
 
         # Create a rich message description from stickers

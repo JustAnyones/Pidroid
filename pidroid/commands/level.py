@@ -48,7 +48,7 @@ class LevelCommandCog(commands.Cog):
             raise BadArgument('XP system is not enabled in this server!')
         return True
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="level",
         brief="Displays the member level rank.",
         usage="[user/member]",
@@ -109,7 +109,7 @@ class LevelCommandCog(commands.Cog):
                         return await notify(ctx, str(_err))
         setattr(error, 'unhandled', True)
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name='leaderboard',
         brief='Returns the server level leaderboard.',
         category=LevelCategory
@@ -123,7 +123,7 @@ class LevelCommandCog(commands.Cog):
         pages = PaginatingView(self.client, ctx, source=LeaderboardPaginator(levels))
         await pages.send()
 
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name='rewards',
         brief='Returns the server level rewards.',
         category=LevelCategory,
@@ -150,15 +150,15 @@ class LevelCommandCog(commands.Cog):
                 embed.description += f"{reward.level}: {role_name}\n"
             await ctx.reply(embed=embed)
 
-    @rewards_command.command( # type: ignore
+    @rewards_command.command(
         name='add',
         brief='Adds the specified role as a level reward.',
         usage='<role> <level>',
         category=LevelCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_roles=True)
+    @commands.guild_only()
     async def rewards_add_command(self, ctx: Context[Pidroid], role: Role, level: int):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)

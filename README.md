@@ -203,10 +203,10 @@ Henceforth, the following is an example of a new way of handling missing argumen
 
 ```py
     @commands.command()
-    async def role_info(self, ctx: Context, role: Role): # Role is a required argument here
+    async def role_info(self, ctx: Context[Pidroid], role: Role): # Role is a required argument here
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         if role.icon:
-            embed.set_thumbnail(url=role.icon.with_size(4096).url) # type: ignore
+            embed.set_thumbnail(url=role.icon.with_size(4096).url)
         embed.add_field(name="Name", value=role.name)
         embed.add_field(name="ID", value=role.id)
         embed.add_field(name="Position", value=role.position)
@@ -217,7 +217,7 @@ Henceforth, the following is an example of a new way of handling missing argumen
 
     # We define a new async method to handle role_info command errors
     @role_info.error
-    async def on_role_info_command_error(self, ctx: Context, error): # These arguments are required
+    async def on_role_info_command_error(self, ctx: Context[Pidroid], error: Exception): # These arguments are required
         # We check if our error is of MissingRequiredArgument
         if isinstance(error, MissingRequiredArgument):
             # With that, we check what argument it is for

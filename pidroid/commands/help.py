@@ -175,7 +175,7 @@ class HelpCommandCog(commands.Cog):
                 return command
         return None
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="help",
         brief="Returns the help menu with all the commands that you can use.",
         usage="[command]",

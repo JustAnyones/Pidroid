@@ -73,7 +73,7 @@ class WaifuCommandPaginator(ListPageSource):
         self.embed.url = waifu.url
         self.embed.set_image(url=waifu.display_picture)
         if waifu.series:
-            self.embed.set_footer(text='Appears in: ' + waifu.series['name']) # type: ignore
+            self.embed.set_footer(text='Appears in: ' + waifu.series['name'])
         return self.embed
 
 def get_owo(text: str) -> str:

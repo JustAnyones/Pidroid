@@ -42,7 +42,7 @@ class ImageManipulationCommandCog(commands.Cog):
     def __init__(self, client):
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="bonk",
         brief='Bonks the specified member.',
         usage='<member>',
@@ -75,7 +75,7 @@ class ImageManipulationCommandCog(commands.Cog):
         # Close the streams
         output_stream.close()
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="memefy",
         brief='Updates meme uploaded as attachment to comply within the German copyright regulations.',
         usage='[bool whether to retain ratio]',
@@ -115,7 +115,7 @@ class ImageManipulationCommandCog(commands.Cog):
             )
         output_file.close()
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="jpeg",
         brief='Downscales an image to glorious JPEG quality.',
         usage='<quality(1-10)>',
@@ -146,7 +146,7 @@ class ImageManipulationCommandCog(commands.Cog):
             await ctx.reply(content='Do I look like I know what a JPEG is?', file=discord.File(output_stream, filename='compression.jpg'))
         output_stream.close()
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="headpat",
         brief='Headpats the specified member.',
         usage='<member>',

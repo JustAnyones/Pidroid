@@ -1,4 +1,4 @@
-import aiodbm # type: ignore
+import aiodbm
 import os
 
 from pidroid.constants import DATA_FILE_PATH

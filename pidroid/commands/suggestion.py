@@ -6,18 +6,18 @@ from datetime import timedelta
 from discord import app_commands
 from discord.channel import TextChannel
 from discord.errors import HTTPException
-from discord.ext import commands # type: ignore
-from discord.ext.commands import BadArgument, MissingRequiredArgument # type: ignore
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext import commands
+from discord.ext.commands import BadArgument, MissingRequiredArgument
+from discord.ext.commands.context import Context
 from discord.member import Member
-from typing import Dict, List
+from typing import Dict
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory 
 from pidroid.models.persistent_views import PersistentSuggestionManagementView
 from pidroid.services.error_handler import notify
 from pidroid.utils import truncate_string
-from pidroid.utils.checks import check_bot_channel_permissions, is_guild_theotown
+from pidroid.utils.checks import assert_bot_channel_permissions, is_guild_theotown
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import timedelta_to_datetime
 
@@ -44,13 +44,14 @@ REFUSE_COMMAND_RESPONSES = [
 ]
 
 
-class SuggestionCommandCog(commands.Cog): # type: ignore
+class SuggestionCommandCog(commands.Cog):
     """This class implements a cog for the suggestion command."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="suggest",
         brief='Send a suggestion to the server suggestions channel.',
         usage='<suggestion>',
@@ -60,9 +61,9 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
         category=UtilityCategory
     )
     @commands.guild_only()
-    @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user) # type: ignore
+    @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user)
     @app_commands.describe(suggestion="Your suggestion.")
-    async def suggest_command(self, ctx: Context, *, suggestion: str):
+    async def suggest_command(self, ctx: Context[Pidroid], *, suggestion: str):
         assert isinstance(ctx.me, Member)
         assert ctx.guild
 
@@ -96,7 +97,7 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
             raise BadArgument("Could not find the suggestion channel for this server.")
 
         assert isinstance(channel, TextChannel)
-        check_bot_channel_permissions(
+        assert_bot_channel_permissions(
             ctx.me, channel,
             send_messages=True,
             attach_files=True,
@@ -112,8 +113,10 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
             if len(suggestion) > 2048:
                 raise BadArgument("The suggestion is too long! Keep it within 2048 character limit.")
 
-            embed = PidroidEmbed(description=suggestion.replace("# ", "\# "))
-            embed.set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
+            embed = (
+                PidroidEmbed(description=suggestion.replace("# ", "\# "))
+                .set_author(name=ctx.author, icon_url=ctx.author.display_avatar.url)
+            )
 
             # Deal with attachments
             file = None
@@ -132,10 +135,10 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
                     raise BadArgument("Could not submit a suggestion: unsupported file extension. Only image files are supported!")
 
                 file = await attachment.to_file()
-                embed.set_image(url=f'attachment://{filename}')
+                _ = embed.set_image(url=f'attachment://{filename}')
 
             # Add the reaction legend to the footer
-            embed.set_footer(text=reaction_legend)
+            _ = embed.set_footer(text=reaction_legend)
 
             view = PersistentSuggestionManagementView()
 
@@ -151,7 +154,7 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
 
             # If we're in TheoTown guild, update the footer and send the suggestion to a database
             if is_theotown_guild:
-                suggestion_attachments: List[str] = []
+                suggestion_attachments: list[str] = []
                 if message.embeds[0].image.url is not None:
                     suggestion_attachments.append(message.embeds[0].image.url)
                 s_id = await self.client.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
@@ -170,7 +173,7 @@ class SuggestionCommandCog(commands.Cog): # type: ignore
                 await ctx.reply(f'Your suggestion has been submitted to {message.jump_url} successfully!')
 
     @suggest_command.error
-    async def on_suggest_command_error(self, ctx: Context, error):
+    async def on_suggest_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "suggestion":
                 return await notify(ctx, "Please specify your suggestion.")

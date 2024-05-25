@@ -34,37 +34,37 @@ use_default = (
     commands.MaxConcurrencyReached,
 
     # Argument exceptions
-    commands.BadArgument, # type: ignore
-    commands.BadUnionArgument, # type: ignore
-    commands.TooManyArguments, # type: ignore
-    #commands.MissingRequiredArgument, # type: ignore
+    commands.BadArgument,
+    commands.BadUnionArgument,
+    commands.TooManyArguments,
+    #commands.MissingRequiredArgument,
     exceptions.InvalidDuration,
 
     # API errors
     exceptions.APIException,
 
     # Quoted argument parser errors
-    commands.UnexpectedQuoteError, # type: ignore
-    commands.InvalidEndOfQuotedStringError, # type: ignore
-    commands.ExpectedClosingQuoteError, # type: ignore
+    commands.UnexpectedQuoteError,
+    commands.InvalidEndOfQuotedStringError,
+    commands.ExpectedClosingQuoteError,
 
     ValueError
 )
 
 async def notify(ctx: Context, message: str, delete_after: Optional[int] = None):
     with suppress(discord.errors.Forbidden):
-        await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after) # type: ignore
+        await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
-class ErrorHandlingService(commands.Cog): # type: ignore
+class ErrorHandlingService(commands.Cog):
     """This class implements a cog for handling of unhandled bot command errors and exceptions."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_command_error(self, ctx: Context, error):  # noqa: C901
         # Prevents commands with local error handling being handled here twice
         if hasattr(ctx.command, 'on_error'):
@@ -83,7 +83,7 @@ class ErrorHandlingService(commands.Cog): # type: ignore
             return
 
         # Resets command cooldown on command error if it's not a cooldown error
-        if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown): # type: ignore
+        if ctx.command is not None and not isinstance(error, commands.CommandOnCooldown):
             ctx.command.reset_cooldown(ctx)
 
         # Ignore errors
@@ -147,7 +147,7 @@ class ErrorHandlingService(commands.Cog): # type: ignore
 
         # All other errors get returned here with traceback
         else:
-            if await self.client.is_owner(ctx.message.author): # type: ignore
+            if await self.client.is_owner(ctx.message.author):
 
                 # Create a wrapped paginator which will keep our exception message
                 paginator = WrappedPaginator(

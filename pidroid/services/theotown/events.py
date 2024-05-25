@@ -112,7 +112,7 @@ class EventHandlerService(commands.Cog):
                         break
                 
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_message(self, message: Message):
         """Add reactions to new messages in the events forum channel."""
         if not is_message_in_events_forum(message):
@@ -134,7 +134,7 @@ class EventHandlerService(commands.Cog):
                 )
                 await message.delete(delay=0)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: RawReactionActionEvent):
         """Removes reactions from users which are not allowed to vote on submissions."""
         
@@ -183,7 +183,7 @@ class EventHandlerService(commands.Cog):
         # and if the member cannot vote
         if message.attachments and not payload.member.bot and not can_vote:
             with suppress(discord.NotFound):
-                await message.remove_reaction("👍", payload.member) # type: ignore
+                await message.remove_reaction("👍", payload.member)
 
 
 async def setup(client: Pidroid) -> None:

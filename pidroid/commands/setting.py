@@ -8,11 +8,11 @@ from contextlib import suppress
 from discord import AllowedMentions, Colour, Interaction, NotFound, TextChannel, Role
 from discord.emoji import Emoji
 from discord.enums import ButtonStyle
-from discord.ext import commands # type: ignore
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext import commands
+from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
 from discord.interactions import Interaction
-from discord.partial_emoji import PartialEmoji # type: ignore
+from discord.partial_emoji import PartialEmoji
 from typing import TYPE_CHECKING, Dict, List, Optional, Type, Union
 
 from pidroid.client import Pidroid
@@ -503,37 +503,37 @@ class GuildConfigurationView(discord.ui.View):
         await interaction.response.send_message('This menu cannot be controlled by you!', ephemeral=True)
         return False
 
-class SettingCommandCog(commands.Cog): # type: ignore
+class SettingCommandCog(commands.Cog):
     """This class implements cog which contains administrator commands for Pidroid configuration management."""
 
     def __init__(self, client: Pidroid):
         self.client = client
 
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name="configure",
         brief="Allows to manage server bot configuration.",
         category=AdministrationCategory,
         invoke_without_command=True,
         fallback="menu"
     )
-    @commands.bot_has_guild_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_guild=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(send_messages=True)
+    @commands.has_permissions(manage_guild=True)
+    @commands.guild_only()
     async def configure_command(self, ctx: Context):
         assert ctx.guild is not None
         if ctx.invoked_subcommand is None:
             view = GuildConfigurationView(self.client, ctx)
             await view.send()
 
-    @configure_command.command( # type: ignore
+    @configure_command.command(
         name='add-xp-exempt-role',
         brief='Exempts the specified role from earning XP.',
         usage='<role>',
         category=AdministrationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_roles=True)
+    @commands.guild_only()
     async def add_xp_exempt_role_command(self, ctx: Context, role: Role):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
@@ -546,15 +546,15 @@ class SettingCommandCog(commands.Cog): # type: ignore
             'Role has been exempted from earning XP successfully.'
         ))
 
-    @configure_command.command( # type: ignore
+    @configure_command.command(
         name='remove-xp-exempt-role',
         brief='Removes XP earning exemption from the specified role.',
         usage='<role>',
         category=AdministrationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_roles=True)
+    @commands.guild_only()
     async def remove_xp_exempt_role_command(self, ctx: Context, role: Role):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
@@ -567,15 +567,15 @@ class SettingCommandCog(commands.Cog): # type: ignore
             'Role has been removed from exemption list.'
         ))
 
-    @configure_command.command( # type: ignore
+    @configure_command.command(
         name='add-xp-exempt-channel',
         brief='Exempts the specified channel from earning XP.',
         usage='<channel>',
         category=AdministrationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_channels=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_channels=True)
+    @commands.guild_only()
     async def add_xp_exempt_channel_command(self, ctx: Context, channel: TextChannel):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
@@ -588,15 +588,15 @@ class SettingCommandCog(commands.Cog): # type: ignore
             'Channel has been exempted from earning XP successfully.'
         ))
 
-    @configure_command.command( # type: ignore
+    @configure_command.command(
         name='remove-xp-exempt-channel',
         brief='Removes XP earning exemption from the specified channel.',
         usage='<channel>',
         category=AdministrationCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_channels=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_channels=True)
+    @commands.guild_only()
     async def remove_xp_exempt_channel_command(self, ctx: Context, channel: TextChannel):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
@@ -609,15 +609,15 @@ class SettingCommandCog(commands.Cog): # type: ignore
             'Channel has been removed from exemption list.'
         ))
 
-    @configure_command.command( # type: ignore
+    @configure_command.command(
         name="setup-jail-system",
         brief="Sets up server jail system automatically. Creates a jail channel, role and sets up the permissions.",
         category=AdministrationCategory
     )
-    @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True, manage_channels=True) # type: ignore
-    @commands.max_concurrency(number=1, per=commands.BucketType.guild) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_guild_permissions(manage_roles=True, manage_channels=True, send_messages=True)
+    @commands.has_permissions(manage_roles=True, manage_channels=True)
+    @commands.max_concurrency(number=1, per=commands.BucketType.guild)
+    @commands.guild_only()
     async def setupjail_command(self, ctx: Context):
         assert ctx.guild is not None
         # Create empty array where we will store setup log
@@ -681,12 +681,12 @@ class SettingCommandCog(commands.Cog): # type: ignore
 
         await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief='Returns current server bot prefix.',
         category=BotCategory,
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def prefix(self, ctx: Context):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)

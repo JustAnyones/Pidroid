@@ -28,7 +28,7 @@ from __future__ import annotations
 import discord
 
 from discord.utils import format_dt
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, override
 
 from pidroid.models.plugins import Plugin
 from pidroid.models.punishments import Case
@@ -169,14 +169,17 @@ class ListPageSource(PageSource):
 
         self._max_pages = pages
 
+    @override
     def is_paginating(self):
         """:class:`bool`: Whether pagination is required."""
         return len(self.entries) > self.per_page
 
+    @override
     def get_max_pages(self):
         """:class:`int`: The maximum number of pages required to paginate this sequence."""
         return self._max_pages
 
+    @override
     async def get_page(self, page_number):
         """Returns either a single element of the sequence or
         a slice of the sequence.
@@ -200,15 +203,18 @@ The following definitions are custom made for the specific use case.
 """
 
 class PluginListPaginator(ListPageSource):
-    def __init__(self, original_query: str, data: List[Plugin]):
+    def __init__(self, original_query: str, data: list[Plugin]):
         super().__init__(data, per_page=12)
-        self.embed = PidroidEmbed(title=f'{len(data)} plugins have been found matching your query')
-        self.embed.set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin #ID to find out more")
+        self.embed = (
+            PidroidEmbed(title=f'{len(data)} plugins have been found matching your query')
+            .set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin #ID to find out more")
+        )
 
-    async def format_page(self, menu: PaginatingView, plugins: List[Plugin]):
-        self.embed.clear_fields()
-        for plugin in plugins:
-            self.embed.add_field(
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[Plugin]):
+        _ = self.embed.clear_fields()
+        for plugin in page:
+            _ = self.embed.add_field(
                 name=f"#{plugin.id}",
                 value=plugin.clean_title,
                 inline=True
@@ -220,7 +226,7 @@ class CasePaginator(ListPageSource):
     def __init__(
         self,
         paginator_title: str,
-        cases: List[Case],
+        cases: list[Case],
         *,
         per_page: int = 8,
         compact: bool = False,
@@ -264,16 +270,15 @@ class CasePaginator(ListPageSource):
             f"**Reason:** {case.clean_reason.capitalize()}"
         )
 
-    async def format_page(self, _: PaginatingView, cases: List[Case]) -> discord.Embed:
-        self.embed.clear_fields()
-        for case in cases:
-            self.embed.add_field(
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[Case]) -> discord.Embed:
+        _ = self.embed.clear_fields()
+        for case in page:
+            _ = self.embed.add_field(
                 name=self._get_field_name(case), value=self._get_field_value(case), inline=False
             )
 
         entry_count = len(self.entries)
         if entry_count == 1:
-            self.embed.set_footer(text=f'{entry_count} entry')
-        else:
-            self.embed.set_footer(text=f'{entry_count:,} entries')
-        return self.embed
+            return self.embed.set_footer(text=f'{entry_count} entry')
+        return self.embed.set_footer(text=f'{entry_count:,} entries')

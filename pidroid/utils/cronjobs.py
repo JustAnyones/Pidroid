@@ -1,4 +1,4 @@
-import aiocron # type: ignore
+import aiocron
 import asyncio
 import logging
 

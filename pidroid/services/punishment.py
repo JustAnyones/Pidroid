@@ -2,7 +2,7 @@ import discord
 import logging
 
 from contextlib import suppress
-from discord.ext import tasks, commands # type: ignore
+from discord.ext import tasks, commands
 from typing import Union
 
 from pidroid.client import Pidroid
@@ -11,7 +11,7 @@ from pidroid.utils import try_message_user
 
 logger = logging.getLogger("Pidroid")
 
-class PunishmentService(commands.Cog): # type: ignore
+class PunishmentService(commands.Cog):
     """This class implements a cog for automatic punishment revocation and reassignment."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -46,7 +46,7 @@ class PunishmentService(commands.Cog): # type: ignore
         """Runs before remove_expired_bans task to ensure that the task is allowed to run."""
         await self.client.wait_until_guild_configurations_loaded()
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """Handles role-based punishment revocation for new members."""
         await self.client.wait_until_guild_configurations_loaded()
@@ -62,15 +62,15 @@ class PunishmentService(commands.Cog): # type: ignore
                 await member.add_roles(
                     jail_role,
                     reason="Jailed automatically as punishment evasion was detected."
-                ) # type: ignore
+                )
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_member_unban(self, guild: discord.Guild, user: Union[discord.Member, discord.User]) -> None:
         """Removes ban records from the database for an unbanned user."""
         await self.client.wait_until_ready()
         await self.client.api.expire_cases_by_type(PunishmentType.ban, guild.id, user.id)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
         """Handles jail role removal."""
         await self.client.wait_until_guild_configurations_loaded()

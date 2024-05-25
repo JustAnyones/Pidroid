@@ -1,6 +1,6 @@
 import logging
 
-from discord.ext import tasks, commands # type: ignore
+from discord.ext import tasks, commands
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
@@ -8,7 +8,7 @@ from pidroid.utils.http import Route
 
 logger = logging.getLogger("Pidroid")
 
-class GuildStatisticsService(commands.Cog): # type: ignore
+class GuildStatisticsService(commands.Cog):
     """This class implements a cog for synchronizing TheoTown's guild member count with the TheoTown API."""
 
     def __init__(self, client: Pidroid) -> None:

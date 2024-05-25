@@ -3,7 +3,7 @@ import datetime
 from discord import Colour
 from discord.embeds import Embed
 from discord.types.embed import EmbedType
-from typing import Any
+from typing import Any # pyright: ignore[reportAny]
 
 from pidroid.constants import EMBED_COLOUR
 

@@ -31,7 +31,9 @@ def member_has_guild_permission(member: Member, permission: str | flag_value) ->
     permissions = member.guild_permissions
     if isinstance(permission, flag_value):
         return permissions.value & permission.flag != 0
-    return getattr(permissions, permission)
+    value = getattr(permissions, permission) # pyright: ignore[reportAny]
+    assert isinstance(value, bool)
+    return value
 
 def member_has_channel_permission(channel: GuildChannel, member: Member, permission: str | flag_value) -> bool:
     """Returns true if member has the specified channel permission.
@@ -46,7 +48,9 @@ def member_has_channel_permission(channel: GuildChannel, member: Member, permiss
     permissions = channel.permissions_for(member)
     if isinstance(permission, flag_value):
         return permissions.value & permission.flag != 0
-    return getattr(permissions, permission)
+    value = getattr(permissions, permission) # pyright: ignore[reportAny]
+    assert isinstance(value, bool)
+    return value
 
 
 
@@ -91,7 +95,7 @@ def check_channel_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
         raise MissingPermissions(missing)
     return True
 
-def check_bot_channel_permissions(bot: Member, channel: GuildChannel, **perms: bool) -> bool:
+def assert_bot_channel_permissions(bot: Member, channel: GuildChannel, **perms: bool):
     """Checks bot permissions for the channel.
     
     This function takes into consideration the following cases:
@@ -107,7 +111,7 @@ def check_bot_channel_permissions(bot: Member, channel: GuildChannel, **perms: b
 
     if missing:
         raise BotMissingPermissions(missing)
-    return True
+    return
 
 
 

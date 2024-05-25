@@ -2,7 +2,6 @@ import datetime
 import re
 
 from dateutil.relativedelta import relativedelta
-from typing import Optional, Union
 
 from pidroid.models.exceptions import InvalidDuration
 
@@ -35,7 +34,7 @@ DATE_STYLES = {
     "default": "%a, %b %d, %Y %I:%M %p"
 }
 
-def _stringify_time_unit(value: int, unit: str, resolve_zero_seconds_to_moment=False) -> str:
+def _stringify_time_unit(value: int, unit: str, resolve_zero_seconds_to_moment: bool = False) -> str:
     """
     Returns a string to represent a value and time unit, ensuring that it uses the right plural form of the unit.
     >>> _stringify_time_unit(1, "seconds")
@@ -70,14 +69,14 @@ def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
         )
     return delta
 
-def duration_to_relativedelta(duration_str: str) -> Optional[relativedelta]:
+def duration_to_relativedelta(duration_str: str) -> relativedelta | None:
     """Converts a duration string to a relativedelta object."""
     match = DURATION_PATTERN.fullmatch(duration_str)
     if not match:
         return None
 
     duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
-    return relativedelta(**duration_dict) # type: ignore # we never pass dt1, dt2 regardless
+    return relativedelta(**duration_dict) # we never pass dt1, dt2 regardless
 
 def datetime_to_timedelta(date: datetime.datetime) -> datetime.timedelta:
     """Converts a datetime object to a timedelta object."""
@@ -91,12 +90,12 @@ def timedelta_to_datetime(delta: datetime.timedelta) -> datetime.datetime:
     """Converts a timedelta object to a datetime object."""
     return utcnow() + delta
 
-def delta_to_datetime(delta: Union[datetime.timedelta, relativedelta]) -> datetime.datetime:
+def delta_to_datetime(delta: datetime.timedelta | relativedelta) -> datetime.datetime:
     """Converts a timedelta object to a datetime object."""
     return utcnow() + delta
 
 def humanize(
-    delta: Union[datetime.datetime, int, float, relativedelta],
+    delta: datetime.datetime | int | float | relativedelta,
     timestamp: bool = True, precision: str = "seconds", max_units: int = 6
 ) -> str:
     """
@@ -128,7 +127,7 @@ def humanize(
     )
 
     # Add the time units that are >0, but stop at accuracy or max_units.
-    time_strings = []
+    time_strings: list[str] = []
     unit_count = 0
     for unit, value in units:
         if value:
@@ -167,12 +166,12 @@ def timestamp_to_datetime(timestamp: float) -> datetime.datetime:
     """Converts a timestamp to a UTC datetime object."""
     return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
-def timestamp_to_date(timestamp: float, style: str = "default", custom_format: Optional[str] = None) -> str:
+def timestamp_to_date(timestamp: float, style: str = "default", custom_format: str | None = None) -> str:
     """Converts a timestamp to a UTC human readable date string."""
     datetime = timestamp_to_datetime(timestamp)
     return datetime_to_date(datetime, style, custom_format)
 
-def datetime_to_date(datetime: datetime.datetime, style="default", custom_format: Optional[str] = None) -> str:
+def datetime_to_date(datetime: datetime.datetime, style: str = "default", custom_format: str | None = None) -> str:
     """Converts a datetime object to a UTC human readable date string."""
     if style == 'custom' and custom_format is not None:
         style = custom_format

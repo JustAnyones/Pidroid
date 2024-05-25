@@ -204,7 +204,7 @@ class LevelingService(commands.Cog):
                     for reward in rewards[1:]:
                         await self.queue_remove(member, reward.role_id, reason, bypass_cache=False)
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_ready(self) -> None:
         """
         This task runs on start-up to ensure correct member reward state across all guilds.
@@ -259,7 +259,7 @@ class LevelingService(commands.Cog):
         # Award the XP to the specified message
         await self.client.api.award_xp(message, get_random_xp_amount(config))
 
-    @commands.Cog.listener() # type: ignore
+    @commands.Cog.listener()
     async def on_member_join(self, member: Member) -> None:
         """Re-adds leveling rewards to the rejoined member."""
         if member.bot:

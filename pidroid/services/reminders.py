@@ -15,7 +15,7 @@ from pidroid.utils.time import utcnow
 
 logger = logging.getLogger("Pidroid")
 
-class ReminderService(commands.Cog): # type: ignore
+class ReminderService(commands.Cog):
     """This class implements a cog for handling deliveries of reminders."""
 
     def __init__(self, client: Pidroid) -> None:

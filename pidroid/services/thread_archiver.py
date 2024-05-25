@@ -1,7 +1,7 @@
 import logging
 
 from discord import NotFound
-from discord.ext import tasks, commands # type: ignore
+from discord.ext import tasks, commands
 from discord.threads import Thread
 
 from pidroid.client import Pidroid
@@ -9,7 +9,7 @@ from pidroid.utils.time import utcnow
 
 logger = logging.getLogger("Pidroid")
 
-class ThreadArchiverService(commands.Cog): # type: ignore
+class ThreadArchiverService(commands.Cog):
     """This class implements a cog for automatic handling of threads that get archived after some time."""
 
     def __init__(self, client: Pidroid) -> None:
@@ -27,7 +27,7 @@ class ThreadArchiverService(commands.Cog): # type: ignore
         for thread_entry in threads_to_archive:
 
             try:
-                thread = await self.client.fetch_channel(thread_entry.thread_id) # type: ignore
+                thread = await self.client.fetch_channel(thread_entry.thread_id)
                 assert isinstance(thread, Thread)
             except Exception as e:
                 logger.exception(f"Failure to look up a thread, ID is {thread_entry.thread_id}\nException: {e}")
@@ -36,12 +36,12 @@ class ThreadArchiverService(commands.Cog): # type: ignore
                     # If thread channel was deleted completely
                     if e.code == 10003:
                         logger.warning("Thread channel does not exist, deleting entry from the database")
-                        await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
+                        await self.client.api.delete_expiring_thread(thread_entry.id)
                 continue
 
             await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
             await thread.edit(archived=True, locked=True)
-            await self.client.api.delete_expiring_thread(thread_entry.id) # type: ignore
+            await self.client.api.delete_expiring_thread(thread_entry.id)
 
     @archive_threads.before_loop
     async def before_archive_threads(self) -> None:
