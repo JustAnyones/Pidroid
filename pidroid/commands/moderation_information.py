@@ -8,7 +8,7 @@ from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import GeneralCommandError
 from pidroid.models.view import PaginatingView
-from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
+from pidroid.utils.checks import assert_junior_moderator_permissions, assert_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import CasePaginator, ListPageSource
@@ -73,7 +73,7 @@ class ModeratorInformationCommandCog(commands.Cog):
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
         if reason is not None:
-            check_normal_moderator_permissions(ctx, kick_members=True)
+            assert_normal_moderator_permissions(ctx, kick_members=True)
             await case.update_reason(reason)
             return await ctx.reply("Case details updated successfully!")
         return await ctx.reply(embed=case.to_embed())
@@ -128,7 +128,7 @@ class ModeratorInformationCommandCog(commands.Cog):
 
         error_msg = "I could not find any warnings for you!"
         if user.id != ctx.author.id:
-            check_junior_moderator_permissions(ctx, kick_members=True)
+            assert_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no warnings."
 
         warnings = await self.client.fetch_active_warnings(ctx.guild.id, user.id)
@@ -161,7 +161,7 @@ class ModeratorInformationCommandCog(commands.Cog):
 
         error_msg = "I could not find any warnings for you!"
         if user.id != ctx.author.id:
-            check_junior_moderator_permissions(ctx, kick_members=True)
+            assert_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no warnings."
 
         warnings = await self.client.fetch_warnings(ctx.guild.id, user.id)
@@ -196,7 +196,7 @@ class ModeratorInformationCommandCog(commands.Cog):
 
         error_msg = "I could not find any modlogs related to you!"
         if user.id != ctx.author.id:
-            check_junior_moderator_permissions(ctx, kick_members=True)
+            assert_junior_moderator_permissions(ctx, kick_members=True)
             error_msg = "Specified user has no modlogs!"
 
         cases = await self.client.fetch_cases(ctx.guild.id, user.id)

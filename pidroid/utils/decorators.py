@@ -1,20 +1,17 @@
 from discord import Member
 from discord.ext import commands
 from discord.ext.commands import Context
-from typing import TYPE_CHECKING
 
+from pidroid.client import Pidroid
 from pidroid.constants import EMERGENCY_SHUTDOWN, CHEESE_EATERS
 from pidroid.models.exceptions import ClientIsNotPidroid, NotInTheoTownGuild, MissingUserPermissions
 from pidroid.utils.checks import (
     TheoTownChecks,
     is_client_pidroid, is_guild_theotown,
     check_can_modify_tags,
-    check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
+    assert_junior_moderator_permissions, assert_normal_moderator_permissions, assert_senior_moderator_permissions,
     assert_channel_permissions
 )
-
-if TYPE_CHECKING:
-    from pidroid.client import Pidroid
 
 class command_checks:
     """This class contains custom command check decorators."""
@@ -81,21 +78,24 @@ class command_checks:
     def is_junior_moderator(**perms: bool):
         """Checks whether the command is invoked by a junior moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
-            return check_junior_moderator_permissions(ctx, **perms)
+            assert_junior_moderator_permissions(ctx, **perms)
+            return True
         return commands.check(predicate)
 
     @staticmethod
     def is_moderator(**perms: bool):
         """Checks whether the command is invoked by a normal moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
-            return check_normal_moderator_permissions(ctx, **perms)
+            assert_normal_moderator_permissions(ctx, **perms)
+            return True
         return commands.check(predicate)
 
     @staticmethod
     def is_senior_moderator(**perms: bool):
         """Checks whether the command is invoked by a senior moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
-            return check_senior_moderator_permissions(ctx, **perms)
+            assert_senior_moderator_permissions(ctx, **perms)
+            return True
         return commands.check(predicate)
 
     @staticmethod

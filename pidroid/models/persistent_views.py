@@ -2,20 +2,26 @@ import discord
 import logging
 
 from discord import Member, Message, TextChannel, Interaction
+from discord.ui import View, Button, TextInput
+from typing import override
 
+from pidroid.models.view import PidroidModal
 from pidroid.utils.checks import TheoTownChecks, is_guild_theotown, member_has_channel_permission
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
 
-class PersistentSuggestionManagementView(discord.ui.View):
+class SuggestionMarkContextModal(PidroidModal, title='Mark as modal'):
+    reason_input: TextInput[View] = TextInput(label="Mark as", placeholder="Please provide the reason you are closing this suggestion.")
+
+class PersistentSuggestionManagementView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
     @staticmethod
     def get_thread_from_message(message: Message):
         channel = message.channel
-        assert isinstance(channel, discord.TextChannel)
+        assert isinstance(channel, TextChannel)
         return channel.get_thread(message.id) # the thread starter message ID is the same ID as the thread
 
     @staticmethod
@@ -34,32 +40,45 @@ class PersistentSuggestionManagementView(discord.ui.View):
             elif reaction.emoji == "❌":
                 hated = reaction.count - 1
 
-        embed.set_footer(
-            text=f"{liked} user(s) liked the idea, {hated} hated the idea | Marked as {reason}"
+        _ = embed.set_footer(
+            text=f"{liked} user(s) liked the idea, {hated} hated the idea | Closed by {responsible_user}"
         )
-        await message.edit(embed=embed, view=None)
+        _ = await message.edit(embed=embed, view=None)
         await message.clear_reactions()
 
 
         # Lock the suggestion thread, if available
         if thread:
-            await thread.send(f":lock: {responsible_user} marked this suggestion as {reason}.")
-            await thread.edit(locked=True)
+            _ = await thread.send(f":lock: {responsible_user} closed this for the following reason:\n{reason}")
+            _ = await thread.edit(locked=True)
 
     @discord.ui.button(
-        label='Mark as completed',
-        style=discord.ButtonStyle.green,
+        label='Mark as...',
+        style=discord.ButtonStyle.gray,
         custom_id='persistent_suggestion_management_view:mark_as_completed_button'
     )
-    async def mark_as_completed_button(self, interaction: Interaction, button: discord.ui.Button):
+    async def mark_as_completed_button(self, interaction: Interaction, button: Button[View]):
         if not await self.check_permissions(interaction, button):
             return
 
         if interaction.message is None:
             return await interaction.response.send_message('Associated message could not be found', ephemeral=True)
         
+        message = interaction.message
+
+        modal = SuggestionMarkContextModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        if timed_out:
+            return await interaction.response.send_message("Modal timed out.", ephemeral=True)
+
+        interaction = modal.interaction
+        value = modal.reason_input.value
+        if len(value) > 255:
+            return await interaction.response.send_message("Keep the reason up to 255 characters.", ephemeral=True)
+
         await PersistentSuggestionManagementView.close_suggestion(
-            interaction.message, str(interaction.user), "completed"
+            message, str(interaction.user), value
         )
         await interaction.response.defer()
 
@@ -68,7 +87,7 @@ class PersistentSuggestionManagementView(discord.ui.View):
         style=discord.ButtonStyle.red,
         custom_id='persistent_suggestion_deletion_view:delete_button'
     )
-    async def delete_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def delete_button(self, interaction: discord.Interaction, button: Button[View]):
         if not await self.check_permissions(interaction, button):
             return
 
@@ -83,12 +102,12 @@ class PersistentSuggestionManagementView(discord.ui.View):
             await thread.delete()
         await interaction.response.defer()
         
-
-    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item) -> None:
+    @override
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item: discord.ui.Item[View]) -> None:
         """Called when view catches an error."""
         logger.exception(error)
 
-    async def check_permissions(self, interaction: discord.Interaction, item: discord.ui.Item) -> bool:
+    async def check_permissions(self, interaction: discord.Interaction, item: discord.ui.Item[View]) -> bool:
         # If I cannot locate the message, the permission check fails
         if interaction.message is None:
             await interaction.response.send_message('Associated message could not be found', ephemeral=True)
@@ -109,7 +128,7 @@ class PersistentSuggestionManagementView(discord.ui.View):
             return True
         
         # If it's sent by the author, but it's not deletion
-        if isinstance(item, discord.ui.Button):
+        if isinstance(item, Button):
             if item.custom_id != "persistent_suggestion_deletion_view:delete_button":
                 await interaction.response.send_message("You are not authorized to perform this operation here.", ephemeral=True)
                 return False
@@ -138,6 +157,7 @@ class PersistentSuggestionManagementView(discord.ui.View):
         await interaction.response.send_message("You are not authorized to perform this operation here.", ephemeral=True)
         return False
 
+    @override
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """Ensure that the interaction is called for a manageable message.
         

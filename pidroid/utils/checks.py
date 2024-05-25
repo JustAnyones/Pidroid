@@ -259,7 +259,7 @@ async def check_can_modify_tags(ctx: Context[Pidroid]):
     assert_guild_permissions(ctx, manage_messages=True)
     return True
 
-def check_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
+def assert_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks whether author has junior moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
@@ -268,11 +268,9 @@ def check_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
     if is_guild_theotown(ctx.guild):
         if not TheoTownChecks.is_junior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a junior moderator to run this command!')
-        return True
     assert_channel_permissions(ctx, **perms)
-    return True
 
-def check_normal_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
+def assert_normal_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks whether author has normal moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
@@ -281,11 +279,9 @@ def check_normal_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
     if is_guild_theotown(ctx.guild):
         if not TheoTownChecks.is_normal_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a moderator to run this command!')
-        return True
     assert_channel_permissions(ctx, **perms)
-    return True
 
-def check_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
+def assert_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks whether author has senior moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
@@ -294,6 +290,4 @@ def check_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
     if is_guild_theotown(ctx.guild):
         if not TheoTownChecks.is_senior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a senior moderator to run this command!')
-        return True
     assert_channel_permissions(ctx, **perms)
-    return True

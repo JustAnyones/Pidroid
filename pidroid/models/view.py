@@ -5,9 +5,10 @@ import logging
 
 from contextlib import suppress
 from discord import ClientUser, Interaction, NotFound
+from discord.utils import MISSING # pyright: ignore[reportAny]
 from discord.ext.commands import Context
-from discord.ui import Item, View
-from typing import TYPE_CHECKING, Optional
+from discord.ui import Item, Modal, View
+from typing import TYPE_CHECKING, Optional, override
 
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import PageSource
@@ -17,6 +18,23 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("Pidroid")
 
+class PidroidModal(Modal):
+
+    def __init__(self, *, title: str = MISSING, timeout: float | None = None, custom_id: str = MISSING) -> None:
+        super().__init__(title=title, timeout=timeout, custom_id=custom_id)
+        self.__interaction = None
+    
+    @override
+    async def on_submit(self, interaction: Interaction):
+        self.__interaction = interaction
+        self.stop()
+
+    @property
+    def interaction(self) -> Interaction[Pidroid]:
+        if self.__interaction is None:
+            raise RuntimeError("Attempted to obtain interaction from PidroidModal object that did not exist yet")
+        return self.__interaction
+
 class BaseView(View):
 
     def __init__(self, client: Pidroid, ctx: Context[Pidroid], *, timeout: float = 600):
@@ -25,7 +43,7 @@ class BaseView(View):
         self._ctx = ctx
         self._embed = PidroidEmbed()
         self._check_embed_permissions = False
-        self.clear_items()
+        _ = self.clear_items()
 
     @property
     def ctx(self) -> Context[Pidroid]:

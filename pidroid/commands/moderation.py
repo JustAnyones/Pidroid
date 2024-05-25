@@ -31,7 +31,7 @@ from pidroid.utils import user_mention
 from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
 from pidroid.utils.checks import (
     member_has_guild_permission,
-    check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
+    assert_junior_moderator_permissions, assert_normal_moderator_permissions, assert_senior_moderator_permissions,
     is_guild_moderator, is_guild_theotown
 )
 from pidroid.utils.decorators import command_checks
@@ -349,21 +349,21 @@ class ModerationMenu(ui.View):
 
     def is_junior_moderator(self, **perms: bool) -> bool:
         try:
-            check_junior_moderator_permissions(self._ctx, **perms)
+            assert_junior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
     def is_normal_moderator(self, **perms: bool) -> bool:
         try:
-            check_normal_moderator_permissions(self._ctx, **perms)
+            assert_normal_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
     def is_senior_moderator(self, **perms: bool) -> bool:
         try:
-            check_senior_moderator_permissions(self._ctx, **perms)
+            assert_senior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
