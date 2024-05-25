@@ -5,7 +5,7 @@ import datetime
 from discord import Message, Member, Guild
 from typing import TYPE_CHECKING, List, Optional
 
-from pidroid.commands.tag import Tag
+from pidroid.models.tags import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.punishments import Case, PunishmentType
@@ -36,8 +36,8 @@ class LinkedAccountTable(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     user_id: Mapped[int] = mapped_column(BigInteger)
     forum_id: Mapped[int] = mapped_column(BigInteger)
-    roles: Mapped[List[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
-    date_wage_last_redeemed: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True))
+    roles: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
+    date_wage_last_redeemed: Mapped[datetime.datetime | None] = mapped_column(DateTime(timezone=True))
 
 class PunishmentCounterTable(Base):
     __tablename__ = "PunishmentCounters"
@@ -56,12 +56,12 @@ class PunishmentTable(Base):
     guild_id: Mapped[int] = mapped_column(BigInteger)
     
     user_id: Mapped[int] = mapped_column(BigInteger)
-    user_name: Mapped[Optional[str]]
+    user_name: Mapped[str | None]
 
     moderator_id: Mapped[int] = mapped_column(BigInteger)
-    moderator_name: Mapped[Optional[str]]
+    moderator_name: Mapped[str | None]
 
-    reason: Mapped[Optional[str]]
+    reason: Mapped[str | None]
 
     issue_date: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # date of issue
     expire_date: Mapped[Optional[datetime.datetime]] = mapped_column(DateTime(timezone=True)) # date when punishment expires, null means never
@@ -84,10 +84,10 @@ class SuggestionTable(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     author_id: Mapped[int] = mapped_column(BigInteger)
-    message_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    message_id: Mapped[int | None] = mapped_column(BigInteger)
     suggestion: Mapped[str]
     date_submitted: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
-    attachments: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
+    attachments: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
 
 class TagTable(Base):
     __tablename__ = "Tags"
@@ -96,8 +96,8 @@ class TagTable(Base):
     guild_id: Mapped[int] = mapped_column(BigInteger)
     name: Mapped[str]
     content: Mapped[str]
-    authors: Mapped[List[int]] = mapped_column(ARRAY(BigInteger))
-    aliases: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
+    authors: Mapped[list[int]] = mapped_column(ARRAY(BigInteger))
+    aliases: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     locked: Mapped[bool] = mapped_column(Boolean, server_default="false")
     date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
@@ -107,27 +107,27 @@ class GuildConfigurationTable(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger)
 
-    prefixes: Mapped[List[str]] = mapped_column(ARRAY(Text), server_default="{}")
+    prefixes: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     public_tags: Mapped[bool] = mapped_column(Boolean, server_default="false")
 
-    jail_channel: Mapped[Optional[int]] = mapped_column(BigInteger)
-    jail_role: Mapped[Optional[int]] = mapped_column(BigInteger)
-    log_channel: Mapped[Optional[int]] = mapped_column(BigInteger)
+    jail_channel: Mapped[int | None] = mapped_column(BigInteger)
+    jail_role: Mapped[int | None] = mapped_column(BigInteger)
+    log_channel: Mapped[int | None] = mapped_column(BigInteger)
     punishing_moderators: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    appeal_url: Mapped[Optional[str]]
+    appeal_url: Mapped[str | None]
     
     # Leveling system related
     xp_system_active: Mapped[bool] = mapped_column(Boolean, server_default="false")
     xp_per_message_min: Mapped[int] = mapped_column(BigInteger, server_default="15")
     xp_per_message_max: Mapped[int] = mapped_column(BigInteger, server_default="25")
     xp_multiplier: Mapped[float] = mapped_column(Float, server_default="1.0")
-    xp_exempt_roles: Mapped[List[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
-    xp_exempt_channels: Mapped[List[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
+    xp_exempt_roles: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
+    xp_exempt_channels: Mapped[list[int]] = mapped_column(ARRAY(BigInteger), server_default="{}")
     stack_level_rewards: Mapped[bool] = mapped_column(Boolean, server_default="true")
 
     # Suggestion system related
     suggestion_system_active: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    suggestion_channel: Mapped[Optional[int]] = mapped_column(BigInteger)
+    suggestion_channel: Mapped[int | None] = mapped_column(BigInteger)
     suggestion_threads_enabled: Mapped[bool] = mapped_column(Boolean, server_default="false")
 
 class UserLevelsTable(Base):
@@ -140,7 +140,7 @@ class UserLevelsTable(Base):
     current_xp: Mapped[int] = mapped_column(BigInteger, server_default="0")
     xp_to_next_level: Mapped[int] = mapped_column(BigInteger, server_default="100")
     level: Mapped[int] = mapped_column(BigInteger, server_default="0")
-    theme_name: Mapped[Optional[str]]
+    theme_name: Mapped[str | None]
 
 class LevelRewardsTable(Base):
     __tablename__ = "LevelRewards"
@@ -175,7 +175,7 @@ class ReminderTable(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
 
     user_id: Mapped[int] = mapped_column(BigInteger)
-    channel_id: Mapped[Optional[int]] = mapped_column(BigInteger)
+    channel_id: Mapped[int | None] = mapped_column(BigInteger)
     message_id: Mapped[int] = mapped_column(BigInteger)
     message_url: Mapped[str]
 
@@ -187,6 +187,7 @@ class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
     def __init__(self, client: Pidroid, dsn: str) -> None:
+        super().__init__()
         self.client = client
         self.__dsn = dsn
         self.__http = HTTP(client)
@@ -307,8 +308,8 @@ class API:
     async def insert_guild_configuration(
         self,
         guild_id: int,
-        jail_channel: Optional[int] = None, jail_role: Optional[int] = None,
-        log_channel: Optional[int] = None
+        jail_channel: int | None = None, jail_role: int | None = None,
+        log_channel: int | None = None
     ) -> GuildConfiguration:
         """Inserts a minimal guild configuration entry to the database."""
         async with self.session() as session: 
@@ -361,22 +362,22 @@ class API:
         self,
         row_id: int,
         *,
-        jail_channel: Optional[int],
-        jail_role: Optional[int],
-        log_channel: Optional[int],
-        prefixes: List[str],
+        jail_channel: int | None,
+        jail_role: int | None,
+        log_channel: int | None,
+        prefixes: list[str],
         public_tags: bool,
         punishing_moderators: bool,
-        appeal_url: Optional[str],
+        appeal_url: str | None,
 
         xp_system_active: bool,
         xp_multiplier: float,
-        xp_exempt_roles: List[int],
-        xp_exempt_channels: List[int],
+        xp_exempt_roles: list[int],
+        xp_exempt_channels: list[int],
         stack_level_rewards: bool,
 
         suggestion_system_active: bool,
-        suggestion_channel: Optional[int],
+        suggestion_channel: int | None,
         suggestion_threads_enabled: bool
     ) -> None:
         """Updates a guild configuration entry by specified row ID."""
@@ -1058,7 +1059,7 @@ class API:
             return MemberLevelInfo.from_table(self, r[0])
         return None
 
-    async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: Optional[int]) -> List[MemberLevelInfo]:
+    async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: int | None) -> list[MemberLevelInfo]:
         """Returns a list of user level information for specified levels.
         
         Returned user data is ``min_level <= USERS < max_level`` """
@@ -1201,7 +1202,7 @@ class API:
             changes.append(obj)
         return changes
     
-    async def delete_role_changes(self, ids: List[int]):
+    async def delete_role_changes(self, ids: list[int]):
         """Removes role changes for specified IDs from the queue."""
         async with self.session() as session: 
             async with session.begin():
@@ -1214,7 +1215,7 @@ class API:
         self,
         *,
         user_id: int,
-        channel_id: Optional[int],
+        channel_id: int | None,
         message_id: int,
         message_url: str,
         content: str,
@@ -1235,7 +1236,7 @@ class API:
             await session.commit()
         return entry.id
 
-    async def fetch_reminder(self, *, row: int) -> Optional[ReminderTable]:
+    async def fetch_reminder(self, *, row: int) -> ReminderTable | None:
         """Fetches reminder entry at the specified row."""
         async with self.session() as session: 
             result = await session.execute(
@@ -1251,7 +1252,7 @@ class API:
             return r[0]
         return None
 
-    async def fetch_reminders(self, *, user_id: int) -> List[ReminderTable]:
+    async def fetch_reminders(self, *, user_id: int) -> list[ReminderTable]:
         """Fetches reminders for the specified user."""
         async with self.session() as session: 
             result = await session.execute(
@@ -1280,12 +1281,12 @@ class API:
             return TheoTownAccount(response["data"])
         return None
 
-    async def fetch_new_plugins(self, last_approval_time: int) -> List[NewPlugin]:
+    async def fetch_new_plugins(self, last_approval_time: int) -> list[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""
         response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
         return [NewPlugin(np) for np in response["data"]]
 
-    async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> List[Plugin]:
+    async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""
         response = await self.get(Route(
             "/private/plugin/find2",
@@ -1293,7 +1294,7 @@ class API:
         ))
         return [Plugin(p) for p in response["data"]]
 
-    async def search_plugins(self, query: str, show_hidden: bool = False) -> List[Plugin]:
+    async def search_plugins(self, query: str, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for plugins matching the query string."""
         response = await self.get(Route(
             "/private/plugin/find2",

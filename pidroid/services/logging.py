@@ -18,6 +18,7 @@ logger = logging.getLogger('Pidroid')
 
 class AuditLogDiffWrapper:
     def __init__(self, diff: AuditLogDiff, *, log: bool = False) -> None:
+        super().__init__()
         self.__dict = diff.__dict__
         self.__logging_on = log
 
@@ -32,6 +33,7 @@ class LoggingService(commands.Cog):
     """This class implements a cog for handling guild related event logging."""
     
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
         
     async def acquire_guild_conf(self, guild_id: int):

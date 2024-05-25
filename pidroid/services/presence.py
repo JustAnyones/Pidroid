@@ -9,6 +9,7 @@ logger = logging.getLogger("Pidroid")
 
 class PresenceService(commands.Cog):
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()

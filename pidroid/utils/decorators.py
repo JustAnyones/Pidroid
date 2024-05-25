@@ -10,7 +10,7 @@ from pidroid.utils.checks import (
     is_client_pidroid, is_guild_theotown,
     check_can_modify_tags,
     check_junior_moderator_permissions, check_normal_moderator_permissions, check_senior_moderator_permissions,
-    check_channel_permissions
+    assert_channel_permissions
 )
 
 if TYPE_CHECKING:
@@ -108,7 +108,8 @@ class command_checks:
                 if not TheoTownChecks.is_normal_moderator(ctx.author):
                     raise MissingUserPermissions('You need to be at least a moderator to run this command!')
                 return True
-            return check_channel_permissions(ctx, manage_messages=True)
+            assert_channel_permissions(ctx, manage_messages=True)
+            return True
         return commands.check(predicate)
 
     @staticmethod

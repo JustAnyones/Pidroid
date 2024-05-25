@@ -2,7 +2,7 @@ import logging
 
 from discord import Permissions
 from discord.ext import tasks, commands
-from typing import Optional
+from typing import Optional, override
 
 from sqlalchemy import delete, select
 
@@ -19,10 +19,12 @@ class ReminderService(commands.Cog):
     """This class implements a cog for handling deliveries of reminders."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
-        self.deliver_due_reminders.start()
+        _ = self.deliver_due_reminders.start()
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.deliver_due_reminders.stop()
 
@@ -34,7 +36,7 @@ class ReminderService(commands.Cog):
             return
 
         # Find channel, if it was set
-        channel: Optional[MessageableGuildChannel] = None
+        channel: MessageableGuildChannel | None = None
         if reminder.channel_id:
             chan = self.client.get_channel(reminder.channel_id)
             if chan:

@@ -1,4 +1,5 @@
 import logging
+from typing import override
 
 from discord import NotFound
 from discord.ext import tasks, commands
@@ -13,10 +14,12 @@ class ThreadArchiverService(commands.Cog):
     """This class implements a cog for automatic handling of threads that get archived after some time."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
         self.archive_threads.start()
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.archive_threads.cancel()
 

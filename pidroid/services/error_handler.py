@@ -9,7 +9,7 @@ from discord.errors import HTTPException
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from jishaku.paginators import PaginatorInterface, WrappedPaginator
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pidroid.models import exceptions
 from pidroid.utils.embeds import ErrorEmbed as ErrorEmbed
@@ -51,7 +51,7 @@ use_default = (
     ValueError
 )
 
-async def notify(ctx: Context, message: str, delete_after: Optional[int] = None):
+async def notify(ctx: Context[Pidroid], message: str, delete_after: int | None = None):
     with suppress(discord.errors.Forbidden):
         await ctx.reply(embed=ErrorEmbed(message), delete_after=delete_after)
 
@@ -62,10 +62,11 @@ class ErrorHandlingService(commands.Cog):
     """This class implements a cog for handling of unhandled bot command errors and exceptions."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()
-    async def on_command_error(self, ctx: Context, error):  # noqa: C901
+    async def on_command_error(self, ctx: Context[Pidroid], error: Exception):  # noqa: C901
         # Prevents commands with local error handling being handled here twice
         if hasattr(ctx.command, 'on_error'):
             unhandled = getattr(error, 'unhandled')

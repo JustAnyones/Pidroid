@@ -54,7 +54,7 @@ def member_has_channel_permission(channel: GuildChannel, member: Member, permiss
 
 
 
-def check_guild_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
+def assert_guild_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks message author permissions for the guild.
     
     This only takes into consideration the guild permissions and
@@ -72,9 +72,9 @@ def check_guild_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
 
     if missing:
         raise MissingPermissions(missing)
-    return True
+    return
 
-def check_channel_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
+def assert_channel_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks message author permissions for the channel.
     
     This function takes into consideration the following cases:
@@ -93,7 +93,7 @@ def check_channel_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
 
     if missing:
         raise MissingPermissions(missing)
-    return True
+    return
 
 def assert_bot_channel_permissions(bot: Member, channel: GuildChannel, **perms: bool):
     """Checks bot permissions for the channel.
@@ -229,7 +229,8 @@ def has_moderator_guild_permissions(ctx: Context[Pidroid], **perms: bool) -> boo
 
     # Ugly, I don't care
     try:
-        return check_guild_permissions(ctx, **perms)
+        assert_guild_permissions(ctx, **perms)
+        return True
     except MissingPermissions:
         return False
 
@@ -255,7 +256,8 @@ async def check_can_modify_tags(ctx: Context[Pidroid]):
         if not TheoTownChecks.is_junior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a junior moderator to run this command!')
         return True
-    return check_guild_permissions(ctx, manage_messages=True)
+    assert_guild_permissions(ctx, manage_messages=True)
+    return True
 
 def check_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
     """Checks whether author has junior moderator permissions in TheoTown guild channel
@@ -267,7 +269,8 @@ def check_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
         if not TheoTownChecks.is_junior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a junior moderator to run this command!')
         return True
-    return check_channel_permissions(ctx, **perms)
+    assert_channel_permissions(ctx, **perms)
+    return True
 
 def check_normal_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
     """Checks whether author has normal moderator permissions in TheoTown guild channel
@@ -279,7 +282,8 @@ def check_normal_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
         if not TheoTownChecks.is_normal_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a moderator to run this command!')
         return True
-    return check_channel_permissions(ctx, **perms)
+    assert_channel_permissions(ctx, **perms)
+    return True
 
 def check_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> bool:
     """Checks whether author has senior moderator permissions in TheoTown guild channel
@@ -291,4 +295,5 @@ def check_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool) -> 
         if not TheoTownChecks.is_senior_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a senior moderator to run this command!')
         return True
-    return check_channel_permissions(ctx, **perms)
+    assert_channel_permissions(ctx, **perms)
+    return True

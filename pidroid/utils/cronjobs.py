@@ -15,7 +15,7 @@ async def start_cronjob(client: Pidroid, cronjob: aiocron.Cron, cron_name: str =
     try:
         logger.info(f"{cron_name} cron job task started")
         while True:
-            await cronjob.next(client)
+            await cronjob.next(client) # pyright: ignore[reportUnknownMemberType]
     except asyncio.CancelledError:
         with suppress(Exception):
             cronjob.stop()

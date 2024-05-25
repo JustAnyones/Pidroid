@@ -13,6 +13,7 @@ logger = logging.getLogger("Pidroid")
 class GuildConfigurationService(commands.Cog):
     """This class implements a cog for handling of events related to the event channel."""
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()

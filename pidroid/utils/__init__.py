@@ -1,13 +1,15 @@
 import ast
 import asyncio
+from typing import Any
+import discord
 import inspect
 import textwrap
-import discord
 import re
 
 from dataclasses import dataclass
 from functools import partial
-from typing import List, Optional, Union
+
+from pidroid.utils.aliases import DiscordUser
 
 # Compile patters upon load for performance
 INLINE_TRANSLATION_PATTERN = re.compile(r'\[.*].*', flags=re.DOTALL)
@@ -83,11 +85,11 @@ def truncate_string(string: str, max_length: int = 2048, replace_value: str = '.
     return string
 
 async def try_message_user(
-    user: Union[discord.Member, discord.User],
+    user: DiscordUser,
     *,
-    content: Optional[str] = None,
-    embed: Optional[discord.Embed] = None
-) -> Optional[discord.Message]:
+    content: str | None = None,
+    embed: discord.Embed | None = None
+) -> discord.Message | None:
     """Tries to send a message to the user in direct messages. Returns bool whether message was delivered successfully."""
     try:
         if embed:
@@ -109,8 +111,8 @@ async def run_in_executor(func, **kwargs):
 
 @dataclass
 class Decorator:
-    func: List[str]
-    keywords: List[tuple]
+    func: list[str]
+    keywords: list[tuple[Any, Any]]
 
     def is_a_check(self) -> bool:
         """Returns true if this decorator is a check."""
@@ -126,7 +128,6 @@ class Decorator:
     
     @property
     def requirement_text(self) -> str:
-        
         if self.func[-1] == "is_nsfw":
             return "Inside a NSFW channel"
         
@@ -164,7 +165,7 @@ class Decorator:
 def _parse_attribute(
     attribute: ast.Attribute,
     *,
-    attributes: Optional[List[str]] = None
+    attributes: list[str] | None = None
 ):
 
     # If list was not passed, create it
@@ -178,12 +179,12 @@ def _parse_attribute(
 
     # If it's another attribute
     elif isinstance(attribute.value, ast.Attribute):
-        _parse_attribute(attribute.value, attributes=attributes)
+        _ = _parse_attribute(attribute.value, attributes=attributes)
         attributes.append(attribute.attr)
 
     return attributes
 
-def _parse_call_name(call: ast.Call) -> List[str]:
+def _parse_call_name(call: ast.Call) -> list[str]:
     if isinstance(call.func, ast.Attribute):
         return _parse_attribute(call.func)
 
@@ -193,7 +194,7 @@ def _parse_call_name(call: ast.Call) -> List[str]:
     raise ValueError("Unknown call func attribute")
 
 
-def get_function_decorators(func) -> List[Decorator]:
+def get_function_decorators(func) -> list[Decorator]:
     # Get the source code of the function
     source_code = inspect.getsource(func)
 
@@ -204,7 +205,7 @@ def get_function_decorators(func) -> List[Decorator]:
     tree = ast.parse(dedented_code)
 
     # Extract decorator information from the AST
-    decorators: List[ast.Call] = []
+    decorators: list[ast.Call] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             for decorator_node in node.decorator_list:
@@ -213,13 +214,13 @@ def get_function_decorators(func) -> List[Decorator]:
                 print(f"Decorator:", ast.dump(decorator_node))
 
     print()
-    parsed = []
+    parsed: list[Decorator] = []
     for dec in decorators:
 
         call_name = _parse_call_name(dec)
 
         # Parse every keyword
-        keywords: List[tuple] = []
+        keywords: list[tuple[Any, Any]] = []
         for keyword in dec.keywords:
             assert isinstance(keyword, ast.keyword)
 

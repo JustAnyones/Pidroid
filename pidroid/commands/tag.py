@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
 class TagListPaginator(ListPageSource):
-    def __init__(self, title: str, data: List[Tag]):
+    def __init__(self, title: str, data: list[Tag]):
         super().__init__(data, per_page=20)
         self.embed = PidroidEmbed(title=title)
 
@@ -33,7 +33,7 @@ class TagListPaginator(ListPageSource):
         else:
             self.embed.set_footer(text=f"{amount} tags")
 
-    async def format_page(self, menu: PaginatingView, data: List[Tag]):
+    async def format_page(self, menu: PaginatingView, data: list[Tag]):
         offset = menu._current_page * self.per_page + 1
         values = ""
         for i, item in enumerate(data):

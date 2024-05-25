@@ -9,7 +9,7 @@ import random
 from discord import Guild, Member, Message, MessageType, Role, User, Object
 from discord.abc import Snowflake
 from discord.ext import commands, tasks
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.role_changes import RoleAction
@@ -24,8 +24,9 @@ if TYPE_CHECKING:
 class UserBucket:
 
     def __init__(self, user_id: int) -> None:
+        super().__init__()
         self.__id = user_id
-        self.__last_earned = datetime.datetime.utcfromtimestamp(0)
+        self.__last_earned = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
 
     @property
     def user_id(self) -> int:
@@ -68,12 +69,14 @@ class LevelingService(commands.Cog):
     """This class implements a cog for handling the leveling system related functionality."""
     
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
-        self.__cooldown_storage: Dict[int, Dict[int, UserBucket]] = {}
+        self.__cooldown_storage: dict[int, dict[int, UserBucket]] = {}
         self.__startup_sync_finished = asyncio.Event()
-        self.process_role_queue.start()
+        _ = self.process_role_queue.start()
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         """Ensure that all the tasks are stopped and cancelled on cog unload."""
         self.process_role_queue.cancel()
 
@@ -95,7 +98,7 @@ class LevelingService(commands.Cog):
         logger.debug(f"Adding role ({role_id}) add to queue for {member} in {member.guild}: {reason}")
         await self.client.api.insert_role_change(RoleAction.add, member.guild.id, member.id, role_id)
     
-    async def queue_remove(self, member: Member, role_id: int, reason: str, bypass_cache = False):
+    async def queue_remove(self, member: Member, role_id: int, reason: str, bypass_cache: bool = False):
         # If member doesn't have the role, don't bother
         if not bypass_cache and not any(r.id == role_id for r in member.roles):
             return
@@ -120,7 +123,7 @@ class LevelingService(commands.Cog):
                 # If we have the member object
                 if member:
                     logger.debug(f"Managing role changes for {member} in {guild}")
-                    updated_roles: List[Snowflake] = []
+                    updated_roles: list[Snowflake] = []
 
                     # Manage mostly removed roles
                     for role in member.roles:
@@ -139,7 +142,7 @@ class LevelingService(commands.Cog):
 
                     # If roles actually changed
                     if set(r.id for r in updated_roles) != set(r.id for r in member.roles):
-                        await member.edit(roles=updated_roles, reason="Pidroid level rewards")
+                        _ = await member.edit(roles=updated_roles, reason="Pidroid level rewards")
 
                     await role_change.pop()
 
@@ -147,7 +150,7 @@ class LevelingService(commands.Cog):
     async def before_process_role_queue(self) -> None:
         """Runs before process_role_queue task to ensure that the task is ready to run."""
         await self.client.wait_until_guild_configurations_loaded()
-        await self.__startup_sync_finished.wait()
+        _ = await self.__startup_sync_finished.wait()
 
     async def _sync_guild_state(self, guild: Guild, reason: str) -> None:
         """An expensive method that syncs guild level reward state."""
