@@ -106,8 +106,7 @@ class LengthButton(ValueButton):
             return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
 
         self.view.select_length(value)
-        await self.view.show_reason_selection_menu()
-        await self.view._update_view(interaction)
+        await self.view.show_confirmation_menu(interaction)
 
 class ReasonButton(ValueButton):
     def __init__(self, label: str | None, value: str | None):
@@ -132,8 +131,7 @@ class ReasonButton(ValueButton):
             return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
 
         self.view.select_reason(value)
-        await self.view.show_confirmation_menu()
-        await self.view._update_view(interaction)
+        await self.view.show_length_selection_menu(interaction)
 
 
 LENGTH_MAPPING = {
@@ -482,38 +480,41 @@ class ModerationMenu(BaseView):
         # Cancel button
         _ = self.add_item(self.on_cancel_button)
 
-    async def show_length_selection_menu(self) -> None:
+    async def show_length_selection_menu(self, interaction: Interaction) -> None:
         """Shows the punishment length selection menu."""
         # Acquire mapping for lengths for punishment types
         mapping = LENGTH_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
-            return await self.show_reason_selection_menu()
+            return await self.show_confirmation_menu(interaction)
 
         _ = self.clear_items()
         for button in mapping:
             _ = self.add_item(button.copy())
         _ = self.add_item(self.on_cancel_button)
         _ = self._embed.set_footer(text="Select the punishment length")
+        await self._update_view(interaction)
 
-    async def show_reason_selection_menu(self):
+    async def show_reason_selection_menu(self, interaction: Interaction):
         """Shows the punishment reason selection menu."""
         # Acquire mapping for reasons for punishment types
         mapping = REASON_MAPPING.get(str(self._punishment), None)
         if mapping is None or len(mapping) == 0:
-            return await self.show_confirmation_menu()
+            return await self.show_length_selection_menu(interaction)
 
         _ = self.clear_items()
         for button in mapping:
             _ = self.add_item(button.copy())
         _ = self.add_item(self.on_cancel_button)
         _ = self._embed.set_footer(text="Select reason for the punishment")
+        await self._update_view(interaction)
 
-    async def show_confirmation_menu(self):
+    async def show_confirmation_menu(self, interaction: Interaction):
         """Shows the punishment confirmation menu."""
         _ = self.clear_items()
         _ = self.add_item(self.on_confirm_button)
         _ = self.add_item(self.on_cancel_button)
         _ = self._embed.set_footer(text="Confirm or cancel the punishment")
+        await self._update_view(interaction)
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def on_confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -546,8 +547,7 @@ class ModerationMenu(BaseView):
             channel=self.channel, moderator=self.moderator, user=self.user,
             appeal_url=self._config.appeal_url
         )
-        await self.show_length_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Unban', style=discord.ButtonStyle.red, emoji='🔨')
     async def on_type_unban_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -569,8 +569,7 @@ class ModerationMenu(BaseView):
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user
         )
-        await self.show_reason_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Jail', style=discord.ButtonStyle.gray)
     async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -582,8 +581,7 @@ class ModerationMenu(BaseView):
             channel=self.channel, moderator=self.moderator, user=self.user,
             role=self._jail_role
         )
-        await self.show_reason_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Kidnap', style=discord.ButtonStyle.gray)
     async def on_type_kidnap_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -595,8 +593,7 @@ class ModerationMenu(BaseView):
             channel=self.channel, moderator=self.moderator, user=self.user,
             role=self._jail_role, kidnapping=True
         )
-        await self.show_reason_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Release from jail', style=discord.ButtonStyle.gray)
     async def on_type_unjail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -621,8 +618,7 @@ class ModerationMenu(BaseView):
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user
         )
-        await self.show_length_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Remove time-out', style=discord.ButtonStyle.gray)
     async def on_type_timeout_remove_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -645,8 +641,7 @@ class ModerationMenu(BaseView):
             self._api, self.guild,
             channel=self.channel, moderator=self.moderator, user=self.user
         )
-        await self.show_reason_selection_menu()
-        await self._update_view(interaction)
+        await self.show_reason_selection_menu(interaction)
 
     """Utility"""
 

@@ -7,7 +7,7 @@ from discord import Interaction
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Command, Context
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import Category, BotCategory, get_command_documentation, get_command_usage, get_full_command_name
@@ -20,24 +20,25 @@ from pidroid.utils.time import HELP_FORMATTING
 logger = logging.getLogger('Pidroid')
 
 class HelpCommandPaginator(ListPageSource):
-    def __init__(self, embed: Embed, data: List[Command]):
+    def __init__(self, embed: Embed, data: list[Command]):
         super().__init__(data, per_page=8)
         self.embed = embed
 
-    async def format_page(self, _: PaginatingView, commands: List[Command]):
+    @override
+    async def format_page(self, menu: PaginatingView, commands: list[Command]):
         self.embed.clear_fields()
         for command in commands:
             name, description = get_command_documentation(command)
             self.embed.add_field(name=name, value=description, inline=False)
         return self.embed
 
-class CategorySelect(discord.ui.Select):
+class CategorySelect(discord.ui.Select[PaginatingView]):
 
     if TYPE_CHECKING:
         view: HelpCategoryView
 
-    def __init__(self, categories: List[Category]) -> None:
-        options = []
+    def __init__(self, categories: list[Category]) -> None:
+        options: list[discord.SelectOption] = []
         for i, category in enumerate(categories):
             options.append(discord.SelectOption(
                 label=category.title,
@@ -47,6 +48,7 @@ class CategorySelect(discord.ui.Select):
             ))
         super().__init__(placeholder="Select command category", options=options)
 
+    @override
     async def callback(self, interaction: Interaction):
         success = await self.view.change_category(interaction, self.values[0])
         if not success:
@@ -54,11 +56,11 @@ class CategorySelect(discord.ui.Select):
 
 class HelpCategoryView(PaginatingView):
 
-    def __init__(self, client: Pidroid, ctx: Context, *, timeout: float = 600):
+    def __init__(self, client: Pidroid, ctx: Context[Pidroid], *, timeout: float = 600):
         super().__init__(client, ctx, timeout=timeout)
         self._prefix = self._ctx.prefix or "P"
 
-        self.__categories: List[Category] = []
+        self.__categories: list[Category] = []
         for category in self._client.command_categories:
             if category.get_visible_commands():
                 self.__categories.append(category)
@@ -78,20 +80,17 @@ class HelpCategoryView(PaginatingView):
         )
 
         # lifted from robo danny by Rapptz and adapted for Pidroid
-        self._embed.add_field(
+        _ = self._embed.add_field(
             name="How do I use this bot?",
             value="Reading the bot help signatures are pretty simple.",
             inline=False,
-        )
-        self._embed.add_field(
+        ).add_field(
             name="<argument>",
             value="This means the command argument is required.",
-        )
-        self._embed.add_field(
+        ).add_field(
             name="[argument]",
             value="This means the command argument is optional."
-        )
-        self._embed.add_field(
+        ).add_field(
             name="[A/B]",
             value=(
                 "This means that it can be either A or B.\n"
@@ -99,8 +98,7 @@ class HelpCategoryView(PaginatingView):
                 "__**You do not type in the brackets!**__"
             ),
             inline=False,
-        )
-        self._embed.add_field(
+        ).add_field(
             name="Specifying multiple arguments",
             value=(
                 "Commands that accept multiple arguments or specific arguments require quotations around the argument.\n"
@@ -108,8 +106,7 @@ class HelpCategoryView(PaginatingView):
                 "**Certain commands do not need quotations for the last argument** in the case of "
                 "``Ptag create``, ``Psuggest`` purely for convenience sake."
             )
-        )
-        self._embed.add_field(
+        ).add_field(
             name="Specifying duration",
             value=HELP_FORMATTING
         )
@@ -187,7 +184,7 @@ class HelpCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def help_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         *,
         search_string: Optional[str] = None
     ):
