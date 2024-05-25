@@ -6,8 +6,8 @@ import random
 from discord import File
 from discord.errors import Forbidden
 from discord.ext import commands
-from discord.ext.commands import BadArgument, MissingRequiredArgument # type: ignore
-from discord.ext.commands.context import Context # type: ignore
+from discord.ext.commands import BadArgument, MissingRequiredArgument
+from discord.ext.commands.context import Context
 from discord.member import Member
 from io import BytesIO
 from typing import Optional

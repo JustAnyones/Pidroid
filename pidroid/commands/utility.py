@@ -4,7 +4,7 @@ import re
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
 from discord.utils import format_dt
-from typing import List
+from typing import Any, override
 from urllib.parse import quote_plus as urlencode
 
 from pidroid.client import Pidroid
@@ -20,7 +20,7 @@ from pidroid.utils.time import datetime_to_duration
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')
 
-def term_to_url(match) -> str:
+def term_to_url(match: re.Match[str]) -> str:
     """Replaces match with a markdown hyperlink."""
     item = match.group(1)
     return f'[{item}](https://www.urbandictionary.com/define.php?term={urlencode(item)})'
@@ -32,39 +32,40 @@ def parse_urban_text(string: str) -> str:
 
 
 class ReminderPaginator(ListPageSource):
-    def __init__(self, title: str, data: List[ReminderTable]):
+    def __init__(self, title: str, data: list[ReminderTable]):
         super().__init__(data, per_page=12)
-        self.embed = PidroidEmbed(title=title)
-        self.embed.set_footer(text=f"{len(data)} reminder(s)")
+        self.embed = PidroidEmbed(title=title).set_footer(text=f"{len(data)} reminder(s)")
 
-    async def format_page(self, menu: PaginatingView, data: List[ReminderTable]):
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[ReminderTable]):
         offset = menu.current_page * self.per_page + 1
         values = ""
-        for i, reminder in enumerate(data):
+        for i, reminder in enumerate(page):
             values += f"{i + offset}. \"{truncate_string(reminder.content, 10)}\" to be reminded {format_dt(reminder.date_remind, 'R')} in {reminder.message_url}\n"
         self.embed.description = values.strip()
         return self.embed
 
-class UtilityCommandCog(commands.Cog): # type: ignore
+class UtilityCommandCog(commands.Cog):
     """This class implements a cog for various utility commands."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         brief="Looks up the specified term on urban dictionary.",
         usage="<term>",
         permissions=["Bot owner"],
         aliases=["ud"],
         category=UtilityCategory
     )
-    @commands.is_owner() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def urban(self, ctx: Context, *, query: str):
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def urban(self, ctx: Context[Pidroid], *, query: str):
         async with ctx.typing():
             url = "https://api.urbandictionary.com/v0/define?term=" + urlencode(query)
             async with await http.get(self.client, url) as response:
-                data = await response.json()
+                data: dict[str, list[Any]] = await response.json()
             definitions = data['list']
 
             # Checks if definition exists
@@ -83,7 +84,7 @@ class UtilityCommandCog(commands.Cog): # type: ignore
             embed.set_footer(text=f"Written on {definition['written_on']} by {definition['author']}")
             await ctx.reply(embed=embed)
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="remind-me",
         brief="Create a reminder that Pidroid will send you in the specified amount of time.",
         usage="<duration> <content>",
@@ -94,7 +95,7 @@ class UtilityCommandCog(commands.Cog): # type: ignore
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def remind_me_command(self, ctx: Context, date: Duration, *, content: str):
+    async def remind_me_command(self, ctx: Context[Pidroid], date: Duration, *, content: str):
         assert isinstance(date, datetime.datetime)
 
         if datetime_to_duration(date) <= 290: # tolerance
@@ -121,13 +122,13 @@ class UtilityCommandCog(commands.Cog): # type: ignore
 
         await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="reminders",
         brief="List all reminders that you have created and are currently active.",
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def reminders_command(self, ctx: Context):
+    async def reminders_command(self, ctx: Context[Pidroid]):
         reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
         if not reminders:
             raise BadArgument("You have no active reminders")
@@ -138,14 +139,14 @@ class UtilityCommandCog(commands.Cog): # type: ignore
         )
         await view.send()
 
-    @commands.hybrid_command( # type: ignore
+    @commands.hybrid_command(
         name="remove-reminder",
         brief="Remove the specified reminder.",
         usage="<reminder number>",
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def remove_reminder_command(self, ctx: Context, reminder_no: int):
+    async def remove_reminder_command(self, ctx: Context[Pidroid], reminder_no: int):
         reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
         if not reminders:
             raise BadArgument("You have no active reminders")
@@ -156,7 +157,7 @@ class UtilityCommandCog(commands.Cog): # type: ignore
         to_remove = reminders[reminder_no - 1]
 
         await self.client.api.delete_reminder(row=to_remove.id)
-        await ctx.reply("Reminder removed successfully")
+        return await ctx.reply("Reminder removed successfully")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(UtilityCommandCog(client))

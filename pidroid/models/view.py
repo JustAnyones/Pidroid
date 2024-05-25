@@ -19,7 +19,7 @@ logger = logging.getLogger("Pidroid")
 
 class BaseView(View):
 
-    def __init__(self, client: Pidroid, ctx: Context, *, timeout: float = 600):
+    def __init__(self, client: Pidroid, ctx: Context[Pidroid], *, timeout: float = 600):
         super().__init__(timeout=timeout)
         self._client = client
         self._ctx = ctx
@@ -28,7 +28,7 @@ class BaseView(View):
         self.clear_items()
 
     @property
-    def ctx(self) -> Context:
+    def ctx(self) -> Context[Pidroid]:
         """Returns the context associated with the view."""
         return self._ctx
 
@@ -38,7 +38,8 @@ class BaseView(View):
         # If it's not a client user, that means we are not in a DM
         if not isinstance(self._ctx.me, ClientUser):
             if self._check_embed_permissions and not self._ctx.channel.permissions_for(self._ctx.me).embed_links:
-                return await self._ctx.reply("Bot does not have embed links permission in this channel.")
+                _ = await self._ctx.reply("Bot does not have embed links permission in this channel.")
+                return
 
         self._message = await self._ctx.reply(embed=self._embed, view=self)
 
@@ -50,7 +51,7 @@ class BaseView(View):
         await interaction.response.defer()
         self.stop()
 
-    async def timeout_view(self, interaction: Optional[Interaction]) -> None:
+    async def timeout_view(self, interaction: Interaction | None) -> None:
         """Called to clean up when the interaction or view timed out."""
         await self.finish_interface(interaction)
 
@@ -113,10 +114,10 @@ class PaginatingView(BaseView):
     def __init__(
         self,
         client: Pidroid,
-        ctx: Context,
+        ctx: Context[Pidroid],
         *,
         timeout: float = 600,
-        source: Optional[PageSource] = None
+        source: PageSource | None = None
     ):
         super().__init__(client, ctx, timeout=timeout)
         self.set_source(source)
@@ -136,7 +137,7 @@ class PaginatingView(BaseView):
             return self._source
         raise NotImplementedError
 
-    def set_source(self, source: Optional[PageSource]):
+    def set_source(self, source: PageSource | None):
         """Sets the paginator source.
         
         It is automatically called in the constructor if source is provided.
@@ -218,26 +219,26 @@ class PaginatingView(BaseView):
             pass
 
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
-    async def go_to_first_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def go_to_first_page(self, interaction: discord.Interaction, _: discord.ui.Button):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
     @discord.ui.button(label='Back', style=discord.ButtonStyle.grey)
-    async def go_to_previous_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def go_to_previous_page(self, interaction: discord.Interaction, _: discord.ui.Button):
         """go to the previous page"""
         await self.show_checked_page(interaction, self._current_page - 1)
 
     @discord.ui.button(label='Current', style=discord.ButtonStyle.grey, disabled=True)
-    async def go_to_current_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def go_to_current_page(self, interaction: discord.Interaction, _: discord.ui.Button):
         pass
 
     @discord.ui.button(label='Next', style=discord.ButtonStyle.grey)
-    async def go_to_next_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def go_to_next_page(self, interaction: discord.Interaction, _: discord.ui.Button):
         """go to the next page"""
         await self.show_checked_page(interaction, self._current_page + 1)
 
     @discord.ui.button(label='≫', style=discord.ButtonStyle.grey)
-    async def go_to_last_page(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def go_to_last_page(self, interaction: discord.Interaction, _: discord.ui.Button):
         """go to the last page"""
         # The call here is safe because it's guarded by skip_if
         await self.show_page(interaction, self.source.get_max_pages() - 1)

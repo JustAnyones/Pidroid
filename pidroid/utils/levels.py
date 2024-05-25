@@ -128,14 +128,14 @@ class MemberLevelInfo:
         """Constructs level information from a UserLevelsTable object."""
         return cls(
             api,
-            table.id, # type: ignore
-            table.guild_id, # type: ignore
-            table.user_id, # type: ignore
-            table.total_xp, # type: ignore
-            table.current_xp, # type: ignore
-            table.xp_to_next_level, # type: ignore
-            table.level, # type: ignore
-            theme_name=table.theme_name, # type: ignore
+            table.id,
+            table.guild_id,
+            table.user_id,
+            table.total_xp,
+            table.current_xp,
+            table.xp_to_next_level,
+            table.level,
+            theme_name=table.theme_name,
             rank=rank
         )
 

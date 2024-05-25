@@ -4,7 +4,7 @@ import re
 
 from aiohttp.client import ClientTimeout
 from urllib.parse import urlencode
-from typing import Optional, Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING, override
 
 from pidroid.models.exceptions import APIException
 
@@ -17,6 +17,7 @@ class HTTP:
     """This class implements a basic TheoTown API HTTP request handling system."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
     async def request(self, method: str, route: Route, headers: Optional[dict] = None, data: Optional[dict] = None):
@@ -65,14 +66,16 @@ class Route:
         self._query = query
         self.private = self.path.startswith("/private/")
 
+    @override
     def __repr__(self) -> str:
         return self.url
 
+    @override
     def __str__(self) -> str:
         return self.url
 
     @property
-    def query(self) -> Optional[str]:
+    def query(self) -> str | None:
         """Returns route query dictionary as string."""
         query = urlencode(self._query).strip()
         if query == "":
@@ -90,17 +93,17 @@ def get_filename(cd: str) -> str:
     """Returns filename from content disposition header."""
     return re.findall(r'filename\*?=[\'"]?(?:UTF-\d[\'"]*)?([^;\r\n"\']*)[\'"]?;?', cd)[0]
 
-async def get(client: Pidroid, url: str, headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
+async def get(client: Pidroid, url: str, headers: dict | None = None, cookies: dict | None = None, timeout: int = 30):
     """Sends a GET request to the specified URL."""
     assert client.session is not None
     return client.session.get(url, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def post(client: Pidroid, url: str, data: Union[dict, str], headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
+async def post(client: Pidroid, url: str, data: Union[dict, str], headers: dict | None = None, cookies: dict | None = None, timeout: int = 30):
     """Sends a POST request to the specified URL."""
     assert client.session is not None
     return client.session.post(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))
 
-async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: Optional[dict] = None, cookies: Optional[dict] = None, timeout: int = 30):
+async def patch(client: Pidroid, url: str, data: Union[dict, str], headers: dict | None = None, cookies: dict | None = None, timeout: int = 30):
     """Sends a PATCH request to the specified URL."""
     assert client.session is not None
     return client.session.patch(url, data=data, headers=headers, cookies=cookies, timeout=ClientTimeout(timeout))

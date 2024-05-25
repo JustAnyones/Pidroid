@@ -78,21 +78,21 @@ class command_checks:
         return commands.check(predicate)
 
     @staticmethod
-    def is_junior_moderator(**perms):
+    def is_junior_moderator(**perms: bool):
         """Checks whether the command is invoked by a junior moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
             return check_junior_moderator_permissions(ctx, **perms)
         return commands.check(predicate)
 
     @staticmethod
-    def is_moderator(**perms):
+    def is_moderator(**perms: bool):
         """Checks whether the command is invoked by a normal moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
             return check_normal_moderator_permissions(ctx, **perms)
         return commands.check(predicate)
 
     @staticmethod
-    def is_senior_moderator(**perms):
+    def is_senior_moderator(**perms: bool):
         """Checks whether the command is invoked by a senior moderator or a member with appropriate permissions."""
         async def predicate(ctx: Context[Pidroid]):
             return check_senior_moderator_permissions(ctx, **perms)

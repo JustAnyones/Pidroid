@@ -20,7 +20,7 @@ from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH # noqa: E402
 # Use uvloop if possible
 try:
     import uvloop # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
-    uvloop.install()
+    uvloop.install() # pyright: ignore[reportUnknownMemberType]
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 except ImportError:
     pass

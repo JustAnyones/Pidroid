@@ -1,7 +1,7 @@
 from discord import app_commands, Member, User, Guild
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
-from typing import Optional, Union, List
+from typing import Optional, Union, override
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
@@ -10,20 +10,20 @@ from pidroid.models.exceptions import GeneralCommandError
 from pidroid.models.view import PaginatingView
 from pidroid.utils.checks import check_junior_moderator_permissions, check_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import CasePaginator, ListPageSource
 
 
 class GuildPaginator(ListPageSource):
-    def __init__(self, title: str, data: List[Guild]):
+    def __init__(self, title: str, data: list[Guild]):
         super().__init__(data, per_page=20)
-        self.embed = PidroidEmbed(title=title)
-        self.embed.set_footer(text=f"{len(data)} servers")
+        self.embed = PidroidEmbed(title=title).set_footer(text=f"{len(data)} servers")
 
-    async def format_page(self, menu: PaginatingView, data: List[Guild]):
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[Guild]):
         offset = menu.current_page * self.per_page + 1
         values = ""
-        for i, guild in enumerate(data):
+        for i, guild in enumerate(page):
             values += f"{i + offset}. {guild.name} by {guild.owner} (ID: {guild.id})\n"
         self.embed.description = values.strip()
         return self.embed
@@ -32,9 +32,10 @@ class ModeratorInformationCommandCog(commands.Cog):
     """This class implements cog which contains commands for viewing and editing moderation logs and statistics."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
-    async def find_guilds(self, user_id: int, argument: str) -> List[Guild]:
+    async def find_guilds(self, user_id: int, argument: str) -> list[Guild]:
         """Attempts to resolve guild by specified argument.
 
         It only searches guilds where user was punished once
@@ -49,7 +50,7 @@ class ModeratorInformationCommandCog(commands.Cog):
                     return [guild]
 
         # If we didn't find by ID, search by name
-        found = []
+        found: list[Guild] = []
         for guild in guilds:
             if guild.name == argument:
                 found.append(guild)
@@ -64,10 +65,10 @@ class ModeratorInformationCommandCog(commands.Cog):
     )
     @app_commands.rename()
     @app_commands.describe(case_id="Numerical case ID.", reason="Updated case reason.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @command_checks.is_junior_moderator(kick_members=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def case_command(self, ctx: Context, case_id: int, *, reason: Optional[str]):
+    @commands.bot_has_permissions(send_messages=True)
+    @command_checks.is_junior_moderator(kick_members=True)
+    @commands.guild_only()
+    async def case_command(self, ctx: Context[Pidroid], case_id: int, *, reason: Optional[str]):
         assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
@@ -75,7 +76,7 @@ class ModeratorInformationCommandCog(commands.Cog):
             check_normal_moderator_permissions(ctx, kick_members=True)
             await case.update_reason(reason)
             return await ctx.reply("Case details updated successfully!")
-        await ctx.reply(embed=case.to_embed())
+        return await ctx.reply(embed=case.to_embed())
 
 
     @commands.hybrid_command(
@@ -87,39 +88,39 @@ class ModeratorInformationCommandCog(commands.Cog):
     )
     @app_commands.rename()
     @app_commands.describe(case_id="Numerical case ID.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_senior_moderator(manage_guild=True)
-    @commands.guild_only() # type: ignore
-    async def invalidate_warning_command(self, ctx: Context, case_id: int):
+    @commands.guild_only()
+    async def invalidate_warning_command(self, ctx: Context[Pidroid], case_id: int):
         assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
         await case.invalidate()
-        await ctx.reply(embed=SuccessEmbed('Warning invalidated successfully!'))
+        return await ctx.reply(embed=PidroidEmbed.from_success('Warning invalidated successfully!'))
 
 
     # Originally hidden due to limitation, now hidden due to making warnings subcommand explicit
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name="warnings",
         hidden=True
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def warnings_command(self, ctx: Context):
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
+    async def warnings_command(self, ctx: Context[Pidroid]):
         if ctx.invoked_subcommand is None:
             raise GeneralCommandError("You have to explicitly mention whether you want to display active or all warnings!")
 
-    @warnings_command.command( # type: ignore
+    @warnings_command.command(
         name="active",
         brief="Displays active warnings for the specified user.",
         usage="[user]",
         category=ModerationCategory
     )
     @app_commands.describe(user="Member or user you are trying to query.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def warnings_active_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
@@ -141,18 +142,18 @@ class ModeratorInformationCommandCog(commands.Cog):
         )
         await pages.send()
 
-    @warnings_command.command( # type: ignore
+    @warnings_command.command(
         name="all",
         brief="Displays all warnings ever issued for the specified user.",
         usage="[user]",
         category=ModerationCategory
     )
     @app_commands.describe(user="Member or user you are trying to query.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def warnings_all_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
@@ -175,7 +176,7 @@ class ModeratorInformationCommandCog(commands.Cog):
         await pages.send()
 
 
-    @commands.hybrid_group( # type: ignore
+    @commands.hybrid_group(
         name="modlogs",
         brief='Displays all moderation logs for the specified user.',
         usage='[user]',
@@ -183,11 +184,11 @@ class ModeratorInformationCommandCog(commands.Cog):
         category=ModerationCategory
     )
     @app_commands.describe(user="Member or user you are trying to query.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
     async def moderation_logs_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
@@ -209,7 +210,7 @@ class ModeratorInformationCommandCog(commands.Cog):
         )
         await pages.send()
 
-    @moderation_logs_command.command( # type: ignore
+    @moderation_logs_command.command(
         name="server",
         brief='Displays all moderation logs for you in the specified server.',
         usage='[server]',
@@ -217,10 +218,10 @@ class ModeratorInformationCommandCog(commands.Cog):
     )
     @app_commands.rename(guild_argument="server")
     @app_commands.describe(guild_argument="Server ID or name to query your modlogs from.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     async def moderation_logs_guild_subcommand(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         guild_argument: Optional[str]
     ):
         # If guild wasn't provided, list all guilds where user was punished it
@@ -278,25 +279,27 @@ class ModeratorInformationCommandCog(commands.Cog):
         category=ModerationCategory
     )
     @app_commands.describe(user="Member you are trying to query.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def moderator_statistics_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         user: Annotated[Optional[Member], Member] = None
     ):
         assert ctx.guild is not None
         member = user or ctx.author
         data = await self.client.api.fetch_moderation_statistics(ctx.guild.id, member.id)
         embed = PidroidEmbed(title=f'Displaying moderation statistics for {str(member)}')
-        embed.add_field(name='Bans', value=f"{data['bans']:,}")
-        embed.add_field(name='Kicks', value=f"{data['kicks']:,}")
-        embed.add_field(name='Jails', value=f"{data['jails']:,}")
-        embed.add_field(name='Warnings', value=f"{data['warnings']:,}")
-        embed.add_field(name='Moderator total', value=f"{data['user_total']:,}")
-        embed.add_field(name='Server total', value=f"{data['guild_total']:,}")
-        await ctx.reply(embed=embed)
+        return await ctx.reply(
+            embed=embed
+                .add_field(name='Bans', value=f"{data['bans']:,}")
+                .add_field(name='Kicks', value=f"{data['kicks']:,}")
+                .add_field(name='Jails', value=f"{data['jails']:,}")
+                .add_field(name='Warnings', value=f"{data['warnings']:,}")
+                .add_field(name='Moderator total', value=f"{data['user_total']:,}")
+                .add_field(name='Server total', value=f"{data['guild_total']:,}")
+        )
 
 
     @commands.hybrid_command(
@@ -306,12 +309,12 @@ class ModeratorInformationCommandCog(commands.Cog):
         category=ModerationCategory
     )
     @app_commands.describe(username="Username of the user that was previously punished.")
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
+    @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
-    @commands.guild_only() # type: ignore
+    @commands.guild_only()
     async def search_cases_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         username: str
     ):
         assert ctx.guild is not None

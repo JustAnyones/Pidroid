@@ -19,38 +19,39 @@ class BotCommandCog(commands.Cog):
     """This class implements cog which contains commands primarily used to diagnose Pidroid."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="ping",
         brief='Returns the ping of the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=1, type=commands.BucketType.user)
-    async def ping_command(self, ctx: Context):
+    async def ping_command(self, ctx: Context[Pidroid]):
         msg: Message = await ctx.reply("**Pinging...**")
         client_ping = round((msg.created_at.timestamp() - ctx.message.created_at.timestamp()) * 1000)
         api_ping = round(self.client.latency * 1000)
         embed = PidroidEmbed(description=f':stopwatch: {client_ping}ms\n\n:heartbeat: {api_ping}ms')
-        await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
+        return await msg.edit(content='Pong!', embed=embed, allowed_mentions=ALLOWED_MENTIONS)
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="invite",
         brief='Returns an invite link for the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def invite_command(self, ctx: Context):
-        await ctx.reply('You can invite the bot to your server with the following url: https://ja.theotown.com/pidroid/invite')
+    async def invite_command(self, ctx: Context[Pidroid]):
+        return await ctx.reply('You can invite the bot to your server with the following url: https://pidroid.svetikas.lt/invite')
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="info",
         brief='Returns general information about the bot.',
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def info_command(self, ctx: Context, mode: Optional[str]):
+    async def info_command(self, ctx: Context[Pidroid], mode: Optional[str]):
         async with ctx.typing():
             # Fetch data from config file
             version = self.client.version
@@ -106,7 +107,7 @@ class BotCommandCog(commands.Cog):
             embed.add_field(name='Servers', value=f'{len(self.client.guilds):,} ({len(self.client.users):,} users cached)', inline=True)
             embed.add_field(name='RAM usage', value=f'{used_memory} MB', inline=True)
             embed.add_field(name='Current bot time', value=timestamp_to_date(int(current_timestamp), 'custom'), inline=False)
-            await ctx.reply(embed=embed)
+            return await ctx.reply(embed=embed)
 
 
 async def setup(client: Pidroid):

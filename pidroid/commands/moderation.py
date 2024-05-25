@@ -347,21 +347,21 @@ class ModerationMenu(ui.View):
     Permission checks for moderators and Pidroid
     """
 
-    def is_junior_moderator(self, **perms: dict[str, bool]) -> bool:
+    def is_junior_moderator(self, **perms: bool) -> bool:
         try:
             check_junior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
-    def is_normal_moderator(self, **perms: dict[str, bool]) -> bool:
+    def is_normal_moderator(self, **perms: bool) -> bool:
         try:
             check_normal_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
-    def is_senior_moderator(self, **perms: dict[str, bool]) -> bool:
+    def is_senior_moderator(self, **perms: bool) -> bool:
         try:
             check_senior_moderator_permissions(self._ctx, **perms)
             return True

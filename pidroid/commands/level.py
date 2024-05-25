@@ -17,11 +17,11 @@ from pidroid.utils.levels import COLOUR_BINDINGS, MemberLevelInfo
 from pidroid.utils.paginators import ListPageSource
 
 class LeaderboardPaginator(ListPageSource):
-    def __init__(self, data: List[MemberLevelInfo]):
+    def __init__(self, data: list[MemberLevelInfo]):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-    async def format_page(self, menu: PaginatingView, data: List[MemberLevelInfo]):
+    async def format_page(self, menu: PaginatingView, data: list[MemberLevelInfo]):
         assert isinstance(menu.ctx.bot, Pidroid)
         self.embed.clear_fields()
         for info in data:
@@ -33,9 +33,10 @@ class LeaderboardPaginator(ListPageSource):
             )
         return self.embed
 
-class LevelCommandCog(commands.Cog): # type: ignore
+class LevelCommandCog(commands.Cog):
     """This class implements a cog for special bot owner only commands."""
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
     async def check_system_enabled(self, guild: Guild) -> bool:
@@ -58,7 +59,7 @@ class LevelCommandCog(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True)
     async def level_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
@@ -100,7 +101,7 @@ class LevelCommandCog(commands.Cog): # type: ignore
         await ctx.reply(embed=embed)
         
     @level_command.error
-    async def on_level_command_error(self, ctx: Context, error):
+    async def on_level_command_error(self, ctx: Context, error: Exception):
         if isinstance(error, BadUnionArgument):
             if error.param.name == "member":
                 for _err in error.errors:
@@ -114,8 +115,8 @@ class LevelCommandCog(commands.Cog): # type: ignore
         category=LevelCategory
     )
     @commands.guild_only()
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def leaderboard_command(self, ctx: Context):
+    @commands.bot_has_permissions(send_messages=True)
+    async def leaderboard_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         levels = await self.client.api.fetch_guild_level_rankings(ctx.guild.id, limit=100)
@@ -129,9 +130,9 @@ class LevelCommandCog(commands.Cog): # type: ignore
         invoke_without_command=True,
         fallback='list'
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def rewards_command(self, ctx: Context):
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.guild_only()
+    async def rewards_command(self, ctx: Context[Pidroid]):
         if ctx.invoked_subcommand is None:
             assert ctx.guild is not None
             await self.check_system_enabled(ctx.guild)
@@ -158,7 +159,7 @@ class LevelCommandCog(commands.Cog): # type: ignore
     @commands.bot_has_permissions(send_messages=True) # type: ignore
     @commands.has_permissions(manage_roles=True) # type: ignore
     @commands.guild_only() # type: ignore
-    async def rewards_add_command(self, ctx: Context, role: Role, level: int):
+    async def rewards_add_command(self, ctx: Context[Pidroid], role: Role, level: int):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         if level > 1000:
@@ -180,7 +181,7 @@ class LevelCommandCog(commands.Cog): # type: ignore
         ))
 
     @rewards_add_command.error
-    async def on_rewards_add_command_error(self, ctx: Context, error):
+    async def on_rewards_add_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "role":
                 return await notify(ctx, "Please specify the role.")
@@ -188,16 +189,16 @@ class LevelCommandCog(commands.Cog): # type: ignore
                 return await notify(ctx, "Please specify the level.")
         setattr(error, 'unhandled', True)
 
-    @rewards_command.command( # type: ignore
+    @rewards_command.command(
         name='remove',
         brief='Removes the specified role as a level reward.',
         usage='<role>',
         category=LevelCategory
     )
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    @commands.has_permissions(manage_roles=True) # type: ignore
-    @commands.guild_only() # type: ignore
-    async def rewards_remove_command(self, ctx: Context, role: Role):
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.has_permissions(manage_roles=True)
+    @commands.guild_only()
+    async def rewards_remove_command(self, ctx: Context[Pidroid], role: Role):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
@@ -205,28 +206,28 @@ class LevelCommandCog(commands.Cog): # type: ignore
             raise BadArgument('Specified role does not belong to any rewards.')
 
         await reward.delete()
-        await ctx.reply(embed=SuccessEmbed(
+        return await ctx.reply(embed=PidroidEmbed.from_success(
             'Role reward removed successfully! Please note that it will take some time for changes to take effect.'
         ))
 
     @rewards_remove_command.error
-    async def on_rewards_remove_command_error(self, ctx: Context, error):
+    async def on_rewards_remove_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "role":
                 return await notify(ctx, "Please specify the role.")
         setattr(error, 'unhandled', True)
 
 
-    @commands.command( # type: ignore
+    @commands.command(
         name="level-card",
         brief="Sets the custom level theme in the level card.",
         usage="<theme name>",
         category=LevelCategory,
         aliases=['rank-card']
     )
-    @commands.guild_only() # type: ignore
-    @commands.bot_has_permissions(send_messages=True) # type: ignore
-    async def level_card_command(self, ctx: Context, theme: str):
+    @commands.guild_only()
+    @commands.bot_has_permissions(send_messages=True)
+    async def level_card_command(self, ctx: Context[Pidroid], theme: str):
         assert ctx.guild is not None
         await self.check_system_enabled(ctx.guild)
         info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, ctx.author.id)
@@ -241,12 +242,10 @@ class LevelCommandCog(commands.Cog): # type: ignore
             )
         
         await info.update_theme_name(cleaned_theme)
-        await ctx.reply(embed=SuccessEmbed(
-            "Level card theme has been updated."
-        ))
+        return await ctx.reply(embed=PidroidEmbed.from_success("Level card theme has been updated."))
 
     @level_card_command.error
-    async def on_level_card_command_error(self, ctx: Context, error):
+    async def on_level_card_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "theme":
                 return await notify(ctx, "Please specify the theme you want to set.")
