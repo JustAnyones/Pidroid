@@ -82,7 +82,7 @@ class ValueButton(BaseButton):
         return type(self)(self.label, self.value)
 
 class LengthButton(ValueButton):
-    def __init__(self, label: str | None, value: Optional[Union[int, timedelta]]):
+    def __init__(self, label: str | None, value:int | timedelta | None):
         super().__init__(label, value)
 
     @override
@@ -221,8 +221,8 @@ class ModerationMenu(ui.View):
 
     def __init__(
         self,
-        ctx: Context,
-        user: Union[Member, User],
+        ctx: Context[Pidroid],
+        user: Member | User,
         punishing_moderator: bool
     ):
         super().__init__(timeout=300)
@@ -253,8 +253,8 @@ class ModerationMenu(ui.View):
 
         # Initialize variables
         self._message = None
-        self._punishment: Optional[Union[Ban, Kick, Jail, Timeout, Warning]] = None
-        self._jail_role: Optional[Role] = None
+        self._punishment: Ban | Kick | Jail | Timeout | Warning | None = None
+        self._jail_role: Role | None = None
         self._punishing_moderator = punishing_moderator
 
     async def _init(self):
@@ -347,21 +347,21 @@ class ModerationMenu(ui.View):
     Permission checks for moderators and Pidroid
     """
 
-    def is_junior_moderator(self, **perms) -> bool:
+    def is_junior_moderator(self, **perms: dict[str, bool]) -> bool:
         try:
             check_junior_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
-    def is_normal_moderator(self, **perms) -> bool:
+    def is_normal_moderator(self, **perms: dict[str, bool]) -> bool:
         try:
             check_normal_moderator_permissions(self._ctx, **perms)
             return True
         except (MissingUserPermissions, MissingPermissions):
             return False
 
-    def is_senior_moderator(self, **perms) -> bool:
+    def is_senior_moderator(self, **perms: dict[str, bool]) -> bool:
         try:
             check_senior_moderator_permissions(self._ctx, **perms)
             return True
@@ -880,7 +880,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.can_purge()
     @commands.guild_only()
-    async def purge_command(self, ctx: Context, amount: int):
+    async def purge_command(self, ctx: Context[Pidroid], amount: int):
         if ctx.invoked_subcommand is None:
 
             def is_not_pinned(message: Message):
@@ -908,7 +908,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.can_purge()
     @commands.guild_only()
-    async def purge_user_command(self, ctx: Context, member: Member, amount: int):
+    async def purge_user_command(self, ctx: Context[Pidroid], member: Member, amount: int):
         def is_member(message: Message):
             return message.author.id == member.id and not message.pinned
 
@@ -928,7 +928,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
     @command_checks.is_junior_moderator(manage_messages=True)
     @commands.guild_only()
-    async def deletethis(self, ctx: Context):
+    async def deletethis(self, ctx: Context[Pidroid]):
         assert isinstance(ctx.channel, MessageableGuildChannelTuple)
         await ctx.message.delete(delay=0)
         _ = await ctx.channel.purge(limit=1)
@@ -947,7 +947,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.guild_only()
     async def moderation_menu_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         user: Member | User
     ):
         assert ctx.guild
@@ -988,7 +988,7 @@ class ModerationCommandCog(commands.Cog):
         await menu.display()
 
     @moderation_menu_command.error
-    async def handle_moderation_menu_command_error(self, ctx: Context, error: Exception):
+    async def handle_moderation_menu_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "user":
                 return await notify(ctx, "Please specify the member or the user you are trying to punish!")
@@ -1012,7 +1012,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.guild_only()
     async def suspend_command(
         self,
-        ctx: Context,
+        ctx: Context[Pidroid],
         member: Member
     ):
         assert ctx.guild

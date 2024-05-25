@@ -1,6 +1,7 @@
 from discord import Member
 from discord.ext import commands
 from discord.ext.commands import Context
+from typing import TYPE_CHECKING
 
 from pidroid.constants import EMERGENCY_SHUTDOWN, CHEESE_EATERS
 from pidroid.models.exceptions import ClientIsNotPidroid, NotInTheoTownGuild, MissingUserPermissions
@@ -12,14 +13,16 @@ from pidroid.utils.checks import (
     check_channel_permissions
 )
 
-# noinspection PyPep8Naming
+if TYPE_CHECKING:
+    from pidroid.client import Pidroid
+
 class command_checks:
     """This class contains custom command check decorators."""
 
     @staticmethod
     def is_theotown_developer():
         """Checks whether the command is invoked by a TheoTown developer."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             if not TheoTownChecks.is_developer(ctx.author):
                 raise MissingUserPermissions('You are not a TheoTown developer!')
             return True
@@ -28,7 +31,7 @@ class command_checks:
     @staticmethod
     def is_cheese_consumer():
         """Checks whether the command is invoked by an authorized user."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             if ctx.author.id not in CHEESE_EATERS:
                 raise MissingUserPermissions(
                     f'Sorry {ctx.author.display_name}, I can\'t run that command. Come back when you\'re a little, mmmmm, richer!'
@@ -39,7 +42,7 @@ class command_checks:
     @staticmethod
     def can_shutdown_bot():
         """Checks whether the command is invoked by an authorized user to shutdown the bot."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             if ctx.author.id not in EMERGENCY_SHUTDOWN:
                 raise MissingUserPermissions(
                     "You are not authorized to perform an emergency shutdown!"
@@ -50,7 +53,7 @@ class command_checks:
     @staticmethod
     def client_is_pidroid():
         """Checks whether the command invocation is handled by the original Pidroid client user."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             if not is_client_pidroid(ctx.bot):
                 raise ClientIsNotPidroid
             return True
@@ -67,7 +70,7 @@ class command_checks:
     @staticmethod
     def is_theotown_guild():
         """Checks whether the command is invoked inside TheoTown guild."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             assert ctx.guild is not None
             if not is_guild_theotown(ctx.guild):
                 raise NotInTheoTownGuild
@@ -77,28 +80,28 @@ class command_checks:
     @staticmethod
     def is_junior_moderator(**perms):
         """Checks whether the command is invoked by a junior moderator or a member with appropriate permissions."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             return check_junior_moderator_permissions(ctx, **perms)
         return commands.check(predicate)
 
     @staticmethod
     def is_moderator(**perms):
         """Checks whether the command is invoked by a normal moderator or a member with appropriate permissions."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             return check_normal_moderator_permissions(ctx, **perms)
         return commands.check(predicate)
 
     @staticmethod
     def is_senior_moderator(**perms):
         """Checks whether the command is invoked by a senior moderator or a member with appropriate permissions."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             return check_senior_moderator_permissions(ctx, **perms)
         return commands.check(predicate)
 
     @staticmethod
     def can_purge():
         """Checks whether the command is invoked by a member which can purge."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             assert ctx.guild is not None
             assert isinstance(ctx.author, Member)
             if is_guild_theotown(ctx.guild):
@@ -111,6 +114,6 @@ class command_checks:
     @staticmethod
     def can_modify_tags():
         """Checks whether the command is invoked by a member who can manage tags."""
-        async def predicate(ctx: Context):
+        async def predicate(ctx: Context[Pidroid]):
             return await check_can_modify_tags(ctx)
         return commands.check(predicate)

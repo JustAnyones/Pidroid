@@ -4,7 +4,7 @@ from discord import Member, User, Guild, GroupChannel
 from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context
 from discord.flags import flag_value
 from discord.utils import get
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 from pidroid.constants import THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, PIDROID_ID
 from pidroid.models.exceptions import MissingUserPermissions
@@ -19,7 +19,7 @@ def _member_has_role(member: Member, role_id: int) -> bool:
     """Returns true if member has the specified role by ID."""
     return get(member.guild.roles, id=role_id) in member.roles
 
-def member_has_guild_permission(member: Member, permission: Union[str, flag_value]) -> bool:
+def member_has_guild_permission(member: Member, permission: str | flag_value) -> bool:
     """Returns true if member has the specified guild permission.
     
     This only takes into consideration the guild permissions and
@@ -33,7 +33,7 @@ def member_has_guild_permission(member: Member, permission: Union[str, flag_valu
         return permissions.value & permission.flag != 0
     return getattr(permissions, permission)
 
-def member_has_channel_permission(channel: GuildChannel, member: Member, permission: Union[str, flag_value]) -> bool:
+def member_has_channel_permission(channel: GuildChannel, member: Member, permission: str | flag_value) -> bool:
     """Returns true if member has the specified channel permission.
     
     This function takes into consideration the following cases:
@@ -50,7 +50,7 @@ def member_has_channel_permission(channel: GuildChannel, member: Member, permiss
 
 
 
-def check_guild_permissions(ctx: Context, **perms) -> bool:
+def check_guild_permissions(ctx: Context[Pidroid], **perms) -> bool:
     """Checks message author permissions for the guild.
     
     This only takes into consideration the guild permissions and
@@ -70,7 +70,7 @@ def check_guild_permissions(ctx: Context, **perms) -> bool:
         raise MissingPermissions(missing)
     return True
 
-def check_channel_permissions(ctx: Context, **perms) -> bool:
+def check_channel_permissions(ctx: Context[Pidroid], **perms) -> bool:
     """Checks message author permissions for the channel.
     
     This function takes into consideration the following cases:
@@ -117,7 +117,7 @@ def is_client_pidroid(client: Pidroid) -> bool:
     assert client.user is not None
     return client.user.id == PIDROID_ID
 
-def is_guild_theotown(guild: Optional[Guild]) -> bool:
+def is_guild_theotown(guild: Guild | None) -> bool:
     """Returns true if the specified guild is the TheoTown guild."""
     if guild:
         return guild.id == THEOTOWN_GUILD
@@ -130,7 +130,7 @@ class TheoTownChecks:
     """This class implements role-based checks for TheoTown guild."""
 
     @staticmethod
-    def is_developer(user: Union[Member, User]) -> bool:
+    def is_developer(user: Member | User) -> bool:
         """Returns true if the member is a developer."""
         return user.id in THEOTOWN_DEVELOPERS
 
@@ -217,7 +217,7 @@ def is_guild_moderator(member: Member) -> bool:
 
 
 
-def has_moderator_guild_permissions(ctx: Context, **perms) -> bool:
+def has_moderator_guild_permissions(ctx: Context[Pidroid], **perms: dict[str, bool]) -> bool:
     """Returns true if the author is a moderator and has the specified guild permissions."""
     assert isinstance(ctx.author, Member)
     if is_guild_theotown(ctx.guild):
@@ -232,7 +232,7 @@ def has_moderator_guild_permissions(ctx: Context, **perms) -> bool:
 
 
 
-async def check_can_modify_tags(ctx: Context):
+async def check_can_modify_tags(ctx: Context[Pidroid]):
     """Checks whether author has the permission to modify tags.
 
     It first checks if public can edit tags,
@@ -253,7 +253,7 @@ async def check_can_modify_tags(ctx: Context):
         return True
     return check_guild_permissions(ctx, manage_messages=True)
 
-def check_junior_moderator_permissions(ctx: Context, **perms) -> bool:
+def check_junior_moderator_permissions(ctx: Context[Pidroid], **perms: dict[str, bool]) -> bool:
     """Checks whether author has junior moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
@@ -265,7 +265,7 @@ def check_junior_moderator_permissions(ctx: Context, **perms) -> bool:
         return True
     return check_channel_permissions(ctx, **perms)
 
-def check_normal_moderator_permissions(ctx: Context, **perms) -> bool:
+def check_normal_moderator_permissions(ctx: Context[Pidroid], **perms: dict[str, bool]) -> bool:
     """Checks whether author has normal moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
@@ -277,7 +277,7 @@ def check_normal_moderator_permissions(ctx: Context, **perms) -> bool:
         return True
     return check_channel_permissions(ctx, **perms)
 
-def check_senior_moderator_permissions(ctx: Context, **perms) -> bool:
+def check_senior_moderator_permissions(ctx: Context[Pidroid], **perms: dict[str, bool]) -> bool:
     """Checks whether author has senior moderator permissions in TheoTown guild channel
     or the equivalent permissions in other guild channels.
     
