@@ -4,11 +4,11 @@ import discord
 import logging
 
 from contextlib import suppress
-from discord import ClientUser, Interaction, NotFound
+from discord import ClientUser, Embed, File, Interaction, Message, NotFound
 from discord.utils import MISSING # pyright: ignore[reportAny]
 from discord.ext.commands import Context
 from discord.ui import Item, Modal, View
-from typing import TYPE_CHECKING, Optional, override
+from typing import TYPE_CHECKING, override
 
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import PageSource
@@ -41,8 +41,9 @@ class BaseView(View):
         super().__init__(timeout=timeout)
         self._client = client
         self._ctx = ctx
-        self._embed = PidroidEmbed()
+        self._embed: Embed = PidroidEmbed()
         self._check_embed_permissions = False
+        self._message: Message | None = None
         _ = self.clear_items()
 
     @property
@@ -61,6 +62,67 @@ class BaseView(View):
 
         self._message = await self._ctx.reply(embed=self._embed, view=self)
 
+    async def _update_view(self, interaction: Interaction | None, attachments: list[File] | None = None) -> None:
+        """Updates the original interaction response message.
+        
+        If interaction object is not provided, then the message itself will be edited."""
+        if attachments is None:
+            attachments = []
+
+        if interaction is None:
+            if self._message is None:
+                return
+            with suppress(NotFound):
+                _ = await self._message.edit(embed=self._embed, view=self, attachments=attachments)
+            return
+
+        # If we have the interaction
+        use_followup = interaction.response.type is not None
+        if use_followup:
+            assert self._message
+            _ = await interaction.followup.edit_message(
+                message_id=self._message.id,
+                embed=self._embed, view=self, attachments=attachments
+            )
+            return
+        await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
+
+    """Event listeners"""
+
+    @override
+    async def on_timeout(self) -> None:
+        """Called on view timeout."""
+        await self.timeout_view()
+
+    @override
+    async def on_error(self, interaction: Interaction, error: Exception, item: Item[BaseView]) -> None:
+        """Called when view catches an error."""
+        logger.exception(error)
+        logger.error(f"The above exception is caused by {str(item)} item")
+        await self.error_view(interaction)
+
+    @override
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        """Ensure that the interaction is called by the message author."""
+        if interaction.user and interaction.user.id == self._ctx.author.id:
+            return True
+        await interaction.response.send_message("This menu cannot be controlled by you!", ephemeral=True)
+        return False
+
+    """???"""
+
+    async def timeout_view(self) -> None:
+        """Called for clean up after a timeout was encountered."""
+        await self.finalize_view(None)
+
+    async def error_view(self, interaction: Interaction):
+        """Called for clean up after an error was encountered."""
+        message = "An unknown error was encountered"
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+
     async def close_view(self, interaction: Interaction) -> None:
         """Called to clean up when the view is closed by the user."""
         if self._message:
@@ -69,59 +131,29 @@ class BaseView(View):
         await interaction.response.defer()
         self.stop()
 
-    async def timeout_view(self, interaction: Interaction | None) -> None:
-        """Called to clean up when the interaction or view timed out."""
-        await self.finish_interface(interaction)
-
-    async def finish_interface(
+    async def finalize_view(
         self,
-        interaction: Optional[Interaction],
-        embed: Optional[PidroidEmbed] = None
+        interaction: Interaction | None,
+        embed: Embed | None = None,
+        file: File | None = None
     ) -> None:
-        """Removes all buttons and updates the view. No more calls can be done to the view."""
-        # Remove all items
-        for child in self.children.copy():
-            self.remove_item(child)
-
+        """Updates the view for the final time and stops listening to any further interactions."""
+        _ = self.clear_items() # Remove all buttons
         # If embed is provided, update it
         if embed:
             self._embed = embed
-        await self._update_view(interaction) # Update message with latest information
+        files: list[File] = []
+        if file:
+            files.append(file)
+        # If we can't for some reason update the view, ignore the exception
+        try:
+            await self._update_view(interaction, files) # Update message with latest information
+        except:
+            pass
         self.stop() # Stop responding to any interaction
 
-    async def _update_view(self, interaction: Optional[Interaction]) -> None:
-        """Updates the original interaction response message.
-        
-        If interaction object is not provided, then the message itself will be edited."""
-        if interaction is None:
-            with suppress(NotFound):
-                await self._message.edit(embed=self._embed, view=self)
-        else:
-            await interaction.response.edit_message(embed=self._embed, view=self)
+    """Generic buttons"""
 
-    """Event listeners"""
-
-    async def on_timeout(self) -> None:
-        """Called when view times out."""
-        await self.timeout_view(None)
-
-    async def on_error(self, interaction: Interaction, error: Exception, item: Item) -> None:
-        """Called when view catches an error."""
-        logger.exception(error)
-        logger.error(f"The above exception is caused by {str(item)} item")
-        message = "An unknown error was encountered"
-        if interaction.response.is_done():
-            await interaction.followup.send(message, ephemeral=True)
-        else:
-            await interaction.response.send_message(message, ephemeral=True)
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        """Ensure that the interaction is called by the message author."""
-        if interaction.user and interaction.user.id == self._ctx.author.id:
-            return True
-        await interaction.response.send_message("This menu cannot be controlled by you!", ephemeral=True)
-        return False
-    
     @discord.ui.button(label="Close", style=discord.ButtonStyle.red, row=2)
     async def close_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Closes the view."""

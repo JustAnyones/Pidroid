@@ -5,7 +5,6 @@ import datetime
 import discord
 import logging
 
-from contextlib import suppress
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
 from discord import ui, ButtonStyle, Interaction, app_commands, Member, Message, RawMessageDeleteEvent
@@ -20,13 +19,14 @@ from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, get
-from typing import TYPE_CHECKING, Any, Optional, Union, TypedDict, override
+from typing import TYPE_CHECKING, Any, TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import InvalidDuration, MissingUserPermissions
-from pidroid.models.punishments import Ban, Kick, Timeout, Jail, Warning
+from pidroid.models.punishments import Ban, BasePunishment, Kick, Timeout, Jail, Warning
 from pidroid.services.error_handler import notify
+from pidroid.models.view import BaseView, PidroidModal
 from pidroid.utils import user_mention
 from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
 from pidroid.utils.checks import (
@@ -35,7 +35,6 @@ from pidroid.utils.checks import (
     is_guild_moderator, is_guild_theotown
 )
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.file import Resource
 from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
 
@@ -43,31 +42,21 @@ logger = logging.getLogger("Pidroid")
 
 BUNNY_ID = 793465265237000212
 
-class ReasonModal(ui.Modal, title='Custom reason modal'):
-    reason_input = ui.TextInput(label="Reason", placeholder="Please provide the reason")
-    interaction: Interaction = None
+class ReasonModal(PidroidModal, title='Custom reason modal'):
+    reason_input: ui.TextInput[ModerationMenu] = ui.TextInput(label="Reason", placeholder="Please provide the reason")
 
-    async def on_submit(self, interaction: Interaction):
-        self.interaction = interaction
-        self.stop()
-
-class LengthModal(ui.Modal, title='Custom length modal'):
-    length_input = ui.TextInput(label="Length", placeholder="Please provide the length")
-    interaction: Interaction = None
-
-    async def on_submit(self, interaction: Interaction):
-        self.interaction = interaction
-        self.stop()
+class LengthModal(PidroidModal, title='Custom length modal'):
+    length_input: ui.TextInput[ModerationMenu] = ui.TextInput(label="Length", placeholder="Please provide the length")
 
 class BaseButton(ui.Button):
     if TYPE_CHECKING:
         view: ModerationMenu
 
-    def __init__(self, style: ButtonStyle, label: str | None, disabled: bool = False, emoji: Optional[Union[str, Emoji, PartialEmoji]] = None):
+    def __init__(self, style: ButtonStyle, label: str | None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
 
 class ValueButton(BaseButton):
-    def __init__(self, label: str | None, value: Optional[Any]):
+    def __init__(self, label: str | None, value: Any | None):
         super().__init__(ButtonStyle.gray, label)
         # If value doesn't exist, mark it as custom
         if value is None:
@@ -82,7 +71,7 @@ class ValueButton(BaseButton):
         return type(self)(self.label, self.value)
 
 class LengthButton(ValueButton):
-    def __init__(self, label: str | None, value:int | timedelta | None):
+    def __init__(self, label: str | None, value: int | timedelta | None):
         super().__init__(label, value)
 
     @override
@@ -116,7 +105,7 @@ class LengthButton(ValueButton):
         if self.view.is_finished():
             return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
 
-        self.view._select_length(value)
+        self.view.select_length(value)
         await self.view.show_reason_selection_menu()
         await self.view._update_view(interaction)
 
@@ -142,7 +131,7 @@ class ReasonButton(ValueButton):
         if self.view.is_finished():
             return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
 
-        self.view._select_reason(value)
+        self.view.select_reason(value)
         await self.view.show_confirmation_menu()
         await self.view._update_view(interaction)
 
@@ -213,11 +202,10 @@ REASON_MAPPING = {
     ]
 }
 
-class ModerationMenu(ui.View):
+class ModerationMenu(BaseView):
 
     if TYPE_CHECKING:
         _message: Message | None
-        _embed: Embed
 
     def __init__(
         self,
@@ -225,21 +213,16 @@ class ModerationMenu(ui.View):
         user: Member | User,
         punishing_moderator: bool
     ):
-        super().__init__(timeout=300)
+        super().__init__(ctx.bot, ctx, timeout=300)
 
         # Create embed object
-        self._embed = PidroidEmbed()
         self._embed.title = f'Punish {escape_markdown(str(user))}'
-
-        # Save the context
-        self._ctx = ctx
 
         # Get the cog instance from context
         assert isinstance(ctx.cog, ModerationCommandCog)
         self._cog = ctx.cog
 
         # Acquire the client and API instance
-        self._client = self._cog.client
         self._api = self._client.api
 
         # Aqcuire guild, channel and users from the context
@@ -252,7 +235,6 @@ class ModerationMenu(ui.View):
         self.user = user
 
         # Initialize variables
-        self._message = None
         self._punishment: Ban | Kick | Jail | Timeout | Warning | None = None
         self._jail_role: Role | None = None
         self._punishing_moderator = punishing_moderator
@@ -296,12 +278,12 @@ class ModerationMenu(ui.View):
         return self._punishment
 
     @punishment.setter
-    def punishment(self, instance):
+    def punishment(self, instance: BasePunishment):
         """Sets the punishment instance."""
         self._embed.description = f"Type: {str(instance)}"
         self._punishment = instance
 
-    def _select_length(self, length: Union[timedelta, relativedelta, None]):
+    def select_length(self, length: timedelta | relativedelta | None):
         # Special case
         if length == -1:
             length = None
@@ -311,7 +293,7 @@ class ModerationMenu(ui.View):
         assert isinstance(self._embed.description, str)
         self._embed.description += f"\nLength: {self.punishment.length_as_string}"
 
-    def _select_reason(self, reason: str):
+    def select_reason(self, reason: str):
         assert isinstance(self._embed.description, str)
         self._embed.description += f"\nReason: {reason}"
         assert self._punishment
@@ -322,9 +304,9 @@ class ModerationMenu(ui.View):
     async def is_user_banned(self) -> bool:
         """Returns true if user is currently banned."""
         try:
-            await self.guild.fetch_ban(self.user)
+            _ = await self.guild.fetch_ban(self.user)
             return True
-        except Exception:
+        except NotFound:
             return False
 
     async def is_user_jailed(self) -> bool:
@@ -381,7 +363,7 @@ class ModerationMenu(ui.View):
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
         if timed_out:
-            await self.timeout_interface(interaction)
+            await self.timeout_view()
         return modal.reason_input.value, modal.interaction, timed_out
 
     async def custom_length_modal(self, interaction: Interaction) -> tuple[str | None, Interaction, bool]:
@@ -389,7 +371,7 @@ class ModerationMenu(ui.View):
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
         if timed_out:
-            await self.timeout_interface(interaction)
+            await self.timeout_view()
         return modal.length_input.value, modal.interaction, timed_out
 
     @property
@@ -464,29 +446,29 @@ class ModerationMenu(ui.View):
 
     async def show_type_selection_menu(self) -> None:
         """Creates a punishment type selection menu."""
-        self._embed.set_footer(text="Select the punishment type")
-        self.clear_items()
+        _ = self._embed.set_footer(text="Select the punishment type")
+        _ = self.clear_items()
 
         self.update_allowed_types()
 
         # Add ban/unban buttons
         # TODO: these buttons need to check for state whether user got unbanned while the menu was opening
         if not await self.is_user_banned():
-            self.add_item(self.on_type_ban_button)
+            _ = self.add_item(self.on_type_ban_button)
         else:
-            self.add_item(self.on_type_unban_button)
+            _ = self.add_item(self.on_type_unban_button)
 
         # Kick button
-        self.add_item(self.on_type_kick_button)
+        _ = self.add_item(self.on_type_kick_button)
 
         # Add jail/unjail buttons
         # TODO: these buttons need to check for state whether user got jailed while the menu was opening
         if not await self.is_user_jailed():
-            self.add_item(self.on_type_jail_button)
+            _ = self.add_item(self.on_type_jail_button)
             if is_guild_theotown(self._ctx.guild):
-                self.add_item(self.on_type_kidnap_button)
+                _ = self.add_item(self.on_type_kidnap_button)
         else:
-            self.add_item(self.on_type_unjail_button)
+            _ = self.add_item(self.on_type_unjail_button)
 
         # Add timeout/un-timeout buttons
         # TODO: these buttons need to check for state whether user got jailed while the menu was opening
@@ -509,9 +491,9 @@ class ModerationMenu(ui.View):
 
         _ = self.clear_items()
         for button in mapping:
-            self.add_item(button.copy())
-        self.add_item(self.on_cancel_button)
-        self._embed.set_footer(text="Select the punishment length")
+            _ = self.add_item(button.copy())
+        _ = self.add_item(self.on_cancel_button)
+        _ = self._embed.set_footer(text="Select the punishment length")
 
     async def show_reason_selection_menu(self):
         """Shows the punishment reason selection menu."""
@@ -520,18 +502,18 @@ class ModerationMenu(ui.View):
         if mapping is None or len(mapping) == 0:
             return await self.show_confirmation_menu()
 
-        self.clear_items()
+        _ = self.clear_items()
         for button in mapping:
-            self.add_item(button.copy())
-        self.add_item(self.on_cancel_button)
-        self._embed.set_footer(text="Select reason for the punishment")
+            _ = self.add_item(button.copy())
+        _ = self.add_item(self.on_cancel_button)
+        _ = self._embed.set_footer(text="Select reason for the punishment")
 
     async def show_confirmation_menu(self):
         """Shows the punishment confirmation menu."""
-        self.clear_items()
-        self.add_item(self.on_confirm_button)
-        self.add_item(self.on_cancel_button)
-        self._embed.set_footer(text="Confirm or cancel the punishment")
+        _ = self.clear_items()
+        _ = self.add_item(self.on_confirm_button)
+        _ = self.add_item(self.on_cancel_button)
+        _ = self._embed.set_footer(text="Confirm or cancel the punishment")
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
     async def on_confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -543,7 +525,7 @@ class ModerationMenu(ui.View):
         await self.punishment.issue()
 
         # Regardless, we clean up
-        return await self.finish_interface(
+        return await self.finalize_view(
             interaction,
             self.punishment.public_message_issue_embed,
             self.punishment.public_message_issue_file
@@ -552,7 +534,7 @@ class ModerationMenu(ui.View):
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
     async def on_cancel_button(self, interaction: discord.Interaction, _: discord.ui.Button):
         """Reacts to the cancel button."""
-        await self.cancel_interface(interaction)
+        await self.close_view(interaction)
 
     """Punishment buttons"""
 
@@ -577,7 +559,7 @@ class ModerationMenu(ui.View):
         await interaction.response.defer()
         self.stop()
         await self.punishment.revoke(reason=f"Unbanned by {str(self.moderator)}")
-        await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
+        await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Kick', style=discord.ButtonStyle.gray)
     async def on_type_kick_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -629,7 +611,7 @@ class ModerationMenu(ui.View):
         await interaction.response.defer()
         self.stop()
         await self.punishment.revoke(reason=f"Released by {str(self.moderator)}")
-        await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
+        await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Time-out', style=discord.ButtonStyle.gray)
     async def on_type_timeout_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -653,7 +635,7 @@ class ModerationMenu(ui.View):
         await interaction.response.defer()
         self.stop()
         await self.punishment.revoke(reason=f"Time out removed by {str(self.moderator)}")
-        await self.finish_interface(interaction, self.punishment.public_message_revoke_embed)
+        await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Warn', style=discord.ButtonStyle.gray, emoji='⚠️')
     async def on_type_warn_button(self, interaction: discord.Interaction, _: discord.ui.Button):
@@ -666,110 +648,44 @@ class ModerationMenu(ui.View):
         await self.show_reason_selection_menu()
         await self._update_view(interaction)
 
-    """Clean up related methods"""
+    """Utility"""
 
-    async def timeout_interface(self, interaction: Interaction | None) -> None:
-        """Called to clean up when the interaction or interface timed out."""
-        _ = self._embed.set_footer(text="Moderation menu has timed out")
-        self._embed.colour = Colour.red()
-        await self.finish_interface(interaction)
+    @override
+    def stop(self) -> None:
+        """Stops listening to all and any interactions for this view."""
+        _ = self.clear_items()
+        return super().stop()
 
-    async def error_interface(self, interaction: Interaction | None) -> None:
-        """Called to clean up when an error is encountered."""
+    """???"""
+
+    @override
+    async def error_view(self, interaction: Interaction):
         _ = self._embed.set_footer(text="Moderation menu has encountered an error")
         self._embed.colour = Colour.red()
-        await self.finish_interface(interaction)
+        await self.finalize_view(interaction)
 
-    async def cancel_interface(self, interaction: Interaction) -> None:
-        """Called to clean up when the interface is cancelled by user."""
+    @override
+    async def timeout_view(self):
+        _ = self._embed.set_footer(text="Moderation menu has timed out")
+        self._embed.colour = Colour.red()
+        await self.finalize_view(None)
+
+    @override
+    async def close_view(self, interaction: Interaction) -> None:
         _ = self._embed.set_footer(text="Punishment creation has been cancelled")
         self._embed.colour = Colour.red()
-        await self.finish_interface(interaction)
+        await self.finalize_view(interaction)
 
-    async def finish_interface(
+    @override
+    async def finalize_view(
         self,
         interaction: Interaction | None,
         embed: Embed | None = None,
         file: File | None = None
     ) -> None:
         """Removes all buttons and updates the interface. No more calls can be done to the interface."""
-        self.remove_items() # Remove all buttons
-        # If embed is provided, update it
-        if embed:
-            self._embed = embed
-        files: list[File] = []
-        if file:
-            files.append(file)
-        # If we can't for some reason update the view, ignore the exception
-        try:
-            await self._update_view(interaction, files) # Update message with latest information
-        except:
-            pass
-        self.stop() # Stop responding to any interaction
+        await super().finalize_view(interaction, embed, file)
         await self._cog.unlock_punishment_menu(self.guild.id, self.user.id) # Unlock semaphore
-
-    async def _update_view(self, interaction: Interaction | None, attachments: list[File] = []):
-        """Updates the original interaction response message.
-        
-        If interaction object is not provided, then the message itself will be edited."""
-        if interaction is None:
-            assert self._message
-            with suppress(NotFound):
-                _ = await self._message.edit(embed=self._embed, view=self, attachments=attachments)
-            return
-
-        # If we have the interaction
-        use_followup = interaction.response.type is not None
-        if use_followup:
-            assert self._message
-            _ = await interaction.followup.edit_message(
-                message_id=self._message.id,
-                embed=self._embed, view=self, attachments=attachments
-            )
-            return
-        await interaction.response.edit_message(embed=self._embed, view=self, attachments=attachments)
-
-    """Utility"""
-
-    def remove_items(self) -> None:
-        """Removes all items from the view."""
-        for child in self.children.copy():
-            _ = self.remove_item(child)
-
-    @override
-    def stop(self) -> None:
-        """Stops listening to all and any interactions for this view."""
-        self.remove_items()
-        return super().stop()
-
-    """Event listeners"""
-
-    @override
-    async def on_timeout(self) -> None:
-        """Called when view times out."""
-        await self.timeout_interface(None)
-
-    @override
-    async def on_error(self, interaction: Interaction, error: Exception, item: ui.Item) -> None:
-        """Called when view catches an error."""
-        logger.exception(error)
-        logger.error(f"The above exception is caused by {str(item)} item")
-        if interaction.response.is_done():
-            await interaction.followup.send('An unknown error occurred, sorry', ephemeral=True)
-        else:
-            await interaction.response.send_message('An unknown error occurred, sorry', ephemeral=True)
-
-        await self.error_interface(None)
-
-    @override
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        """Ensure that the interaction is called by the message author.
-
-        Moderator, in this case."""
-        if interaction.user and interaction.user.id == self.moderator.id:
-            return True
-        await interaction.response.send_message('This menu cannot be controlled by you, sorry!', ephemeral=True)
-        return False
 
 
 class UserSemaphoreDict(TypedDict):
@@ -787,7 +703,7 @@ class ModerationCommandCog(commands.Cog):
         self.client = client
         # {GUILD_ID: {USER_ID: UserSemaphoreDict}}
         self.user_semaphores: dict[int, dict[int, UserSemaphoreDict]] = {}
-        self.unlock_semaphores.start()
+        _ = self.unlock_semaphores.start()
 
     @override
     async def cog_unload(self):
@@ -1057,7 +973,7 @@ class ModerationCommandCog(commands.Cog):
     @commands.guild_only()
     async def punish_bunny_command(
         self,
-        ctx: Context
+        ctx: Context[Pidroid]
     ):
         assert ctx.guild
         assert isinstance(ctx.message.author, Member)
