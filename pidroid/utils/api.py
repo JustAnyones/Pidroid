@@ -79,9 +79,9 @@ class API:
                 select(TagTable).
                 filter(TagTable.id == id)
             )
-        row = result.fetchone()
+        row = result.scalar()
         if row:
-            return Tag.from_table(self.client, row[0])
+            return Tag.from_table(self.client, row)
         return None
 
     async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Tag | None:
@@ -92,9 +92,9 @@ class API:
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(tag_name)).
                 order_by(TagTable.name.asc())
             )
-        row = result.fetchone()
+        row = result.scalar()
         if row:
-            return Tag.from_table(self.client, row[0])
+            return Tag.from_table(self.client, row)
         return None
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> list[Tag]:
@@ -163,28 +163,28 @@ class API:
         assert config is not None
         return config
 
-    async def __fetch_guild_configuration_by_id(self, id: int) -> Optional[GuildConfiguration]:
+    async def __fetch_guild_configuration_by_id(self, id: int) -> GuildConfiguration | None:
         """Fetches and returns a deserialized guild configuration if available."""
         async with self.session() as session: 
             result = await session.execute(
                 select(GuildConfigurationTable).
                 filter(GuildConfigurationTable.id == id)
             )
-        r = result.fetchone()
+        r = result.scalar()
         if r:
-            return GuildConfiguration.from_table(self, r[0])
+            return GuildConfiguration.from_table(self, r)
         return None
 
-    async def fetch_guild_configuration(self, guild_id: int) -> Optional[GuildConfiguration]:
+    async def fetch_guild_configuration(self, guild_id: int) -> GuildConfiguration | None:
         """Fetches and returns a deserialized guild configuration if available for the specified guild."""
         async with self.session() as session: 
             result = await session.execute(
                 select(GuildConfigurationTable).
                 filter(GuildConfigurationTable.guild_id == guild_id)
             )
-        r = result.fetchone()
+        r = result.scalar()
         if r:
-            return GuildConfiguration.from_table(self, r[0])
+            return GuildConfiguration.from_table(self, r)
         return None
 
     async def fetch_guild_configurations(self) -> list[GuildConfiguration]:
@@ -267,7 +267,7 @@ class API:
                 select(ExpiringThread).
                 filter(ExpiringThread.expiration_date <= expiration_date)
             )
-        return [r[0] for r in result.fetchall()] 
+        return list(result.scalars())
 
     async def delete_expiring_thread(self, row_id: int) -> None:
         """Removes an expiring thread entry from the database."""
@@ -295,8 +295,8 @@ class API:
                 ).returning(PunishmentCounterTable.counter)
 
                 res = await session.execute(insert_stmt)
-                row = res.fetchone()
-                if row is None:
+                counter = res.scalar()
+                if counter is None:
                     raise RuntimeError((
                         f"After trying to insert a punishment entry, row was None\n\n"
                         "Information about punishment:\n"
@@ -307,7 +307,6 @@ class API:
                         f"reason: {reason}\n"
                         f"expire_date: {expire_date}"
                     ))
-                counter = row[0]
 
                 entry = PunishmentTable(
                     case_id=counter,
@@ -617,10 +616,7 @@ class API:
                 select(LinkedAccount).
                 filter(LinkedAccount.user_id == user_id)
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_linked_account_by_forum_id(self, forum_id: int) -> LinkedAccount | None:
         """Fetches and returns a linked account if available."""
@@ -629,10 +625,7 @@ class API:
                 select(LinkedAccount).
                 filter(LinkedAccount.forum_id == forum_id)
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
     
     """Leveling system related"""
 
@@ -688,10 +681,7 @@ class API:
                 ).
                 order_by(LevelRewards.level.desc())
             )
-        data: list[LevelRewards] = []
-        for r in result.fetchall():
-            data.append(r[0])
-        return data
+        return list(result.scalars())
 
     async def fetch_level_reward_by_id(self, id: int) -> LevelRewards | None:
         """Returns a LevelReward entry for the specified ID."""
@@ -700,10 +690,7 @@ class API:
                 select(LevelRewards).
                 filter(LevelRewards.id == id)
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_level_reward_by_role(self, guild_id: int, role_id: int) -> LevelRewards | None:
         """Returns a LevelReward entry for the specified guild and role."""
@@ -715,10 +702,7 @@ class API:
                     LevelRewards.role_id == role_id
                 )
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_guild_level_reward_by_level(self, guild_id: int, level: int) -> LevelRewards | None:
         """Returns a LevelReward entry for the specified guild and level."""
@@ -730,10 +714,7 @@ class API:
                     LevelRewards.level == level
                 )
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_eligible_level_rewards_for_level(self, guild_id: int, level: int) -> list[LevelRewards]:
         """Returns a list of LevelReward entries available for the specified guild and level.
@@ -748,10 +729,7 @@ class API:
                 ).
                 order_by(LevelRewards.level.desc())
             )
-        data: list[LevelRewards] = []
-        for r in result.fetchall():
-            data.append(r[0])
-        return data
+        return list(result.scalars())
 
     async def fetch_eligible_level_reward_for_level(self, guild_id: int, level: int) -> LevelRewards | None:
         """Returns a LevelReward entry for the specified guild and level.
@@ -771,10 +749,7 @@ class API:
                     LevelRewards.level < level
                 ).order_by(LevelRewards.level.desc())
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_next_level_reward(self, guild_id: int, level: int) -> LevelRewards | None:
         async with self.session() as session: 
@@ -785,10 +760,7 @@ class API:
                     LevelRewards.level > level
                 ).order_by(LevelRewards.level.desc())
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
 
 
@@ -846,7 +818,7 @@ class API:
             data.append(MemberLevelInfo.from_table(self, r[0]))
         return data
 
-    async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> Optional[MemberLevelInfo]:
+    async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> MemberLevelInfo | None:
         """Returns ranked level information for the specified user."""
         async with self.session() as session: 
             subquery = (
@@ -879,7 +851,7 @@ class API:
             )
         return None
 
-    async def fetch_user_level_info(self, guild_id: int, user_id: int) -> Optional[MemberLevelInfo]:
+    async def fetch_user_level_info(self, guild_id: int, user_id: int) -> MemberLevelInfo | None:
         """Returns the level information for the specified user."""
         async with self.session() as session: 
             result = await session.execute(
@@ -891,9 +863,9 @@ class API:
                     UserLevels.user_id == user_id
                 )
             )
-        r = result.fetchone()
+        r = result.scalar()
         if r:
-            return MemberLevelInfo.from_table(self, r[0])
+            return MemberLevelInfo.from_table(self, r)
         return None
 
     async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: int | None) -> list[MemberLevelInfo]:
@@ -1084,10 +1056,7 @@ class API:
                     Reminder.id == row
                 )
             )
-        r = result.fetchone()
-        if r:
-            return r[0]
-        return None
+        return result.scalar()
 
     async def fetch_reminders(self, *, user_id: int) -> list[Reminder]:
         """Fetches reminders for the specified user."""
@@ -1100,7 +1069,7 @@ class API:
                     Reminder.user_id == user_id
                 )
             )
-        return [r[0] for r in result.fetchall()]
+        return list(result.scalars())
 
     async def delete_reminder(self, *, row: int):
         """Deletes reminder at the specified row."""
@@ -1111,7 +1080,7 @@ class API:
 
     """TheoTown backend related"""
 
-    async def fetch_theotown_account_by_id(self, account_id: int) -> Optional[TheoTownAccount]:
+    async def fetch_theotown_account_by_id(self, account_id: int) -> TheoTownAccount | None:
         """Queries the TheoTown API for new plugins after the specified approval time."""
         response = await self.get(Route("/private/game/fetch_user", {"forum_id": account_id}))
         if response["success"]:

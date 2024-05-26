@@ -11,9 +11,9 @@ class TagTable(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     guild_id: Mapped[int] = mapped_column(BigInteger)
-    name: Mapped[str]
-    content: Mapped[str]
+    name: Mapped[str] = mapped_column(Text)
+    content: Mapped[str] = mapped_column(Text)
     authors: Mapped[list[int]] = mapped_column(ARRAY(BigInteger))
     aliases: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     locked: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
