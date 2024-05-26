@@ -19,7 +19,7 @@ from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, get
-from typing import TYPE_CHECKING, Any, TypedDict, override
+from typing import TYPE_CHECKING, Any, Self, TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
@@ -572,7 +572,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Jail', style=discord.ButtonStyle.gray)
-    async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button[Self]):
         """Reacts to the jail type button."""
         assert isinstance(self.user, Member)
         assert self._jail_role

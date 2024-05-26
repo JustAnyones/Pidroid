@@ -7,6 +7,7 @@ from typing import Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
 from pidroid.utils import channel_mention, normalize_permission_name, role_mention, user_mention
+from pidroid.utils.aliases import DiscordUser
 
 @dataclass
 class BaseData:
@@ -142,6 +143,22 @@ class _RoleUpdateData:
 class RoleUpdateData(BaseRoleData):
     before: _RoleUpdateData
     after: _RoleUpdateData
+
+@dataclass
+class KickData(BaseData):
+    user: DiscordUser | None
+    target: User | Object
+
+@dataclass
+class BanData(BaseData):
+    user: DiscordUser | None
+    target: User | Object
+
+@dataclass
+class UnbanData(BaseData):
+    user: DiscordUser | None
+    target: User | Object
+
 
 class PidroidLog:
 

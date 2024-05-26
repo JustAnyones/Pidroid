@@ -1,3 +1,5 @@
+# pyright: reportAny=false
+
 from __future__ import annotations
 
 import logging
@@ -6,7 +8,7 @@ from discord import AuditLogDiff, AuditLogEntry, Member, Object, Role, User, abc
 from discord.ext import commands
 from typing import TYPE_CHECKING, Any
 
-from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, ChannelCreateData, ChannelCreateLog, ChannelDeleteData, ChannelDeleteLog, ChannelUpdateData, ChannelUpdateLog, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteCreateLog, OverwriteDeleteData, OverwriteDeleteLog, OverwriteUpdateData, OverwriteUpdateLog, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog
+from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateData, _MemberUpdateData, _RoleUpdateData, BanData, ChannelCreateData, ChannelCreateLog, ChannelDeleteData, ChannelDeleteLog, ChannelUpdateData, ChannelUpdateLog, KickData, MemberRoleUpdateData, MemberRoleUpdateLog, MemberUpdateData, MemberUpdateLog, OverwriteCreateData, OverwriteCreateLog, OverwriteDeleteData, OverwriteDeleteLog, OverwriteUpdateData, OverwriteUpdateLog, PidroidLog, RoleCreateData, RoleCreateLog, RoleDeleteData, RoleDeleteLog, RoleUpdateData, RoleUpdateLog, UnbanData
 
 # TODO: All punishments throughout the server (bans, unbans, warns, kicks, jails)
 # TODO: Deleted and edited messages - and purges
@@ -79,10 +81,10 @@ class LoggingService(commands.Cog):
             AuditLogAction.member_disconnect: None,
 
             # Member management related
-            AuditLogAction.kick: None,
+            AuditLogAction.kick: self._on_kick,
             AuditLogAction.member_prune: None,
-            AuditLogAction.ban: None,
-            AuditLogAction.unban: None,
+            AuditLogAction.ban: self._on_ban,
+            AuditLogAction.unban: self._on_unban,
 
             # No idea
             AuditLogAction.message_delete: None,      # Would rather implement as event
@@ -462,7 +464,54 @@ class LoggingService(commands.Cog):
         )
         self.client.dispatch('pidroid_log', MemberRoleUpdateLog(data))
     
+    async def _on_kick(self, entry: AuditLogEntry):
+        """
+        A member was kicked.
+
+        When this is the action, the type of target is the User or Object who got kicked.
+
+        When this is the action, changes is empty.
+        """
+        assert isinstance(entry.target, (User, Object))
+        data = KickData(
+            guild=entry.guild, user=entry.user,
+            reason=entry.reason, created_at=entry.created_at,
+            target=entry.target
+        )
+        self.client.dispatch('pidroid_kick_log', data)
     
+    async def _on_ban(self, entry: AuditLogEntry):
+        """
+        A member was banned.
+
+        When this is the action, the type of target is the User or Object who got banned.
+
+        When this is the action, changes is empty.
+        """
+        assert isinstance(entry.target, (User, Object))
+        data = BanData(
+            guild=entry.guild, user=entry.user,
+            reason=entry.reason, created_at=entry.created_at,
+            target=entry.target
+        )
+        self.client.dispatch('pidroid_ban_log', data)
+
+    async def _on_unban(self, entry: AuditLogEntry):
+        """
+        A member was unbanned.
+
+        When this is the action, the type of target is the User or Object who got unbanned.
+
+        When this is the action, changes is empty.
+        """
+        assert isinstance(entry.target, (User, Object))
+        data = UnbanData(
+            guild=entry.guild, user=entry.user,
+            reason=entry.reason, created_at=entry.created_at,
+            target=entry.target
+        )
+        self.client.dispatch('pidroid_unban_log', data)
+
     @commands.Cog.listener()
     async def on_pidroid_log(self, log: PidroidLog):
         logger.debug(f"Log received: {type(log)}")
