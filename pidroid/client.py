@@ -41,7 +41,7 @@ def _is_theotown_service(service: str):
     return service.startswith("services.theotown")
 
 
-__VERSION__ = VersionInfo(major=5, minor=18, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
+__VERSION__ = VersionInfo(major=5, minor=19, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
