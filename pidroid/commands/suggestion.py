@@ -151,15 +151,6 @@ class SuggestionCommandCog(commands.Cog):
             for key in reactions:
                 await message.add_reaction(key)
 
-            # If we're in TheoTown guild, update the footer and send the suggestion to a database
-            if is_theotown_guild:
-                suggestion_attachments: list[str] = []
-                if message.embeds[0].image.url is not None:
-                    suggestion_attachments.append(message.embeds[0].image.url)
-                s_id = await self.client.api.insert_suggestion(ctx.author.id, message.id, suggestion, suggestion_attachments)
-                _ = embed.set_footer(text=f"{embed.footer.text}\n#{s_id}")
-                _ = await message.edit(embed=embed, view=view)
-
             if config.suggestion_threads_enabled:
                 _ = await self.client.create_expiring_thread(
                     message, f"{truncate_string(str(ctx.author), 40)}'s suggestion discussion",
