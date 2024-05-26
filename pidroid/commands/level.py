@@ -25,14 +25,13 @@ class LeaderboardPaginator(ListPageSource):
     async def format_page(self, menu: PaginatingView, page: list[UserLevels]):
         assert isinstance(menu.ctx.bot, Pidroid)
         _ = self.embed.clear_fields()
-        async with menu.ctx.bot.api.session() as session:
-            for info in page:
-                user = menu.ctx.bot.get_user(info.user_id)
-                _ = self.embed.add_field(
-                    name=f"{await info.calculate_rank(session)}. {user if user else info.user_id} (lvl. {info.level})",
-                    value=f'{info.total_xp:,} XP',
-                    inline=False
-                )
+        for i, info in enumerate(page):
+            user = menu.ctx.bot.get_user(info.user_id)
+            _ = self.embed.add_field(
+                name=f"{(i + 1) + self.per_page * menu.current_page}. {user if user else info.user_id} (lvl. {info.level})",
+                value=f'{info.total_xp:,} XP',
+                inline=False
+            )
         return self.embed
 
 class LevelCommandCog(commands.Cog):

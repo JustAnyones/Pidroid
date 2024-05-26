@@ -35,7 +35,7 @@ class UserLevels(Base):
         # Query to calculate the rank
         rank_subquery = (
             select(
-                UserLevels.id,
+                UserLevels,
                 func.rank().over(order_by=UserLevels.total_xp.desc()).label("rank")
             )
             .filter(UserLevels.guild_id == instance.guild_id)
@@ -45,7 +45,7 @@ class UserLevels(Base):
         # Get the rank for the current instance
         query = (
             select(rank_subquery)
-            .filter(rank_subquery.c.id == instance.id)
+            .filter(rank_subquery.c.user_id == instance.user_id)
         )
         result = await session.execute(query)
         return result.scalar()
