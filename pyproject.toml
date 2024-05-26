@@ -1,3 +1,7 @@
+[project]
+name = "pidroid-bot"
+requires-python = ">= 3.12"
+
 [tool.mypy]
 exclude = [
     "venv", 
