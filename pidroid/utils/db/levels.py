@@ -38,17 +38,19 @@ class UserLevels(Base):
                 UserLevels,
                 func.rank().over(order_by=UserLevels.total_xp.desc()).label("rank")
             )
-            .filter(UserLevels.guild_id == instance.guild_id)
+            .where(UserLevels.guild_id == instance.guild_id)
             .subquery()
         )
 
         # Get the rank for the current instance
         query = (
             select(rank_subquery)
-            .filter(rank_subquery.c.user_id == instance.user_id)
+            .where(rank_subquery.c.user_id == instance.user_id)
         )
         result = await session.execute(query)
-        return result.scalar()
+        row = result.fetchone()
+        print(row)
+        return row[0]
 
     def _get_theme_bindings(self) -> tuple[str, str] | None:
         """Returns theme bindings for the current user."""
