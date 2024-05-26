@@ -25,13 +25,14 @@ class LeaderboardPaginator(ListPageSource):
     async def format_page(self, menu: PaginatingView, page: list[UserLevels]):
         assert isinstance(menu.ctx.bot, Pidroid)
         _ = self.embed.clear_fields()
-        for info in page:
-            user = menu.ctx.bot.get_user(info.user_id)
-            _ = self.embed.add_field(
-                name=f"{await info.rank}. {user if user else info.user_id} (lvl. {info.level})",
-                value=f'{info.total_xp:,} XP',
-                inline=False
-            )
+        async with menu.ctx.bot.api.session() as session:
+            for info in page:
+                user = menu.ctx.bot.get_user(info.user_id)
+                _ = self.embed.add_field(
+                    name=f"{await info.calculate_rank(session)}. {user if user else info.user_id} (lvl. {info.level})",
+                    value=f'{info.total_xp:,} XP',
+                    inline=False
+                )
         return self.embed
 
 class LevelCommandCog(commands.Cog):
@@ -74,7 +75,8 @@ class LevelCommandCog(commands.Cog):
         avatar = member.avatar or member.default_avatar
         _ = embed.set_thumbnail(url=avatar.url)
         _ = embed.add_field(name='Level', value=info.level)
-        _ = embed.add_field(name='Rank', value=f'#{await info.rank:,}')       
+        async with self.client.api.session() as session:
+            _ = embed.add_field(name='Rank', value=f'#{await info.calculate_rank(session):,}')       
 
         # Create a progress bar
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py

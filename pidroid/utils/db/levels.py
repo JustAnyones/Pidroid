@@ -3,7 +3,6 @@ from discord import Colour
 from sqlalchemy import BigInteger, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.ext.hybrid import hybrid_property
 
 from pidroid.utils.db.base import Base
 
@@ -30,35 +29,26 @@ class UserLevels(Base):
     level: Mapped[int] = mapped_column(BigInteger, server_default="0")
     theme_name: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    @hybrid_property
-    async def rank(self):
-        # This part is used when accessing the property on an instance
-        return await self._calculate_rank()
-
-    async def _calculate_rank(self) -> int:
-        # Create a session (you may need to modify this if you have a different way of managing sessions)
-        session: AsyncSession | None = AsyncSession.object_session(self)
-        if session is None:
-            raise ValueError("Session is not available")
+    async def calculate_rank(self, session: AsyncSession) -> int:
+        instance = await session.merge(self)
 
         # Query to calculate the rank
         rank_subquery = (
             select(
+                UserLevels.id,
                 func.rank().over(order_by=UserLevels.total_xp.desc()).label("rank")
             )
-            .filter(UserLevels.guild_id == self.guild_id)
+            .filter(UserLevels.guild_id == instance.guild_id)
             .subquery()
         )
 
         # Get the rank for the current instance
         query = (
             select(rank_subquery)
-            .filter(rank_subquery.c.id == self.id)
+            .filter(rank_subquery.c.id == instance.id)
         )
         result = await session.execute(query)
-
         return result.scalar()
-
 
     def _get_theme_bindings(self) -> tuple[str, str] | None:
         """Returns theme bindings for the current user."""
