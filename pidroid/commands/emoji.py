@@ -6,7 +6,6 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument, Context, MissingRequiredArgument, PartialEmojiConversionFailure
 from discord.message import Message
 from discord.partial_emoji import PartialEmoji
-from typing import Optional, Union, List
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import UtilityCategory
@@ -17,33 +16,34 @@ from pidroid.utils.embeds import PidroidEmbed
 EMOJI_FIND_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 
 
-def get_message_emojis(message: Message) -> List[PartialEmoji]:
+def get_message_emojis(message: Message) -> list[PartialEmoji]:
     """Returns a list of PartialEmoji found in a message."""
     emojis = get_custom_emojis(message.clean_content)
     if len(emojis) == 0:
         raise BadArgument("I was not able to find any custom emojis in the referenced message!")
     return emojis
 
-def get_custom_emojis(string: str) -> List[PartialEmoji]:
+def get_custom_emojis(string: str) -> list[PartialEmoji]:
     """Returns a list of PartialEmoji found in a string."""
-    emoji_list = re.findall(EMOJI_FIND_PATTERN, string)
+    emoji_list: list[str] = re.findall(EMOJI_FIND_PATTERN, string)
     if len(emoji_list) == 0:
         return []
 
-    for i, emoji in enumerate(emoji_list):
+    formatted: list[PartialEmoji] = []
+    for emoji in emoji_list:
         animated, name, emoji_id = emoji.split(':')
-        emoji_list[i] = create_partial_emoji(name, animated == 'a', emoji_id)
-    return emoji_list
+        formatted.append(create_partial_emoji(name, animated == 'a', int(emoji_id)))
+    return formatted
 
 def create_partial_emoji(name: str, animated: bool, emoji_id: int) -> PartialEmoji:
     """Creates a PartialEmoji object from passed parameters."""
     return PartialEmoji(name=name, animated=animated, id=emoji_id)
 
-def mention_emoji(emoji: Union[Emoji, PartialEmoji]) -> str:
+def mention_emoji(emoji: Emoji | PartialEmoji) -> str:
     """Returns a string which can be used to mention an emoji."""
     return f"<{'a' if emoji.animated else ''}:{emoji.name}:{emoji.id}>"
 
-def get_emoji_name(emoji: Union[Emoji, PartialEmoji]) -> str:
+def get_emoji_name(emoji: Emoji | PartialEmoji) -> str:
     """Returns a string which can be used to display emoji name with colons."""
     return f":\N{zero width space}{emoji.name}\N{zero width space}:"
 
@@ -52,6 +52,7 @@ class EmojiCommandCog(commands.Cog):
     """This class implements a cog for dealing with custom emojis."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.command(
@@ -61,13 +62,13 @@ class EmojiCommandCog(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def emoji_command(self, ctx: Context, emoji: PartialEmoji):
+    async def emoji_command(self, ctx: Context[Pidroid], emoji: PartialEmoji):
         embed = PidroidEmbed(title=get_emoji_name(emoji))
-        embed.set_image(url=emoji.url)
-        await ctx.reply(embed=embed)
+        _ = embed.set_image(url=emoji.url)
+        return await ctx.reply(embed=embed)
 
     @emoji_command.error
-    async def on_emoji_command_error(self, ctx: Context, error):
+    async def on_emoji_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "emoji":
                 return await notify(ctx, "Please specify a custom emoji you want to view.")
@@ -84,7 +85,7 @@ class EmojiCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, manage_emojis=True)
     @commands.has_permissions(manage_emojis=True)
     @commands.guild_only()
-    async def copy_emoji_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
+    async def copy_emoji_command(self, ctx: Context[Pidroid], message: Message | None, emoji_index: int = -1):
         assert ctx.guild is not None
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -114,7 +115,7 @@ class EmojiCommandCog(commands.Cog):
                 raise BadArgument("The server emote list is full. I can't add more!")
             raise e
         else:
-            await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
+            return await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
 
     @commands.command(
         name='get-emojis',
@@ -123,7 +124,7 @@ class EmojiCommandCog(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def get_emojis_command(self, ctx: Context, message: Optional[Message], emoji_index: int = -1):
+    async def get_emojis_command(self, ctx: Context[Pidroid], message: Message | None, emoji_index: int = -1):
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
@@ -132,20 +133,18 @@ class EmojiCommandCog(commands.Cog):
 
         emote_count = len(emojis)
         if emote_count == 1:
-            await ctx.invoke(self.emoji_command, emoji=emojis[0])
-            return
+            return await ctx.invoke(self.emoji_command, emoji=emojis[0])
 
         if 1 <= emoji_index <= emote_count:
-            await ctx.invoke(self.emoji_command, emoji=emojis[emoji_index - 1])
-            return
+            return await ctx.invoke(self.emoji_command, emoji=emojis[emoji_index - 1])
 
         # TODO: look into pagination
         embed = PidroidEmbed(title="Extracted custom emojis")
 
         for emoji in emojis:
-            embed.add_field(name=get_emoji_name(emoji), value=f"[View]({emoji.url})")
+            _ = embed.add_field(name=get_emoji_name(emoji), value=f"[View]({emoji.url})")
 
-        await ctx.reply(embed=embed)
+        return await ctx.reply(embed=embed)
 
 
 async def setup(client: Pidroid) -> None:

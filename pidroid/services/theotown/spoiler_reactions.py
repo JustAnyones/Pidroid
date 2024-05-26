@@ -9,6 +9,7 @@ SPOILERS_CHANNEL_ID = 416906073207996416
 class SpoilerReactionService(commands.Cog):
     """This class implements a cog for handling of events related to reactions."""
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()

@@ -3,25 +3,23 @@ from __future__ import annotations
 import datetime
 
 from discord import Message, Member, Guild
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from pidroid.models.tags import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.accounts import TheoTownAccount
-from pidroid.models.role_changes import MemberRoleChanges, RoleAction, RoleQueueState
 from pidroid.utils.db.expiring_thread import ExpiringThread
 from pidroid.utils.db.guild_configuration import GuildConfigurationTable
 from pidroid.utils.db.levels import LevelRewards, UserLevels
 from pidroid.utils.db.linked_account import LinkedAccount
 from pidroid.utils.db.punishment import PunishmentCounterTable, PunishmentTable
 from pidroid.utils.db.reminder import Reminder
-from pidroid.utils.db.role_change_queue import RoleChangeQueue
+from pidroid.utils.db.role_change_queue import MemberRoleChanges, RoleAction, RoleChangeQueue, RoleQueueState
 from pidroid.utils.db.tag import TagTable
 from pidroid.utils.db.translation import Translation
 from pidroid.utils.http import HTTP, Route
-from pidroid.utils.levels import MemberLevelInfo
 from pidroid.utils.time import utcnow
 
 
@@ -396,7 +394,7 @@ class API:
             case_list.append(c)
         return case_list
     
-    async def _fetch_cases_by_username(self, guild_id: int, username: str) -> list[Case]:
+    async def fetch_cases_by_username(self, guild_id: int, username: str) -> list[Case]:
         """Returns all cases in the guild where original username at punishment time matches the provided username."""
         async with self.session() as session: 
             result = await session.execute(
@@ -770,7 +768,7 @@ class API:
         self,
         guild_id: int,
         user_id: int
-    ) -> MemberLevelInfo:
+    ) -> UserLevels:
         """Inserts an empty member level information entry to the database."""
         async with self.session() as session: 
             async with session.begin():
@@ -784,25 +782,21 @@ class API:
         assert info is not None
         return info
 
-    async def fetch_guild_level_rankings(self, guild_id: int, start: int = 0, limit: int = 10) -> list[MemberLevelInfo]:
+    async def fetch_guild_level_rankings(self, guild_id: int, start: int = 0, limit: int = 10) -> list[UserLevels]:
         """Returns a list of guild levels."""
         async with self.session() as session: 
             result = await session.execute(
                 select(
-                    UserLevels,
-                    func.rank().over(order_by=UserLevels.total_xp.desc()).label("rank")
+                    UserLevels
                 ).
                 filter(UserLevels.guild_id == guild_id).
                 order_by(UserLevels.total_xp.desc()).
                 limit(limit).
                 offset(start)
             )
-        info = []
-        for r in result.fetchall():
-            info.append(MemberLevelInfo.from_table(self, r[0], r[1]))
-        return info
+        return list(result.scalars())
 
-    async def fetch_guild_level_infos(self, guild_id: int) -> list[MemberLevelInfo]:
+    async def fetch_guild_level_infos(self, guild_id: int) -> list[UserLevels]:
         """Returns the bare member level information excluding ranking information."""
         async with self.session() as session: 
             result = await session.execute(
@@ -813,45 +807,24 @@ class API:
                     UserLevels.guild_id == guild_id
                 )
             )
-        data = []
-        for r in result.fetchall():
-            data.append(MemberLevelInfo.from_table(self, r[0]))
-        return data
+        return list(result.scalars())
 
-    async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> MemberLevelInfo | None:
+    async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> UserLevels | None:
         """Returns ranked level information for the specified user."""
         async with self.session() as session: 
-            subquery = (
-                select(
-                    UserLevels,
-                    func.rank().over(order_by=UserLevels.total_xp.desc()).label("rank")
-                )
-                .where(UserLevels.guild_id == guild_id)
-                .subquery()
-            )
             query = (
-                select(subquery)
-                .where(subquery.c.user_id == user_id)
+                select(
+                    UserLevels
+                )
+                .where(
+                    UserLevels.guild_id == guild_id,
+                    UserLevels.user_id == user_id
+                )
             )
             result = await session.execute(query)
+        return result.scalar()
 
-            r = result.fetchone()
-
-        if r:
-            # I hate this, I couldn't figure out how to provide ORM entity + rank instead
-            # If you have ideas, let me know
-            # I spent 5 hours on this method
-            row, guild_id, user_id, total_xp, current_xp, xp_to_level_up, level, theme_name, rank = r
-            return MemberLevelInfo(
-                self,
-                row,
-                guild_id, user_id, total_xp, current_xp, xp_to_level_up, level,
-                theme_name=theme_name,
-                rank=rank
-            )
-        return None
-
-    async def fetch_user_level_info(self, guild_id: int, user_id: int) -> MemberLevelInfo | None:
+    async def fetch_user_level_info(self, guild_id: int, user_id: int) -> UserLevels | None:
         """Returns the level information for the specified user."""
         async with self.session() as session: 
             result = await session.execute(
@@ -863,12 +836,9 @@ class API:
                     UserLevels.user_id == user_id
                 )
             )
-        r = result.scalar()
-        if r:
-            return MemberLevelInfo.from_table(self, r)
-        return None
+        return result.scalar()
 
-    async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: int | None) -> list[MemberLevelInfo]:
+    async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: int | None) -> list[UserLevels]:
         """Returns a list of user level information for specified levels.
         
         Returned user data is ``min_level <= USERS < max_level`` """
@@ -883,10 +853,7 @@ class API:
             if max_level is not None:
                 stmt = stmt.filter(UserLevels.level < max_level)
             result = await session.execute(stmt)
-        data = []
-        for r in result.fetchall():
-            data.append(MemberLevelInfo.from_table(self, r[0]))
-        return data
+        return list(result.scalars())
     
     async def update_user_level_theme(self, row_id: int, theme_name: str):
         """Updates the user level theme."""
@@ -920,8 +887,8 @@ class API:
 
         # Get the current information
         original_xp = info.current_xp
-        original_level = info.current_level
-        original_xp_to_next_lvl = info.xp_to_level_up
+        original_level = info.level
+        original_xp_to_next_lvl = info.xp_to_next_level
 
         # If we get no level up
         new_xp_to_next_level = original_xp_to_next_lvl
@@ -960,17 +927,7 @@ class API:
                 message.author,
                 message,
                 info,
-                MemberLevelInfo(
-                    self,
-                    info.row,
-                    guild_id,
-                    member_id,
-                    info.total_xp + amount,
-                    new_xp,
-                    new_xp_to_next_level,
-                    new_level,
-                    theme_name=info.theme_name
-                )
+                await self.fetch_user_level_info(guild_id, member_id)
             )
 
     """Role change queue management in postgres database"""

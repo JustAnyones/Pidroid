@@ -5,7 +5,7 @@ import datetime
 from discord import User
 from discord.ext.commands.errors import BadArgument
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -29,8 +29,8 @@ class Tag:
         guild_id: int,
         name: str,
         content: str,
-        authors: List[int],
-        aliases: List[str],
+        authors: list[int],
+        aliases: list[str],
         locked: bool,
         date_created: datetime.datetime,
     ) -> None:
@@ -84,7 +84,7 @@ class Tag:
         self,
         *,
         content: str = MISSING,
-        authors: List[int] = MISSING,
+        authors: list[int] = MISSING,
         owner_id: int = MISSING,
     ) -> None:
         """Edits the tag by updating the entry in the database."""
@@ -156,12 +156,12 @@ class Tag:
         return self.__authors[0]
 
     @property
-    def co_author_ids(self) -> List[int]:
+    def co_author_ids(self) -> list[int]:
         """Returns a list of tag's co-authors' user IDs."""
         return self.__authors[1:]
 
     @property
-    def aliases(self) -> List[str]:
+    def aliases(self) -> list[str]:
         """Returns the list of tag aliases."""
         return self.__aliases
 
@@ -207,11 +207,11 @@ class Tag:
         """Returns true if specified user is an author."""
         return user_id in self.__authors
 
-    def get_authors(self) -> List[Optional[User]]:
+    def get_authors(self) -> list[Optional[User]]:
         """Returns a list of optional user objects which represent the tag authors."""
         return [self.__client.get_user(auth_id) for auth_id in self.__authors]
 
-    async def fetch_authors(self) -> List[Optional[User]]:
+    async def fetch_authors(self) -> list[Optional[User]]:
         """Returns a list of optional user objects which represent the tag authors.
         
         This does a fetch if user is not found in cache."""

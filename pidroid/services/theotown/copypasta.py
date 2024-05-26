@@ -96,8 +96,9 @@ class CopypastaService(commands.Cog):
     """
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
-        empty_date = datetime.datetime.utcfromtimestamp(0)
+        empty_date = datetime.datetime.fromtimestamp(0, tz=datetime.UTC)
         self.cooldowns = {
             "ping_ja": empty_date,
             "linux": empty_date,
@@ -165,7 +166,7 @@ class CopypastaService(commands.Cog):
         if message.author.id != JUSTANYONE_ID:
             if len(message.mentions) > 0 and any(mention.id == JUSTANYONE_ID for mention in message.mentions):
                 if self.check_cooldown("ping_ja", 60 * 60 * 24):
-                    await message.reply(file=File(Resource('ja ping.png')), delete_after=0.9)
+                    _ = await message.reply(file=File(Resource('ja ping.png')), delete_after=0.9)
 
         # Linux copypasta
         if self.is_linux(content):
@@ -173,14 +174,14 @@ class CopypastaService(commands.Cog):
                 if self.check_probability(5): # 20%
                     async with message.channel.typing():
                         await asyncio.sleep(67)
-                        await message.reply(LINUX_COPYPASTA, delete_after=120)
+                        _ = await message.reply(LINUX_COPYPASTA, delete_after=120)
                     return
 
         # Sus copypasta
         if self.is_among_us(content):
             if self.check_cooldown("among_us", 60 * 60 * 5):
                 if self.check_probability(10): # 10%
-                    await message.reply(
+                    _ = await message.reply(
                         AMONG_US_COPYPASTA.replace("%USERNAME%", message.author.name),
                         delete_after=120
                     )
@@ -189,7 +190,7 @@ class CopypastaService(commands.Cog):
         if self.is_lithuania(content):
             if self.check_cooldown("lithuania", 60 * 60 * 24 * 7): # You can attempt once a week
                 if self.check_probability(10): # 10%               # And the attempt is 10% likely to fire
-                    await message.reply(
+                    _ = await message.reply(
                         LITHUANIA_COPYPASTA.replace("%YEAR%", str(utcnow().year)),
                         delete_after=40
                     )
@@ -198,7 +199,7 @@ class CopypastaService(commands.Cog):
         if self.is_ganyu(content):
             if self.check_cooldown("ganyu", 60 * 60 * 24):         # You can attempt once a day
                 if self.check_probability(10): # 10%               # And the attempt is 10% likely to fire
-                    await message.reply(
+                    _ = await message.reply(
                         QUASO_ASCII,
                         delete_after=10
                     )

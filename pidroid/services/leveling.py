@@ -12,9 +12,8 @@ from discord.ext import commands, tasks
 from typing import TYPE_CHECKING, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.models.role_changes import RoleAction
-from pidroid.utils.db.levels import LevelRewards
-from pidroid.utils.levels import MemberLevelInfo
+from pidroid.utils.db.levels import LevelRewards, UserLevels
+from pidroid.utils.db.role_change_queue import RoleAction
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
@@ -187,7 +186,9 @@ class LevelingService(commands.Cog):
                 continue
                 
             # Acquire all rewards that the user is eligible for
-            rewards = await member_information.fetch_eligible_level_rewards()
+            rewards = await self.client.api.fetch_eligible_level_rewards_for_level(
+                member_information.guild_id, member_information.level
+            )
 
             # If member has no eligible rewards, move onto the next member
             if len(rewards) == 0:
@@ -284,25 +285,31 @@ class LevelingService(commands.Cog):
 
         # If rewards should be stacked
         if conf.level_rewards_stacked:
-            level_rewards = await member_level.fetch_eligible_level_rewards()
+            level_rewards = await self.client.api.fetch_eligible_level_rewards_for_level(
+                member_level.guild_id, member_level.level
+            )
             for reward in level_rewards:
                 await self.queue_add(member, reward.role_id, "Re-add stacked level reward on rejoin")
             return
 
         # If only a single role reward should be given
-        reward = await member_level.fetch_eligible_level_reward()
-        if reward is not None:
-            await self.queue_add(member, reward.role_id, "Re-add single level reward on rejoin")
+        level_reward = await self.client.api.fetch_eligible_level_reward_for_level(
+            member_level.guild_id, member_level.level
+        )
+        if level_reward is not None:
+            await self.queue_add(member, level_reward.role_id, "Re-add single level reward on rejoin")
 
     @commands.Cog.listener()
-    async def on_pidroid_level_up(self, member: Member, message: Message, info_before: MemberLevelInfo, info_after: MemberLevelInfo):
+    async def on_pidroid_level_up(self, member: Member, message: Message, info_before: UserLevels, info_after: UserLevels):
         """Called when a member levels up."""
         assert message.guild
         logger.debug(
-            f'{member} just leveled up to {info_after.current_level} level in {message.guild} ({message.guild.id}) guild!'
+            f'{member} just leveled up to {info_after.level} level in {message.guild} ({message.guild.id}) guild!'
         )
 
-        rewards = await info_after.fetch_eligible_level_rewards()
+        rewards = await self.client.api.fetch_eligible_level_rewards_for_level(
+            info_after.guild_id, info_after.level
+        )
         config = await self.client.fetch_guild_configuration(info_after.guild_id)
 
         if len(rewards) == 0:
@@ -332,11 +339,15 @@ class LevelingService(commands.Cog):
         """Called when level reward is added."""
         config = await self.client.fetch_guild_configuration(reward.guild_id)
 
+        # Fetch the role object
+        guild = self.client.get_guild(reward.guild_id)
+        assert guild is not None
+
         # If level rewards are stacked
         if config.level_rewards_stacked:
             level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
             for level_info in level_infos:
-                member = await level_info.fetch_member()
+                member = await self.client.get_or_fetch_member(guild, level_info.user_id)
                 if member:
                     await self.queue_add(member, reward.role_id, "Role reward created")
 
@@ -352,7 +363,7 @@ class LevelingService(commands.Cog):
 
             # go over each level information and change roles
             for level_info in level_infos:
-                member = await level_info.fetch_member()
+                member = await self.client.get_or_fetch_member(guild, level_info.user_id)
                 if member:
                     previous = await self.client.api.fetch_previous_level_reward(reward.guild_id, reward.level)
                     await self.queue_add(member, reward.role_id, "Role reward created")
@@ -374,6 +385,7 @@ class LevelingService(commands.Cog):
         # Fetch a list of potentially affected users' level info due to reward removal
         affected_user_level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, None)
 
+        
 
         # If level rewards are stacked
         if config.level_rewards_stacked:
@@ -384,7 +396,7 @@ class LevelingService(commands.Cog):
             # If it does exist, remove it from every potentially affected person
             assert role
             for level_info in affected_user_level_infos:
-                member = await level_info.fetch_member()
+                member = await self.client.get_or_fetch_member(guild, level_info.user_id)
                 if member:
                     await self.queue_remove(member, role.id, "Role is no longer a level reward")
             return
@@ -394,10 +406,12 @@ class LevelingService(commands.Cog):
         # If role does not exist, add the next best role, if possible
         if not role_exists:
             for level_info in affected_user_level_infos:
-                member = await level_info.fetch_member()
+                member = await self.client.get_or_fetch_member(guild, level_info.user_id)
                 if member:
                     # we pick the next best role, if available
-                    le = await level_info.fetch_eligible_level_reward()
+                    le = await self.client.api.fetch_eligible_level_reward_for_level(
+                        level_info.guild_id, level_info.level
+                    )
                     if le:
                         # We add member to the role
                         await self.queue_add(member, le.role_id, "Next role due to role reward removal")
@@ -406,12 +420,16 @@ class LevelingService(commands.Cog):
         # If role does exist, remove it from all eligible members and try to assign them a new role
         assert role
         for level_info in affected_user_level_infos:
-            member = await level_info.fetch_member()
+            member = await self.client.get_or_fetch_member(guild, level_info.user_id)
             if member:
                 # we remove the role
                 await self.queue_remove(member, role.id, "Role is no longer a level reward")
                 # we pick the next best role, if available
-                le = await level_info.fetch_eligible_level_reward()
+
+
+                le = await self.client.api.fetch_eligible_level_reward_for_level(
+                    level_info.guild_id, level_info.level
+                )
                 if le:
                     # We add member to the role
                     await self.queue_add(member, le.role_id, "Next role due to role reward removal")

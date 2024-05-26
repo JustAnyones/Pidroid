@@ -1,6 +1,7 @@
+# pyright: reportAny=false
+
 import ast
 import asyncio
-from typing import Any
 import discord
 import inspect
 import textwrap
@@ -8,6 +9,7 @@ import re
 
 from dataclasses import dataclass
 from functools import partial
+from typing import Any, Callable, TypeVar
 
 from pidroid.utils.aliases import DiscordUser
 
@@ -99,8 +101,9 @@ async def try_message_user(
         return message
     except Exception: # nosec
         return None
-    
-async def run_in_executor(func, **kwargs):
+
+function_return_value = TypeVar("function_return_value")
+async def run_in_executor(func: Callable[..., function_return_value], **kwargs: Any) -> function_return_value:
     """Runs the specified function in executor.
     
     Can be used to run blocking code."""

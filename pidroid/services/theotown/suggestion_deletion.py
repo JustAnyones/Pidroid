@@ -12,7 +12,9 @@ SUGGESTIONS_CHANNEL_ID = 409800607466258445
 
 class SuggestionDeletionService(commands.Cog):
     """This class implements a cog for handling of events related to reactions."""
+
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()

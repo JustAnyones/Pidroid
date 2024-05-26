@@ -169,7 +169,7 @@ class ErrorHandlingService(commands.Cog):
                 await interface.send_to(ctx)
                 return
             with suppress(HTTPException):
-                await ctx.reply(embed=ErrorEmbed(
+                _ = await ctx.reply(embed=ErrorEmbed(
                     f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
                     'If you\'ve encountered this multiple times, please notify my owner.'
                 ))

@@ -1,5 +1,4 @@
 import discord
-import typing
 
 from discord.enums import StickerFormatType
 from discord.errors import HTTPException
@@ -39,7 +38,7 @@ class StickerCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, manage_emojis_and_stickers=True)
     @commands.has_permissions(manage_emojis_and_stickers=True)
     @commands.guild_only()
-    async def steal_sticker(self, ctx: Context[Pidroid], message: typing.Optional[Message]):
+    async def steal_sticker(self, ctx: Context[Pidroid], message: Message | None):
         assert ctx.guild is not None
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
@@ -69,7 +68,7 @@ class StickerCommandCog(commands.Cog):
                 return await ctx.reply(embed=ErrorEmbed("The server sticker list is full. I can't add more!"))
             raise exc
         else:
-            await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])
+            return await ctx.reply(f"Sticker {added_sticker.name} has been added!", stickers=[added_sticker])
 
     @commands.command(
         name='get-sticker',
@@ -78,7 +77,7 @@ class StickerCommandCog(commands.Cog):
         category=UtilityCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def get_sticker(self, ctx: Context[Pidroid], message: typing.Optional[Message]):
+    async def get_sticker(self, ctx: Context[Pidroid], message: Message | None):
         if ctx.message.reference and ctx.message.reference.message_id:
             message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
 
@@ -92,9 +91,9 @@ class StickerCommandCog(commands.Cog):
             embed.description = f"Sticker is a [Lottie](https://lottiefiles.com/what-is-lottie).\n{sticker.url}"
         else:
             embed.description = sticker.url
-            embed.set_image(url=sticker.url)
+            _ = embed.set_image(url=sticker.url)
 
-        await ctx.reply(embed=embed)
+        return await ctx.reply(embed=embed)
 
 
 async def setup(client: Pidroid) -> None:

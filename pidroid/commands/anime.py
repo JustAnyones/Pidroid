@@ -6,7 +6,7 @@ import re
 from discord import DMChannel, GroupChannel, PartialMessageable
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context, MissingRequiredArgument
-from typing import Optional, override
+from typing import override
 
 from pidroid.client import Pidroid
 from pidroid.constants import JESSE_ID
@@ -162,7 +162,7 @@ class AnimeCommandCog(commands.Cog):
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def neko_image_command(self, ctx: Context[Pidroid], endpoint: Optional[str]):
+    async def neko_image_command(self, ctx: Context[Pidroid], endpoint: str | None):
         if endpoint is None:
             endpoint = random.choice(NEKO_ENDPOINTS) # nosec
 
@@ -209,7 +209,7 @@ class AnimeCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=3.5, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
-    async def waifu(self, ctx: Context[Pidroid], *, selection: Optional[str]):
+    async def waifu(self, ctx: Context[Pidroid], *, selection: str | None):
         api = self.waifu_list_api
 
         waifus: list[Waifu] = []
@@ -249,7 +249,7 @@ class AnimeCommandCog(commands.Cog):
         category=RandomCategory,
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def anime_media_command(self, ctx: Context[Pidroid], endpoint: Optional[str]):
+    async def anime_media_command(self, ctx: Context[Pidroid], endpoint: str | None):
         if endpoint is None:
             endpoint = random.choice(WAIFU_PICS_ENDPOINTS) # nosec
 

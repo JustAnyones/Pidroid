@@ -25,9 +25,9 @@ class HelpCommandPaginator(ListPageSource):
         self.embed = embed
 
     @override
-    async def format_page(self, menu: PaginatingView, commands: list[Command]):
+    async def format_page(self, menu: PaginatingView, page: list[Command]):
         self.embed.clear_fields()
-        for command in commands:
+        for command in page:
             name, description = get_command_documentation(command)
             self.embed.add_field(name=name, value=description, inline=False)
         return self.embed

@@ -7,7 +7,6 @@ import sys
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.message import Message
-from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import ALLOWED_MENTIONS
@@ -51,7 +50,7 @@ class BotCommandCog(commands.Cog):
         category=BotCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def info_command(self, ctx: Context[Pidroid], mode: Optional[str]):
+    async def info_command(self, ctx: Context[Pidroid], mode: str | None):
         async with ctx.typing():
             # Fetch data from config file
             version = self.client.version

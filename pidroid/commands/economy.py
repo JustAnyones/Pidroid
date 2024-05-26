@@ -1,5 +1,6 @@
 import json
 import random
+from typing import override
 
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
@@ -128,10 +129,12 @@ class EconomyCommandCog(commands.Cog):
     """This class implements a cog which contains interactions with unbelievaboat bot API."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
         load_command_cooldowns(self.beg_command, "beg.dill")
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         save_command_cooldowns(self.beg_command, "beg.dill")
 
     @commands.command(
@@ -143,7 +146,7 @@ class EconomyCommandCog(commands.Cog):
     @command_checks.is_theotown_guild()
     @command_checks.client_is_pidroid()
     @commands.bot_has_guild_permissions(send_messages=True)
-    async def beg_command(self, ctx: Context):
+    async def beg_command(self, ctx: Context[Pidroid]):
         try:
             token = self.client.config['unbelievaboat_api_key']
             headers = {'Authorization': token}
@@ -169,7 +172,7 @@ class EconomyCommandCog(commands.Cog):
         await ctx.reply(random.choice(FAILED_BEGGING_RESPONSES)) # nosec
 
     @beg_command.error
-    async def on_beg_command_error(self, ctx: Context, error):
+    async def on_beg_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, commands.CommandOnCooldown):
             return await ctx.reply(
                 random.choice(COOLDOWN_RESPONSES).replace("%time%", humanize(error.retry_after, False, max_units=2))

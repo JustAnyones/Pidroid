@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from discord.ext.commands import CheckFailure, BadArgument
-from typing import Optional
 
 class NotInTheoTownGuild(CheckFailure):
     def __init__(self):
@@ -12,7 +11,7 @@ class InvalidDuration(BadArgument):
         super().__init__(message)
 
 class MissingUserPermissions(CheckFailure):
-    def __init__(self, message: Optional[str] = None):
+    def __init__(self, message: str | None = None):
         super().__init__(message or "You are missing the required permissions to proceed!")
 
 class ClientIsNotPidroid(CheckFailure):
@@ -29,7 +28,7 @@ class GeneralCommandError(BadArgument):
 
 class APIException(BadArgument):
     """Called when TheoTown API error is encountered"""
-    def __init__(self, status: int, message: Optional[str] = None):
+    def __init__(self, status: int, message: str | None = None):
         if message is None:
             return super().__init__(f"An error has been encountered inside TheoTown API, status code: {status}")
         return super().__init__(message)

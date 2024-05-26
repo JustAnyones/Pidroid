@@ -1,6 +1,7 @@
 import logging
 
 from discord.ext import tasks, commands
+from typing import override
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
@@ -12,10 +13,12 @@ class GuildStatisticsService(commands.Cog):
     """This class implements a cog for synchronizing TheoTown's guild member count with the TheoTown API."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
-        self.update_statistics.start()
+        _ = self.update_statistics.start()
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.update_statistics.cancel()
 

@@ -7,9 +7,8 @@ from discord.ext import commands
 from discord.ext.commands import BadArgument, BadUnionArgument, Context, MissingRequiredArgument, UserNotFound
 from discord.member import Member
 from discord.role import Role
-from discord.user import User
 from discord.utils import escape_markdown, format_dt
-from typing import List, Union, Optional
+from typing import override
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
@@ -17,25 +16,27 @@ from pidroid.models.categories import InformationCategory
 from pidroid.models.view import PaginatingView
 from pidroid.services.error_handler import notify
 from pidroid.utils import normalize_permission_name
+from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.checks import is_guild_moderator, is_guild_administrator
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
 from pidroid.utils.time import utcnow
 
 class RolePaginator(ListPageSource):
-    def __init__(self, title: str, data: List[Role]):
+    def __init__(self, title: str, data: list[Role]):
         super().__init__(data, per_page=20)
         self.embed = PidroidEmbed(title=title)
         role_count = len(data)
         if role_count == 1:
-            self.embed.set_footer(text=f"1 role")
+            _ = self.embed.set_footer(text=f"1 role")
         else:
-            self.embed.set_footer(text=f"{role_count} roles")
+            _ = self.embed.set_footer(text=f"{role_count} roles")
 
-    async def format_page(self, menu: PaginatingView, data: List[Role]):
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[Role]):
         offset = menu.current_page * self.per_page + 1
         values = ""
-        for i, role in enumerate(data):
+        for i, role in enumerate(page):
             member_count = len(role.members)
             if member_count == 1:
                 count = "1 member"
@@ -51,6 +52,7 @@ class InformationCommandCog(commands.Cog):
     """This class implements a cog for various discord information commands."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
     @commands.command(
@@ -62,19 +64,19 @@ class InformationCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def profile_avatar_command(
         self,
-        ctx: Context,
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        ctx: Context[Pidroid],
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         user = user or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
         if isinstance(user, discord.User):
-            embed.set_image(url=user.display_avatar.with_size(4096).url)
+            _ = embed.set_image(url=user.display_avatar.with_size(4096).url)
         else:
-            embed.set_image(url=user._user.display_avatar.with_size(4096).url)
-        await ctx.reply(embed=embed)
+            _ = embed.set_image(url=user._user.display_avatar.with_size(4096).url)
+        return await ctx.reply(embed=embed)
 
     @profile_avatar_command.error
-    async def on_profile_avatar_command_error(self, ctx: Context, error):
+    async def on_profile_avatar_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, BadUnionArgument):
             if error.param.name == "user":
                 for _err in error.errors:
@@ -93,16 +95,16 @@ class InformationCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def server_avatar_command(
         self,
-        ctx: Context,
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        ctx: Context[Pidroid],
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         user = user or ctx.author
         embed = PidroidEmbed(title=f'{escape_markdown(user.name)}\'s avatar')
-        embed.set_image(url=user.display_avatar.with_size(4096).url)
-        await ctx.reply(embed=embed)
+        _ = embed.set_image(url=user.display_avatar.with_size(4096).url)
+        return await ctx.reply(embed=embed)
 
     @server_avatar_command.error
-    async def on_server_avatar_command_error(self, ctx: Context, error):
+    async def on_server_avatar_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, BadUnionArgument):
             if error.param.name == "user":
                 for _err in error.errors:
@@ -129,8 +131,8 @@ class InformationCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def user_info_command(
         self,
-        ctx: Context,
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        ctx: Context[Pidroid],
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         user = user or ctx.author
 
@@ -181,7 +183,7 @@ class InformationCommandCog(commands.Cog):
         await ctx.reply(embed=embed)
 
     @user_info_command.error
-    async def on_user_info_command_error(self, ctx: Context, error):
+    async def on_user_info_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, BadUnionArgument):
             if error.param.name == "user":
                 for _err in error.errors:
@@ -197,23 +199,27 @@ class InformationCommandCog(commands.Cog):
     )
     @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
-    async def server_info_command(self, ctx: Context):
+    async def server_info_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         guild = ctx.guild
         embed = PidroidEmbed(timestamp=guild.created_at)
         if guild.icon:
-            embed.set_author(name=guild.name, icon_url=guild.icon.url)
-            embed.set_thumbnail(url=guild.icon.with_size(4096).url)
+            _ = (embed
+                .set_author(name=guild.name, icon_url=guild.icon.url)
+                .set_thumbnail(url=guild.icon.with_size(4096).url)
+            )
         else:
-            embed.set_author(name=guild.name)
-        embed.add_field(name='Owner', value=guild.owner)
-        embed.add_field(name='Channel Categories', value=f'{len(guild.categories):,}')
-        embed.add_field(name='Text Channels', value=f'{len(guild.text_channels):,}')
-        embed.add_field(name='Voice Channels', value=f'{len(guild.voice_channels):,}')
-        embed.add_field(name='Members', value=f'{guild.member_count:,}')
-        embed.add_field(name='Roles', value=f'{len(guild.roles):,}')
-        embed.set_footer(text='Server created')
-        await ctx.reply(embed=embed)
+            _ = embed.set_author(name=guild.name)
+        _ = (embed
+            .add_field(name='Owner', value=guild.owner)
+            .add_field(name='Channel Categories', value=f'{len(guild.categories):,}')
+            .add_field(name='Text Channels', value=f'{len(guild.text_channels):,}')
+            .add_field(name='Voice Channels', value=f'{len(guild.voice_channels):,}')
+            .add_field(name='Members', value=f'{guild.member_count:,}')
+            .add_field(name='Roles', value=f'{len(guild.roles):,}')
+            .set_footer(text='Server created')
+        )
+        return await ctx.reply(embed=embed)
 
     @commands.command(
         name='role-info',
@@ -227,20 +233,22 @@ class InformationCommandCog(commands.Cog):
     )
     @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
-    async def role_info_command(self, ctx: Context, role: Role):
+    async def role_info_command(self, ctx: Context[Pidroid], role: Role):
         embed = Embed(description=role.mention, timestamp=role.created_at, colour=role.colour)
         if role.icon:
-            embed.set_thumbnail(url=role.icon.with_size(4096).url)
-        embed.add_field(name="Name", value=role.name)
-        embed.add_field(name="ID", value=role.id)
-        embed.add_field(name="Position", value=role.position)
-        embed.add_field(name="Colour", value=str(role.colour))
-        embed.add_field(name="Is mentionable", value=role.mentionable)
-        embed.set_footer(text="Role created")
-        await ctx.reply(embed=embed)
+            _ = embed.set_thumbnail(url=role.icon.with_size(4096).url)
+        _ = (embed
+            .add_field(name="Name", value=role.name)
+            .add_field(name="ID", value=role.id)
+            .add_field(name="Position", value=role.position)
+            .add_field(name="Colour", value=str(role.colour))
+            .add_field(name="Is mentionable", value=role.mentionable)
+            .set_footer(text="Role created")
+        )
+        return await ctx.reply(embed=embed)
 
     @role_info_command.error
-    async def on_role_info_command_error(self, ctx: Context, error):
+    async def on_role_info_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "role":
                 return await notify(ctx, "Please specify the role to view the information for.")
@@ -254,7 +262,7 @@ class InformationCommandCog(commands.Cog):
     )
     @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True, embed_links=True)
-    async def roles_command(self, ctx: Context):
+    async def roles_command(self, ctx: Context[Pidroid]):
         assert ctx.guild
 
         roles = [
@@ -275,7 +283,7 @@ class InformationCommandCog(commands.Cog):
         category=InformationCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def time(self, ctx: Context):
+    async def time(self, ctx: Context[Pidroid]):
         def stringify(date: datetime.datetime):
             return date.strftime("%d %B %Y %H:%M")
 
@@ -287,15 +295,16 @@ class InformationCommandCog(commands.Cog):
         ja = utc.astimezone(pytz.timezone("Japan"))
 
         embed = PidroidEmbed(title="Displaying different times across the globe")
-        embed.add_field(name="Pacific Time", value=stringify(pt))
-        embed.add_field(name="Eastern Standard Time", value=stringify(ny))
-        embed.add_field(name="Coordinated Universal Time (GMT)", value=stringify(utc))
-        embed.add_field(name="Central European Time", value=stringify(cet))
-        embed.add_field(name="Indian Standard Time", value=stringify(ist))
-        embed.add_field(name="Japanese Standard Time", value=stringify(ja))
-
-        embed.add_field(name="Your time", value=format_dt(utc))
-        await ctx.reply(embed=embed)
+        _ = (embed
+            .add_field(name="Pacific Time", value=stringify(pt))
+            .add_field(name="Eastern Standard Time", value=stringify(ny))
+            .add_field(name="Coordinated Universal Time (GMT)", value=stringify(utc))
+            .add_field(name="Central European Time", value=stringify(cet))
+            .add_field(name="Indian Standard Time", value=stringify(ist))
+            .add_field(name="Japanese Standard Time", value=stringify(ja))
+            .add_field(name="Your time", value=format_dt(utc))
+        )
+        return await ctx.reply(embed=embed)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(InformationCommandCog(client))

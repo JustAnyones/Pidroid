@@ -10,7 +10,6 @@ from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context, MissingRequiredArgument
 from discord.voice_client import VoiceClient
-from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import RandomCategory
@@ -78,6 +77,7 @@ class FunCommandCog(commands.Cog):
     """This class implements a cog which contains commands for entertainment."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
     @property
@@ -96,7 +96,7 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def color_command(self, ctx: Context, hex_str: Optional[str]):        
+    async def color_command(self, ctx: Context[Pidroid], hex_str: str | None):        
         if hex_str is not None:
             try:
                 color = colour_from_hex(hex_str)
@@ -105,7 +105,7 @@ class FunCommandCog(commands.Cog):
         else:
             color = Color.random()
         embed = Embed(title=color.__str__(), color=color)
-        await ctx.reply(embed=embed)
+        return await ctx.reply(embed=embed)
 
     @commands.command(
         name="pingu",
@@ -113,7 +113,7 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    async def pingu_command(self, ctx: Context):
+    async def pingu_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             text, file_path = random.choice(PINGU_RESPONSES) # nosec
             await ctx.reply(text, file=discord.File(file_path))
@@ -124,7 +124,7 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    async def sloth_command(self, ctx: Context):
+    async def sloth_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             await ctx.reply(content="The myth, the legend.", file=discord.File(Resource('sloth.gif')))
 
@@ -137,7 +137,7 @@ class FunCommandCog(commands.Cog):
     )
     @command_checks.is_theotown_developer()
     @commands.bot_has_permissions(send_messages=True)
-    async def happiness_command(self, ctx: Context):
+    async def happiness_command(self, ctx: Context[Pidroid]):
         res = await self.client.api.get(Route("/private/review/fetch_random"))
         data = res["data"]
         embed = PidroidEmbed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
@@ -152,7 +152,7 @@ class FunCommandCog(commands.Cog):
     )
     @command_checks.is_theotown_guild()
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
-    async def fire_command(self, ctx: Context):
+    async def fire_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             await ctx.reply(
                 content="There's a fire somewhere? Call <@326167365677219840> to the rescue!",
@@ -167,7 +167,7 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def gif_command(self, ctx: Context, *, query: str):
+    async def gif_command(self, ctx: Context[Pidroid], *, query: str):
         async with ctx.typing():
             async with await get(
                 self.client,
@@ -181,7 +181,7 @@ class FunCommandCog(commands.Cog):
             await ctx.reply(embed=ErrorEmbed("I couldn't find any GIFs for the specified query!"))
 
     @gif_command.error
-    async def on_gif_command_error(self, ctx: Context, error):
+    async def on_gif_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "query":
                 return await notify(ctx, "Please specify a value to query GIFs with.")
@@ -193,8 +193,8 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def dice_command(self, ctx: Context):
-        await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!") # nosec
+    async def dice_command(self, ctx: Context[Pidroid]):
+        return await ctx.reply(f"The dice rolls a {random.randint(1, 6)}!") # nosec
 
     @commands.command(
         name="roll",
@@ -202,10 +202,10 @@ class FunCommandCog(commands.Cog):
         category=RandomCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    async def roll_command(self, ctx: Context, limit: int = 6):
+    async def roll_command(self, ctx: Context[Pidroid], limit: int = 6):
         if limit <= 1:
             raise BadArgument("Limit cannot be 1 or less. It'd be stupid")
-        await ctx.reply(f"You rolled a {random.randint(1, limit)}!") # nosec
+        return await ctx.reply(f"You rolled a {random.randint(1, limit)}!") # nosec
 
     @commands.command(
         name="fact",
@@ -214,8 +214,8 @@ class FunCommandCog(commands.Cog):
     )
     @commands.cooldown(rate=2, per=6, type=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
-    async def fact_command(self, ctx: Context):
-        await ctx.reply(random.choice(FUN_FACTS)) # nosec
+    async def fact_command(self, ctx: Context[Pidroid]):
+        return await ctx.reply(random.choice(FUN_FACTS)) # nosec
 
     @commands.command(
         name="cloaker",
@@ -228,7 +228,7 @@ class FunCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @command_checks.is_cheese_consumer()
-    async def cloaker_command(self, ctx: Context, member: discord.Member):
+    async def cloaker_command(self, ctx: Context[Pidroid], member: discord.Member):
         assert isinstance(ctx.author, discord.Member)
         voice = ctx.author.voice
         if voice is None:
@@ -264,7 +264,7 @@ class FunCommandCog(commands.Cog):
         await vc.disconnect()
 
     @cloaker_command.error
-    async def on_cloaker_command_error(self, ctx: Context, error):
+    async def on_cloaker_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "member":
                 return await notify(ctx, "Please specify the member to be cloaked.")

@@ -3,7 +3,6 @@ import datetime
 from dataclasses import dataclass
 from discord import Asset, ChannelFlags, ChannelType, Colour, Embed, Member, Object, PermissionOverwrite, Permissions, Role, User, Guild, VideoQualityMode, abc
 from discord.utils import format_dt
-from typing import Union, Optional
 
 from pidroid.constants import EMBED_COLOUR
 from pidroid.utils import channel_mention, normalize_permission_name, role_mention, user_mention
@@ -38,13 +37,13 @@ class ChannelDeleteData(BaseChannelData):
 @dataclass
 class _ChannelData:
     name: str | None
-    type: Optional[ChannelType]
+    type: ChannelType | None
     position: int | None
     overwrites: list[tuple[Member | User | Role | Object, PermissionOverwrite]]
     topic: str | None
     bitrate: int | None
     rtc_region: str | None
-    video_quality_mode: Optional[VideoQualityMode]
+    video_quality_mode: VideoQualityMode | None
     default_auto_archive_duration: int | None
     nsfw: bool | None
     slowmode_delay: int | None
@@ -57,8 +56,8 @@ class ChannelUpdateData(BaseChannelData):
 
 @dataclass
 class BaseOverwriteData(BaseData):
-    channel: Union[abc.GuildChannel, Object]
-    role_or_user: Union[Role, Member, Object]
+    channel: abc.GuildChannel | Object
+    role_or_user: Role | Member | Object
 
 @dataclass
 class _OverwriteData:
@@ -82,7 +81,7 @@ class OverwriteUpdateData(BaseOverwriteData):
 
 @dataclass
 class BaseMemberData(BaseData):
-    member: Union[Member, User, Object]
+    member: Member | User | Object
 
 @dataclass
 class _MemberUpdateData:
@@ -91,7 +90,7 @@ class _MemberUpdateData:
     mute: bool | None
     # Whether the member is being server deafened.
     deaf: bool | None
-    timed_out_until: Optional[datetime.datetime]
+    timed_out_until: datetime.datetime | None
 
 @dataclass
 class MemberUpdateData(BaseMemberData):
@@ -100,7 +99,7 @@ class MemberUpdateData(BaseMemberData):
 
 @dataclass
 class _MemberRoleUpdateData:
-    roles: list[Union[Role, Object]]
+    roles: list[Role | Object]
 
 @dataclass
 class MemberRoleUpdateData(BaseMemberData):
@@ -109,35 +108,35 @@ class MemberRoleUpdateData(BaseMemberData):
 
 @dataclass
 class BaseRoleData(BaseData):
-    role: Union[Role, Object]
+    role: Role | Object
 
 @dataclass
 class RoleCreateData(BaseRoleData):
-    colour: Optional[Colour]
+    colour: Colour | None
     mentionable: bool | None
     hoist: bool | None
-    icon: Optional[Asset]
+    icon: Asset | None
     unicode_emoji: str | None
     name: str | None
-    permissions: Optional[Permissions]
+    permissions: Permissions | None
 
 @dataclass
 class RoleDeleteData(BaseRoleData):
-    colour: Optional[Colour]
+    colour: Colour | None
     mentionable: bool | None
     hoist: bool | None
     name: str | None
-    permissions: Optional[Permissions]
+    permissions: Permissions | None
 
 @dataclass
 class _RoleUpdateData:
-    colour: Optional[Colour]
+    colour: Colour | None
     mentionable: bool | None
     hoist: bool | None
-    icon: Optional[Asset]
+    icon: Asset | None
     unicode_emoji: str | None
     name: str | None
-    permissions: Optional[Permissions]
+    permissions: Permissions | None
 
 @dataclass
 class RoleUpdateData(BaseRoleData):
@@ -185,20 +184,20 @@ class PidroidLog:
             name = str(user)
             icon_url = user.display_avatar.url
             user_id = str(user.id)
-        self.__embed.set_author(name=name, icon_url=icon_url)
-        self.__embed.set_footer(text=f"Perpetrator ID: {user_id}")
+        _ = self.__embed.set_author(name=name, icon_url=icon_url)
+        _ = self.__embed.set_footer(text=f"Perpetrator ID: {user_id}")
 
     def add_reason_field(self, data: BaseData):
         """Adds a reason field to the end of the embed."""
         if data.reason:
             size = len(self.__embed.fields)
-            self.__embed.insert_field_at(size, name="Reason", value=data.reason, inline=False)
+            _ = self.__embed.insert_field_at(size, name="Reason", value=data.reason, inline=False)
 
     def add_field(self, name: str, value: str):
         """Adds a field to the internal log embed."""
         if len(value) > 1024:
             raise ValueError("Value cannot be longer than 1024 characters!")
-        self.__embed.add_field(name=name, value=value)
+        _ = self.__embed.add_field(name=name, value=value)
 
     def set_colour(self, colour: Colour):
         """Sets the colour of the embed to the specified."""
@@ -335,7 +334,7 @@ class RoleUpdateLog(PidroidLog):
             for i, before_perm in enumerate(before.permissions):
                 before_perm_name, before_perm_value = before_perm
                 if before_perm_value != after_permissions[i][1]:
-                    marker = "\-" if after_permissions[i][1] is False else "+"
+                    marker = "\\-" if after_permissions[i][1] is False else "+"
                     filtered.append(f"{marker} {normalize_permission_name(before_perm_name)}")
             perms_as_string = '\n'.join(filtered)
             if len(perms_as_string) <= 1024: # TODO: figure a better solution out

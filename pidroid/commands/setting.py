@@ -11,9 +11,8 @@ from discord.enums import ButtonStyle
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
-from discord.interactions import Interaction
 from discord.partial_emoji import PartialEmoji
-from typing import TYPE_CHECKING, Dict, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, BotCategory
@@ -67,7 +66,7 @@ class ChangePrefixesButton(TextButton):
                 ephemeral=True
             )
         
-        cleaned_prefixes: List[str] = []
+        cleaned_prefixes: list[str] = []
         for value in split_values:
             stripped = value.strip()
             if stripped == "":
@@ -353,13 +352,13 @@ class SuggestionSubmenu(Submenu):
             settings=settings
         )
 
-SUBMENUS: Dict[
+SUBMENUS: dict[
     str,
     Union[
-        Type[GeneralSubmenu],
-        Type[ModerationSubmenu],
-        Type[LevelingSubmenu],
-        Type[SuggestionSubmenu],
+        type[GeneralSubmenu],
+        type[ModerationSubmenu],
+        type[LevelingSubmenu],
+        type[SuggestionSubmenu],
         None
     ]
 ] = {
@@ -378,7 +377,7 @@ SUBMENU_OPTIONS = [
 
 class GuildConfigurationView(discord.ui.View):
 
-    def __init__(self, client: Pidroid, ctx: Context, *, timeout: float = 600):
+    def __init__(self, client: Pidroid, ctx: Context[Pidroid], *, timeout: float = 600):
         super().__init__(timeout=timeout)
         self.__client = client
         self.__ctx = ctx
@@ -507,6 +506,7 @@ class SettingCommandCog(commands.Cog):
     """This class implements cog which contains administrator commands for Pidroid configuration management."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.hybrid_group(
@@ -519,7 +519,7 @@ class SettingCommandCog(commands.Cog):
     @commands.bot_has_guild_permissions(send_messages=True)
     @commands.has_permissions(manage_guild=True)
     @commands.guild_only()
-    async def configure_command(self, ctx: Context):
+    async def configure_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         if ctx.invoked_subcommand is None:
             view = GuildConfigurationView(self.client, ctx)
@@ -534,7 +534,7 @@ class SettingCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.has_permissions(manage_roles=True)
     @commands.guild_only()
-    async def add_xp_exempt_role_command(self, ctx: Context, role: Role):
+    async def add_xp_exempt_role_command(self, ctx: Context[Pidroid], role: Role):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
@@ -542,7 +542,7 @@ class SettingCommandCog(commands.Cog):
             raise BadArgument("Specified role is already exempt from earning XP.")
         
         await config.add_xp_exempt_role_id(role.id)
-        await ctx.reply(embed=SuccessEmbed(
+        return await ctx.reply(embed=SuccessEmbed(
             'Role has been exempted from earning XP successfully.'
         ))
 
@@ -555,7 +555,7 @@ class SettingCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.has_permissions(manage_roles=True)
     @commands.guild_only()
-    async def remove_xp_exempt_role_command(self, ctx: Context, role: Role):
+    async def remove_xp_exempt_role_command(self, ctx: Context[Pidroid], role: Role):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
@@ -563,7 +563,7 @@ class SettingCommandCog(commands.Cog):
             raise BadArgument("Specified role is not exempt from earning XP.")
         
         await config.remove_xp_exempt_role_id(role.id)
-        await ctx.reply(embed=SuccessEmbed(
+        return await ctx.reply(embed=SuccessEmbed(
             'Role has been removed from exemption list.'
         ))
 
@@ -576,7 +576,7 @@ class SettingCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.has_permissions(manage_channels=True)
     @commands.guild_only()
-    async def add_xp_exempt_channel_command(self, ctx: Context, channel: TextChannel):
+    async def add_xp_exempt_channel_command(self, ctx: Context[Pidroid], channel: TextChannel):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
@@ -584,7 +584,7 @@ class SettingCommandCog(commands.Cog):
             raise BadArgument("Specified channel is already exempt from earning XP.")
         
         await config.add_xp_exempt_channel_id(channel.id)
-        await ctx.reply(embed=SuccessEmbed(
+        return await ctx.reply(embed=SuccessEmbed(
             'Channel has been exempted from earning XP successfully.'
         ))
 
@@ -597,7 +597,7 @@ class SettingCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.has_permissions(manage_channels=True)
     @commands.guild_only()
-    async def remove_xp_exempt_channel_command(self, ctx: Context, channel: TextChannel):
+    async def remove_xp_exempt_channel_command(self, ctx: Context[Pidroid], channel: TextChannel):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
@@ -605,7 +605,7 @@ class SettingCommandCog(commands.Cog):
             raise BadArgument("Specified channel is not exempt from earning XP.")
         
         await config.remove_xp_exempt_channel_id(channel.id)
-        await ctx.reply(embed=SuccessEmbed(
+        return await ctx.reply(embed=SuccessEmbed(
             'Channel has been removed from exemption list.'
         ))
 
@@ -618,10 +618,10 @@ class SettingCommandCog(commands.Cog):
     @commands.has_permissions(manage_roles=True, manage_channels=True)
     @commands.max_concurrency(number=1, per=commands.BucketType.guild)
     @commands.guild_only()
-    async def setupjail_command(self, ctx: Context):
+    async def setupjail_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         # Create empty array where we will store setup log
-        action_log: List[str] = []
+        action_log: list[str] = []
         async with ctx.typing():
 
             # Check if jailed role already exists, if not, create it
@@ -679,7 +679,7 @@ class SettingCommandCog(commands.Cog):
                 jail_role_id=jail_role.id
             )
 
-        await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
+        return await ctx.reply("Jail system setup complete:\n- " + '\n- '.join(action_log), allowed_mentions=AllowedMentions(roles=False))
 
     @commands.command(
         brief='Returns current server bot prefix.',
@@ -687,14 +687,14 @@ class SettingCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def prefix(self, ctx: Context):
+    async def prefix(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         config = await self.client.fetch_guild_configuration(ctx.guild.id)
 
         prefixes = config.prefixes or self.client.prefixes
         prefix_str = '**, **'.join(prefixes)
 
-        await ctx.reply(f"My prefixes are: **{prefix_str}**")
+        return await ctx.reply(f"My prefixes are: **{prefix_str}**")
 
 async def setup(client: Pidroid):
     await client.add_cog(SettingCommandCog(client))

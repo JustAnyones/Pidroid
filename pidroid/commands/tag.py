@@ -6,7 +6,7 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown, format_dt
 from io import BytesIO
-from typing import TYPE_CHECKING, Optional, override
+from typing import TYPE_CHECKING, override
 
 from pidroid.models.categories import TagCategory
 from pidroid.models.event_types import EventName, EventType
@@ -29,15 +29,15 @@ class TagListPaginator(ListPageSource):
 
         amount = len(data)
         if amount == 1:
-            self.embed.set_footer(text=f"{amount} tag")
+            _ = self.embed.set_footer(text=f"{amount} tag")
         else:
-            self.embed.set_footer(text=f"{amount} tags")
+            _ = self.embed.set_footer(text=f"{amount} tags")
 
     @override
-    async def format_page(self, menu: PaginatingView, data: list[Tag]):
+    async def format_page(self, menu: PaginatingView, page: list[Tag]):
         offset = menu._current_page * self.per_page + 1
         values = ""
-        for i, item in enumerate(data):
+        for i, item in enumerate(page):
             values += f"{i + offset}. {item.name}\n"
         self.embed.description = values.strip()
         return self.embed
@@ -68,7 +68,7 @@ class TagCommandCog(commands.Cog):
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag_list
 
-    async def resolve_attachments(self, message: Message) -> Optional[str]:
+    async def resolve_attachments(self, message: Message) -> str | None:
         """Returns attachment URL from the message. None if there are no attachments.
         
         Will raise BadArgument if more than one attachment is provided."""
@@ -95,7 +95,7 @@ class TagCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def tag_command(self, ctx: Context, *, tag_name: str):
+    async def tag_command(self, ctx: Context[Pidroid], *, tag_name: str):
         if ctx.invoked_subcommand is None:
             tag_list = await self.find_tags(ctx, tag_name)
             assert tag_name is not None
@@ -132,7 +132,7 @@ class TagCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def tag_list_command(self, ctx: Context):
+    async def tag_list_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
         guild_tags = await self.client.api.fetch_guild_tags(ctx.guild.id)
         if len(guild_tags) == 0:
@@ -153,7 +153,7 @@ class TagCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
-    async def tag_info_command(self, ctx: Context, *, tag_name: str):
+    async def tag_info_command(self, ctx: Context[Pidroid], *, tag_name: str):
         tag = await self.fetch_tag(ctx, tag_name)
 
         authors = tag.get_authors()
@@ -184,13 +184,13 @@ class TagCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     @commands.guild_only()
-    async def tag_raw_command(self, ctx: Context, *, tag_name: str):
+    async def tag_raw_command(self, ctx: Context[Pidroid], *, tag_name: str):
         tag = await self.fetch_tag(ctx, tag_name)
 
         with BytesIO(tag.content.encode("utf-8")) as buffer:
             file = File(buffer, f"{tag.name[:40]}-content.txt")
 
-        await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}'"), file=file)
+        return await ctx.reply(embed=SuccessEmbed(f"Raw content for the tag '{tag.name}'"), file=file)
 
 
     @tag_command.command(
@@ -206,7 +206,7 @@ class TagCommandCog(commands.Cog):
     @commands.cooldown(rate=10, per=60, type=commands.BucketType.user)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_create_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
+    async def tag_create_command(self, ctx: Context[Pidroid], tag_name: str, *, content: str | None, file: Attachment | None = None):
         assert ctx.guild
 
         stripped_name = tag_name.strip()
@@ -246,7 +246,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_edit_command(self, ctx: Context, tag_name: str, *, content: Optional[str], file: Optional[Attachment] = None):
+    async def tag_edit_command(self, ctx: Context[Pidroid], tag_name: str, *, content: str | None, file: Attachment | None = None):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -282,7 +282,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_add_author_command(self, ctx: Context, tag_name: str, member: Member):
+    async def tag_add_author_command(self, ctx: Context[Pidroid], tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 

@@ -1,5 +1,4 @@
 import base64
-import datetime
 import logging
 import random
 
@@ -10,7 +9,6 @@ from discord.ext.commands import BadArgument, MissingRequiredArgument
 from discord.ext.commands.context import Context
 from discord.member import Member
 from io import BytesIO
-from typing import Optional
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
@@ -28,7 +26,7 @@ logger = logging.getLogger("Pidroid")
 
 SUPPORTED_GALLERY_MODES = ['recent', 'trends', 'rating']
 
-def resolve_gallery_mode(query: Optional[str]) -> Optional[str]:
+def resolve_gallery_mode(query: str | None) -> str | None:
     if query is None:
         return None
     query = query.lower()
@@ -44,6 +42,7 @@ class TheoTownCommandCog(commands.Cog):
     """This class implements a cog for TheoTown API related commands."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
         self.api = self.client.api
 
@@ -53,7 +52,7 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def version(self, ctx: Context):
+    async def version(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             cache = self.client.version_cache
             embed = PidroidEmbed(title="Most recent versions of TheoTown")
@@ -65,7 +64,7 @@ class TheoTownCommandCog(commands.Cog):
                     continue
 
                 version = format_version_code(version_data[version_name]['version'])
-                url: Optional[str] = None
+                url: str | None = None
                 if version not in cache or cache[version] is None:
                     logger.info(f'URL for version {version} not found in internal cache, querying the API')
 
@@ -94,7 +93,7 @@ class TheoTownCommandCog(commands.Cog):
     @commands.guild_only()
     @commands.cooldown(rate=1, per=15, type=commands.BucketType.channel)
     @commands.max_concurrency(number=3, per=commands.BucketType.guild)
-    async def online(self, ctx: Context):
+    async def online(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             res = await self.api.get(Route("/private/game/get_online_statistics"))
 
@@ -120,7 +119,7 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    async def gallery(self, ctx: Context, mode: Optional[str] = 'recent', number: Optional[int] = None):
+    async def gallery(self, ctx: Context[Pidroid], mode: str | None = 'recent', number: int | None = None):
         selected_mode = resolve_gallery_mode(mode)
 
         if selected_mode not in SUPPORTED_GALLERY_MODES:
@@ -169,7 +168,7 @@ class TheoTownCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
-    async def find_plugin_command(self, ctx: Context, query: str): # noqa
+    async def find_plugin_command(self, ctx: Context[Pidroid], query: str): # noqa
         async with ctx.typing():
             is_id = query.startswith("#")
             pl_id = None
@@ -209,10 +208,10 @@ class TheoTownCommandCog(commands.Cog):
                     pages = PaginatingView(self.client, ctx, source=PluginListPaginator(query, plugin_list))
                     return await pages.send()
 
-            await ctx.reply(embed=plugin_list[index].to_embed())
+            return await ctx.reply(embed=plugin_list[index].to_embed())
 
     @find_plugin_command.error
-    async def on_find_plugin_command_error(self, ctx: Context, error):
+    async def on_find_plugin_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "query":
                 return await notify(ctx, "Please specify plugin search query.")
@@ -238,8 +237,8 @@ class TheoTownCommandCog(commands.Cog):
             if plugin.download_url is None:
                 raise BadArgument(f"Failure encountered while trying to retrieve the plugin file for '{plugin.clean_title}'!")
 
-            await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
-            await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
+            _ = await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
+            return await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
 
     @commands.command(
         name='link-account',
@@ -325,7 +324,7 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
-    async def encrypt_plugin_command(self, ctx: Context):
+    async def encrypt_plugin_command(self, ctx: Context[Pidroid]):
 
         if not ctx.message.attachments:
             raise BadArgument("Please provide the plugin zip file as an attachment.")

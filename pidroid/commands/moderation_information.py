@@ -1,13 +1,13 @@
-from discord import app_commands, Member, User, Guild
+from discord import app_commands, Member, Guild
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
-from typing import Optional, Union, override
-from typing_extensions import Annotated
+from typing import override, Annotated
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
 from pidroid.models.exceptions import GeneralCommandError
 from pidroid.models.view import PaginatingView
+from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.checks import assert_junior_moderator_permissions, assert_normal_moderator_permissions
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import PidroidEmbed
@@ -68,7 +68,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_junior_moderator(kick_members=True)
     @commands.guild_only()
-    async def case_command(self, ctx: Context[Pidroid], case_id: int, *, reason: Optional[str]):
+    async def case_command(self, ctx: Context[Pidroid], case_id: int, *, reason: str | None):
         assert ctx.guild is not None
         case = await self.client.fetch_case(ctx.guild.id, case_id)
 
@@ -121,7 +121,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     async def warnings_active_command(
         self,
         ctx: Context[Pidroid],
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         assert ctx.guild is not None
         user = user or ctx.author
@@ -154,7 +154,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     async def warnings_all_command(
         self,
         ctx: Context[Pidroid],
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         assert ctx.guild is not None
         user = user or ctx.author
@@ -189,7 +189,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     async def moderation_logs_command(
         self,
         ctx: Context[Pidroid],
-        user: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        user: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         assert ctx.guild is not None
         user = user or ctx.author
@@ -222,7 +222,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     async def moderation_logs_guild_subcommand(
         self,
         ctx: Context[Pidroid],
-        guild_argument: Optional[str]
+        guild_argument: str | None
     ):
         # If guild wasn't provided, list all guilds where user was punished it
         if guild_argument is None:
@@ -285,7 +285,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     async def moderator_statistics_command(
         self,
         ctx: Context[Pidroid],
-        user: Annotated[Optional[Member], Member] = None
+        user: Annotated[Member | None, Member] = None
     ):
         assert ctx.guild is not None
         member = user or ctx.author
@@ -322,7 +322,7 @@ class ModeratorInformationCommandCog(commands.Cog):
         if len(username) < 2:
             raise BadArgument("Username is too short to search. Make sure it's at least 2 characters long.")
 
-        cases = await self.client.api._fetch_cases_by_username(ctx.guild.id, username)
+        cases = await self.client.api.fetch_cases_by_username(ctx.guild.id, username)
         if len(cases) == 0:
             raise BadArgument("I could not find any cases that had the specified user as punished.")
 

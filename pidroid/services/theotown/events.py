@@ -58,7 +58,9 @@ def can_member_vote_on_message(member: Member, message: Message) -> bool:
 
 class EventHandlerService(commands.Cog):
     """This class implements a cog for handling of events related to the event channel."""
+
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.Cog.listener()
@@ -125,7 +127,7 @@ class EventHandlerService(commands.Cog):
                 return await message.add_reaction("👍")
             else:
                 assert isinstance(message.channel, (ForumChannel, Thread))
-                await try_message_user(
+                _ = await try_message_user(
                     message.author,
                     content=(
                         f"Your message in {message.channel.mention} was removed automatically "

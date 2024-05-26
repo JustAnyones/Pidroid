@@ -7,7 +7,7 @@ from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
 from discord.utils import escape_markdown
-from typing import List
+from typing import override
 
 from pidroid.client import Pidroid
 from pidroid.utils import http, truncate_string, clean_inline_translations
@@ -25,19 +25,21 @@ class PluginStoreService(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
         self.use_threads = True
         self.add_reactions = True
 
-        self.new_plugins_cache: List[int] = []
+        self.new_plugins_cache: list[int] = []
 
         self.retrieve_new_plugins.start()
         self.monthly_plugin_cronjob = self.client.loop.create_task(
             start_cronjob(self.client, monthly_plugin_cronjob, "Monthly plugin statistics")
         )
 
-    def cog_unload(self):
+    @override
+    async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.retrieve_new_plugins.cancel()
         self.monthly_plugin_cronjob.cancel()

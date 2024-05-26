@@ -17,7 +17,7 @@ async def load_image_from_url(client: Pidroid, url: str):
         payload = await r.read()
     return Image.open(BytesIO(payload))
 
-async def handle_attachment(ctx: Context) -> tuple[discord.Attachment, str]:
+async def handle_attachment(ctx: Context[Pidroid]) -> tuple[discord.Attachment, str]:
     """Returns None or discord.Attachment after assuring it is safe to use."""
     attachments = ctx.message.attachments
     if len(attachments) < 1:
@@ -39,7 +39,8 @@ async def handle_attachment(ctx: Context) -> tuple[discord.Attachment, str]:
 class ImageManipulationCommandCog(commands.Cog):
     """This class implements cog which contains commands for image manipulation."""
 
-    def __init__(self, client):
+    def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
     @commands.command(
@@ -52,7 +53,7 @@ class ImageManipulationCommandCog(commands.Cog):
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.max_concurrency(number=10, per=commands.BucketType.guild)
-    async def bonk_command(self, ctx: Context, member: discord.Member):
+    async def bonk_command(self, ctx: Context[Pidroid], member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot bonk yourself!")
         
@@ -85,7 +86,7 @@ class ImageManipulationCommandCog(commands.Cog):
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.max_concurrency(number=10, per=commands.BucketType.guild)
-    async def memefy_command(self, ctx: Context, retain_aspect_ratio: bool = False):
+    async def memefy_command(self, ctx: Context[Pidroid], retain_aspect_ratio: bool = False):
         async with ctx.channel.typing():
             attachment, extension = await handle_attachment(ctx)
 
@@ -126,7 +127,7 @@ class ImageManipulationCommandCog(commands.Cog):
     @commands.cooldown(rate=1, per=10, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.max_concurrency(number=10, per=commands.BucketType.guild)
-    async def jpeg_command(self, ctx: Context, quality: int = 1):
+    async def jpeg_command(self, ctx: Context[Pidroid], quality: int = 1):
         if quality < 1 or quality > 10:
             raise BadArgument("Quality value must be a number between 1 and 10.")
 
@@ -156,7 +157,7 @@ class ImageManipulationCommandCog(commands.Cog):
     @commands.cooldown(rate=1, per=25, type=commands.BucketType.user)
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.max_concurrency(number=5, per=commands.BucketType.guild)
-    async def headpat_command(self, ctx: Context, member: discord.Member):
+    async def headpat_command(self, ctx: Context[Pidroid], member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot headpat yourself, ask someone else to be nice")
         

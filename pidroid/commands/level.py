@@ -1,34 +1,34 @@
 from __future__ import annotations
 
-from discord import Guild, Member, User, app_commands, Role
+from discord import Guild, app_commands, Role
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument, BadUnionArgument, MemberNotFound, MissingRequiredArgument
 from discord.utils import escape_markdown
-from typing import Optional, Union, override
-from typing_extensions import Annotated
+from typing import override, Annotated
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import LevelCategory
 from pidroid.models.view import PaginatingView
 from pidroid.services.error_handler import notify
+from pidroid.utils.aliases import DiscordUser
+from pidroid.utils.db.levels import UserLevels, COLOUR_BINDINGS
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
-from pidroid.utils.levels import COLOUR_BINDINGS, MemberLevelInfo
 from pidroid.utils.paginators import ListPageSource
 
 class LeaderboardPaginator(ListPageSource):
-    def __init__(self, data: list[MemberLevelInfo]):
+    def __init__(self, data: list[UserLevels]):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
     @override
-    async def format_page(self, menu: PaginatingView, page: list[MemberLevelInfo]):
+    async def format_page(self, menu: PaginatingView, page: list[UserLevels]):
         assert isinstance(menu.ctx.bot, Pidroid)
         _ = self.embed.clear_fields()
         for info in page:
             user = menu.ctx.bot.get_user(info.user_id)
             _ = self.embed.add_field(
-                name=f"{info.rank}. {user if user else info.user_id} (lvl. {info.current_level})",
+                name=f"{await info.rank}. {user if user else info.user_id} (lvl. {info.level})",
                 value=f'{info.total_xp:,} XP',
                 inline=False
             )
@@ -61,7 +61,7 @@ class LevelCommandCog(commands.Cog):
     async def level_command(
         self,
         ctx: Context[Pidroid],
-        member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
+        member: Annotated[DiscordUser | None, DiscordUser] = None
     ):
         assert ctx.guild is not None
         await self.assert_system_enabled(ctx.guild)
@@ -73,13 +73,13 @@ class LevelCommandCog(commands.Cog):
         embed = PidroidEmbed(title=f'{escape_markdown(str(member))} rank')
         avatar = member.avatar or member.default_avatar
         _ = embed.set_thumbnail(url=avatar.url)
-        _ = embed.add_field(name='Level', value=info.current_level)
-        _ = embed.add_field(name='Rank', value=f'#{info.rank:,}')       
+        _ = embed.add_field(name='Level', value=info.level)
+        _ = embed.add_field(name='Rank', value=f'#{await info.rank:,}')       
 
         # Create a progress bar
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
         dashes = 10
-        current_dashes = int(info.current_xp / int(info.xp_to_level_up / dashes))
+        current_dashes = int(info.current_xp / int(info.xp_to_next_level / dashes))
 
         # Select progress character to use
         character = info.default_progress_character
@@ -95,7 +95,7 @@ class LevelCommandCog(commands.Cog):
         remaining_prog = '⬛' * (dashes - current_dashes)
 
         _ = embed.add_field(
-            name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)',
+            name=f'Level progress ({info.current_xp:,} / {info.xp_to_next_level:,} XP)',
             value=f"{current_prog}{remaining_prog}", inline=False
         )
 
@@ -148,6 +148,7 @@ class LevelCommandCog(commands.Cog):
             for reward in rewards:
                 role = ctx.guild.get_role(reward.role_id)
                 role_name = role.mention if role else reward.role_id
+                assert isinstance(embed.description, str)
                 embed.description += f"{reward.level}: {role_name}\n"
             return await ctx.reply(embed=embed)
 
@@ -242,7 +243,7 @@ class LevelCommandCog(commands.Cog):
                 f"Specified theme does not exist. It must be one of {', '.join(COLOUR_BINDINGS.keys())}"
             )
         
-        await info.update_theme_name(cleaned_theme)
+        await self.client.api.update_user_level_theme(info.id, cleaned_theme)
         return await ctx.reply(embed=PidroidEmbed.from_success("Level card theme has been updated."))
 
     @level_card_command.error

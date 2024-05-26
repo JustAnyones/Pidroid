@@ -20,19 +20,20 @@ class GiveawayCommandCog(commands.Cog):
     """This class implements a cog with commands for dealing with giveaway creation."""
 
     def __init__(self, client: Pidroid) -> None:
+        super().__init__()
         self.client = client
 
-    async def await_response(self, ctx: Context) -> Message:
+    async def await_response(self, ctx: Context[Pidroid]) -> Message:
         """Awaits message from user."""
         msg = await self.client.wait_for('message', check=lambda message: message.author == ctx.author, timeout=GIVEAWAY_TIMEOUT)
         return msg
 
-    async def parse_prize(self, ctx: Context) -> str:
+    async def parse_prize(self, ctx: Context[Pidroid]) -> str:
         """Awaits for prize from user."""
         msg = await self.await_response(ctx)
         return msg.content
 
-    async def parse_winners(self, ctx: Context) -> int:
+    async def parse_winners(self, ctx: Context[Pidroid]) -> int:
         """Awaits winner count from user."""
         msg = await self.await_response(ctx)
         try:
@@ -43,12 +44,12 @@ class GiveawayCommandCog(commands.Cog):
             raise BadArgument("Incorrect winner range specified. It must be between 1 and 30!")
         return winners
 
-    async def parse_channel(self, ctx: Context) -> TextChannel:
+    async def parse_channel(self, ctx: Context[Pidroid]) -> TextChannel:
         """Awaits channel from user."""
         msg = await self.await_response(ctx)
         return await TextChannelConverter().convert(ctx, msg.content)
 
-    async def parse_duration(self, ctx: Context) -> datetime.datetime:
+    async def parse_duration(self, ctx: Context[Pidroid]) -> datetime.datetime:
         """Awaits duration from user."""
         msg = await self.await_response(ctx)
         datetime = await Duration().convert(ctx, msg.content)
@@ -66,7 +67,7 @@ class GiveawayCommandCog(commands.Cog):
     )
     @commands.is_owner()
     @commands.bot_has_permissions(send_messages=True)
-    async def giveaway(self, ctx: Context):
+    async def giveaway(self, ctx: Context[Pidroid]):
         await ctx.reply((
             ":tada: Alright, let's begin!\n\n"
             "First, what do you want to give away?\n"

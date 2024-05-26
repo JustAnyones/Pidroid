@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from discord import Guild
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pidroid.utils.api import API, GuildConfigurationTable
@@ -16,27 +16,28 @@ class GuildConfiguration:
         row: int,
         guild_id: int,
 
-        prefixes: List[str],
+        prefixes: list[str],
         public_tags: bool,
 
-        jail_channel_id: Optional[int],
-        jail_role_id: Optional[int],
-        log_channel_id: Optional[int],
+        jail_channel_id: int | None,
+        jail_role_id: int | None,
+        log_channel_id: int | None,
         allow_moderator_punishing: bool,
-        appeal_url: Optional[str],
+        appeal_url: str | None,
 
         xp_system_active: bool,
         xp_multiplier: float,
         xp_per_message_min: int,
         xp_per_message_max: int,
-        xp_exempt_roles: List[int],
-        xp_exempt_channels: List[int],
+        xp_exempt_roles: list[int],
+        xp_exempt_channels: list[int],
         stack_level_rewards: bool,
 
         suggestion_system_active: bool,
-        suggestion_channel_id: Optional[int],
+        suggestion_channel_id: int | None,
         suggestion_threads_enabled: bool,
     ):
+        super().__init__()
         self.api = api
         self.__id = row
         self.__guild_id = guild_id
@@ -118,27 +119,27 @@ class GuildConfiguration:
         return self.__guild_id
 
     @property
-    def guild(self) -> Optional[Guild]:
+    def guild(self) -> Guild | None:
         """The guild this configuration belongs to."""
         return self.api.client.get_guild(self.__guild_id)
 
     async def edit(
         self,
         *,
-        prefixes: List[str] = MISSING,
+        prefixes: list[str] = MISSING,
         public_tags: bool = MISSING,
 
-        jail_channel_id: Optional[int] = MISSING,
-        jail_role_id: Optional[int] = MISSING,
+        jail_channel_id: int | None = MISSING,
+        jail_role_id: int | None = MISSING,
         allow_moderator_punishing: bool = MISSING,
-        appeal_url: Optional[str] = MISSING,
+        appeal_url: str | None = MISSING,
 
         xp_system_active: bool = MISSING,
         xp_multiplier: float = MISSING,
         stack_level_rewards: bool = MISSING,
 
         suggestion_system_active: bool = MISSING,
-        suggestion_channel_id: Optional[int] = MISSING,
+        suggestion_channel_id: int | None = MISSING,
         suggestion_threads_enabled: bool = MISSING,
     ) -> None:
         """Edits the guild configuration."""
@@ -198,7 +199,7 @@ class GuildConfiguration:
         await self.api.delete_guild_configuration(self.__id)
     
     @property
-    def prefixes(self) -> List[str]:
+    def prefixes(self) -> list[str]:
         """Returns guild prefixes."""
         return self.__prefixes.copy()
 
@@ -210,17 +211,17 @@ class GuildConfiguration:
     """Moderation related"""
 
     @property
-    def jail_channel_id(self) -> Optional[int]:
+    def jail_channel_id(self) -> int | None:
         """Returns the ID of the jail channel, if available."""
         return self.__jail_channel_id
 
     @property
-    def jail_role_id(self) -> Optional[int]:
+    def jail_role_id(self) -> int | None:
         """Returns the ID of the jail role, if available."""
         return self.__jail_role_id
 
     @property
-    def logging_channel_id(self) -> Optional[int]:
+    def logging_channel_id(self) -> int | None:
         """Returns the ID of the logging channel if available."""
         return self.__log_channel_id
 
@@ -230,7 +231,7 @@ class GuildConfiguration:
         return self.__allow_punishing_moderators
 
     @property
-    def appeal_url(self) -> Optional[str]:
+    def appeal_url(self) -> str | None:
         """Returns the ban appeal URL."""
         return self.__appeal_url
 
@@ -257,7 +258,7 @@ class GuildConfiguration:
         return self.__xp_per_message_max
 
     @property
-    def xp_exempt_roles(self) -> List[int]:
+    def xp_exempt_roles(self) -> list[int]:
         """Returns a list of XP exempt role IDs."""
         return self.__xp_exempt_roles
     
@@ -276,7 +277,7 @@ class GuildConfiguration:
         await self._update()
 
     @property
-    def xp_exempt_channels(self) -> List[int]:
+    def xp_exempt_channels(self) -> list[int]:
         """Returns a list of XP exempt channel IDs."""
         return self.__xp_exempt_channels
 
@@ -315,7 +316,7 @@ class GuildConfiguration:
         return self.__suggestion_system_active
 
     @property
-    def suggestions_channel_id(self) -> Optional[int]:
+    def suggestions_channel_id(self) -> int | None:
         """Returns the ID of the suggestions channel if available."""
         return self.__suggestion_channel_id
 
