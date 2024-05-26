@@ -135,10 +135,6 @@ class Tag:
         self.__authors.remove(author_id)
         await self.edit()
 
-    async def delete(self) -> None:
-        """Deletes the tag entry from the database."""
-        await self.__client.api.delete_tag(self.row)
-
     @property
     def row(self) -> int:
         """Returns the database row for the tag."""

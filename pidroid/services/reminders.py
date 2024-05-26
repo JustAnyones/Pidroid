@@ -2,14 +2,14 @@ import logging
 
 from discord import Permissions
 from discord.ext import tasks, commands
-from typing import Optional, override
+from typing import override
 
 from sqlalchemy import delete, select
 
 from pidroid.client import Pidroid
 from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
-from pidroid.utils.api import ReminderTable
 from pidroid.utils.checks import member_has_channel_permission
+from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import utcnow
 
@@ -28,7 +28,7 @@ class ReminderService(commands.Cog):
         """Ensure that tasks are cancelled on cog unload."""
         self.deliver_due_reminders.stop()
 
-    async def send_reminder(self, reminder: ReminderTable):
+    async def send_reminder(self, reminder: Reminder):
         """Sends a reminder."""
         user = self.client.get_user(reminder.user_id)
         # If we cannot find the user, don't even bother
@@ -80,8 +80,8 @@ class ReminderService(commands.Cog):
                 async with session.begin():
                     # Acquire every due reminder
                     result = await session.execute(
-                        select(ReminderTable).
-                        filter(ReminderTable.date_remind <= utcnow())
+                        select(Reminder).
+                        filter(Reminder.date_remind <= utcnow())
                     )
 
                     # Go over each reminder, send it
@@ -93,8 +93,8 @@ class ReminderService(commands.Cog):
                         except Exception:
                             logger.exception("An exception was encountered while trying to send a due reminder")
                         await session.execute(
-                            delete(ReminderTable).
-                            filter(ReminderTable.id == reminder.id)
+                            delete(Reminder).
+                            filter(Reminder.id == reminder.id)
                         )
                 # Commit it
                 await session.commit()

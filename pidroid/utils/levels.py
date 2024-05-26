@@ -5,10 +5,10 @@ import logging
 from discord import Member, Colour
 from typing import TYPE_CHECKING, override
 
-from pidroid.models.guild_configuration import GuildConfiguration
+from pidroid.utils.db.levels import LevelRewards, UserLevels
 
 if TYPE_CHECKING:
-    from pidroid.utils.api import API, UserLevelsTable, LevelRewardsTable
+    from pidroid.utils.api import API
 
 logger = logging.getLogger('Pidroid')
 
@@ -22,74 +22,6 @@ COLOUR_BINDINGS = {
     "white": (":white_large_square:", "#e6e7e8"),
     "yellow": (":yellow_square:", "#fdcb58"), 
 }
-
-class LevelReward:
-
-    def __init__(
-        self,
-        api: API,
-        *,
-        id: int,
-        guild_id: int,
-        role_id: int,
-        level: int
-    ) -> None:
-        super().__init__()
-        self.__api = api
-        self.__id = id
-        self.__guild_id = guild_id
-        self.__role_id = role_id
-        self.__level = level
-
-    @override
-    def __repr__(self) -> str:
-        return f'<LevelReward id={self.__id} guild_id={self.__guild_id} role_id={self.__role_id} level={self.__level}>'
-
-    @classmethod
-    def from_table(cls, api: API, table: LevelRewardsTable) -> LevelReward:
-        """Constructs level reward from a LevelRewardsTable object."""
-        return cls(
-            api,
-            id=table.id,
-            guild_id=table.guild_id,
-            role_id=table.role_id,
-            level=table.level,
-        )
-
-    @property
-    def internal_id(self) -> int:
-        """Returns the internal datbase ID associated with the reward."""
-        return self.__id
-
-    @property
-    def guild_id(self) -> int:
-        """Returns the ID of the guild the reward is for."""
-        return self.__guild_id
-
-    @property
-    def role_id(self) -> int:
-        """Returns the ID of the role that is to be rewarded."""
-        return self.__role_id
-
-    @property
-    def level(self) -> int:
-        """Returns the required level to obtain the reward."""
-        return self.__level
-
-    async def fetch_guild_configuration(self) -> GuildConfiguration:
-        """Returns the guild configuration object associated with the guild this reward is in."""
-        return await self.__api.client.fetch_guild_configuration(self.guild_id)
-
-    async def fetch_next_reward(self):
-        return await self.__api._fetch_next_level_reward(self.guild_id, self.level)
-
-    async def fetch_previous_reward(self):
-        return await self.__api._fetch_previous_level_reward(self.guild_id, self.level)
-
-    async def delete(self):
-        """Deletes the current level reward from the database."""
-        await self.__api._delete_level_reward(self.internal_id)
-
 
 class MemberLevelInfo:
 
@@ -124,7 +56,7 @@ class MemberLevelInfo:
         return f'<MemberLevelInfo guild_id={self.__guild_id} user_id={self.__user_id} current_level={self.__current_level}>'
 
     @classmethod
-    def from_table(cls, api: API, table: UserLevelsTable, rank: int = -1) -> MemberLevelInfo:
+    def from_table(cls, api: API, table: UserLevels, rank: int = -1) -> MemberLevelInfo:
         """Constructs level information from a UserLevelsTable object."""
         return cls(
             api,
@@ -226,11 +158,11 @@ class MemberLevelInfo:
             return None
         return await self.__api.client.get_or_fetch_member(guild, self.__user_id)
 
-    async def fetch_eligible_level_rewards(self) -> list[LevelReward]:
+    async def fetch_eligible_level_rewards(self) -> list[LevelRewards]:
         """Returns a list of eligible level rewards for the user."""
         return await self.__api.fetch_eligible_level_rewards_for_level(self.__guild_id, self.__current_level)
 
-    async def fetch_eligible_level_reward(self) -> LevelReward | None:
+    async def fetch_eligible_level_reward(self) -> LevelRewards | None:
         """Returns the most eligible level reward for the user."""
         return await self.__api.fetch_eligible_level_reward_for_level(self.__guild_id, self.__current_level)
 

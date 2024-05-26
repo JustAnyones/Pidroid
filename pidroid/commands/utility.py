@@ -12,8 +12,8 @@ from pidroid.models.categories import UtilityCategory
 from pidroid.models.view import PaginatingView
 from pidroid.utils import http, truncate_string
 from pidroid.utils.aliases import MessageableGuildChannelTuple
-from pidroid.utils.api import ReminderTable
 from pidroid.utils.converters import Duration
+from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
 from pidroid.utils.time import datetime_to_duration
@@ -32,12 +32,12 @@ def parse_urban_text(string: str) -> str:
 
 
 class ReminderPaginator(ListPageSource):
-    def __init__(self, title: str, data: list[ReminderTable]):
+    def __init__(self, title: str, data: list[Reminder]):
         super().__init__(data, per_page=12)
         self.embed = PidroidEmbed(title=title).set_footer(text=f"{len(data)} reminder(s)")
 
     @override
-    async def format_page(self, menu: PaginatingView, page: list[ReminderTable]):
+    async def format_page(self, menu: PaginatingView, page: list[Reminder]):
         offset = menu.current_page * self.per_page + 1
         values = ""
         for i, reminder in enumerate(page):
@@ -111,7 +111,7 @@ class UtilityCommandCog(commands.Cog):
         if isinstance(ctx.channel, MessageableGuildChannelTuple):
             channel_id = ctx.channel.id
 
-        await self.client.api.insert_reminder(
+        _ = await self.client.api.insert_reminder(
             user_id=ctx.author.id,
             channel_id=channel_id,
             message_id=ctx.message.id,
@@ -120,7 +120,7 @@ class UtilityCommandCog(commands.Cog):
             date_remind=date
         )
 
-        await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
+        return await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
 
     @commands.hybrid_command(
         name="reminders",

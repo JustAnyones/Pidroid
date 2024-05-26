@@ -228,7 +228,7 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
-    async def downloadplugin(self, ctx: Context, plugin_id: int):
+    async def downloadplugin(self, ctx: Context[Pidroid], plugin_id: int):
         async with ctx.typing():
             plugins = await self.api.fetch_plugin_by_id(plugin_id, True)
             if len(plugins) == 0:
@@ -249,7 +249,7 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
-    async def link_account(self, ctx: Context, member: Member, forum_id: int):
+    async def link_account(self, ctx: Context[Pidroid], member: Member, forum_id: int):
         # Check if the discord account is linked to anything
         linked_acc = await self.client.api.fetch_linked_account_by_user_id(member.id)
         if linked_acc:
@@ -264,8 +264,8 @@ class TheoTownCommandCog(commands.Cog):
         if account is None:
             raise BadArgument("Specified game account does not exist!")
 
-        await self.client.api.insert_linked_account(member.id, forum_id)
-        await ctx.send(embed=SuccessEmbed(
+        _ = await self.client.api.insert_linked_account(member.id, forum_id)
+        return await ctx.send(embed=SuccessEmbed(
             f"Discord account {member.mention} has been linked to [{account.forum_account.name}]({account.forum_account.profile_url}) successfully!"
         ))
 
@@ -276,14 +276,14 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
-    async def redeem_wage(self, ctx: Context):
+    async def redeem_wage(self, ctx: Context[Pidroid]):
         # Find the linked account
         linked_acc = await self.client.api.fetch_linked_account_by_user_id(ctx.author.id)
         if linked_acc is None:
             raise BadArgument("Your discord account is not linked to any TheoTown accounts!")
 
         # Check if last redeem was not within this month
-        last_wage_date: datetime.datetime = linked_acc.date_wage_last_redeemed
+        last_wage_date = linked_acc.date_wage_last_redeemed
         if last_wage_date is not None and last_wage_date.month == utcnow().month:
             raise BadArgument("You've already redeemed the wage for this month!")
         

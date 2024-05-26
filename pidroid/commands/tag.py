@@ -6,7 +6,7 @@ from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
 from discord.utils import escape_markdown, format_dt
 from io import BytesIO
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional, override
 
 from pidroid.models.categories import TagCategory
 from pidroid.models.event_types import EventName, EventType
@@ -33,6 +33,7 @@ class TagListPaginator(ListPageSource):
         else:
             self.embed.set_footer(text=f"{amount} tags")
 
+    @override
     async def format_page(self, menu: PaginatingView, data: list[Tag]):
         offset = menu._current_page * self.per_page + 1
         values = ""
@@ -45,9 +46,10 @@ class TagCommandCog(commands.Cog):
     """This class implements a cog for dealing with guild tag related commands.."""
 
     def __init__(self, client: Pidroid):
+        super().__init__()
         self.client = client
 
-    async def fetch_tag(self, ctx: Context, tag_name: str) -> Tag:
+    async def fetch_tag(self, ctx: Context[Pidroid], tag_name: str) -> Tag:
         """Fetches a tag by specified name using the context."""
         assert ctx.guild is not None
         tag = await self.client.api.fetch_guild_tag(ctx.guild.id, tag_name)
@@ -55,7 +57,7 @@ class TagCommandCog(commands.Cog):
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag
 
-    async def find_tags(self, ctx: Context, tag_name: str) -> List[Tag]:
+    async def find_tags(self, ctx: Context[Pidroid], tag_name: str) -> list[Tag]:
         """Returns a list of tags matching the specified tag name using the context."""
         if len(tag_name) < 3:
             raise BadArgument("Query term is too short! Please keep it above 2 characters!")
@@ -311,7 +313,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_remove_author_command(self, ctx: Context, tag_name: str, member: Member):
+    async def tag_remove_author_command(self, ctx: Context[Pidroid], tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -336,7 +338,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_claim_command(self, ctx: Context, *, tag_name: str):
+    async def tag_claim_command(self, ctx: Context[Pidroid], *, tag_name: str):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -373,7 +375,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_transfer_command(self, ctx: Context, tag_name: str, member: Member):
+    async def tag_transfer_command(self, ctx: Context[Pidroid], tag_name: str, member: Member):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -404,7 +406,7 @@ class TagCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
     @commands.guild_only()
-    async def tag_remove_command(self, ctx: Context, *, tag_name: str):
+    async def tag_remove_command(self, ctx: Context[Pidroid], *, tag_name: str):
         assert ctx.guild
         tag = await self.fetch_tag(ctx, tag_name)
 
@@ -415,7 +417,7 @@ class TagCommandCog(commands.Cog):
             if ctx.author.id != tag.author_id:
                 raise BadArgument("You cannot remove a tag you don't own!")
 
-        await tag.delete()
+        await self.client.api.delete_tag(tag.row)
         await ctx.reply(embed=SuccessEmbed("Tag removed successfully!"))
         self.client.log_event(
             EventType.tag_delete, EventName.tag_delete, ctx.guild.id, tag.row, ctx.author.id,

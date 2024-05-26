@@ -1,6 +1,6 @@
 import datetime
 
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Any, override
 
 from pidroid.constants import THEOTOWN_FORUM_URL
 from pidroid.utils.time import timestamp_to_datetime
@@ -18,7 +18,7 @@ class ForumAccount:
         date_latest_login: datetime.datetime | None
         _avatar: str
 
-    def __init__(self, data: dict) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         super().__init__()
         self.id = data["user_id"]
         self.name = data["username"]
@@ -65,7 +65,7 @@ class ForumAccount:
 
 class TheoTownAccount:
 
-    def __init__(self, data: dict) -> None:
+    def __init__(self, data: dict[str, Any]) -> None:
         super().__init__()
         self.id: int = data["id"]
         self.name: str = data["name"]

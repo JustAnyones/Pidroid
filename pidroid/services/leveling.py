@@ -13,7 +13,8 @@ from typing import TYPE_CHECKING, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.role_changes import RoleAction
-from pidroid.utils.levels import MemberLevelInfo, LevelReward
+from pidroid.utils.db.levels import LevelRewards
+from pidroid.utils.levels import MemberLevelInfo
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
@@ -165,7 +166,7 @@ class LevelingService(commands.Cog):
         for reward in all_level_rewards:
             if reward.role_id not in guild_role_ids:
                 logger.debug(f'Removing {reward.role_id} as a level reward for {guild} since role no longer exists')
-                await reward.delete()
+                await self.client.api.delete_level_reward(reward.id)
 
         # If leveling system is not active, we do not need to update member role states
         # for rewards
@@ -324,10 +325,10 @@ class LevelingService(commands.Cog):
         await self.client.wait_until_guild_configurations_loaded()
         reward = await self.client.api.fetch_level_reward_by_role(role.guild.id, role.id)
         if reward:
-            await reward.delete()
+            await self.client.api.delete_level_reward(reward.id)
 
     @commands.Cog.listener()
-    async def on_pidroid_level_reward_add(self, reward: LevelReward):
+    async def on_pidroid_level_reward_add(self, reward: LevelRewards):
         """Called when level reward is added."""
         config = await self.client.fetch_guild_configuration(reward.guild_id)
 
@@ -343,7 +344,7 @@ class LevelingService(commands.Cog):
         else:
             # get the affected level informations
             level_infos = []
-            next = await reward.fetch_next_reward()
+            next = await self.client.api.fetch_next_level_reward(reward.guild_id, reward.level)
             if next:
                 level_infos = await self.client.api.fetch_user_level_info_between(reward.guild_id, reward.level, next.level)
             else:
@@ -353,16 +354,16 @@ class LevelingService(commands.Cog):
             for level_info in level_infos:
                 member = await level_info.fetch_member()
                 if member:
-                    previous = await reward.fetch_previous_reward()
+                    previous = await self.client.api.fetch_previous_level_reward(reward.guild_id, reward.level)
                     await self.queue_add(member, reward.role_id, "Role reward created")
                     if previous:
                         await self.queue_remove(member, previous.role_id, "Role reward created")
 
     @commands.Cog.listener()
-    async def on_pidroid_level_reward_remove(self, reward: LevelReward):
+    async def on_pidroid_level_reward_remove(self, reward: LevelRewards):
         """Called when level reward is removed."""
         # Acquire the guild configuration
-        config = await reward.fetch_guild_configuration()
+        config = await self.client.fetch_guild_configuration(reward.guild_id)
 
         # Fetch the role object
         guild = self.client.get_guild(reward.guild_id)

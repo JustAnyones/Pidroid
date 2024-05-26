@@ -5,7 +5,7 @@ from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument, BadUnionArgument, MemberNotFound, MissingRequiredArgument
 from discord.utils import escape_markdown
-from typing import List, Optional, Union
+from typing import Optional, Union, override
 from typing_extensions import Annotated
 
 from pidroid.client import Pidroid
@@ -21,12 +21,13 @@ class LeaderboardPaginator(ListPageSource):
         super().__init__(data, per_page=10)
         self.embed = PidroidEmbed(title='Leaderboard rankings')
 
-    async def format_page(self, menu: PaginatingView, data: list[MemberLevelInfo]):
+    @override
+    async def format_page(self, menu: PaginatingView, page: list[MemberLevelInfo]):
         assert isinstance(menu.ctx.bot, Pidroid)
-        self.embed.clear_fields()
-        for info in data:
+        _ = self.embed.clear_fields()
+        for info in page:
             user = menu.ctx.bot.get_user(info.user_id)
-            self.embed.add_field(
+            _ = self.embed.add_field(
                 name=f"{info.rank}. {user if user else info.user_id} (lvl. {info.current_level})",
                 value=f'{info.total_xp:,} XP',
                 inline=False
@@ -39,14 +40,14 @@ class LevelCommandCog(commands.Cog):
         super().__init__()
         self.client = client
 
-    async def check_system_enabled(self, guild: Guild) -> bool:
+    async def assert_system_enabled(self, guild: Guild):
         """Checks if the XP system is enabled in the specified guild.
         
         Raises BadArgument if system is not enabled."""
         info = await self.client.fetch_guild_configuration(guild.id)
         if not info.xp_system_active:
             raise BadArgument('XP system is not enabled in this server!')
-        return True
+        return
 
     @commands.hybrid_command(
         name="level",
@@ -63,7 +64,7 @@ class LevelCommandCog(commands.Cog):
         member: Annotated[Optional[Union[Member, User]], Union[Member, User]] = None
     ):
         assert ctx.guild is not None
-        await self.check_system_enabled(ctx.guild)
+        await self.assert_system_enabled(ctx.guild)
         member = member or ctx.author
         info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, member.id)
         if info is None:
@@ -71,9 +72,9 @@ class LevelCommandCog(commands.Cog):
 
         embed = PidroidEmbed(title=f'{escape_markdown(str(member))} rank')
         avatar = member.avatar or member.default_avatar
-        embed.set_thumbnail(url=avatar.url)
-        embed.add_field(name='Level', value=info.current_level)
-        embed.add_field(name='Rank', value=f'#{info.rank:,}')       
+        _ = embed.set_thumbnail(url=avatar.url)
+        _ = embed.add_field(name='Level', value=info.current_level)
+        _ = embed.add_field(name='Rank', value=f'#{info.rank:,}')       
 
         # Create a progress bar
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
@@ -93,15 +94,15 @@ class LevelCommandCog(commands.Cog):
         current_prog = f'{character}' * current_dashes
         remaining_prog = '⬛' * (dashes - current_dashes)
 
-        embed.add_field(
+        _ = embed.add_field(
             name=f'Level progress ({info.current_xp:,} / {info.xp_to_level_up:,} XP)',
             value=f"{current_prog}{remaining_prog}", inline=False
         )
 
-        await ctx.reply(embed=embed)
+        return await ctx.reply(embed=embed)
         
     @level_command.error
-    async def on_level_command_error(self, ctx: Context, error: Exception):
+    async def on_level_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, BadUnionArgument):
             if error.param.name == "member":
                 for _err in error.errors:
@@ -118,7 +119,7 @@ class LevelCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def leaderboard_command(self, ctx: Context[Pidroid]):
         assert ctx.guild is not None
-        await self.check_system_enabled(ctx.guild)
+        await self.assert_system_enabled(ctx.guild)
         levels = await self.client.api.fetch_guild_level_rankings(ctx.guild.id, limit=100)
         pages = PaginatingView(self.client, ctx, source=LeaderboardPaginator(levels))
         await pages.send()
@@ -135,7 +136,7 @@ class LevelCommandCog(commands.Cog):
     async def rewards_command(self, ctx: Context[Pidroid]):
         if ctx.invoked_subcommand is None:
             assert ctx.guild is not None
-            await self.check_system_enabled(ctx.guild)
+            await self.assert_system_enabled(ctx.guild)
             conf = await self.client.fetch_guild_configuration(ctx.guild.id)
             rewards = await conf.fetch_all_level_rewards()
             if len(rewards) == 0:
@@ -148,7 +149,7 @@ class LevelCommandCog(commands.Cog):
                 role = ctx.guild.get_role(reward.role_id)
                 role_name = role.mention if role else reward.role_id
                 embed.description += f"{reward.level}: {role_name}\n"
-            await ctx.reply(embed=embed)
+            return await ctx.reply(embed=embed)
 
     @rewards_command.command(
         name='add',
@@ -161,7 +162,7 @@ class LevelCommandCog(commands.Cog):
     @commands.guild_only()
     async def rewards_add_command(self, ctx: Context[Pidroid], role: Role, level: int):
         assert ctx.guild is not None
-        await self.check_system_enabled(ctx.guild)
+        await self.assert_system_enabled(ctx.guild)
         if level > 1000:
             raise BadArgument('You cannot set level requirement higher than 1000!')
         if level <= 0:
@@ -175,8 +176,8 @@ class LevelCommandCog(commands.Cog):
         if reward is not None:
             raise BadArgument('Specified role already belongs to a reward.')
 
-        await self.client.api.insert_level_reward(ctx.guild.id, role.id, level)
-        await ctx.reply(embed=SuccessEmbed(
+        _ = await self.client.api.insert_level_reward(ctx.guild.id, role.id, level)
+        return await ctx.reply(embed=SuccessEmbed(
             'Role reward added successfully! Please note that it will take some time for changes to take effect.'
         ))
 
@@ -200,12 +201,12 @@ class LevelCommandCog(commands.Cog):
     @commands.guild_only()
     async def rewards_remove_command(self, ctx: Context[Pidroid], role: Role):
         assert ctx.guild is not None
-        await self.check_system_enabled(ctx.guild)
+        await self.assert_system_enabled(ctx.guild)
         reward = await self.client.api.fetch_level_reward_by_role(ctx.guild.id, role.id)
         if reward is None:
             raise BadArgument('Specified role does not belong to any rewards.')
 
-        await reward.delete()
+        await self.client.api.delete_level_reward(reward.id)
         return await ctx.reply(embed=PidroidEmbed.from_success(
             'Role reward removed successfully! Please note that it will take some time for changes to take effect.'
         ))
@@ -229,7 +230,7 @@ class LevelCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def level_card_command(self, ctx: Context[Pidroid], theme: str):
         assert ctx.guild is not None
-        await self.check_system_enabled(ctx.guild)
+        await self.assert_system_enabled(ctx.guild)
         info = await self.client.api.fetch_ranked_user_level_info(ctx.guild.id, ctx.author.id)
         if info is None:
             raise BadArgument("You are not yet ranked, I cannot set the theme.")
