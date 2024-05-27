@@ -49,8 +49,10 @@ class UserLevels(Base):
         )
         result = await session.execute(query)
         row = result.fetchone()
-        print(row)
-        return row[0]
+        if row is None:
+            return -1
+        value: int = row[-1] # last column
+        return value
 
     def _get_theme_bindings(self) -> tuple[str, str] | None:
         """Returns theme bindings for the current user."""
