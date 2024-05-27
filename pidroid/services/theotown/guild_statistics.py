@@ -29,7 +29,7 @@ class GuildStatisticsService(commands.Cog):
             guild = self.client.get_guild(THEOTOWN_GUILD)
             if guild is None:
                 return logger.warn("Unable to update discord server member count, TheoTown guild was not found")
-            await self.client.api.get(Route(
+            _ = await self.client.api.get(Route(
                 "/private/discord/update",
                 {"type": "write", "member_count": guild.member_count}
             ))

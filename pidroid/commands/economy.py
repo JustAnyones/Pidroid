@@ -161,15 +161,15 @@ class EconomyCommandCog(commands.Cog):
 
         if random.randint(1, 1000) <= 12: # nosec
             async with await http.get(self.client, f"{BASE_API_URL}/{ctx.author.id}", headers=headers) as response:
-                data = await response.json()
+                data: dict[str, int] = await response.json()
             steal_amount = round(data['total'] * 0.025) # 2.5% of their total money :)
             if steal_amount > 0:
                 async with await http.patch(self.client, f"{BASE_API_URL}/{ctx.author.id}", json.dumps({'cash': -steal_amount}), headers=headers):
                     pass
-                await ctx.reply(random.choice(STEAL_MONEY_RESPONSES).replace("%cash%", get_currency(steal_amount)))
+                _ = await ctx.reply(random.choice(STEAL_MONEY_RESPONSES).replace("%cash%", get_currency(steal_amount)))
             return
 
-        await ctx.reply(random.choice(FAILED_BEGGING_RESPONSES)) # nosec
+        _ = await ctx.reply(random.choice(FAILED_BEGGING_RESPONSES)) # nosec
 
     @beg_command.error
     async def on_beg_command_error(self, ctx: Context[Pidroid], error: Exception):

@@ -88,7 +88,7 @@ class PluginStoreService(commands.Cog):
                         await message.add_reaction("👎")
 
                     if self.use_threads:
-                        await self.client.create_expiring_thread(
+                        _ = await self.client.create_expiring_thread(
                             message, f"{truncate_string(plugin.clean_title, 89)} discussion",
                             timedelta_to_datetime(timedelta(days=14))
                         )

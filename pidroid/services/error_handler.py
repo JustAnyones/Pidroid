@@ -166,12 +166,11 @@ class ErrorHandlingService(commands.Cog):
 
                 # Create paginator interface, I.E, the interactive buttons thing
                 interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
-                await interface.send_to(ctx)
-                return
+                return await interface.send_to(ctx)
             with suppress(HTTPException):
                 _ = await ctx.reply(embed=ErrorEmbed(
-                    f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
-                    'If you\'ve encountered this multiple times, please notify my owner.'
+                    (f'Something broke while executing the ``{ctx.command.name}`` command that could not be handled by the main error handler. '
+                    'If you\'ve encountered this multiple times, please notify my owner.')
                 ))
             print('Ignoring exception in command {}:'.format(ctx.command), file=sys.stderr)
             traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
