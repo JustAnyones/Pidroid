@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 
 from discord import Message, Member, Guild
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pidroid.models.tags import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
@@ -50,7 +50,7 @@ class API:
         temp_conn = await self.__engine.connect()
         await temp_conn.close()
 
-    async def get(self, route: Route) -> dict:
+    async def get(self, route: Route) -> dict[Any, Any]:
         """Sends a GET request to the TheoTown API."""
         return await self.__http.request("GET", route)
 

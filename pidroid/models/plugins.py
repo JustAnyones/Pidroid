@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from discord.embeds import Embed
 from discord.utils import escape_markdown
-from typing import TYPE_CHECKING, Optional
+from typing import Any
 
 from pidroid.utils import clean_inline_translations, format_version_code, truncate_string
 from pidroid.utils.embeds import PidroidEmbed
@@ -32,9 +32,20 @@ class TheoTownUser:
 class Plugin:
     """This class represents a TheoTown plugin."""
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict[str, Any]):
         self._download_url = None
-        self._deserialize(data)
+
+        self.id = data['plugin_id']
+        self.title: str = data['name']
+        self.description: str = data['description']
+        self.author = TheoTownUser(data['author_id'], data['username'])
+        self.price: int = data['price']
+        self.version: int = data['version']
+        self.revision_id = data['revision_id']
+        self._preview_file = data['preview_file']
+        self.min_version = data['min_version']
+        self._platforms: int = data['platforms']
+        self._demonetized: bool = data['demonetized'] == 1    
 
     @property
     def clean_title(self) -> str:
@@ -57,12 +68,9 @@ class Plugin:
         return f"https://forum.theotown.com/plugins/list?term=%3A{self.id}"
 
     @property
-    def download_url(self) -> Optional[str]:
-        """Returns plugin download url.
-
-        Note that this property is only available if plugin has been acquired
-        by fetching it with an ID."""
-        return self._download_url
+    def download_url(self) -> str:
+        """Returns a URL to download the plugin with."""
+        return f"https://forum.theotown.com/plugins/list?download={self.revision_id}"
 
     @property
     def is_ubiquitous(self) -> bool:
@@ -83,24 +91,6 @@ class Plugin:
     def is_on_desktop(self) -> bool:
         """Returns true if plugin is available on desktop."""
         return self._platforms & Platforms.DESKTOP != 0
-
-    def _deserialize(self, p: dict) -> Plugin:
-        """Deserializes a plugin dictionary to a Plugin object."""
-        self.id = p['plugin_id']
-        self.title = p['name']
-        self.description = p['description']
-        self.author = TheoTownUser(p['author_id'], p['username'])
-        self.price = p['price']
-        self.version = p['version']
-        self.revision_id = p['revision_id']
-        self._preview_file = p['preview_file']
-        self.min_version = p['min_version']
-        self._platforms = p['platforms']
-        self._demonetized = p['demonetized'] == 1    
-        # Only available when fetched with API.fetch_plugin_by_id
-        if "download_url" in p:
-            self._download_url = p["download_url"]
-        return self
 
     def to_embed(self) -> Embed:
         """Returns a discord Embed object."""
@@ -142,13 +132,10 @@ class Plugin:
 class NewPlugin(Plugin):
     """This class represents a new TheoTown plugin. This class differs from Plugin class since it additionally contains time property."""
 
-    if TYPE_CHECKING:
-        approval_author_id: int
-
-    def __init__(self, data: dict):
+    def __init__(self, data: dict[str, Any]):
         super().__init__(data)
-        self._time = data["time"]
-        self.approval_author_id = data["approval_author"]
+        self._time: int = data["time"]
+        self.approval_author_id: int = data["approval_author"]
 
     @property
     def time(self) -> int:
