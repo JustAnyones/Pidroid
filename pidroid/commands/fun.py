@@ -2,7 +2,6 @@ import asyncio
 import discord
 import random
 
-from datetime import datetime
 from discord import AllowedMentions
 from discord.channel import VoiceChannel, StageChannel
 from discord.colour import Color, Colour
@@ -16,9 +15,9 @@ from pidroid.models.categories import RandomCategory
 from pidroid.services.error_handler import notify
 from pidroid.utils.checks import assert_bot_channel_permissions
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed, ErrorEmbed
+from pidroid.utils.embeds import ErrorEmbed
 from pidroid.utils.file import Resource
-from pidroid.utils.http import get, Route
+from pidroid.utils.http import get
 
 CLOAKER_LINES = [
     'cloaker_1', 'cloaker_2', 'cloaker_3',
@@ -116,7 +115,7 @@ class FunCommandCog(commands.Cog):
     async def pingu_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
             text, file_path = random.choice(PINGU_RESPONSES) # nosec
-            await ctx.reply(text, file=discord.File(file_path))
+            _ = await ctx.reply(text, file=discord.File(file_path))
 
     @commands.command(
         name="sloth",
@@ -126,24 +125,7 @@ class FunCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def sloth_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
-            await ctx.reply(content="The myth, the legend.", file=discord.File(Resource('sloth.gif')))
-
-    @commands.command(
-        name="happiness",
-        brief='Returns a positive review from TheoTown listing on play store.',
-        permissions=["TheoTown developer"],
-        category=RandomCategory,
-        hidden=True
-    )
-    @command_checks.is_theotown_developer()
-    @commands.bot_has_permissions(send_messages=True)
-    async def happiness_command(self, ctx: Context[Pidroid]):
-        res = await self.client.api.get(Route("/private/review/fetch_random"))
-        data = res["data"]
-        embed = PidroidEmbed(description=data['comment'], timestamp=datetime.fromtimestamp(float(data['comment_time'])))
-        embed.set_author(name=data['author'])
-        embed.set_footer(text=f"{data['rating']} ⭐")
-        await ctx.reply(embed=embed)
+            _ = await ctx.reply(content="The myth, the legend.", file=discord.File(Resource('sloth.gif')))
 
     @commands.command(
         name="fire",
@@ -154,7 +136,7 @@ class FunCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     async def fire_command(self, ctx: Context[Pidroid]):
         async with ctx.typing():
-            await ctx.reply(
+            _ = await ctx.reply(
                 content="There's a fire somewhere? Call <@326167365677219840> to the rescue!",
                 allowed_mentions=AllowedMentions(users=False),
                 file=discord.File(Resource('evan.png'))
@@ -255,8 +237,8 @@ class FunCommandCog(commands.Cog):
         vc.play(audio_source)
         while vc.is_playing():
             await asyncio.sleep(0.01)
-        await member.edit(voice_channel=None)
-        await ctx.reply(f'{str(member)} has been cloaked!')
+        _ = await member.edit(voice_channel=None)
+        _ = await ctx.reply(f'{str(member)} has been cloaked!')
         audio_source = discord.FFmpegPCMAudio(Resource(f'{random.choice(CLOAKER_LINES)}.mp3')) # nosec
         vc.play(audio_source)
         while vc.is_playing():

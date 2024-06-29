@@ -64,7 +64,7 @@ class Route:
 
     BASE_URL = "https://ja.theotown.com/api/v2"
 
-    def __init__(self, path: str, query: DataDict | None) -> None:
+    def __init__(self, path: str, query: DataDict | None = None) -> None:
         super().__init__()
         self.path = path
         self._query = query or {}
