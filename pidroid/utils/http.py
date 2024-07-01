@@ -43,7 +43,7 @@ class HTTP:
             try:
                 data = await r.json()
                 if data:
-                    raise APIException(r.status, data["details"])
+                    raise APIException(r.status, data.get("message", None))
             except ContentTypeError:
                 pass
                     
