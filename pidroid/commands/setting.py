@@ -259,13 +259,13 @@ class LevelingSubmenu(Submenu):
     def __init__(self, *, configuration: GuildConfiguration) -> None:
         assert configuration.guild is not None
         # Store xp exempt channel mentions
-        channels = []
+        channels: list[str] = []
         for c_id in configuration.xp_exempt_channels:
             chan = configuration.guild.get_channel(c_id)
             if chan:
                 channels.append(chan.mention)
         # Store xp exempt role mentions
-        roles = []
+        roles: list[str] = []
         for r_id in configuration.xp_exempt_roles:
             role = configuration.guild.get_role(r_id)
             if role:

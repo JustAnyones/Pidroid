@@ -54,6 +54,10 @@ class API:
         """Sends a GET request to the TheoTown API."""
         return await self.__http.request("GET", route)
 
+    async def post(self, route: Route, data: dict[Any, Any]) -> dict[Any, Any]:
+        """Sends a POST request to the TheoTown API."""
+        return await self.__http.request("POST", route, None, data)
+
     """Tag related"""
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: list[int]) -> int:
@@ -1039,28 +1043,32 @@ class API:
 
     async def fetch_theotown_account_by_id(self, account_id: int) -> TheoTownAccount | None:
         """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.get(Route("/private/game/fetch_user", {"forum_id": account_id}))
-        if response["success"]:
-            return TheoTownAccount(response["data"])
-        return None
+        response = await self.get(Route(
+            "/game/account/find",
+            {"forum_id": account_id}
+        ))
+        return TheoTownAccount(response)
 
     async def fetch_new_plugins(self, last_approval_time: int) -> list[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.get(Route("/private/plugin/get_new", {"last_approval_time": last_approval_time}))
-        return [NewPlugin(np) for np in response["data"]]
+        response = await self.get(Route(
+            "/game/plugin/new",
+            {"last_approval_time": last_approval_time}
+        ))
+        return [NewPlugin(np) for np in response]
 
     async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""
         response = await self.get(Route(
-            "/private/plugin/find2",
+            "/game/plugin/find",
             {"id": plugin_id, "show_hidden": show_hidden}
         ))
-        return [Plugin(p) for p in response["data"]]
+        return [Plugin(p) for p in response]
 
     async def search_plugins(self, query: str, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for plugins matching the query string."""
         response = await self.get(Route(
-            "/private/plugin/find2",
+            "/game/plugin/find",
             {"query": query, "show_hidden": show_hidden}
         ))
-        return [Plugin(p) for p in response["data"]]
+        return [Plugin(p) for p in response]

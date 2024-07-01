@@ -9,10 +9,12 @@ from discord.ext.commands import BadArgument, MissingRequiredArgument
 from discord.ext.commands.context import Context
 from discord.member import Member
 from io import BytesIO
+from typing import Any, TypedDict
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
 from pidroid.models.categories import TheoTownCategory
+from pidroid.models.exceptions import APIException
 from pidroid.models.view import PaginatingView
 from pidroid.services.error_handler import notify
 from pidroid.utils import http, format_version_code
@@ -37,6 +39,10 @@ def resolve_gallery_mode(query: str | None) -> str | None:
     if query in ["rating", "top", "best"]:
         return "rating"
     return None
+
+class ScreenshotDict(TypedDict):
+    name: str
+    image_url: str
 
 class TheoTownCommandCog(commands.Cog):
     """This class implements a cog for TheoTown API related commands."""
@@ -67,22 +73,26 @@ class TheoTownCommandCog(commands.Cog):
                 url: str | None = None
                 if version not in cache or cache[version] is None:
                     logger.info(f'URL for version {version} not found in internal cache, querying the API')
-
-                    res = await self.api.get(Route("/private/game/lookup_version", {"query": version}))
-
-                    if res["success"]:
-                        url = res["data"]["url"]
+                    
+                    try:
+                        data = await self.api.get(Route(
+                            "/forum/post/lookup_version",
+                            {"query": version}
+                        ))
+                        url = data["url"]
                         logger.info(f'Version URL found, internal cache updated with {url}')
+                    except APIException:
+                        pass
 
                     cache[version] = url
                 url = cache[version]
                 value = f'[{version}]({url})'
                 if url is None:
                     value = version
-                embed.add_field(name=version_name, value=value)
+                _ = embed.add_field(name=version_name, value=value)
             self.client.version_cache = cache
-            embed.set_footer(text='Note: this will also include versions which are not yet available to regular users.')
-            await ctx.reply(embed=embed)
+            _ = embed.set_footer(text='Note: this will also include versions which are not yet available to regular users.')
+            return await ctx.reply(embed=embed)
 
     @commands.command(
         brief="Returns TheoTown's online mode statistics.",
@@ -95,21 +105,22 @@ class TheoTownCommandCog(commands.Cog):
     @commands.max_concurrency(number=3, per=commands.BucketType.guild)
     async def online(self, ctx: Context[Pidroid]):
         async with ctx.typing():
-            res = await self.api.get(Route("/private/game/get_online_statistics"))
+            data = await self.api.get(Route("/game/region/statistics"))
 
-            data = res["data"]
-            total_plots = data["plots"]["total"]
-            free_plots = data["plots"]["free"]
-            region_count = data["region_count"]
-            population = data["population"]
+            total_plots: int = data["plots"]["total"]
+            free_plots: int = data["plots"]["free"]
+            region_count: int = data["region_count"]
+            population: int = data["population"]
 
             # Build and send the embed
-            embed = PidroidEmbed(title='Online mode statistics')
-            embed.add_field(name='Active regions', value=f'{region_count:,}')
-            embed.add_field(name='Total plots', value=f'{total_plots:,}')
-            embed.add_field(name='Free plots', value=f'{free_plots:,}')
-            embed.add_field(name='Total population', value=f'{population:,}')
-            await ctx.reply(embed=embed)
+            embed = (
+                PidroidEmbed(title='Online mode statistics')
+                .add_field(name='Active regions', value=f'{region_count:,}')
+                .add_field(name='Total plots', value=f'{total_plots:,}')
+                .add_field(name='Free plots', value=f'{free_plots:,}')
+                .add_field(name='Total population', value=f'{population:,}')
+            )
+            return await ctx.reply(embed=embed)
 
     @commands.command(
         brief='Returns an image from TheoTown\'s in-game gallery.',
@@ -141,17 +152,17 @@ class TheoTownCommandCog(commands.Cog):
             raise BadArgument("Number must be between 1 and 200!")
         
         async with ctx.typing():
-            res = await self.client.api.get(Route("/public/game/gallery", {"mode": selected_mode, "limit": number}))
-            if not res["success"]:
-                raise BadArgument("I was unable to retrieve gallery data.")
+            data = await self.client.api.get(Route(
+                "/game/gallery/list", {"mode": selected_mode, "limit": number}
+            ))
+            screenshot: ScreenshotDict = data[number - 1]
 
-            data = res["data"]
-            screenshot = data[number - 1]
-
-            embed = PidroidEmbed(title=screenshot['name'])
-            embed.set_image(url=screenshot['image'])
-            embed.set_footer(text=f'#{screenshot["id"]}')
-            await ctx.reply(embed=embed)
+            embed = (
+                PidroidEmbed(title=screenshot['name'])
+                .set_image(url=screenshot['image_url'])
+                .set_footer(text=f'#{screenshot["id"]}')
+            )
+            return await ctx.reply(embed=embed)
 
     @commands.command(
         name='find-plugin',
@@ -304,15 +315,12 @@ class TheoTownCommandCog(commands.Cog):
             raise BadArgument("You are not eligible for a wage!")
 
         # Actual transaction
-        res = await self.client.api.get(Route(
-            "/private/game/redeem_wage",
+        data = await self.client.api.post(
+            Route("/game/account/redeem_wage"),
             {"forum_id": linked_acc.forum_id, "role_id": roles[-1]}
-        ))
-        if res["success"]:
-            data = res["data"]
-            await self.client.api.update_linked_account_by_user_id(member.id, utcnow(), linked_acc.roles)
-            return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
-        raise BadArgument(res["details"])
+        )
+        await self.client.api.update_linked_account_by_user_id(member.id, utcnow(), linked_acc.roles)
+        return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
 
     @commands.command(
         name='encrypt-plugin',
@@ -347,12 +355,12 @@ class TheoTownCommandCog(commands.Cog):
                 url="https://api.svetikas.lt/v1/theotown/encrypt",
                 data=payload
             ) as r:
-                data = await r.json()
+                data: dict[str, Any] = await r.json()
 
             if data["success"]:
                 decoded = base64.b64decode(data["data"])
                 io = BytesIO(decoded)
-                await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
+                _ = await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
                 return io.close()
         raise BadArgument(data["details"])
 

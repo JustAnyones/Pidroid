@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from aiohttp import ContentTypeError
 from aiohttp.client import ClientTimeout
 from urllib.parse import urlencode
 from typing import Any, TYPE_CHECKING, override
@@ -28,8 +29,7 @@ class HTTP:
         new_headers = DEFAULT_HEADERS.copy()
         if headers:
             new_headers.update(headers)
-        if route.private:
-            new_headers['Authorization'] = self.client.config['tt_api_key']
+        new_headers['Authorization'] = self.client.config['tt_api_key']
 
         # Do actual request
         assert self.client.session is not None
@@ -37,38 +37,27 @@ class HTTP:
             method, route.url,
             headers=new_headers, data=data
         ) as r:
-            # Handle errors
-            if r.status == 501:
-                raise APIException(r.status, "Requested API resource is not yet implemented!")
-
-            if r.status >= 500:
-                raise APIException(r.status, "Requested API resource has an internal backend error. Please try again later!")
-
-            if r.status == 400:
-                res = await r.json()
-                raise APIException(r.status, f"Bad request sent to the API resource: {res['details']}")
-
-            if r.status == 401:
-                raise APIException(r.status, "Client is not authorized to make calls to the specified API endpoint!")
-
-            if r.status == 404:
-                raise APIException(r.status, "Requested API resource not found!")
-
             if r.status == 200:
                 return await r.json()
 
+            try:
+                data = await r.json()
+                if data:
+                    raise APIException(r.status, data["details"])
+            except ContentTypeError:
+                pass
+                    
             raise APIException(r.status)
 
 class Route:
     """This class represents a TheoTown API route."""
 
-    BASE_URL = "https://ja.theotown.com/api/v2"
+    BASE_URL = "https://ja.theotown.com/api/v3"
 
     def __init__(self, path: str, query: DataDict | None = None) -> None:
         super().__init__()
         self.path = path
         self._query = query or {}
-        self.private = self.path.startswith("/private/")
 
     @override
     def __repr__(self) -> str:
