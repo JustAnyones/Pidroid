@@ -109,7 +109,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
     try:
         channel = await client.get_or_fetch_channel(PLUGIN_INFORMATION_CHANNEL_ID)
         assert isinstance(channel, TextChannel)
-        async with await http.get(client, "https://store.theotown.com/get_stats") as response:
+        async with await http.get(client, "https://api.theotown.com/store/get_stats") as response:
             data = await response.json()
 
         year_of_data = int(data["year"])
