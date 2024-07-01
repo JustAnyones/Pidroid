@@ -1061,7 +1061,7 @@ class API:
         """Queries the TheoTown API for a plugin of the specified ID."""
         response = await self.get(Route(
             "/game/plugin/find",
-            {"id": plugin_id, "show_hidden": show_hidden}
+            {"id": plugin_id, "show_hidden": 1 if show_hidden else 0}
         ))
         return [Plugin(p) for p in response]
 
@@ -1069,6 +1069,6 @@ class API:
         """Queries the TheoTown API for plugins matching the query string."""
         response = await self.get(Route(
             "/game/plugin/find",
-            {"query": query, "show_hidden": show_hidden}
+            {"query": query, "show_hidden": 1 if show_hidden else 0}
         ))
         return [Plugin(p) for p in response]
