@@ -35,7 +35,7 @@ class Plugin:
     def __init__(self, data: dict[str, Any]):
         self._download_url = None
 
-        self.id = data['plugin_id']
+        self.id: int = data['plugin_id']
         self.title: str = data['name']
         self.description: str = data['description']
         self.author = TheoTownUser(data['author_id'], data['username'])
@@ -43,7 +43,7 @@ class Plugin:
         self.version: int = data['version']
         self.revision_id = data['revision_id']
         self._preview_file = data['preview_file']
-        self.min_version = data['min_version']
+        self.min_version: int = data['min_version']
         self._platforms: int = data['platforms']
         self._demonetized: bool = data['demonetized'] == 1    
 
@@ -105,10 +105,12 @@ class Plugin:
                 price += " 🚫"
         footer = f'#{self.id}:{self.version} [{self.revision_id}]'
 
-        embed = PidroidEmbed(title=name, url=self.url)
-        embed.add_field(name='**Description**', value=description, inline=False)
-        embed.add_field(name='**Price**', value=price, inline=False)
-        embed.add_field(name='**Author**', value=author, inline=False)
+        embed = (
+            PidroidEmbed(title=name, url=self.url)
+            .add_field(name='**Description**', value=description, inline=False)
+            .add_field(name='**Price**', value=price, inline=False)
+            .add_field(name='**Author**', value=author, inline=False)
+        )
 
         availability = "???"
         if self.is_ubiquitous:

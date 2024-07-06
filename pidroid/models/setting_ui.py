@@ -4,7 +4,7 @@ import discord
 
 from discord import  ButtonStyle, ChannelType, Emoji, Interaction, PartialEmoji
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, List, Optional, Type, Union
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Self, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.utils.embeds import PidroidEmbed
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class Setting:
 
-    def __init__(self, *, name: str, description: Optional[str] = None, value: Any) -> None:
+    def __init__(self, *, name: str, description: str | None = None, value: Any) -> None:
         self.__name = name
         self.__description = description
         self._value = value
@@ -25,7 +25,7 @@ class Setting:
         return self.__name
 
     @property
-    def description(self) -> Optional[str]:
+    def description(self) -> str | None:
         """"Returns the setting description."""
         return self.__description
 
@@ -34,45 +34,47 @@ class Setting:
         """Returns the setting value as a string."""
         raise NotImplementedError
     
-    def as_item(self):
+    def as_item(self) -> discord.ui.Item:
         """Returns the setting as item that can be interacted with."""
         raise NotImplementedError
 
 class ReadonlySetting(Setting):
 
     if TYPE_CHECKING:
-        _value: Optional[str]
+        _value: str | None
 
     def __init__(
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        value: Optional[str]
+        description: str | None = None,
+        value: str | None
     ) -> None:
         super().__init__(name=name, description=description, value=value)
 
     @property
+    @override
     def value_as_str(self) -> str:
         if self._value is None:
             return "Not set"
         return self._value
 
+    @override
     def as_item(self):
         return None
 
 class TextSetting(Setting):
 
     if TYPE_CHECKING:
-        _value: Optional[str]
+        _value: str | None
 
     def __init__(
         self,
         *,
-        cls: Type[TextButton],
+        cls: type[TextButton],
         name: str,
-        description: Optional[str] = None,
-        value: Optional[str],
+        description: str | None = None,
+        value: str | None,
         label: str,
         callback: Callable[[Any], Coroutine[Any, Any, None]],
         disabled: bool = False
@@ -84,26 +86,28 @@ class TextSetting(Setting):
         self.__disabled = disabled
 
     @property
+    @override
     def value_as_str(self) -> str:
         if self._value is None:
             return "Not set"
         return self._value
 
+    @override
     def as_item(self):
         return self.__cls(label=self.__label, disabled=self.__disabled, callback=self.__callback)
 
 class NumberSetting(Setting):
 
     if TYPE_CHECKING:
-        _value: Union[float, int, str]
+        _value: float | int | str
 
     def __init__(
         self,
         *,
-        cls: Type[TextButton],
+        cls: type[TextButton],
         name: str,
-        description: Optional[str] = None,
-        value: Union[float, int, str],
+        description: str | None = None,
+        value: float | int | str,
         label: str,
         callback: Callable[[Any], Coroutine[Any, Any, None]],
         disabled: bool = False
@@ -115,11 +119,13 @@ class NumberSetting(Setting):
         self.__disabled = disabled
 
     @property
+    @override
     def value_as_str(self) -> str:
         if isinstance(self._value, str):
             return self._value
         return str(self._value)
     
+    @override
     def as_item(self):
         return self.__cls(label=self.__label, disabled=self.__disabled, callback=self.__callback)
 
@@ -132,7 +138,7 @@ class BooleanSetting(Setting):
         self,
         *,
         name: str,
-        description: Optional[str] = None,
+        description: str | None = None,
         value: bool,
         label_true: str,
         label_false: str,
@@ -146,9 +152,11 @@ class BooleanSetting(Setting):
         self.__disabled = disabled
 
     @property
+    @override
     def value_as_str(self) -> str:
         return "Yes" if self._value else "No"
     
+    @override
     def as_item(self):
         label = self.__label_false if self._value else self.__label_true # Inversed, because that's what the button will do
         return BooleanButton(label=label, disabled=self.__disabled, callback=self.__callback)
@@ -156,17 +164,17 @@ class BooleanSetting(Setting):
 class RoleSetting(Setting):
     
     if TYPE_CHECKING:
-        _value: Optional[int]
+        _value: int | None
 
     def __init__(
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        value: Optional[int],
+        description: str | None = None,
+        value: int | None,
         configuration: GuildConfiguration,
         placeholder: str,
-        callback: Callable[[Optional[int]], Coroutine[Any, Any, None]],
+        callback: Callable[[int | None], Coroutine[Any, Any, None]],
         disabled: bool = False
     ) -> None:
         super().__init__(name=name, description=description, value=value)
@@ -176,6 +184,7 @@ class RoleSetting(Setting):
         self.__disabled = disabled
 
     @property
+    @override
     def value_as_str(self) -> str:
         assert self.__configuration.guild
         if self._value is None:
@@ -186,6 +195,7 @@ class RoleSetting(Setting):
             return role.mention
         return f"{self._value} (deleted?)"
     
+    @override
     def as_item(self):
         return RoleSelect(
             placeholder=self.__placeholder,
@@ -196,18 +206,18 @@ class RoleSetting(Setting):
 class ChannelSetting(Setting):
     
     if TYPE_CHECKING:
-        _value: Optional[int]
+        _value: int | None
 
     def __init__(
         self,
         *,
         name: str,
-        description: Optional[str] = None,
-        value: Optional[int],
+        description: str | None = None,
+        value: int | None,
         configuration: GuildConfiguration,
-        channel_types: List[discord.ChannelType],
+        channel_types: list[discord.ChannelType],
         placeholder: str,
-        callback: Callable[[Optional[int]], Coroutine[Any, Any, None]],
+        callback: Callable[[int | None], Coroutine[Any, Any, None]],
         disabled: bool = False
     ) -> None:
         super().__init__(name=name, description=description, value=value)
@@ -218,6 +228,7 @@ class ChannelSetting(Setting):
         self.__disabled = disabled
 
     @property
+    @override
     def value_as_str(self) -> str:
         assert self.__configuration.guild
         if self._value is None:
@@ -228,6 +239,7 @@ class ChannelSetting(Setting):
             return chan.mention
         return f"{self._value} (deleted?)"
 
+    @override
     def as_item(self):
         return ChannelSelect(
             channel_types=self.__channel_types,
@@ -238,7 +250,7 @@ class ChannelSetting(Setting):
 
 class Submenu:
 
-    def __init__(self, *, name: str, description: str, settings: List[Setting]) -> None:
+    def __init__(self, *, name: str, description: str, settings: list[Setting]) -> None:
         self.__name = name
         self.__description = description
         self.__settings = settings
@@ -255,7 +267,7 @@ class Submenu:
         return embed
     
     @property
-    def items(self) -> List[discord.ui.Item]:
+    def items(self) -> list[discord.ui.Item]:
         items = []
         for setting in self.__settings:
             item = setting.as_item()
@@ -271,7 +283,7 @@ class TextModal(discord.ui.Modal):
         # Since this is strictly a TextInput modal, we
         # add some glue to add type hinting when handling
         # chilren values
-        children: List[discord.ui.TextInput[Self]]
+        children: list[discord.ui.TextInput[Self]]
 
     async def on_submit(self, interaction: Interaction):
         self.interaction = interaction
@@ -331,7 +343,7 @@ class BooleanButton(discord.ui.Button):
         self,
         *,
         style: ButtonStyle = ButtonStyle.secondary,
-        label: Optional[str] = None,
+        label: str | None = None,
         disabled: bool = False,
         emoji: str | Emoji | PartialEmoji | None = None,
         callback: Callable[[], Coroutine[Any, Any, None]]
@@ -373,7 +385,7 @@ class ChannelSelect(discord.ui.ChannelSelect):
     def __init__(
         self,
         *,
-        channel_types: List[ChannelType] = MISSING,
+        channel_types: list[ChannelType] = MISSING,
         placeholder: Optional[str] = None,
         min_values: int = 1,
         max_values: int = 1,

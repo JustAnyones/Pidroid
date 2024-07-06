@@ -2,7 +2,7 @@ import logging
 
 from asyncio import Queue, sleep
 from discord import AllowedMentions, Embed, TextChannel
-from typing import Any, Union
+from typing import override
 
 logger = logging.getLogger('Pidroid')
 
@@ -11,7 +11,7 @@ def split_text_into_chunks(text: str, max_chunk_length: int = 2000):
     if len(text) <= max_chunk_length:
         return [text]
 
-    chunks = []
+    chunks: list[str] = []
     while len(text) > max_chunk_length:
         chunk = text[:max_chunk_length]
         last_newline = chunk.rfind('\n')
@@ -38,13 +38,13 @@ class AbstractMessageQueue:
     """This is an abstract message queue."""
 
     def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
-        self._queue: Queue[Union[Embed, str]] = Queue(maxsize=0)
+        self._queue: Queue[Embed | str] = Queue(maxsize=0)
         self._channel = channel
         self._delay = delay
         if delay <= 0:
             self._delay = 5
 
-    async def queue(self, item: Any) -> None:
+    async def queue(self, item: Embed | str) -> None:
         """Adds the specified embed to the queue."""
         await self._queue.put(item)
     
@@ -58,6 +58,7 @@ class MessageQueue(AbstractMessageQueue):
     def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
         super().__init__(channel, delay=delay)
 
+    @override
     async def queue(self, item: str) -> None:
         stripped = item.strip()
         if stripped == '':
@@ -91,12 +92,14 @@ class MessageQueue(AbstractMessageQueue):
         #print("Leaving combining loop")
         return value
 
+    @override
     async def handle_queue(self):
         try:
             item = await self._queue.get()
+            assert isinstance(item, str)
             #print("Grabbed:", item)
             content = await self._combine_if_possible(item)
-            await self._channel.send(
+            _ = await self._channel.send(
                 content=content,
                 allowed_mentions=AllowedMentions(
                     everyone=False, replied_user=False,
@@ -112,6 +115,7 @@ class EmbedMessageQueue(AbstractMessageQueue):
     def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
         super().__init__(channel, delay=delay)
 
+    @override
     async def handle_queue(self):
         try:
             queue_size = self._queue.qsize()
@@ -119,14 +123,15 @@ class EmbedMessageQueue(AbstractMessageQueue):
             # Discord allows max 10 embeds per message
             stop_index = queue_size if queue_size <= 10 else 10
 
-            items = []
+            items: list[Embed] = []
             for _ in range(stop_index):
                 item = await self._queue.get()
+                assert isinstance(item, Embed)
                 items.append(item)
 
             # If we have items, send em
             if items:
-                await self._channel.send(embeds=items)
+                _ = await self._channel.send(embeds=items)
 
             # Don't run this too often
             await sleep(self._delay)

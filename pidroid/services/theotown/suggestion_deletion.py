@@ -34,9 +34,6 @@ class SuggestionDeletionService(commands.Cog):
         except discord.NotFound:
             return
 
-        if not message:
-            return
-
         # Remove suggestions via reaction
         if channel.id == SUGGESTIONS_CHANNEL_ID and payload.member.id == JUSTANYONE_ID and str(payload.emoji) == "⛔":
             await message.delete(delay=0)
