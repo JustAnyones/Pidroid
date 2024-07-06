@@ -107,7 +107,7 @@ class API:
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
                 order_by(TagTable.name.asc())
             )
-        return [Tag.from_table(self.client, r[0]) for r in result.fetchall()]
+        return [Tag.from_table(self.client, r) for r in result.scalars()]
 
     async def fetch_guild_tags(self, guild_id: int) -> list[Tag]:
         """Returns a list of all tags defined in the guild."""
@@ -117,7 +117,7 @@ class API:
                 filter(TagTable.guild_id == guild_id).
                 order_by(TagTable.name.asc())
             )
-        return [Tag.from_table(self.client, r[0]) for r in result.fetchall()]
+        return [Tag.from_table(self.client, r) for r in result.scalars()]
 
     async def update_tag(self, row_id: int, content: str, authors: list[int], aliases: list[str], locked: bool) -> None:
         """Updates a tag entry by specified row ID."""
@@ -195,7 +195,7 @@ class API:
             result = await session.execute(
                 select(GuildConfigurationTable)
             )
-        return [GuildConfiguration.from_table(self, r[0]) for r in result.fetchall()]
+        return [GuildConfiguration.from_table(self, r) for r in result.scalars()]
 
     async def _update_guild_configuration(
         self,
@@ -335,10 +335,10 @@ class API:
                 select(PunishmentTable).
                 filter(PunishmentTable.id == id)
             )
-        r = result.fetchone()
+        r = result.scalar()
         if r:
             c = Case(self)
-            await c._from_table(r[0])
+            await c._from_table(r)
             return c
         return None
 
@@ -353,10 +353,10 @@ class API:
                     PunishmentTable.visible == True
                 )
             )
-        r = result.fetchone()
+        r = result.scalar()
         if r:
             c = Case(self)
-            await c._from_table(r[0])
+            await c._from_table(r)
             return c
         return None
 
@@ -373,8 +373,8 @@ class API:
             )
 
         guilds: list[Guild] = []
-        for row in result.fetchall():
-            guild = self.client.get_guild(row[0])
+        for row in result.scalars():
+            guild = self.client.get_guild(row)
             if guild:
                 guilds.append(guild)
         return guilds
@@ -392,9 +392,9 @@ class API:
                 order_by(PunishmentTable.issue_date.desc())
             )
         case_list: list[Case] = []
-        for r in result.fetchall():
+        for r in result.scalars():
             c = Case(self)
-            await c._from_table(r[0])
+            await c._from_table(r)
             case_list.append(c)
         return case_list
     
@@ -411,9 +411,9 @@ class API:
                 order_by(PunishmentTable.user_name.asc())
             )
         case_list: list[Case] = []
-        for r in result.fetchall():
+        for r in result.scalars():
             c = Case(self)
-            await c._from_table(r[0])
+            await c._from_table(r)
             case_list.append(c)
         return case_list
 
@@ -473,13 +473,12 @@ class API:
             )
 
             # Tally moderator specific data
-            for r in result.fetchall():
+            for punishment_type in result.scalars():
                 user_total += 1
-                p_val = r[0]
-                if p_val == 'ban': bans += 1         # noqa: E701
-                if p_val == 'kick': kicks += 1       # noqa: E701
-                if p_val == 'jail': jails += 1       # noqa: E701
-                if p_val == 'warning': warnings += 1 # noqa: E701
+                if punishment_type == 'ban': bans += 1         # noqa: E701
+                if punishment_type == 'kick': kicks += 1       # noqa: E701
+                if punishment_type == 'jail': jails += 1       # noqa: E701
+                if punishment_type == 'warning': warnings += 1 # noqa: E701
 
             # Get total cases of the guild
             result = await session.execute(
@@ -489,9 +488,9 @@ class API:
                     PunishmentTable.visible == True
                 )
             )
-            row = result.fetchone()
+            row = result.scalar()
             assert row
-            guild_total = row[0]
+            guild_total = row
 
         return {
             "bans": bans, "kicks": kicks, "jails": jails, "warnings": warnings,
@@ -515,9 +514,9 @@ class API:
                     | (PunishmentTable.expire_date > utcnow())
                 )
             )
-            row = result.fetchone()
+            row = result.scalar()
             assert row
-            return row[0] > 0
+            return row > 0
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
@@ -547,9 +546,9 @@ class API:
                 )
             )
         case_list: list[Case] = []
-        for r in result.fetchall():
+        for r in result.scalars():
             c = Case(self)
-            await c._from_table(r[0])
+            await c._from_table(r)
             case_list.append(c)
         return case_list
 
@@ -575,7 +574,7 @@ class API:
                 filter(Translation.original_content == original_str)
             )
         return [
-            {"detected_source_language": r[0].detected_language, "text": r[0].translated_string} for r in result.fetchall()
+            {"detected_source_language": r.detected_language, "text": r.translated_string} for r in result.scalars()
         ]
 
     """Linked account related"""
@@ -965,8 +964,9 @@ class API:
             )
             result = await session.execute(statement)
 
-        changes = []
+        changes: list[MemberRoleChanges] = []
         for row in result.fetchall():
+            row: tuple[list[int], int, list[int], list[int]]
             ids, member_id, roles_added, roles_removed = row
             obj = MemberRoleChanges(self, guild_id, member_id, ids, roles_added, roles_removed)
             changes.append(obj)

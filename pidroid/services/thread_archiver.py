@@ -42,8 +42,8 @@ class ThreadArchiverService(commands.Cog):
                         await self.client.api.delete_expiring_thread(thread_entry.id)
                 continue
 
-            await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
-            await thread.edit(archived=True, locked=True)
+            _ = await thread.edit(archived=False) # Workaround for stupid bug where archived threads can't be instantly locked
+            _ = await thread.edit(archived=True, locked=True)
             await self.client.api.delete_expiring_thread(thread_entry.id)
 
     @archive_threads.before_loop
