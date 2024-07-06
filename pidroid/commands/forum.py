@@ -1,5 +1,5 @@
 from discord.ext import commands
-from discord.ext.commands import MissingRequiredArgument, BadArgument
+from discord.ext.commands import MissingRequiredArgument
 from discord.ext.commands.context import Context
 from discord.utils import format_dt
 
@@ -102,7 +102,7 @@ class ForumCommandCog(commands.Cog):
     @command_checks.is_theotown_developer()
     async def forum_activate_command(self, ctx: Context[Pidroid], user: str):
         async with ctx.typing():
-            data = await self.client.api.post(
+            data: dict[str, str] = await self.client.api.post(
                 Route("/forum/account/activate"),
                 {"user": user}
             )

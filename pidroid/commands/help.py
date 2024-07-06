@@ -7,7 +7,7 @@ from discord import Interaction
 from discord.embeds import Embed
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Command, Context
-from typing import TYPE_CHECKING, Optional, override
+from typing import TYPE_CHECKING, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import Category, BotCategory, get_command_documentation, get_command_usage, get_full_command_name
@@ -163,7 +163,7 @@ class HelpCommandCog(commands.Cog):
         self.client = client
         self.show_usable = True
 
-    def search_command(self, query: str) -> Optional[Command]:
+    def search_command(self, query: str) -> Command | None:
         """Returns a single command matching the query."""
         lowercase_query = query.lower()
         for command in self.client.walk_commands():
@@ -186,7 +186,7 @@ class HelpCommandCog(commands.Cog):
         self,
         ctx: Context[Pidroid],
         *,
-        search_string: Optional[str] = None
+        search_string: str | None = None
     ):
         # Browse categories
         if search_string is None:

@@ -1,8 +1,8 @@
-from typing import override
 from discord import Colour
 from sqlalchemy import BigInteger, Text, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
+from typing import override
 
 from pidroid.utils.db.base import Base
 

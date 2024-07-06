@@ -25,13 +25,13 @@ logger = logging.getLogger('Pidroid')
 SETUP_REASON = "Server jail system setup"
 
 # https://www.geeksforgeeks.org/check-if-an-url-is-valid-or-not-using-regular-expression/
-URL_REGEX = re.compile(
+URL_REGEX = re.compile((
     "((http|https)://)(www.)?"
     "[a-zA-Z0-9@:%._\\+~#?&//=]"
     "{2,256}\\.[a-z]"
     "{2,6}\\b([-a-zA-Z0-9@:%"
     "._\\+~#?&//=]*)"
-)
+))
 
 FORBIDDEN_PREFIXES = [',', '\\', '/']
 

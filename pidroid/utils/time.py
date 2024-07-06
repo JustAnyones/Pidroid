@@ -5,7 +5,7 @@ from dateutil.relativedelta import relativedelta
 
 from pidroid.models.exceptions import InvalidDuration
 
-DURATION_PATTERN = re.compile(
+DURATION_PATTERN = re.compile((
     r"((?P<years>\d+?) ?(years|year|Y|y) ?)?"
     r"((?P<months>\d+?) ?(months|month|mo) ?)?"
     r"((?P<weeks>\d+?) ?(weeks|week|W|w) ?)?"
@@ -13,7 +13,7 @@ DURATION_PATTERN = re.compile(
     r"((?P<hours>\d+?) ?(hours|hour|H|h) ?)?"
     r"((?P<minutes>\d+?) ?(minutes|minute|m) ?)?"
     r"((?P<seconds>\d+?) ?(seconds|second|S|s))?"
-)
+))
 
 HELP_FORMATTING: str = (
     "Pidroid supports the following symbols for each unit of time:\n"

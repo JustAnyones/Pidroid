@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
-    from pidroid.utils.api import TagTable
+    from pidroid.utils.db.tag import TagTable
 
 FORBIDDEN_CHARS = "!@#$%^&*()-+?_=,<>/"
 RESERVED_WORDS = [

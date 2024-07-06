@@ -8,8 +8,7 @@ from discord.ext.commands import BadArgument, BadUnionArgument, Context, Missing
 from discord.member import Member
 from discord.role import Role
 from discord.utils import escape_markdown, format_dt
-from typing import override
-from typing_extensions import Annotated
+from typing import override, Annotated
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import InformationCategory
@@ -28,7 +27,7 @@ class RolePaginator(ListPageSource):
         self.embed = PidroidEmbed(title=title)
         role_count = len(data)
         if role_count == 1:
-            _ = self.embed.set_footer(text=f"1 role")
+            _ = self.embed.set_footer(text="1 role")
         else:
             _ = self.embed.set_footer(text=f"{role_count} roles")
 

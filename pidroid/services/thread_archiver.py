@@ -1,9 +1,9 @@
 import logging
-from typing import override
 
 from discord import NotFound
 from discord.ext import tasks, commands
 from discord.threads import Thread
+from typing import override
 
 from pidroid.client import Pidroid
 from pidroid.utils.time import utcnow

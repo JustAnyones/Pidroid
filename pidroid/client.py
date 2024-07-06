@@ -14,8 +14,7 @@ from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Any, NamedTuple
-from typing_extensions import override
+from typing import TYPE_CHECKING, Any, NamedTuple, override
 
 from pidroid.models.categories import Category, register_categories
 from pidroid.models.event_types import EventName, EventType
