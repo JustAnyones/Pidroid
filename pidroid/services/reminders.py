@@ -47,8 +47,7 @@ class ReminderService(commands.Cog):
         embed = PidroidEmbed(
             title="Reminder",
             description=reminder.content
-        )
-        embed.add_field(name="Reminder created in", value=reminder.message_url)
+        ).add_field(name="Reminder created in", value=reminder.message_url)
 
         # Send out the messages
         # To the found channel, if allowed

@@ -7,7 +7,7 @@ from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
 from discord.utils import escape_markdown
-from typing import override
+from typing import TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.utils import http, truncate_string, clean_inline_translations
@@ -21,6 +21,30 @@ PLUGIN_INFORMATION_CHANNEL_ID = 640521916943171594
 
 logger = logging.getLogger("Pidroid")
 
+class CreatorEntry(TypedDict):
+    author_name: str
+    plugins: str
+    downloads: str
+
+class TopPluginEntry(TypedDict):
+    name: str
+    author_name: str
+    downloads: str
+
+class TopCreatorEntry(TypedDict):
+    author_name: str
+    plugins: str
+    downloads: str
+
+PluginStoreStatisticsDict = TypedDict('PluginStoreStatisticsDict', {
+    'year': str,
+    'month': str,
+    'plugin count last month': str,
+    'plugin creators last month': list[CreatorEntry],
+    'plugins all time': list[TopPluginEntry],
+    'plugin creators all time by downloads': list[TopCreatorEntry]
+})
+
 class PluginStoreService(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
 
@@ -33,7 +57,7 @@ class PluginStoreService(commands.Cog):
 
         self.new_plugins_cache: list[int] = []
 
-        self.retrieve_new_plugins.start()
+        _ = self.retrieve_new_plugins.start()
         self.monthly_plugin_cronjob = self.client.loop.create_task(
             start_cronjob(self.client, monthly_plugin_cronjob, "Monthly plugin statistics")
         )
@@ -42,7 +66,7 @@ class PluginStoreService(commands.Cog):
     async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.retrieve_new_plugins.cancel()
-        self.monthly_plugin_cronjob.cancel()
+        _ = self.monthly_plugin_cronjob.cancel()
 
     @tasks.loop(seconds=60)
     async def retrieve_new_plugins(self) -> None:
@@ -110,7 +134,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
         channel = await client.get_or_fetch_channel(PLUGIN_INFORMATION_CHANNEL_ID)
         assert isinstance(channel, TextChannel)
         async with await http.get(client, "https://api.theotown.com/store/get_stats") as response:
-            data = await response.json()
+            data: PluginStoreStatisticsDict = await response.json()
 
         year_of_data = int(data["year"])
         month_of_data = int(data["month"])
@@ -137,10 +161,10 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             )
             top_plugins_embed = PidroidEmbed(title="Most popular plugins of all time")
             top_creators_embed = PidroidEmbed(title="Most popular plugin creators of all time")
-            top_creators_embed.set_footer(text="This message is automated. More information, as always, can be found on our forums.")
+            _ = top_creators_embed.set_footer(text="This message is automated. More information, as always, can be found on our forums.")
 
             for creator in top_creators_last:
-                initial_embed.add_field(
+                _ = initial_embed.add_field(
                     name=f"• {escape_markdown(creator['author_name'])}",
                     value=f"{creator['plugins']} plugin(s) which reached {int(creator['downloads']):,} downloads!",
                     inline=False
@@ -149,18 +173,18 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             for i in range(9): # Only 9 results
                 top_plugin = plugins_all_time[i]
                 top_creator = creators_all_time[i]
-                top_plugins_embed.add_field(
+                _ = top_plugins_embed.add_field(
                     name=f"{i+1}. {clean_inline_translations(top_plugin['name'])}",
                     value=f"Made by **{escape_markdown(top_plugin['author_name'])}** reaching {int(top_plugin['downloads']):,} downloads!",
                     inline=False
                 )
-                top_creators_embed.add_field(
+                _ = top_creators_embed.add_field(
                     name=f"{i+1}. {escape_markdown(top_creator['author_name'])}",
                     value=f"And their {top_creator['plugins']} plugin(s) reaching {int(top_creator['downloads']):,} downloads!",
                     inline=False
                 )
 
-            await channel.send(embeds=[initial_embed, top_plugins_embed, top_creators_embed])
+            _ = await channel.send(embeds=[initial_embed, top_plugins_embed, top_creators_embed])
     except Exception:
         logger.exception("An exception was encountered while trying announce monthly plugin information")
 
