@@ -18,7 +18,7 @@ def _load_env():
     arg_parser = ArgumentParser()
     _ = arg_parser.add_argument("-e", "--envfile", help="specifies .env file to load environment from")
 
-    args = arg_parser.parse_args()
+    args, unknown = arg_parser.parse_known_args()
     if args.envfile:
         logger.info(f"Loading environment from {args.envfile} file")
         _ = load_dotenv(args.envfile)

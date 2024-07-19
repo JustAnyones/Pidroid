@@ -14,7 +14,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install poetry
-        poetry add pytest
         poetry add coverage
         poetry install
     - name: Run the testing and return the coverage report

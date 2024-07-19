@@ -28,6 +28,7 @@ alembic = "^1.13.2"
 python-dotenv = "^1.0.1"
 dill = "^0.3.8"
 h2 = "^4.1.0"
+pytest = "^8.2.2"
 
 [tool.poetry.extras]
 uvloop = ["uvloop"]
