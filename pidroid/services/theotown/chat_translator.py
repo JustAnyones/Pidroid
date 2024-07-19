@@ -4,15 +4,21 @@ import re
 import logging
 
 from contextlib import suppress
+from discord import Embed
 from discord.ext import commands
 from discord.channel import TextChannel
 from discord.utils import remove_markdown
 from discord.message import Message
+from typing import TypedDict
 
 from pidroid.client import Pidroid
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.http import post
 from pidroid.utils.time import utcnow
+
+class TranslationEntryDict(TypedDict):
+    detected_source_language: str
+    text: str
 
 # https://www.deepl.com/docs-api/translating-text/request/
 LANGUAGE_MAPPING = {
@@ -125,7 +131,7 @@ class ChatTranslationService(commands.Cog):
         self.used_chars = 0
         self.last_reset = utcnow()
 
-    async def translate(self, text: str) -> list[dict]:
+    async def translate(self, text: str) -> list[TranslationEntryDict]:
         self._translating.clear()
         try:
             async with await post(self.client, self.endpoint + "/translate", {
@@ -157,9 +163,9 @@ class ChatTranslationService(commands.Cog):
             and message.channel.id == SOURCE_CHANNEL_ID
         )
 
-    async def translate_message(self, message: Message, clean_text: str) -> list[dict]:
+    async def translate_message(self, message: Message, clean_text: str) -> list[TranslationEntryDict]:
         # Await previous translation jobs to finish
-        await self._translating.wait()
+        _ = await self._translating.wait()
 
         # Check if daily limit is not reached, if it is, stop translating
         if len(clean_text) + self.used_chars > self.daily_char_limit:
@@ -169,7 +175,7 @@ class ChatTranslationService(commands.Cog):
 
         # Check if text was already translated
         c_key = clean_text.lower()
-        translations = await self.client.api.fetch_translations(c_key)
+        translations: list[TranslationEntryDict] = await self.client.api.fetch_translations(c_key)
         if len(translations) == 0:
             translations = await self.translate(clean_text)
             for t in translations:
@@ -208,10 +214,10 @@ class ChatTranslationService(commands.Cog):
         assert isinstance(channel, TextChannel)
         await self.dispatch_translation(channel, message, translations, flag)
 
-    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: list[dict], flag: int) -> None: # noqa C901
+    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: list[TranslationEntryDict], flag: int) -> None: # noqa C901
         # If message contains a reply, track down the reference author
         action = None
-        if message.reference:
+        if message.reference and message.reference.message_id:
             with suppress(Exception):
                 reference = await message.channel.fetch_message(message.reference.message_id)
                 action = f"Replying to {str(reference.author)}"
@@ -226,17 +232,18 @@ class ChatTranslationService(commands.Cog):
         if flag == ParserFlags.BYPASSED:
             embeds = [PidroidEmbed(description=message.clean_content)]
         else:
-            embeds = []
+            embeds: list[Embed] = []
             for translation in translations:
-                text: str = translation["text"]
-                detected_lang: str = translation["detected_source_language"]
-                embed = PidroidEmbed(description=text)
-                embed.set_footer(text=f"Detected source language: {LANGUAGE_MAPPING.get(detected_lang, detected_lang)}")
-                embeds.append(embed)
+                text = translation["text"]
+                detected_lang = translation["detected_source_language"]
+                embeds.append((
+                    PidroidEmbed(description=text)
+                    .set_footer(text=f"Detected source language: {LANGUAGE_MAPPING.get(detected_lang, detected_lang)}")
+                ))
 
         # Go over each embed and set author values or other stuff
         for embed in embeds:
-            embed.set_author(name=str(message.author), url=message.jump_url, icon_url=message.author.display_avatar)
+            _ = embed.set_author(name=str(message.author), url=message.jump_url, icon_url=message.author.display_avatar)
 
             # Set action as title, like replying
             if action is not None:
@@ -249,15 +256,15 @@ class ChatTranslationService(commands.Cog):
 
             # Add attachments if they exist
             if len(attachments) > 0:
-                embed.add_field(name="Attachments", value='\n'.join(attachments), inline=False)
+                _ = embed.add_field(name="Attachments", value='\n'.join(attachments), inline=False)
 
             # Notify of any modifications done to the original string
             if flag == ParserFlags.BYPASSED:
-                embed.set_footer(text="Translation layer bypassed as nothing translatable was found")
+                _ = embed.set_footer(text="Translation layer bypassed as nothing translatable was found")
             else:
                 footer = FLAG_FOOTERS.get(flag)
                 if footer is not None:
-                    embed.set_footer(text=f"{footer} | {embed.footer.text}")
+                    _ = embed.set_footer(text=f"{footer} | {embed.footer.text}")
             
             await self.client.queue(channel, embed)
 
