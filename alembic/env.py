@@ -1,6 +1,4 @@
 import asyncio
-import os
-import sys
 
 from logging.config import fileConfig
 from sqlalchemy import engine_from_config
@@ -24,7 +22,6 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-sys.path.append(os.path.join(os.getcwd(), "pidroid"))
 from pidroid.utils.db.base import Base # noqa: E402
 target_metadata = Base.metadata
 

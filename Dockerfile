@@ -1,12 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # Obtain the base image to be used
-FROM python:3.12.3-slim-bookworm
+FROM python:3.12.4-slim-bookworm
 
 # Install the required packages
-RUN apt-get update
+RUN apt-get update -y
 RUN apt-get upgrade -y
 RUN apt-get install -y ffmpeg
+RUN apt-get install -y python3-poetry
 
 # Create Pidroid user account
 #RUN groupadd -g 999 pidroid
@@ -16,8 +17,10 @@ RUN apt-get install -y ffmpeg
 WORKDIR /app
 
 # Install the Python dependencies
-COPY requirements.txt requirements.txt
-RUN pip3 install -r requirements.txt
+COPY pyproject.toml pyproject.toml
+COPY poetry.lock poetry.lock
+RUN poetry env use /usr/local/bin/python3
+RUN poetry install -E uvloop
 
 # Copy alembic configurations
 COPY alembic/ alembic/
@@ -33,4 +36,4 @@ COPY pidroid/ pidroid/
 # Switch to Pidroid user
 #USER pidroid
 
-CMD ["python3", "-u", "pidroid/main.py"]
+CMD ["poetry", "run", "start"]

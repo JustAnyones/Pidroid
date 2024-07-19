@@ -7,12 +7,9 @@ import signal
 import sys
 import logging
 
-from argparse import ArgumentParser
+from alembic.config import CommandLine
 from discord.ext import commands
 from discord.ext.commands import Context
-
-# Allows us to not set the Python path
-sys.path.append(os.getcwd())
 
 from pidroid.client import Pidroid, __VERSION__ # noqa: E402
 from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH # noqa: E402
@@ -31,23 +28,7 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
-# Setup Pidroid level logging
 logger = logging.getLogger("Pidroid")
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-
-def load_env_from_file(path: str) -> None:
-    """Load environment values from the specified file."""
-    logger.info(f"Loading environment from {path} file")
-    with open(path) as f:
-        for line in f.readlines():
-            key, value = line.split("=", 1)
-            os.environ[key] = value.strip()
 
 def get_postgres_dsn() -> str:
     postgres_dsn = os.environ.get("POSTGRES_DSN", None)
@@ -70,10 +51,6 @@ def get_postgres_dsn() -> str:
     return postgres_dsn
 
 def config_from_env() -> dict[str, list[str] | str | bool | None]:
-
-    if os.environ.get("TOKEN", None) is None:
-        exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
-    
     postgres_dsn = get_postgres_dsn()
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
@@ -99,7 +76,39 @@ def config_from_env() -> dict[str, list[str] | str | bool | None]:
         "unbelievaboat_api_key": os.environ.get("UNBELIEVABOAT_API_KEY")
     }
 
-async def main():  # noqa: C901
+def migrate():
+    CommandLine("alembic").main(["upgrade", "head"])
+
+def _register_reload_command(bot: Pidroid):
+    """Registers the cog reload command for the bot."""
+
+    @bot.command(hidden=True)
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def reload(ctx: Context[Pidroid]): # pyright: ignore[reportUnusedFunction]
+        try:
+            await bot.handle_reload()
+            _ = await ctx.reply('The entirety of the bot has been reloaded!')
+        except Exception as e:
+            _ = await ctx.reply(f'The following exception occurred while trying to reload the bot:\n```{e}```')
+
+async def _start_bot(bot: Pidroid):
+    """Starts the bot."""
+
+    # Handle docker's sigterm signal gracefully
+    loop = asyncio.get_running_loop()
+    loop.add_signal_handler(
+        signal.SIGTERM,
+        lambda: loop.create_task(bot.close())
+    )
+
+    # Do the actual startup
+    async with aiohttp.ClientSession() as session:
+        async with bot:
+            bot.session = session
+            await bot.start(bot.token)
+
+def main():
 
     # Create directories in case they don't exist
     if not os.path.exists(DATA_FILE_PATH):
@@ -107,40 +116,19 @@ async def main():  # noqa: C901
     if not os.path.exists(TEMPORARY_FILE_PATH):
         os.mkdir(TEMPORARY_FILE_PATH)
 
-    arg_parser = ArgumentParser()
-    arg_parser.add_argument("-e", "--envfile", help="specifies .env file to load environment from")
+    if os.environ.get("TOKEN", None) is None:
+        exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
 
-    args = arg_parser.parse_args()
-    if args.envfile:
-        load_env_from_file(args.envfile)
-
-    # Load configuration from environment
+    # Create Pidroid instance with configuration from environment
     bot = Pidroid(config_from_env())
 
-    @bot.command(hidden=True)
-    @commands.is_owner()
-    @commands.bot_has_permissions(send_messages=True)
-    async def reload(ctx: Context):
-        try:
-            await bot.handle_reload()
-            await ctx.reply('The entirety of the bot has been reloaded!')
-        except Exception as e:
-            await ctx.reply(f'The following exception occurred while trying to reload the bot:\n```{e}```')
+    # Register core commands
+    _register_reload_command(bot)
 
-    # Handle docker's sigterm signal gracefully
-    loop = asyncio.get_running_loop()
-    loop.add_signal_handler(
-        signal.SIGTERM,
-        lambda: loop.create_task(bot.close())
-    ) 
-
-    async with aiohttp.ClientSession() as session:
-        async with bot:
-            bot.session = session
-            await bot.start(bot.token)
-
-if __name__ == "__main__":
     try:
-        asyncio.run(main())
+        asyncio.run(_start_bot(bot))
     except KeyboardInterrupt:
         pass
+
+if __name__ == "__main__":
+    main()
