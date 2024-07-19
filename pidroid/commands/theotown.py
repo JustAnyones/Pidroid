@@ -257,6 +257,9 @@ class TheoTownCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
     async def link_account(self, ctx: Context[Pidroid], member: Member, forum_id: int):
+
+        raise BadArgument("This is undergoing migration")
+
         # Check if the discord account is linked to anything
         linked_acc = await self.client.api.fetch_linked_account_by_user_id(member.id)
         if linked_acc:
@@ -283,21 +286,10 @@ class TheoTownCommandCog(commands.Cog):
     )
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
-    async def redeem_wage(self, ctx: Context[Pidroid]):
-        # Find the linked account
-        linked_acc = await self.client.api.fetch_linked_account_by_user_id(ctx.author.id)
-        if linked_acc is None:
-            raise BadArgument("Your discord account is not linked to any TheoTown accounts!")
-
-        # Check if last redeem was not within this month
-        last_wage_date = linked_acc.date_wage_last_redeemed
-        if last_wage_date is not None and last_wage_date.month == utcnow().month:
-            raise BadArgument("You've already redeemed the wage for this month!")
-        
+    async def redeem_wage(self, ctx: Context[Pidroid]):        
         # Obtain TT guild
-        try:
-            guild = await self.client.fetch_guild(THEOTOWN_GUILD, with_counts=False)
-        except Forbidden:
+        guild = self.client.get_guild(THEOTOWN_GUILD)
+        if guild is None:
             raise BadArgument("Pidroid cannot find the TheoTown server, I cannot determine your wage!")
 
         # Obtain the member
@@ -317,9 +309,8 @@ class TheoTownCommandCog(commands.Cog):
         # Actual transaction
         data = await self.client.api.post(
             Route("/game/account/redeem_wage"),
-            {"forum_id": linked_acc.forum_id, "role_id": roles[-1]}
+            {"discord_id": ctx.author.id, "role_id": roles[-1]}
         )
-        await self.client.api.update_linked_account_by_user_id(member.id, utcnow(), linked_acc.roles)
         return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
 
     @commands.command(

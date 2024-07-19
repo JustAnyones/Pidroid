@@ -591,25 +591,6 @@ class API:
             await session.commit()
         return entry.id
 
-    async def update_linked_account_by_user_id(
-        self,
-        user_id: int,
-        date_wage_last_redeemed: datetime.datetime | None,
-        roles: list[int]
-    ) -> None:
-        """Updates a linked account entry by specified user ID."""
-        async with self.session() as session: 
-            async with session.begin():
-                _ = await session.execute(
-                    update(LinkedAccount).
-                    filter(LinkedAccount.user_id == user_id).
-                    values(
-                       date_wage_last_redeemed=date_wage_last_redeemed,
-                       roles=roles
-                    )
-                )
-            await session.commit()
-
     async def fetch_linked_account_by_user_id(self, user_id: int) -> LinkedAccount | None:
         """Fetches and returns a linked account if available."""
         async with self.session() as session: 
@@ -1042,10 +1023,18 @@ class API:
     """TheoTown backend related"""
 
     async def fetch_theotown_account_by_id(self, account_id: int) -> TheoTownAccount | None:
-        """Queries the TheoTown API for new plugins after the specified approval time."""
+        """Fetches TheoTown account by account ID."""
         response = await self.get(Route(
             "/game/account/find",
             {"forum_id": account_id}
+        ))
+        return TheoTownAccount(response)
+
+    async def fetch_theotown_account_by_discord_id(self, account_id: int) -> TheoTownAccount | None:
+        """Fetches TheoTown account by discord ID."""
+        response = await self.get(Route(
+            "/game/account/find",
+            {"discord_id": account_id}
         ))
         return TheoTownAccount(response)
 
