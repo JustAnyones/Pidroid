@@ -1,6 +1,6 @@
 import logging
 
-from discord import Permissions
+from discord import Message, Permissions
 from discord.ext import tasks, commands
 from typing import override
 
@@ -28,7 +28,7 @@ class ReminderService(commands.Cog):
         """Ensure that tasks are cancelled on cog unload."""
         self.deliver_due_reminders.stop()
 
-    async def send_reminder(self, reminder: Reminder):
+    async def send_reminder(self, reminder: Reminder) -> Message | None:
         """Sends a reminder."""
         user = self.client.get_user(reminder.user_id)
         # If we cannot find the user, don't even bother
@@ -56,18 +56,17 @@ class ReminderService(commands.Cog):
             use_embed = member_has_channel_permission(channel, channel.guild.me, Permissions.embed_links)
 
             if use_embed:
-                await channel.send(content=f"{user.mention} reminder", embed=embed)
-            else:
-                await channel.send(
-                    content=(
-                        f"{user.mention} you asked to remind you {reminder.content!r} "
-                        f"at {reminder.message_url}"
-                    )
+                return await channel.send(content=f"{user.mention} reminder", embed=embed)
+
+            return await channel.send(
+                content=(
+                    f"{user.mention} you asked to remind you {reminder.content!r} "
+                    f"at {reminder.message_url}"
                 )
+            )
 
         # Or the user directly, if channel was not set
-        else:
-            await user.send(embed=embed)
+        return await user.send(embed=embed)
 
 
     @tasks.loop(seconds=15)
@@ -85,10 +84,9 @@ class ReminderService(commands.Cog):
 
                     # Go over each reminder, send it
                     # and delete it from database
-                    for row in result.fetchall():
-                        reminder = row[0]
+                    for reminder in result.scalars():
                         try:
-                            await self.send_reminder(reminder)
+                            _ = await self.send_reminder(reminder)
                         except Exception:
                             logger.exception("An exception was encountered while trying to send a due reminder")
                         await session.execute(

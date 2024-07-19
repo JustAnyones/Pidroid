@@ -29,8 +29,6 @@ EMERGENCY_SHUTDOWN = [
 
 EMBED_COLOUR = 5928495
 
-THEOTOWN_FORUM_URL = "https://forum.theotown.com"
-
 # Common constants used for command checking whether they are guild specific
 THEOTOWN_GUILD = 365478391719264276
 

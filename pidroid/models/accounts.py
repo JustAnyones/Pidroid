@@ -2,8 +2,9 @@ import datetime
 
 from typing import TYPE_CHECKING, Any, override
 
-from pidroid.constants import THEOTOWN_FORUM_URL
 from pidroid.utils.time import timestamp_to_datetime
+
+THEOTOWN_FORUM_URL = "https://forum.theotown.com"
 
 class ForumAccount:
 

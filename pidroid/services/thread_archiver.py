@@ -16,7 +16,7 @@ class ThreadArchiverService(commands.Cog):
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
         self.client = client
-        self.archive_threads.start()
+        _ = self.archive_threads.start()
 
     @override
     async def cog_unload(self):
