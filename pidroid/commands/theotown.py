@@ -321,13 +321,21 @@ class TheoTownCommandCog(commands.Cog):
     @commands.max_concurrency(number=1, per=commands.BucketType.user)
     @commands.bot_has_permissions(send_messages=True)
     async def encrypt_plugin_command(self, ctx: Context[Pidroid]):
-
         if not ctx.message.attachments:
             raise BadArgument("Please provide the plugin zip file as an attachment.")
         
         attachment = ctx.message.attachments[0]
         if attachment.size > 25*1000*1000:
             raise BadArgument("Your plugin file size must be at most 25 MiB")
+
+        _ = await ctx.send((
+            "Warning: this command is in the process of being migrated and will soon stop "
+            "creating ``.plugin`` files. "
+            "The replacement format ``.ttplugin`` is gonna require linking your Discord account "
+            "to a TheoTown account if you want to continue creating plugins using Pidroid.\n"
+            "You can read more about it "
+            "[here](https://pca.svetikas.lt/docs/guides/plugin-encryption/#ttplugin_file_creation)."
+        ))
 
         async with ctx.typing():
             payload = {
