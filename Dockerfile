@@ -6,7 +6,7 @@ FROM python:3.12.4-slim-bookworm
 # Install the required packages
 RUN apt-get update -y
 RUN apt-get upgrade -y
-RUN apt-get install -y ffmpeg
+RUN apt-get install -y ffmpeg --no-install-recommends
 RUN apt-get install -y python3-poetry
 
 # Create Pidroid user account

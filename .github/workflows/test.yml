@@ -13,8 +13,10 @@ jobs:
         python-version: 3.12
     - name: Install dependencies
       run: |
-        pip install -r requirements.txt
-        pip install pytest coverage
+        pip install poetry
+        poetry add pytest
+        poetry add coverage
+        poetry install
     - name: Run the testing and return the coverage report
       run: |
-        coverage run -m pytest tests/ && coverage report -m
+        poetry run coverage run -m pytest tests/ && poetry run coverage report -m
