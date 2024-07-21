@@ -177,7 +177,6 @@ class TheoTownCommandCog(commands.Cog):
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @commands.guild_only()
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
     async def find_plugin_command(self, ctx: Context[Pidroid], query: str): # noqa
         async with ctx.typing():
@@ -251,33 +250,11 @@ class TheoTownCommandCog(commands.Cog):
     @commands.command(
         name='link-account',
         brief='Links a discord user account to a TheoTown account.',
-        usage='<member> <forum user ID>',
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_theotown_developer()
-    async def link_account(self, ctx: Context[Pidroid], member: Member, forum_id: int):
-
+    async def link_account(self, ctx: Context[Pidroid]):
         raise BadArgument("This is undergoing migration")
-
-        # Check if the discord account is linked to anything
-        linked_acc = await self.client.api.fetch_linked_account_by_user_id(member.id)
-        if linked_acc:
-            raise BadArgument(f"{str(member)} is already linked to a forum account!")
-
-        # Check if the forum account is linked to anything
-        linked_acc = await self.client.api.fetch_linked_account_by_forum_id(forum_id)
-        if linked_acc:
-            raise BadArgument("Specified forum account is already linked to a discord account!")
-
-        account = await self.client.api.fetch_theotown_account_by_id(forum_id)
-        if account is None:
-            raise BadArgument("Specified game account does not exist!")
-
-        _ = await self.client.api.insert_linked_account(member.id, forum_id)
-        return await ctx.send(embed=SuccessEmbed(
-            f"Discord account {member.mention} has been linked to [{account.forum_account.name}]({account.forum_account.profile_url}) successfully!"
-        ))
 
     @commands.command(
         name='redeem-wage',

@@ -126,7 +126,6 @@ class InformationCommandCog(commands.Cog):
         ],
         category=InformationCategory
     )
-    @commands.guild_only()
     @commands.bot_has_permissions(send_messages=True)
     async def user_info_command(
         self,
@@ -135,11 +134,13 @@ class InformationCommandCog(commands.Cog):
     ):
         user = user or ctx.author
 
-        embed = PidroidEmbed(description=user.mention)
-        embed.set_author(name=str(user), icon_url=user.display_avatar.url)
-        embed.add_field(name='Username', value=f'{escape_markdown(str(user))}')
-        embed.add_field(name='ID', value=user.id)
-        embed.add_field(name='Registered', value=format_dt(user.created_at), inline=False)
+        embed = (
+            PidroidEmbed(description=user.mention)
+            .set_author(name=str(user), icon_url=user.display_avatar.url)
+            .add_field(name='Username', value=f'{escape_markdown(str(user))}')
+            .add_field(name='ID', value=user.id)
+            .add_field(name='Registered', value=format_dt(user.created_at), inline=False)
+        )
 
         if isinstance(user, Member):
 
