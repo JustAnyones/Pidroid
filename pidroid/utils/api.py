@@ -10,6 +10,7 @@ from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.accounts import TheoTownAccount
+from pidroid.models.translation import TranslationEntryDict
 from pidroid.utils.db.expiring_thread import ExpiringThread
 from pidroid.utils.db.guild_configuration import GuildConfigurationTable
 from pidroid.utils.db.levels import LevelRewards, UserLevels
@@ -566,7 +567,7 @@ class API:
                 session.add(entry)
             await session.commit()
 
-    async def fetch_translations(self, original_str: str) -> list[dict[str, str]]:
+    async def fetch_translations(self, original_str: str) -> list[TranslationEntryDict]:
         """Returns a list of translations for specified string."""
         async with self.session() as session: 
             result = await session.execute(

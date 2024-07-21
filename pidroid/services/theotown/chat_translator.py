@@ -12,13 +12,13 @@ from discord.message import Message
 from typing import TypedDict
 
 from pidroid.client import Pidroid
+from pidroid.models.translation import TranslationEntryDict
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.http import post
 from pidroid.utils.time import utcnow
 
-class TranslationEntryDict(TypedDict):
-    detected_source_language: str
-    text: str
+class TranslateApiResponseDict(TypedDict):
+    translations: list[TranslationEntryDict]
 
 # https://www.deepl.com/docs-api/translating-text/request/
 LANGUAGE_MAPPING = {
@@ -139,7 +139,7 @@ class ChatTranslationService(commands.Cog):
                 "text": text,
                 "target_lang": "EN"
             }) as r:
-                data = await r.json()
+                data: TranslateApiResponseDict = await r.json()
         except Exception as e:
             logger.critical(f"Failure while translating: {text}")
             logger.exception(e)
@@ -175,7 +175,7 @@ class ChatTranslationService(commands.Cog):
 
         # Check if text was already translated
         c_key = clean_text.lower()
-        translations: list[TranslationEntryDict] = await self.client.api.fetch_translations(c_key)
+        translations = await self.client.api.fetch_translations(c_key)
         if len(translations) == 0:
             translations = await self.translate(clean_text)
             for t in translations:
