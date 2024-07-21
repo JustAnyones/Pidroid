@@ -348,6 +348,7 @@ class Pidroid(commands.Bot):
             count=None,
             time=MISSING,
             reconnect=True,
+            name=None
         )
         loop._before_loop = self.wait_until_guild_configurations_loaded
         self.__tasks.append(loop)
