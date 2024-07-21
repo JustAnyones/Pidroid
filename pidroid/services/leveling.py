@@ -117,7 +117,8 @@ class LevelingService(commands.Cog):
             
             role_changes = await self.client.api.fetch_role_changes(guild.id)
             if role_changes:
-                logger.debug(f"Managing role changes for {guild}")
+                pass
+                #logger.debug(f"Managing role changes for {guild}")
             for role_change in role_changes:
                 member = guild.get_member(role_change.member_id)
                 # If we have the member object
