@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import discord
 
+from collections.abc import Coroutine, Sequence
 from discord import  ButtonStyle, ChannelType, Emoji, Interaction, PartialEmoji
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Self, override
+from typing import TYPE_CHECKING, Any, Callable, Self, override
 
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.utils.embeds import PidroidEmbed
@@ -250,7 +251,7 @@ class ChannelSetting(Setting):
 
 class Submenu:
 
-    def __init__(self, *, name: str, description: str, settings: list[Setting]) -> None:
+    def __init__(self, *, name: str, description: str, settings: Sequence[Setting]) -> None:
         self.__name = name
         self.__description = description
         self.__settings = settings
@@ -299,7 +300,7 @@ class TextButton(discord.ui.Button):
         self,
         *,
         style: ButtonStyle = ButtonStyle.secondary,
-        label: Optional[str] = None,
+        label: str | None = None,
         disabled: bool = False,
         emoji: str | Emoji | PartialEmoji | None = None,
         callback
@@ -314,6 +315,7 @@ class TextButton(discord.ui.Button):
     async def handle_input(self, modal: TextModal):
         raise NotImplementedError
 
+    @override
     async def callback(self, interaction: Interaction):
         # Construct a custom TextModal for our current button
         modal = self.create_modal()
@@ -351,9 +353,10 @@ class BooleanButton(discord.ui.Button):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
         self.__callback = callback
 
+    @override
     async def callback(self, interaction: Interaction):
         await self.__callback()
-        await self.view.refresh_menu(interaction)
+        _ = await self.view.refresh_menu(interaction)
 
 class RoleSelect(discord.ui.RoleSelect):
 
@@ -363,19 +366,20 @@ class RoleSelect(discord.ui.RoleSelect):
     def __init__(
         self,
         *,
-        placeholder: Optional[str] = None,
+        placeholder: str | None = None,
         min_values: int = 1,
         max_values: int = 1,
         disabled: bool = False,
-        callback: Callable[[Optional[int]], Coroutine[Any, Any, None]]
+        callback: Callable[[int | None], Coroutine[Any, Any, None]]
     ) -> None:
         super().__init__(placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled)
         self.__callback = callback
 
+    @override
     async def callback(self, interaction: Interaction):
         selected = self.values[0]
         await self.__callback(selected.id)
-        await self.view.refresh_menu(interaction)
+        _ = await self.view.refresh_menu(interaction)
 
 class ChannelSelect(discord.ui.ChannelSelect):
 
@@ -386,16 +390,17 @@ class ChannelSelect(discord.ui.ChannelSelect):
         self,
         *,
         channel_types: list[ChannelType] = MISSING,
-        placeholder: Optional[str] = None,
+        placeholder: str | None = None,
         min_values: int = 1,
         max_values: int = 1,
         disabled: bool = False,
-        callback: Callable[[Optional[int]], Coroutine[Any, Any, None]]
+        callback: Callable[[int | None], Coroutine[Any, Any, None]]
     ) -> None:
         super().__init__(channel_types=channel_types, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled)
         self.__callback = callback
 
+    @override
     async def callback(self, interaction: Interaction):
         selected = self.values[0]
         await self.__callback(selected.id)
-        await self.view.refresh_menu(interaction)
+        _ = await self.view.refresh_menu(interaction)

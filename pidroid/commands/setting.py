@@ -12,7 +12,7 @@ from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
 from discord.partial_emoji import PartialEmoji
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, BotCategory
@@ -40,14 +40,16 @@ class ChangePrefixesButton(TextButton):
     def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
 
+    @override
     def create_modal(self) -> TextModal:
         modal = TextModal(title=self.label, timeout=120)
-        modal.add_item(discord.ui.TextInput(
+        _ = modal.add_item(discord.ui.TextInput(
             label="Prefixes", placeholder="Provide uh, anyway",
             required=False
         ))
         return modal
 
+    @override
     async def handle_input(self, modal: TextModal):
         raw_value = modal.children[0].value.strip()
 
@@ -98,14 +100,16 @@ class ChangeBanAppealUrlButton(TextButton):
     def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
 
+    @override
     def create_modal(self) -> TextModal:
         modal = TextModal(title=self.label, timeout=120)
-        modal.add_item(discord.ui.TextInput(
+        _ = modal.add_item(discord.ui.TextInput(
             label="Ban appeal URL", placeholder="Provide a valid url or nothing to remove it.",
             required=False
         ))
         return modal
 
+    @override
     async def handle_input(self, modal: TextModal):
         url = modal.children[0].value.strip()
 
@@ -130,13 +134,15 @@ class XpMultiplierButton(TextButton):
     def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
 
+    @override
     def create_modal(self) -> TextModal:
         modal = TextModal(title=self.label, timeout=120)
-        modal.add_item(discord.ui.TextInput(
+        _ = modal.add_item(discord.ui.TextInput(
             label="XP multiplier", placeholder="Provide a floating point value between 0 and 2."
         ))
         return modal
 
+    @override
     async def handle_input(self, modal: TextModal):
         value = modal.children[0].value.strip().replace(",", ".")
 
@@ -168,6 +174,7 @@ class SubmenuSelect(discord.ui.Select):
     def __init__(self) -> None:
         super().__init__(placeholder="Select submenu", options=SUBMENU_OPTIONS)
 
+    @override
     async def callback(self, interaction: Interaction):
         success = await self.view.change_menu(interaction, self.values[0])
         if not success:
@@ -181,6 +188,7 @@ class CloseButton(discord.ui.Button):
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.red, label="Close")
 
+    @override
     async def callback(self, interaction: Interaction):
         await self.view.close_interface(interaction)
 
@@ -352,16 +360,7 @@ class SuggestionSubmenu(Submenu):
             settings=settings
         )
 
-SUBMENUS: dict[
-    str,
-    Union[
-        type[GeneralSubmenu],
-        type[ModerationSubmenu],
-        type[LevelingSubmenu],
-        type[SuggestionSubmenu],
-        None
-    ]
-] = {
+SUBMENUS = {
     "general": GeneralSubmenu,
     "moderation": ModerationSubmenu,
     "leveling": LevelingSubmenu,
@@ -382,7 +381,7 @@ class GuildConfigurationView(discord.ui.View):
         self.__client = client
         self.__ctx = ctx
         self.__embed = PidroidEmbed()
-        self.__current_submenu: Optional[str] = None
+        self.__current_submenu: str | None = None
         self._reset_view()
 
     def _reset_view(self) -> None:
@@ -440,13 +439,13 @@ class GuildConfigurationView(discord.ui.View):
         await self.__message.delete()
         await interaction.response.send_message("Settings menu has been closed.", ephemeral=True)
 
-    async def timeout_interface(self, interaction: Optional[Interaction]) -> None:
+    async def timeout_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when the interaction or interface timed out."""
         self.__embed.set_footer(text="Settings menu has timed out")
         self.__embed.colour = Colour.red()
         await self.finish_interface(interaction)
 
-    async def error_interface(self, interaction: Optional[Interaction]) -> None:
+    async def error_interface(self, interaction: Interaction | None) -> None:
         """Called to clean up when an error is encountered."""
         self.__embed.set_footer(text="Settings menu has encountered an unexpected error")
         self.__embed.colour = Colour.red()
@@ -454,8 +453,8 @@ class GuildConfigurationView(discord.ui.View):
 
     async def finish_interface(
         self,
-        interaction: Optional[Interaction],
-        embed: Optional[PidroidEmbed] = None
+        interaction: Interaction | None,
+        embed: PidroidEmbed | None = None
     ) -> None:
         """Removes all buttons and updates the interface. No more calls can be done to the interface."""
         # Remove all items
@@ -468,7 +467,7 @@ class GuildConfigurationView(discord.ui.View):
         await self._update_view(interaction) # Update message with latest information
         self.stop() # Stop responding to any interaction
 
-    async def _update_view(self, interaction: Optional[Interaction]) -> None:
+    async def _update_view(self, interaction: Interaction | None) -> None:
         """Updates the original interaction response message.
         
         If interaction object is not provided, then the message itself will be edited."""
@@ -480,10 +479,12 @@ class GuildConfigurationView(discord.ui.View):
 
     """Event listeners"""
 
+    @override
     async def on_timeout(self) -> None:
         """Called when view times out."""
         await self.timeout_interface(None)
 
+    @override
     async def on_error(self, interaction: Interaction, error: Exception, item: discord.ui.Item) -> None:
         """Called when view catches an error."""
         logger.exception(error)
@@ -495,6 +496,7 @@ class GuildConfigurationView(discord.ui.View):
 
         await self.error_interface(None)
 
+    @override
     async def interaction_check(self, interaction: Interaction) -> bool:
         """Ensure that the interaction is called by the message author."""
         if interaction.user and interaction.user.id == self.__ctx.author.id:
