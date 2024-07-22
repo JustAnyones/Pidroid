@@ -32,16 +32,18 @@ def parse_urban_text(string: str) -> str:
 
 
 class ReminderPaginator(ListPageSource):
-    def __init__(self, title: str, data: list[Reminder]):
+    def __init__(self, title: str, data: list[Reminder], extended: bool = False):
         super().__init__(data, per_page=12)
+        self.extended = extended
         self.embed = PidroidEmbed(title=title).set_footer(text=f"{len(data)} reminder(s)")
 
     @override
     async def format_page(self, menu: PaginatingView, page: list[Reminder]):
         offset = menu.current_page * self.per_page + 1
         values = ""
+        trunc_len = 22 if self.extended else 10
         for i, reminder in enumerate(page):
-            values += f"{i + offset}. \"{truncate_string(reminder.content, 10)}\" to be reminded {format_dt(reminder.date_remind, 'R')} in {reminder.message_url}\n"
+            values += f"{i + offset}. \"{truncate_string(reminder.content, trunc_len)}\" to be reminded {format_dt(reminder.date_remind, 'R')} in {reminder.message_url}\n"
         self.embed.description = values.strip()
         return self.embed
 
@@ -79,10 +81,10 @@ class UtilityCommandCog(commands.Cog):
             example = parse_urban_text(definition['example'])
             embed = PidroidEmbed(title=definition['word'], description=describe, url=definition['permalink'])
             if example:
-                embed.add_field(name='Example', value=example, inline=False)
-            embed.add_field(name='Rating', value=f"{definition['thumbs_up']:,} 👍 | {definition['thumbs_down']:,} 👎", inline=False)
-            embed.set_footer(text=f"Written on {definition['written_on']} by {definition['author']}")
-            await ctx.reply(embed=embed)
+                _ = embed.add_field(name='Example', value=example, inline=False)
+            _ = embed.add_field(name='Rating', value=f"{definition['thumbs_up']:,} 👍 | {definition['thumbs_down']:,} 👎", inline=False)
+            _ = embed.set_footer(text=f"Written on {definition['written_on']} by {definition['author']}")
+            return await ctx.reply(embed=embed)
 
     @commands.hybrid_command(
         name="remind-me",
@@ -122,20 +124,40 @@ class UtilityCommandCog(commands.Cog):
 
         return await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
 
-    @commands.hybrid_command(
-        name="reminders",
-        brief="List all reminders that you have created and are currently active.",
-        category=UtilityCategory
+    @commands.hybrid_group(
+        name='reminders',
+        brief='List all reminders that you have created and are currently active.',
+        category=UtilityCategory,
+        invoke_without_command=True,
+        fallback='short'
     )
     @commands.bot_has_permissions(send_messages=True)
     async def reminders_command(self, ctx: Context[Pidroid]):
+        if ctx.invoked_subcommand is None:
+            reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
+            if not reminders:
+                raise BadArgument("You have no active reminders")
+
+            view = PaginatingView(
+                self.client, ctx,
+                source=ReminderPaginator(f"Active reminders for {ctx.author}", reminders)
+            )
+            await view.send()
+
+    @reminders_command.command(
+        name='extended',
+        brief='List an extended list of all reminders that you have created and are currently active.',
+        category=UtilityCategory,
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    async def reminders_extended_command(self, ctx: Context[Pidroid]):
         reminders = await self.client.api.fetch_reminders(user_id=ctx.author.id)
         if not reminders:
             raise BadArgument("You have no active reminders")
 
         view = PaginatingView(
             self.client, ctx,
-            source=ReminderPaginator(f"Active reminders for {ctx.author}", reminders)
+            source=ReminderPaginator(f"Active reminders for {ctx.author}", reminders, True)
         )
         await view.send()
 
