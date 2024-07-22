@@ -4,9 +4,16 @@ from dateutil import relativedelta
 from discord.ext.commands import BadArgument, Context, Converter
 from typing import override
 
-from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta
+from pidroid.utils.time import delta_to_datetime, try_convert_date_string_to_date, try_convert_duration_to_relativedelta
 
-class DurationDelta(Converter):
+class Datetime(Converter[datetime.datetime]):
+    """Convert date strings into datetime.datetime objects."""
+
+    @override
+    async def convert(self, ctx: Context, argument: str) -> datetime.datetime:
+        return try_convert_date_string_to_date(argument)
+
+class DurationDelta(Converter[relativedelta.relativedelta]):
     """Convert duration strings into dateutil.relativedelta.relativedelta objects."""
 
     @override
@@ -25,7 +32,7 @@ class DurationDelta(Converter):
         """
         return try_convert_duration_to_relativedelta(duration_str)
 
-class Duration(Converter):
+class Duration(Converter[datetime.datetime]):
     """Convert duration strings into UTC datetime.datetime objects."""
 
     @override

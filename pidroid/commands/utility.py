@@ -12,11 +12,11 @@ from pidroid.models.categories import UtilityCategory
 from pidroid.models.view import PaginatingView
 from pidroid.utils import http, truncate_string
 from pidroid.utils.aliases import MessageableGuildChannelTuple
-from pidroid.utils.converters import Duration
+from pidroid.utils.converters import Datetime, Duration
 from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
-from pidroid.utils.time import datetime_to_duration
+from pidroid.utils.time import datetime_to_duration, utcnow
 
 MARKDOWN_URL_PATTERN = re.compile(r'\[(.*?)\]')
 
@@ -101,7 +101,48 @@ class UtilityCommandCog(commands.Cog):
         assert isinstance(date, datetime.datetime)
 
         if datetime_to_duration(date) <= 290: # tolerance
-            raise BadArgument("Duration should be at least 5 minutes")
+            raise BadArgument("Reminder duration should be at least 5 minutes")
+        
+        if datetime_to_duration(date) >= 60*60*24*365*10:
+            raise BadArgument("Your reminder cannot be set to be reminded more than 10 years from now.")
+
+        if len(content) > 1024:
+            raise BadArgument("Please keep the reminder content at most 1024 characters")
+
+        channel_id = None
+        if isinstance(ctx.channel, MessageableGuildChannelTuple):
+            channel_id = ctx.channel.id
+
+        _ = await self.client.api.insert_reminder(
+            user_id=ctx.author.id,
+            channel_id=channel_id,
+            message_id=ctx.message.id,
+            message_url=ctx.message.jump_url,
+            content=content,
+            date_remind=date
+        )
+
+        return await ctx.reply(f"Alright, you will be reminded {format_dt(date, 'R')}")
+
+    @commands.hybrid_command(
+        name="remind-me-at",
+        brief="Create a reminder that Pidroid will send you at the specified date and time.",
+        usage="<duration> <content>",
+        examples=[
+            ("Send reminder on a specific date", 'remind-me-at "2024-12-26" Wish someone a happy birthday'),
+            ("Send reminder on a specific date and time", 'remind-me-at "2028-04-01 03:11" Good morning'),
+        ],
+        category=UtilityCategory
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    async def remind_me_at_command(self, ctx: Context[Pidroid], date: Datetime, *, content: str):
+        assert isinstance(date, datetime.datetime)
+
+        if date < utcnow():
+            raise BadArgument("Your reminder cannot be made in the past.")
+
+        if datetime_to_duration(date) <= 290: # tolerance
+            raise BadArgument("Reminder duration should be at least 5 minutes")
         
         if datetime_to_duration(date) >= 60*60*24*365*10:
             raise BadArgument("Your reminder cannot be set to be reminded more than 10 years from now.")

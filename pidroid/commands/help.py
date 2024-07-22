@@ -15,7 +15,7 @@ from pidroid.models.view import PaginatingView
 from pidroid.utils import get_function_decorators
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.paginators import ListPageSource
-from pidroid.utils.time import HELP_FORMATTING
+from pidroid.utils.time import HELP_DURATION_FORMATTING
 
 logger = logging.getLogger('Pidroid')
 
@@ -108,7 +108,7 @@ class HelpCategoryView(PaginatingView):
             )
         ).add_field(
             name="Specifying duration",
-            value=HELP_FORMATTING
+            value=HELP_DURATION_FORMATTING
         )
 
         self.add_item(CategorySelect(self.__categories))

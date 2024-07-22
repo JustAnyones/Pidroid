@@ -3,7 +3,7 @@ import re
 
 from dateutil.relativedelta import relativedelta
 
-from pidroid.models.exceptions import InvalidDuration
+from pidroid.models.exceptions import InvalidConverterFormat, InvalidDuration
 
 DURATION_PATTERN = re.compile((
     r"((?P<years>\d+?) ?(years|year|Y|y) ?)?"
@@ -15,7 +15,16 @@ DURATION_PATTERN = re.compile((
     r"((?P<seconds>\d+?) ?(seconds|second|S|s))?"
 ))
 
-HELP_FORMATTING: str = (
+HELP_DATE_FORMATTING: str = (
+    "Pidroid supports the following formats for date input:\n"
+    "- `HH:MM` (18:54)\n"
+    "- `yyyy-mm-dd` (2024-12-26)\n"
+    "- `yyyy-mm-dd HH:MM` (2024-12-26 18:54)\n"
+    "- `yyyy-mm-dd HH:MM:SS` (2024-12-26 18:54:22)\n"
+    "Note that the time is UTC. Any other formats are not currently supported."
+)
+
+HELP_DURATION_FORMATTING: str = (
     "Pidroid supports the following symbols for each unit of time:\n"
     "- years: `Y`, `y`, `year`, `years`\n"
     "- months: `mo`, `month`, `months`\n"
@@ -58,6 +67,23 @@ def utcnow() -> datetime.datetime:
     """Returns current datetime."""
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
+def try_convert_date_string_to_date(date_str: str) -> datetime.datetime:
+    formats = [
+        '%H:%M',
+        '%Y-%m-%d',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d %H:%M:%S'
+    ]
+    for date_format in formats:
+        try:
+            date = datetime.datetime.strptime(date_str, date_format)
+            return date.replace(tzinfo=datetime.timezone.utc)
+        except Exception:
+            continue
+    raise InvalidConverterFormat(
+        f"{date_str!r} is not a supported format!\n{HELP_DATE_FORMATTING}"
+    )
+
 def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
     """Attempts to convert a duration string to a relativedelta object.
     
@@ -65,7 +91,7 @@ def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
     delta = duration_to_relativedelta(duration_str)
     if delta is None:
         raise InvalidDuration(
-            f"{duration_str!r} is not a valid duration!\n{HELP_FORMATTING}"
+            f"{duration_str!r} is not a valid duration!\n{HELP_DURATION_FORMATTING}"
         )
     return delta
 

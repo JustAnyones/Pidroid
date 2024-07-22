@@ -6,6 +6,10 @@ class NotInTheoTownGuild(CheckFailure):
     def __init__(self):
         super().__init__("The command can only be used inside the TheoTown server!")
 
+class InvalidConverterFormat(BadArgument):
+    def __init__(self, message: str):
+        super().__init__(message)
+
 class InvalidDuration(BadArgument):
     def __init__(self, message: str):
         super().__init__(message)
