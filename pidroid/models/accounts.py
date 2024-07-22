@@ -70,4 +70,4 @@ class TheoTownAccount:
         super().__init__()
         self.id: int = data["id"]
         self.name: str = data["name"]
-        self.forum_account = ForumAccount(data["forum_account"])
+        self.forum_account = ForumAccount(data["forum_account"][0])

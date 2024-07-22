@@ -21,7 +21,16 @@ HeaderDict = dict[str, str]
 @dataclass
 class APIResponse:
     code: int
-    data: dict[Any, Any] | list[Any]
+    data: dict[Any, Any]
+
+    def raise_on_error(self):
+        """Raises if the response code is not 200."""
+        if self.code == 200:
+            return
+        if self.data:
+            raise APIException(self.code, self.data.get("message", None))
+        raise APIException(self.code)
+
 
 class HTTP:
     """This class implements a basic TheoTown API HTTP request handling system."""

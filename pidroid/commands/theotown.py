@@ -343,5 +343,45 @@ class TheoTownCommandCog(commands.Cog):
                 return io.close()
         raise BadArgument(data["details"])
 
+    @commands.command(
+        name='new-encrypt-plugin',
+        brief='Encrypts the plugin in a provided zip archive to a .ttplugin file.',
+        category=TheoTownCategory,
+        enabled=False
+    )
+    @commands.max_concurrency(number=1, per=commands.BucketType.user)
+    @commands.bot_has_permissions(send_messages=True)
+    async def new_encrypt_plugin_command(self, ctx: Context[Pidroid]):
+        if not ctx.message.attachments:
+            raise BadArgument("Please provide the plugin zip file as an attachment.")
+        
+        attachment = ctx.message.attachments[0]
+        if attachment.size > 25*1000*1000:
+            raise BadArgument("Your plugin file size must be at most 25 MiB.")
+
+        account = await self.api.fetch_theotown_account_by_discord_id(ctx.author.id)
+        if account is None:
+            raise BadArgument("Your discord account is not linked to a Discord account.")
+
+        async with ctx.typing():
+            parts = attachment.filename.split(".")
+            if len(parts) == 1:
+                filename = parts[0] + ".ttplugin"
+            else:
+                filename = '.'.join(parts[:-1]) + ".ttplugin"
+
+            file = await attachment.read()
+            res = await self.api.post(Route("/game/plugin/encrypt"), {
+                "sign_as": account.forum_account.id,
+                "file": base64.b64encode(file).decode("utf-8")
+            })
+            if res.code == 200:
+                data: dict[str, str] = res.data
+                decoded = base64.b64decode(data["file"])
+                io = BytesIO(decoded)
+                _ = await ctx.reply('Your encrypted plugin file', file=File(io, filename))
+                return io.close()
+            res.raise_on_error()
+
 async def setup(client: Pidroid) -> None:
     await client.add_cog(TheoTownCommandCog(client))

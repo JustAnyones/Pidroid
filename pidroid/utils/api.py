@@ -1027,14 +1027,6 @@ class API:
 
     """TheoTown backend related"""
 
-    async def fetch_theotown_account_by_id(self, account_id: int) -> TheoTownAccount | None:
-        """Fetches TheoTown account by account ID."""
-        response = await self.legacy_get(Route(
-            "/game/account/find",
-            {"forum_id": account_id}
-        ))
-        return TheoTownAccount(response)
-
     async def fetch_theotown_account_by_discord_id(self, account_id: int) -> TheoTownAccount | None:
         """Fetches TheoTown account by discord ID."""
         response = await self.legacy_get(Route(
