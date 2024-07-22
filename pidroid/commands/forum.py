@@ -28,7 +28,7 @@ class ForumCommandCog(commands.Cog):
     @commands.bot_has_permissions(send_messages=True)
     async def forum_account_command(self, ctx: Context[Pidroid], username: str):
         async with ctx.typing():
-            data = await self.client.api.get(Route(
+            data = await self.client.api.legacy_get(Route(
                 "/forum/account/find",
                 {"query": username}
             ))
@@ -71,7 +71,7 @@ class ForumCommandCog(commands.Cog):
     @commands.bot_has_guild_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
     async def diamonds_subcommand(self, ctx: Context[Pidroid], user: str, amount: int):
-        data = await self.client.api.post(
+        data = await self.client.api.legacy_post(
             Route("/game/account/gift"),
             {"username": user, "diamonds": amount}
         )
@@ -86,7 +86,7 @@ class ForumCommandCog(commands.Cog):
     @commands.bot_has_guild_permissions(send_messages=True)
     @command_checks.is_theotown_developer()
     async def region_coins_subcommand(self, ctx: Context[Pidroid], user: str, amount: int):
-        data = await self.client.api.post(
+        data = await self.client.api.legacy_post(
             Route("/game/account/gift"),
             {"username": user, "regioncoins": amount}
         )
@@ -102,7 +102,7 @@ class ForumCommandCog(commands.Cog):
     @command_checks.is_theotown_developer()
     async def forum_activate_command(self, ctx: Context[Pidroid], user: str):
         async with ctx.typing():
-            data: dict[str, str] = await self.client.api.post(
+            data: dict[str, str] = await self.client.api.legacy_post(
                 Route("/forum/account/activate"),
                 {"user": user}
             )

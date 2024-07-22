@@ -20,7 +20,7 @@ from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.db.role_change_queue import MemberRoleChanges, RoleAction, RoleChangeQueue, RoleQueueState
 from pidroid.utils.db.tag import TagTable
 from pidroid.utils.db.translation import Translation
-from pidroid.utils.http import HTTP, Route
+from pidroid.utils.http import HTTP, APIResponse, Route
 from pidroid.utils.time import utcnow
 
 
@@ -51,13 +51,17 @@ class API:
         temp_conn = await self.__engine.connect()
         await temp_conn.close()
 
-    async def get(self, route: Route) -> dict[Any, Any]:
+    async def legacy_get(self, route: Route) -> dict[Any, Any]:
         """Sends a GET request to the TheoTown API."""
-        return await self.__http.request("GET", route)
+        return await self.__http.legacy_request("GET", route)
 
-    async def post(self, route: Route, data: dict[Any, Any]) -> dict[Any, Any]:
+    async def legacy_post(self, route: Route, data: dict[Any, Any]) -> dict[Any, Any]:
+        """Deprecated. Sends a POST request to the TheoTown API."""
+        return await self.__http.legacy_request("POST", route, None, data)
+
+    async def post(self, route: Route, data: dict[Any, Any]) -> APIResponse:
         """Sends a POST request to the TheoTown API."""
-        return await self.__http.request("POST", route, None, data)
+        return await self.__http.request("POST", route, data=data)
 
     """Tag related"""
 
@@ -1025,7 +1029,7 @@ class API:
 
     async def fetch_theotown_account_by_id(self, account_id: int) -> TheoTownAccount | None:
         """Fetches TheoTown account by account ID."""
-        response = await self.get(Route(
+        response = await self.legacy_get(Route(
             "/game/account/find",
             {"forum_id": account_id}
         ))
@@ -1033,7 +1037,7 @@ class API:
 
     async def fetch_theotown_account_by_discord_id(self, account_id: int) -> TheoTownAccount | None:
         """Fetches TheoTown account by discord ID."""
-        response = await self.get(Route(
+        response = await self.legacy_get(Route(
             "/game/account/find",
             {"discord_id": account_id}
         ))
@@ -1041,7 +1045,7 @@ class API:
 
     async def fetch_new_plugins(self, last_approval_time: int) -> list[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.get(Route(
+        response = await self.legacy_get(Route(
             "/game/plugin/new",
             {"last_approval_time": last_approval_time}
         ))
@@ -1049,7 +1053,7 @@ class API:
 
     async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""
-        response = await self.get(Route(
+        response = await self.legacy_get(Route(
             "/game/plugin/find",
             {"id": plugin_id, "show_hidden": 1 if show_hidden else 0}
         ))
@@ -1057,7 +1061,7 @@ class API:
 
     async def search_plugins(self, query: str, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for plugins matching the query string."""
-        response = await self.get(Route(
+        response = await self.legacy_get(Route(
             "/game/plugin/find",
             {"query": query, "show_hidden": 1 if show_hidden else 0}
         ))

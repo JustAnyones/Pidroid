@@ -75,7 +75,7 @@ class TheoTownCommandCog(commands.Cog):
                     logger.info(f'URL for version {version} not found in internal cache, querying the API')
                     
                     try:
-                        data = await self.api.get(Route(
+                        data = await self.api.legacy_get(Route(
                             "/forum/post/lookup_version",
                             {"query": version}
                         ))
@@ -105,7 +105,7 @@ class TheoTownCommandCog(commands.Cog):
     @commands.max_concurrency(number=3, per=commands.BucketType.guild)
     async def online(self, ctx: Context[Pidroid]):
         async with ctx.typing():
-            data = await self.api.get(Route("/game/region/statistics"))
+            data = await self.api.legacy_get(Route("/game/region/statistics"))
 
             total_plots: int = data["plots"]["total"]
             free_plots: int = data["plots"]["free"]
@@ -152,7 +152,7 @@ class TheoTownCommandCog(commands.Cog):
             raise BadArgument("Number must be between 1 and 200!")
         
         async with ctx.typing():
-            data = await self.client.api.get(Route(
+            data = await self.client.api.legacy_get(Route(
                 "/game/gallery/list", {"mode": selected_mode, "limit": number}
             ))
             screenshot: ScreenshotDict = data[number - 1]
@@ -287,7 +287,7 @@ class TheoTownCommandCog(commands.Cog):
             raise BadArgument("You are not eligible for a wage!")
 
         # Actual transaction
-        data = await self.client.api.post(
+        data = await self.client.api.legacy_post(
             Route("/game/account/redeem_wage"),
             {"discord_id": ctx.author.id, "role_id": roles[-1]}
         )

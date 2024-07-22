@@ -4,6 +4,7 @@ import re
 
 from aiohttp import ContentTypeError
 from aiohttp.client import ClientTimeout
+from dataclasses import dataclass
 from urllib.parse import urlencode
 from typing import Any, TYPE_CHECKING, override
 
@@ -17,6 +18,11 @@ DEFAULT_HEADERS = {'User-Agent': 'Pidroid bot by JustAnyone'}
 DataDict = dict[str, bytes | int | str | None]
 HeaderDict = dict[str, str]
 
+@dataclass
+class APIResponse:
+    code: int
+    data: dict[Any, Any] | list[Any]
+
 class HTTP:
     """This class implements a basic TheoTown API HTTP request handling system."""
 
@@ -24,7 +30,36 @@ class HTTP:
         super().__init__()
         self.client = client
 
-    async def request(self, method: str, route: Route, headers: HeaderDict | None = None, data: DataDict | None = None) -> dict[Any, Any]:
+    async def request(
+        self,
+        method: str,
+        route: Route,
+        *,
+        headers: HeaderDict | None = None,
+        data: DataDict | None = None
+    ) -> APIResponse:
+        # Deal with headers
+        new_headers = DEFAULT_HEADERS.copy()
+        if headers:
+            new_headers.update(headers)
+        new_headers['Authorization'] = "Bearer " + self.client.config['tt_api_key']
+
+        # Do actual request
+        assert self.client.session is not None
+        async with self.client.session.request(
+            method, route.url,
+            headers=new_headers, data=data
+        ) as response:
+            try:
+                data = await response.json()
+                return APIResponse(
+                    response.status,
+                    data
+                )
+            except ContentTypeError as e:
+                raise APIException(response.status) from e
+
+    async def legacy_request(self, method: str, route: Route, headers: HeaderDict | None = None, data: DataDict | None = None) -> dict[Any, Any]:
         # Deal with headers
         new_headers = DEFAULT_HEADERS.copy()
         if headers:
