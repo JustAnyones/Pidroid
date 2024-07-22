@@ -249,12 +249,15 @@ class TheoTownCommandCog(commands.Cog):
 
     @commands.command(
         name='link-account',
-        brief='Links a discord user account to a TheoTown account.',
+        brief='Link your Discord account to a TheoTown account.',
         category=TheoTownCategory
     )
     @commands.bot_has_permissions(send_messages=True)
     async def link_account(self, ctx: Context[Pidroid]):
-        raise BadArgument("This is undergoing migration")
+        return await ctx.send((
+            "You can link your Discord account to TheoTown account "
+            "[here](https://forum.theotown.com/account_link/discord)."
+        ))
 
     @commands.command(
         name='redeem-wage',
@@ -309,7 +312,7 @@ class TheoTownCommandCog(commands.Cog):
             "Warning: this command is in the process of being migrated and will soon stop "
             "creating ``.plugin`` files. "
             "The replacement format ``.ttplugin`` is gonna require linking your Discord account "
-            "to a TheoTown account if you want to continue creating plugins using Pidroid.\n"
+            "to a TheoTown account using ``Plink-account`` if you want to continue creating plugins using Pidroid.\n"
             "You can read more about it "
             "[here](https://pca.svetikas.lt/docs/guides/plugin-encryption/#ttplugin_file_creation)."
         ))
