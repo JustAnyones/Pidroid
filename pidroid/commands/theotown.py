@@ -361,7 +361,7 @@ class TheoTownCommandCog(commands.Cog):
 
         account = await self.api.fetch_theotown_account_by_discord_id(ctx.author.id)
         if account is None:
-            raise BadArgument("Your discord account is not linked to a Discord account.")
+            raise BadArgument("Your Discord account is not linked to a TheoTown account.")
 
         async with ctx.typing():
             parts = attachment.filename.split(".")
