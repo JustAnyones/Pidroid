@@ -142,10 +142,7 @@ class InformationCommandCog(commands.Cog):
             .add_field(name='Registered', value=format_dt(user.created_at), inline=False)
         )
 
-        if isinstance(user, Member):
-
-            assert ctx.guild is not None
-
+        if isinstance(user, Member) and ctx.guild:
             role_list = [role.mention for role in reversed(user.roles) if role.name != "@everyone"]
 
             # List roles
@@ -170,17 +167,17 @@ class InformationCommandCog(commands.Cog):
                 permissions[i] = normalize_permission_name(permission)
 
             if user.joined_at is not None:
-                embed.add_field(name='Joined', value=format_dt(user.joined_at), inline=False)
-            embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
+                _ = embed.add_field(name='Joined', value=format_dt(user.joined_at), inline=False)
+            _ = embed.add_field(name=f'Roles [{role_count:,}]', value=roles, inline=True)
             # Obtain join position, if possible
             if user.joined_at is not None:
                 pos = sum(m.joined_at < user.joined_at for m in ctx.guild.members if m.joined_at is not None) + 1
-                embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
-            embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
-            embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
+                _ = embed.add_field(name='Join Position', value=f'{pos:,}', inline=True)
+            _ = embed.add_field(name='Permissions', value=', '.join(permissions) + '.', inline=False)
+            _ = embed.add_field(name='Acknowledgements', value=acknowledgement, inline=False)
 
-        embed.set_thumbnail(url=user.display_avatar.with_size(4096).url)
-        await ctx.reply(embed=embed)
+        _ = embed.set_thumbnail(url=user.display_avatar.with_size(4096).url)
+        return await ctx.reply(embed=embed)
 
     @user_info_command.error
     async def on_user_info_command_error(self, ctx: Context[Pidroid], error: Exception):
