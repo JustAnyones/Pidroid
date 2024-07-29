@@ -10,7 +10,7 @@ To use Pidroid in production, first we need to build a Pidroid [docker](https://
 docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t pidroid-bot .
 ```
 
-build.sh file is provided for convenience. If you do not have git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing version information.
+The same command is provided in a build.sh file for convenience. If you do not have git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing version information.
 
 After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
 
@@ -33,28 +33,13 @@ To begin, you'll need to install Python. Pidroid requires **Python 3.12** or abo
 python --version
 ```
 
-After installing Python, you need to create a virtual environment where you'll install the project dependencies.
+After installing Python, you will also need to install [Poetry](https://python-poetry.org/).
+Pidroid uses it for dependency management.
+
+After you installed Poetry, now we need to install Pidroid's dependencies:
 
 ```shell
-python -m venv venv
-```
-
-You then activate the said virtual environment like so:
-
-On Linux:
-```shell
-source venv/bin/activate
-```
-
-On Windows:
-```shell
-venv\Scripts\activate
-```
-
-Pidroid requires a few Python Packages as dependencies. You can install them by running the following command:
-
-```shell
-pip install -r requirements.txt
+poetry install
 ```
 
 After installing all the required packages, we need to configure the bot itself. Please check out the [configuration manual](#configuration) on how to do so.
@@ -63,7 +48,7 @@ The bot uses a Postgres database. It accepts the login credentials as a [DSN](#d
 After setting up the database, you will need to do the database table creation and migrations using alembic:
 
 ```shell
-alembic upgrade head
+poetry run migrate
 ```
 
 You might have to provide the postgres DSN as an environment variable as stated in the [manual](#configuration).
@@ -71,7 +56,7 @@ You might have to provide the postgres DSN as an environment variable as stated 
 Lastly, all you have to do is run the bot. You can do so by running this command:
 
 ```shell
-python pidroid/main.py -e config.env
+poetry run start -e config.env
 ```
 
 The -e argument specifies which file to use for the environment variables.
