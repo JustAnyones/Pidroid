@@ -16,4 +16,4 @@ class TagTable(Base):
     authors: Mapped[list[int]] = mapped_column(ARRAY(BigInteger))
     aliases: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")
     locked: Mapped[bool] = mapped_column(Boolean, server_default="false")
-    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())

@@ -13,5 +13,5 @@ class SuggestionTable(Base):
     author_id: Mapped[int] = mapped_column(BigInteger)
     message_id: Mapped[int | None] = mapped_column(BigInteger)
     suggestion: Mapped[str] = mapped_column(Text)
-    date_submitted: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
+    date_submitted: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
     attachments: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default="{}")

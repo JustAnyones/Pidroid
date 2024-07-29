@@ -18,4 +18,4 @@ class Reminder(Base):
 
     content: Mapped[str] = mapped_column(Text)
     date_remind: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True))
-    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())

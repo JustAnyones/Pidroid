@@ -31,7 +31,7 @@ class RoleChangeQueue(Base):
     guild_id: Mapped[int]= mapped_column(BigInteger)
     member_id: Mapped[int] = mapped_column(BigInteger)
     role_id: Mapped[int] = mapped_column(BigInteger)
-    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
 class MemberRoleChanges:
 

@@ -56,7 +56,7 @@ class GuildModerationLog():
 
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now()) # pyright: ignore[reportAny]
+    date_created: Mapped[datetime.datetime] = mapped_column(DateTime(timezone=True), default=func.now())
 
     # TODO: do we need this?
     # On one hand, it's already stored in the active punishment table
