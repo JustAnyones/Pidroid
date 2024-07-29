@@ -1,4 +1,7 @@
+from discord import Member, User
 from typing import NamedTuple, TypedDict
+
+DiscordUser = Member | User
 
 class ConfigDict(TypedDict):
     debugging: bool

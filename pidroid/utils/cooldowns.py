@@ -19,7 +19,7 @@ def save_command_cooldowns(command: commands.Command, filename: str) -> None:
     cooldown_file = _get_cooldown_file(filename)
     logger.debug(f"Saving cooldown buckets of {command.name} command")
     with open(cooldown_file, "wb") as f:
-        dill.dump(command._buckets._cache, f)
+        dill.dump(command._buckets._cache, f) # pyright: ignore[reportUnknownMemberType, reportPrivateUsage]
     
 def load_command_cooldowns(command: commands.Command, filename: str) -> None:
     """Loads command cooldowns from a dill file."""
@@ -27,5 +27,5 @@ def load_command_cooldowns(command: commands.Command, filename: str) -> None:
     if os.path.exists(cooldown_file):
         logger.debug(f"Restoring cooldown buckets of {command.name} command")
         with open(cooldown_file, "rb") as f:
-            command._buckets._cache = dill.load(f) # nosec
+            command._buckets._cache = dill.load(f) # pyright: ignore[reportUnknownMemberType, reportPrivateUsage]
 
