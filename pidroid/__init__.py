@@ -4,6 +4,7 @@ import logging
 
 from argparse import ArgumentParser
 from dotenv import load_dotenv
+from importlib import metadata
 
 # Setup Pidroid level logging
 logger = logging.getLogger("Pidroid")
@@ -32,3 +33,8 @@ def _update_system_path():
 
 _load_env()
 _update_system_path()
+
+from pidroid.utils.types import VersionInfo
+version_field = metadata.version('pidroid')
+major, minor, micro = version_field.split('.')
+__VERSION__ = VersionInfo(major=int(major), minor=int(minor), micro=int(micro), commit_id=os.environ.get('GIT_COMMIT', ''))

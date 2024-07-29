@@ -4,7 +4,6 @@ import asyncio
 import datetime
 import discord
 import logging
-import os
 
 from aiohttp import ClientSession
 from contextlib import suppress
@@ -14,8 +13,9 @@ from discord.guild import Guild
 from discord.mentions import AllowedMentions
 from discord.message import Message
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Any, NamedTuple, override
+from typing import TYPE_CHECKING, Any, override
 
+from pidroid import __VERSION__
 from pidroid.models.categories import Category, register_categories
 from pidroid.models.event_types import EventName, EventType
 from pidroid.models.guild_configuration import GuildConfiguration
@@ -24,23 +24,15 @@ from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
+from pidroid.utils.types import ConfigDict
 
 if TYPE_CHECKING:
     from discord.types.threads import ThreadArchiveDuration
 
 logger = logging.getLogger("Pidroid")
 
-class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
-    commit_id: str
-
 def _is_theotown_service(service: str):
     return service.startswith("services.theotown")
-
-
-__VERSION__ = VersionInfo(major=5, minor=19, micro=0, commit_id=os.environ.get('GIT_COMMIT', ''))
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
@@ -48,7 +40,7 @@ class Pidroid(commands.Bot):
     if TYPE_CHECKING:
         session: ClientSession | None
 
-    def __init__(self, config: dict[str, str]):
+    def __init__(self, config: ConfigDict):
         intents = discord.Intents.all()
         intents.presences = False
         allowed_mentions = AllowedMentions(everyone=False, replied_user=False)

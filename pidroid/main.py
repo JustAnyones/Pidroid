@@ -1,5 +1,3 @@
-# pyright: reportMissingImports=false
-
 import aiohttp
 import asyncio
 import os
@@ -11,14 +9,15 @@ from alembic.config import CommandLine
 from discord.ext import commands
 from discord.ext.commands import Context
 
-from pidroid.client import Pidroid, __VERSION__ # noqa: E402
-from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH # noqa: E402
+from pidroid.client import Pidroid
+from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
+from pidroid.utils.types import ConfigDict # noqa: E402
 
 # Use uvloop if possible
 try:
-    import uvloop # If my calculations are correct, when this baby hits eighty-eight miles per hour you're gonna see some serious shit
+    import uvloop # pyright: ignore[reportMissingImports]
     uvloop.install() # pyright: ignore[reportUnknownMemberType]
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType]
 except ImportError:
     pass
     
@@ -50,7 +49,7 @@ def get_postgres_dsn() -> str:
         postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
     return postgres_dsn
 
-def config_from_env() -> dict[str, list[str] | str | bool | None]:
+def config_from_env() -> ConfigDict:
     postgres_dsn = get_postgres_dsn()
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
