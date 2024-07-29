@@ -29,16 +29,19 @@ python-dotenv = "^1.0.1"
 dill = "^0.3.8"
 h2 = "^4.1.0"
 pytest = "^8.2.2"
+basedpyright = "^1.15.0"
 
 [tool.poetry.extras]
 uvloop = ["uvloop"]
 
 [tool.poetry.scripts]
+main = "pidroid.main:main"
 start = "pidroid.main:main"
 migrate = "pidroid.main:migrate"
 
 [tool.basedpyright]
 reportMissingTypeStubs = false
+reportUnusedCallResult = false
 pythonVersion = "3.12"
 
 [build-system]
