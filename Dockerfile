@@ -19,6 +19,7 @@ WORKDIR /app
 # Install the Python dependencies
 COPY pyproject.toml pyproject.toml
 COPY poetry.lock poetry.lock
+COPY README.md README.md
 RUN poetry env use /usr/local/bin/python3
 RUN poetry install -E uvloop
 
@@ -33,6 +34,7 @@ ENV GIT_COMMIT=$GIT_COMMIT
 # Copy over the other files
 COPY pidroid/ pidroid/
 
+RUN poetry install
 # Switch to Pidroid user
 #USER pidroid
 
