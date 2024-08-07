@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 
 # Obtain the base image to be used
-FROM python:3.12.4-slim-bookworm
+FROM alpine:20240606
 
 # Install the required packages
-RUN apt-get update -y
-RUN apt-get upgrade -y
-RUN apt-get install -y ffmpeg --no-install-recommends
-RUN apt-get install -y python3-poetry
+RUN apk add bash python3=3.12.4-r0
+RUN apk add gcc python3-dev musl-dev linux-headers
+RUN apk add ffmpeg
+RUN apk add poetry
 
 # Create Pidroid user account
 #RUN groupadd -g 999 pidroid
@@ -16,12 +16,13 @@ RUN apt-get install -y python3-poetry
 # Switch the workdir
 WORKDIR /app
 
-# Install the Python dependencies
+# Move over poetry related files
 COPY pyproject.toml pyproject.toml
 COPY poetry.lock poetry.lock
 COPY README.md README.md
-RUN poetry env use /usr/local/bin/python3
-RUN poetry install -E uvloop
+
+# Install dependencies early to cache them
+RUN poetry install -E uvloop --no-root
 
 # Copy alembic configurations
 COPY alembic/ alembic/
@@ -31,10 +32,12 @@ COPY alembic.ini alembic.ini
 ARG GIT_COMMIT
 ENV GIT_COMMIT=$GIT_COMMIT
 
-# Copy over the other files
+# Copy over the rest of the bot
 COPY pidroid/ pidroid/
 
-RUN poetry install
+# Install the project again
+RUN poetry install -E uvloop
+
 # Switch to Pidroid user
 #USER pidroid
 
