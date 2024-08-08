@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pidroid"
-version = "5.19.0"
+version = "5.20.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 license = "MIT"
