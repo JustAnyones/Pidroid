@@ -207,7 +207,7 @@ class PluginListPaginator(ListPageSource):
         super().__init__(data, per_page=12)
         self.embed = (
             PidroidEmbed(title=f'{len(data)} plugins have been found matching your query')
-            .set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin #ID to find out more")
+            .set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin id <id> to find out more")
         )
 
     @override

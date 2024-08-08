@@ -164,7 +164,7 @@ class TheoTownCommandCog(commands.Cog):
             )
             return await ctx.reply(embed=embed)
 
-    @commands.command(
+    @commands.group(
         name='find-plugin',
         brief='Searches the plugin store for the specified plugin.',
         usage='<query>',
@@ -172,59 +172,64 @@ class TheoTownCommandCog(commands.Cog):
         examples=[
             ("Find plugins named road", 'find-plugin road'),
             ("Find something more precise", 'find-plugin "Indonesia transport pack"'),
-            ("Find plugin using its ID", 'find-plugin #14')
         ],
-        category=TheoTownCategory
+        category=TheoTownCategory,
+        invoke_without_command=True,
+        fallback="search",
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
-    async def find_plugin_command(self, ctx: Context[Pidroid], query: str): # noqa
-        async with ctx.typing():
-            is_id = query.startswith("#")
-            pl_id = None
-            if is_id:
-                try:
-                    pl_id = int(query.replace("#", ""))
-                except ValueError:
-                    raise BadArgument("You specified an invalid plugin ID!")
+    async def find_plugin_command(self, ctx: Context[Pidroid], *, query: str):
+        if ctx.invoked_subcommand is None:
 
-            if not is_id and len(query) <= 2:
+            if len(query) <= 2:
                 raise BadArgument("Your query is too short! Please make sure it's at least 3 characters long.")
 
-            if not is_id and len(query) > 30:
+            if len(query) > 30:
                 raise BadArgument("Your query is too long, please keep it below 30 characters!")
 
             async with ctx.channel.typing():
-                if is_id:
-                    assert pl_id is not None
-                    plugin_list = await self.api.fetch_plugin_by_id(pl_id)
-                else:
-                    plugin_list = await self.api.search_plugins(query)
+                plugin_list = await self.api.search_plugins(query)
 
             plugin_count = len(plugin_list)
             if plugin_count == 0:
                 raise BadArgument('No plugin could be found by your query.')
 
-            index = 0
             if plugin_count > 1:
-                found = False
-                for i, plugin in enumerate(plugin_list):
-                    if str(plugin.id) == query.replace("#", ""):
-                        index = i
-                        found = True
-                        break
+                pages = PaginatingView(self.client, ctx, source=PluginListPaginator(query, plugin_list))
+                return await pages.send()
 
-                if not found:
-                    pages = PaginatingView(self.client, ctx, source=PluginListPaginator(query, plugin_list))
-                    return await pages.send()
-
-            return await ctx.reply(embed=plugin_list[index].to_embed())
+            return await ctx.reply(embed=plugin_list[0].to_embed())
 
     @find_plugin_command.error
     async def on_find_plugin_command_error(self, ctx: Context[Pidroid], error: Exception):
         if isinstance(error, MissingRequiredArgument):
             if error.param.name == "query":
                 return await notify(ctx, "Please specify plugin search query.")
+        setattr(error, 'unhandled', True)
+
+    @find_plugin_command.command(
+        name='id',
+        brief='Searches the plugin store for the specific plugin ID.',
+        usage='<plugin_id>',
+        category=TheoTownCategory,
+    )
+    @commands.bot_has_permissions(send_messages=True)
+    @commands.cooldown(rate=2, per=10, type=commands.BucketType.user)
+    async def find_plugin_by_id_command(self, ctx: Context[Pidroid], plugin_id: int):
+        async with ctx.channel.typing():
+            plugin_list = await self.api.fetch_plugin_by_id(plugin_id)
+
+        plugin_count = len(plugin_list)
+        if plugin_count == 0:
+            raise BadArgument('No plugin could be found by the specified ID.')
+        return await ctx.reply(embed=plugin_list[0].to_embed())
+
+    @find_plugin_by_id_command.error
+    async def on_find_plugin_by_id_command_error(self, ctx: Context[Pidroid], error: Exception):
+        if isinstance(error, MissingRequiredArgument):
+            if error.param.name == "plugin_id":
+                return await notify(ctx, "Please specify plugin ID to find by.")
         setattr(error, 'unhandled', True)
 
     @commands.command(
