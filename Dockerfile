@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
 
 # Obtain the base image to be used
-FROM alpine:20240606
+FROM alpine:20240807
 
 # Install the required packages
-RUN apk add bash python3=3.12.4-r0
+RUN apk add bash gdbm python3 python3-gdbm
 RUN apk add gcc python3-dev musl-dev linux-headers
 RUN apk add ffmpeg
 RUN apk add poetry
