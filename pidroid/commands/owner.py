@@ -14,6 +14,7 @@ from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID, TEMPORARY_FILE_PATH
 from pidroid.models.categories import OwnerCategory
 from pidroid.utils.aliases import DiscordUser
+from pidroid.utils.checks import member_has_guild_permission
 from pidroid.utils.data import PersistentDataStore
 from pidroid.utils.decorators import command_checks
 from pidroid.utils.embeds import ErrorEmbed
@@ -186,6 +187,36 @@ class OwnerCommandCog(commands.Cog):
             sys.path.remove(file_name)
         logger.critical("Temp extension has been unloaded")
         return await ctx.reply("Extension unloaded successfully")
+
+    # Work in progress
+    @commands.command(
+        name="sync-bans",
+        brief="Syncs the ban list from the specified server with this one.",
+        category=OwnerCategory
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def sync_bans_command(self, ctx: Context[Pidroid], guild_id: int):
+        source_guild = self.client.get_guild(guild_id)
+        if source_guild is None:
+            raise BadArgument("Pidroid cannot find the specified server.")
+
+        assert ctx.guild
+
+        if source_guild.id == ctx.guild.id:
+            raise BadArgument("Source server cannot be the same as the destination.")
+
+        if not member_has_guild_permission(source_guild.me, discord.Permissions.ban_members):
+            raise BadArgument("I do not have the permission to read bans in the specified server.")
+
+
+        await ctx.reply("Resolving the ban list, this can take a while for huge servers")
+
+        intermediate_list: list[discord.User] = []
+        async for entry in source_guild.bans():
+            intermediate_list.append(entry.user)
+
+        return await ctx.reply(f"Resolved {len(intermediate_list)} bans")
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(OwnerCommandCog(client))
