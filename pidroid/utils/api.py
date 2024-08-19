@@ -26,7 +26,7 @@ from pidroid.utils.time import utcnow
 
 from sqlalchemy import func, delete, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
@@ -36,32 +36,33 @@ if TYPE_CHECKING:
 class API:
     """This class handles operations related to Pidroid's Postgres database and remote TheoTown API."""
 
-    def __init__(self, client: Pidroid, dsn: str) -> None:
+    def __init__(self, client: Pidroid, dsn: str, echo: bool = False) -> None:
         super().__init__()
         self.client = client
-        self.__dsn = dsn
         self.__http = HTTP(client)
-        self.__engine: AsyncEngine | None = None
-
-    async def connect(self) -> None:
-        """Creates a postgresql database connection."""
-        self.__engine = create_async_engine(self.__dsn, echo=self.client.debugging)
+        self.__engine = create_async_engine(dsn, echo=echo)
         self.session = async_sessionmaker(self.__engine, expire_on_commit=False, class_=AsyncSession)
-        # Checks if actual connection can be made
+
+    async def test_connection(self) -> None:
+        """Test the connection to the database by opening a temporary connection."""
         temp_conn = await self.__engine.connect()
         await temp_conn.close()
 
-    async def legacy_get(self, route: Route) -> dict[Any, Any]:
+    async def get(self, route: Route) -> APIResponse:
         """Sends a GET request to the TheoTown API."""
+        return await self.__http.request("GET", route)
+
+    async def post(self, route: Route, data: dict[Any, Any]) -> APIResponse:
+        """Sends a POST request to the TheoTown API."""
+        return await self.__http.request("POST", route, data=data)
+
+    async def legacy_get(self, route: Route) -> dict[Any, Any]:
+        """Deprecated. Sends a GET request to the TheoTown API."""
         return await self.__http.legacy_request("GET", route)
 
     async def legacy_post(self, route: Route, data: dict[Any, Any]) -> dict[Any, Any]:
         """Deprecated. Sends a POST request to the TheoTown API."""
         return await self.__http.legacy_request("POST", route, None, data)
-
-    async def post(self, route: Route, data: dict[Any, Any]) -> APIResponse:
-        """Sends a POST request to the TheoTown API."""
-        return await self.__http.request("POST", route, data=data)
 
     """Tag related"""
 
@@ -1030,32 +1031,37 @@ class API:
 
     async def fetch_theotown_account_by_discord_id(self, account_id: int) -> TheoTownAccount | None:
         """Fetches TheoTown account by discord ID."""
-        response = await self.legacy_get(Route(
+        res = await self.get(Route(
             "/game/account/find",
             {"discord_id": account_id}
         ))
-        return TheoTownAccount(response)
+        if res.code == 200:
+            return TheoTownAccount(res.data)
+        return None
 
     async def fetch_new_plugins(self, last_approval_time: int) -> list[NewPlugin]:
         """Queries the TheoTown API for new plugins after the specified approval time."""
-        response = await self.legacy_get(Route(
+        res = await self.get(Route(
             "/game/plugin/new",
             {"last_approval_time": last_approval_time}
         ))
-        return [NewPlugin(np) for np in response]
+        res.raise_on_error()
+        return [NewPlugin(np) for np in res.data]
 
     async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""
-        response = await self.legacy_get(Route(
+        res = await self.get(Route(
             "/game/plugin/find",
             {"id": plugin_id, "show_hidden": 1 if show_hidden else 0}
         ))
-        return [Plugin(p) for p in response]
+        res.raise_on_error()
+        return [Plugin(p) for p in res.data]
 
     async def search_plugins(self, query: str, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for plugins matching the query string."""
-        response = await self.legacy_get(Route(
+        res = await self.get(Route(
             "/game/plugin/find",
             {"query": query, "show_hidden": 1 if show_hidden else 0}
         ))
-        return [Plugin(p) for p in response]
+        res.raise_on_error()
+        return [Plugin(p) for p in res.data]

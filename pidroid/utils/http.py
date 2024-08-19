@@ -51,7 +51,7 @@ class HTTP:
         new_headers = DEFAULT_HEADERS.copy()
         if headers:
             new_headers.update(headers)
-        new_headers['Authorization'] = "Bearer " + self.client.config['tt_api_key']
+        new_headers['Authorization'] = "Bearer " + (self.client.config.get("tt_api_key") or "None")
 
         # Do actual request
         assert self.client.session is not None

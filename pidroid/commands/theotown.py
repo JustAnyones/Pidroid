@@ -292,11 +292,14 @@ class TheoTownCommandCog(commands.Cog):
             raise BadArgument("You are not eligible for a wage!")
 
         # Actual transaction
-        data = await self.client.api.legacy_post(
+        res = await self.client.api.post(
             Route("/game/account/redeem_wage"),
             {"discord_id": ctx.author.id, "role_id": roles[-1]}
         )
-        return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
+        if res.code == 200:
+            data = res.data
+            return await ctx.reply(f'{data["diamonds_paid"]:,} diamonds have been redeemed to the {data["user"]["name"]} account!')
+        res.raise_on_error()
 
     @commands.command(
         name='legacy-encrypt-plugin',

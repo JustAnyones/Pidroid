@@ -118,14 +118,14 @@ class Pidroid(commands.Bot):
 
         self.session = None
 
-        self.api = API(self, self.config["postgres_dsn"])
+        self.api = API(self, self.config["postgres_dsn"], self.debugging)
 
         self.__queues: dict[int, AbstractMessageQueue] = {}
         self.__tasks: list[tasks.Loop] = []
 
     @override
     async def setup_hook(self):
-        await self.api.connect()
+        await self.api.test_connection()
         await self.load_cogs()
         self.add_persistent_views()
 
