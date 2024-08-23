@@ -302,56 +302,6 @@ class TheoTownCommandCog(commands.Cog):
         res.raise_on_error()
 
     @commands.command(
-        name='legacy-encrypt-plugin',
-        brief='Encrypts the provided zip to a .plugin file.',
-        category=TheoTownCategory
-    )
-    @commands.max_concurrency(number=1, per=commands.BucketType.user)
-    @commands.bot_has_permissions(send_messages=True)
-    async def legacy_encrypt_plugin_command(self, ctx: Context[Pidroid]):
-        if not ctx.message.attachments:
-            raise BadArgument("Please provide the plugin zip file as an attachment.")
-        
-        attachment = ctx.message.attachments[0]
-        if attachment.size > 25*1000*1000:
-            raise BadArgument("Your plugin file size must be at most 25 MiB")
-
-        _ = await ctx.send((
-            "Warning: this command is in the process of being removed and will soon stop "
-            "working. "
-            "The replacement command is ``encrypt-plugin`` is gonna require linking your Discord account "
-            "to a TheoTown account using ``Plink-account`` if you want to continue creating plugins using Pidroid.\n"
-            "You can read more about it "
-            "[here](https://pca.svetikas.lt/docs/guides/plugin-encryption/#ttplugin_file_creation)."
-        ))
-
-        async with ctx.typing():
-            payload = {
-                "file": await attachment.read(),
-                "enforce_manifest": "true"
-            }
-
-            parts = attachment.filename.split(".")
-            if len(parts) == 1:
-                filename = parts[0] + ".plugin"
-            else:
-                filename = '.'.join(parts[:-1]) + ".plugin"
-
-            async with await http.post(
-                self.client,
-                url="https://api.svetikas.lt/v1/theotown/encrypt",
-                data=payload
-            ) as r:
-                data: dict[str, Any] = await r.json()
-
-            if data["success"]:
-                decoded = base64.b64decode(data["data"])
-                io = BytesIO(decoded)
-                _ = await ctx.reply(f'Your encrypted plugin file', file=File(io, filename))
-                return io.close()
-        raise BadArgument(data["details"])
-
-    @commands.command(
         name='encrypt-plugin',
         brief='Encrypts and signs the plugin in a provided zip archive to a .ttplugin file.',
         category=TheoTownCategory
@@ -370,8 +320,7 @@ class TheoTownCommandCog(commands.Cog):
         if account is None:
             message = ((
                 "Your Discord account is not linked to a TheoTown account. "
-                "This command requires you to link your account to sign and encrypt new plugins. "
-                "To use the old .plugin format, use the ``legacy-encrypt-plugin`` command instead.\n"
+                "This command requires you to link your account to sign and encrypt plugins. "
                 "You can read more about it "
                 "[here](https://pca.svetikas.lt/docs/guides/plugin-encryption/#ttplugin_file_creation)."
             ))
