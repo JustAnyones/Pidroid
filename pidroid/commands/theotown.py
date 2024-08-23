@@ -320,7 +320,7 @@ class TheoTownCommandCog(commands.Cog):
         if account is None:
             message = ((
                 "Your Discord account is not linked to a TheoTown account. "
-                "This command requires you to link your account to sign and encrypt plugins. "
+                "This command requires you to link your account using `Plink-account` to sign and encrypt plugins. "
                 "You can read more about it "
                 "[here](https://pca.svetikas.lt/docs/guides/plugin-encryption/#ttplugin_file_creation)."
             ))
