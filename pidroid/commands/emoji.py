@@ -113,6 +113,8 @@ class EmojiCommandCog(commands.Cog):
         except HTTPException as e:
             if e.code == 30008:
                 raise BadArgument("The server emote list is full. I can't add more!")
+            if e.status == 400:
+                raise BadArgument("Error from Discord API:", str(e))
             raise e
         else:
             return await ctx.reply(f"Emoji {mention_emoji(emoji)} has been added!")
