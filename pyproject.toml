@@ -13,7 +13,7 @@ python-dateutil = "^2.9.0.post0"
 sqlalchemy = "^2.0.31"
 asyncpg = "^0.29.0"
 jishaku = "^2.5.2"
-aiohttp = "^3.9.5"
+aiohttp = "^3.10.11"
 pytz = "^2024.1"
 psutil = "^6.0.0"
 pillow = "^10.4.0"
@@ -29,7 +29,6 @@ python-dotenv = "^1.0.1"
 dill = "^0.3.8"
 h2 = "^4.1.0"
 pytest = "^8.2.2"
-basedpyright = "^1.15.0"
 
 [tool.poetry.extras]
 uvloop = ["uvloop"]
