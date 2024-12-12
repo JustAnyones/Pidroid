@@ -110,7 +110,8 @@ class CopypastaService(commands.Cog):
             "linux": empty_date,
             "among_us": empty_date,
             "lithuania": empty_date,
-            "ganyu": empty_date
+            "ganyu": empty_date,
+            "js": empty_date
         }
 
     def check_probability(self, x: int) -> bool:
