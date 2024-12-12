@@ -89,6 +89,12 @@ LITHUANIA_COPYPASTA: str = (
     "🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹 LIETUVA PASAULIO GALIA %YEAR% 🇱🇹🇱🇹🇱🇹🇱🇹💪💪🥇💪💪💪🏆🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🥇🥇🥇🏆🏆💪💪💪🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹🇱🇹"
 )
 
+JS_COPYPASTA: str = (
+    "If javascript has a million haters, then I am one of them. If javascript has ten haters, then I am one of them. "
+    "If javascript has only one hater then that is me. If javascript has no haters, then that means I am no longer on earth. "
+    "If the world loves javascript, then I am against the world."
+)
+
 class CopypastaService(commands.Cog):
     """
     This class implements a cog for handling invocation of copypastas and other memes
@@ -148,6 +154,19 @@ class CopypastaService(commands.Cog):
             find_whole_word('lithuania', content) and not find_whole_word('poland', content)
         )
 
+    def is_js(self, content: str) -> bool:
+        """Returns true if message is worthy of the JS copypasta."""
+        found_ja = False
+        found_js = False
+        for word in content.split():
+            if word == "ja" or word == "justanyone":
+                found_ja = True
+            if word == "js" or word == "javascript":
+                found_js = True
+            if found_ja and found_js:
+                break
+        return found_ja and found_js
+
     def is_ganyu(self, content: str) -> bool:
         """Returns true if message is worthy of a Quaso."""
         return (
@@ -204,6 +223,14 @@ class CopypastaService(commands.Cog):
                         delete_after=10
                     )
 
+        # JS copypasta
+        if self.is_js(content):
+            if self.check_cooldown("js", 60 * 60 * 24): # You can attempt once a day
+                if self.check_probability(50):                     # 50% likely to fire
+                    _ = await message.reply(
+                        JS_COPYPASTA,
+                        delete_after=10
+                    )
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(CopypastaService(client))
