@@ -8,5 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - name: Build the Docker image
-      run: docker build . --file Dockerfile --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) --t pidroid
+      run: docker build . --file Dockerfile --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) --tag pidroid
+
+    - name: Push to ghcr.io
+      run: docker push ghcr.io/justanyones/pidroid:latest
