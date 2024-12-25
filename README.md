@@ -7,15 +7,15 @@ Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [d
 To use Pidroid in production, first we need to build a Pidroid [docker](https://www.docker.com) image with this command:
 
 ```shell
-docker build --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) -t pidroid-bot .
+docker build . --file Dockerfile --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) --tag pidroid
 ```
 
-The same command is provided in a build.sh file for convenience. If you do not have git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing version information.
+The same command is provided in a **build.sh** file for convenience. If you do not have Git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing version information.
 
-After building the docker image, we need to make sure we have a the configuration environment file set up. You can read how to do so [here](#configuration).
+After building the docker image, we need to make sure we have a environment file for configuration set up. You can read how to do so [here](#configuration).
 
 Pidroid uses a Postgres database to store its information. You can read about setting it up [here](#database).
-By default, running in the docker container will also run the Pidroid postgres database.
+By default, running with the provided docker compose will also create and run the postgres database.
 
 After making sure our configuration is complete, we just need to run the bot in a docker container with the following command:
 
@@ -80,7 +80,7 @@ postgresql+asyncpg://pidroid:your_database_password@127.0.0.1
 postgresql+asyncpg is required to specify sqlalchemy to use asyncpg driver.
 You will only need to change the password field and the IP.
 
-**Do note that this is automatically done for you if you're using docker in production mode.**
+**Do note that this is done for you automatically if you're using docker in production mode.**
 
 ## Configuration
 
