@@ -1,44 +1,63 @@
 # syntax=docker/dockerfile:1
 
-# Obtain the base image to be used
-FROM alpine:20240807
+FROM python:3.12-bookworm as builder
 
-# Install the required packages
-RUN apk add bash gdbm python3 python3-gdbm
-RUN apk add gcc python3-dev musl-dev linux-headers
-RUN apk add ffmpeg
-RUN apk add poetry
+# Install Poetry
+RUN pip install poetry==1.4.2
 
-# Create Pidroid user account
-#RUN groupadd -g 999 pidroid
-#RUN useradd -r -u 999 -g pidroid pidroid
+# Configure Poetry to use virtual environment in the project directory
+ENV POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# Switch the workdir
 WORKDIR /app
 
-# Move over poetry related files
-COPY pyproject.toml pyproject.toml
-COPY poetry.lock poetry.lock
-COPY README.md README.md
+# Copy over the dependencies
+COPY pyproject.toml poetry.lock README.md ./
 
-# Install dependencies early to cache them
-RUN poetry install -E uvloop --no-root
+# And install those dependencies
+RUN poetry install -E uvloop --without dev --no-root && rm -rf $POETRY_CACHE_DIR
 
-# Copy alembic configurations
-COPY alembic/ alembic/
-COPY alembic.ini alembic.ini
 
-# Acquire the Git commit hash
+FROM python:3.12-slim-bookworm as runtime
+
+LABEL org.opencontainers.image.source=https://github.com/JustAnyones/Pidroid
+LABEL org.opencontainers.image.description="Pidroid Discord bot for TheoTown"
+LABEL org.opencontainers.image.licenses=MIT
+
+ENV VIRTUAL_ENV=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
+
+# Install libopus and ffmpeg
+RUN apt-get update
+RUN apt-get install libopus-dev -y --no-install-recommends
+RUN rm -rf /var/lib/apt/lists/*
+COPY --from=mwader/static-ffmpeg:7.1 /ffmpeg /usr/local/bin/
+
+# Create Pidroid user account
+RUN groupadd -g 999 pidroid
+RUN useradd -r -u 999 -g pidroid pidroid
+
+# Copy dependencies from builder
+COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
+
+# Copy over alembic migration files
+COPY alembic/ /app/alembic/
+COPY alembic.ini /app/alembic.ini
+
+# Copy over the project files
+COPY pidroid /app/pidroid
+COPY pyproject.toml poetry.lock README.md /app/
+
+# Set git commit
 ARG GIT_COMMIT
 ENV GIT_COMMIT=$GIT_COMMIT
 
-# Copy over the rest of the bot
-COPY pidroid/ pidroid/
+WORKDIR /app
 
-# Install the project again
-RUN poetry install -E uvloop
+# Install Pidroid package
+RUN pip install .
 
-# Switch to Pidroid user
-#USER pidroid
-
-CMD ["poetry", "run", "start"]
+# Perform migrations and run Pidroid
+CMD alembic upgrade head && python -m pidroid.main

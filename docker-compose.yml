@@ -1,24 +1,15 @@
 services:
   pidroid:
     restart: unless-stopped
-    image: pidroid-bot:latest
+    image: pidroid:latest
     container_name: pidroid
     volumes:
       - ./data:/app/data
     env_file:
       - config.env
     depends_on:
-      - migration
-      - db
-
-  migration:
-    build: .
-    image: pidroid-bot:latest
-    command: bash -c 'while !</dev/tcp/db/5432; do sleep 1; done; poetry run migrate'
-    env_file:
-      - config.env
-    depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # It is not recommended to expose anything to the outside world
   db:
@@ -33,3 +24,9 @@ services:
     volumes: 
       - ./data/db:/var/lib/postgresql/data
       - ./init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -d $${DB_NAME} -U $${DB_USER}"]
+      interval: 15s
+      timeout: 60s
+      retries: 5
+      start_period: 5s
