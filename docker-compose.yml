@@ -1,8 +1,7 @@
 services:
   pidroid:
     restart: unless-stopped
-    image: pidroid:latest
-    container_name: pidroid
+    image: ghcr.io/justanyones/pidroid:latest
     volumes:
       - ./data:/app/data
     env_file:
@@ -19,13 +18,13 @@ services:
       - config.env
     environment:
       - POSTGRES_PASSWORD=postgres
-    expose:
-      - "5432"
-    volumes: 
+    volumes:
       - ./data/db:/var/lib/postgresql/data
       - ./init-database.sh:/docker-entrypoint-initdb.d/init-database.sh
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -d $${DB_NAME} -U $${DB_USER}"]
+      test:
+        - CMD-SHELL
+        - pg_isready -d $${DB_NAME} -U $${DB_USER}
       interval: 15s
       timeout: 60s
       retries: 5
