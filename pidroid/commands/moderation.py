@@ -558,7 +558,7 @@ class ModerationMenu(BaseView):
         )
         await interaction.response.defer()
         self.stop()
-        await self.punishment.revoke(reason=f"Unbanned by {str(self.moderator)}")
+        await self.punishment.revoke(reason=f"Unbanned by {str(self.moderator)} ({self.moderator.id})")
         await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Kick', style=discord.ButtonStyle.gray)
