@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "pidroid"
-version = "5.20.0"
+version = "5.21.0"
 description = "Pidroid Discord bot for TheoTown"
-authors = ["Your Name <you@example.com>"]
+authors = ["JustAnyone <dominykas@svetikas.lt>"]
 license = "MIT"
 readme = "README.md"
 
