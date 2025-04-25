@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 
-FROM python:3.12-bookworm as builder
+FROM python:3.12-bookworm AS builder
 
 # Install Poetry
-RUN pip install poetry==1.4.2
+RUN pip install poetry==2.1.2
 
 # Configure Poetry to use virtual environment in the project directory
 ENV POETRY_NO_INTERACTION=1 \
@@ -17,10 +17,11 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock README.md ./
 
 # And install those dependencies
-RUN poetry install -E uvloop --without dev --no-root && rm -rf $POETRY_CACHE_DIR
+RUN poetry install -E uvloop --without dev --no-root
+RUN rm -rf $POETRY_CACHE_DIR
 
 
-FROM python:3.12-slim-bookworm as runtime
+FROM python:3.12-slim-bookworm AS runtime
 
 LABEL org.opencontainers.image.source=https://github.com/JustAnyones/Pidroid
 LABEL org.opencontainers.image.description="Pidroid Discord bot for TheoTown"
