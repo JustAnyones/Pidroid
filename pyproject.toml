@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.12"
-"discord.py" = "^2.4.0"
+"discord.py" = "^2.5.2"
 python-dateutil = "^2.9.0.post0"
 sqlalchemy = "^2.0.31"
 asyncpg = "^0.30.0"
@@ -27,7 +27,6 @@ uvloop = { version = "^0.19.0", optional = true }
 alembic = "^1.13.2"
 python-dotenv = "^1.0.1"
 dill = "^0.3.8"
-h2 = "^4.1.0"
 pytest = "^8.2.2"
 pynacl = "^1.5.0"
 
