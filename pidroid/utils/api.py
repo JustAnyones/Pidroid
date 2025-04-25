@@ -1016,7 +1016,7 @@ class API:
                 filter(
                     Reminder.user_id == user_id
                 ).
-                order_by(Reminder.date_created.desc())
+                order_by(Reminder.date_remind.asc())
             )
         return list(result.scalars())
 
