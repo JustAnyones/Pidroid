@@ -27,11 +27,14 @@ uvloop = { version = "^0.19.0", optional = true }
 alembic = "^1.13.2"
 python-dotenv = "^1.0.1"
 dill = "^0.3.8"
-pytest = "^8.2.2"
 pynacl = "^1.5.0"
 
 [tool.poetry.extras]
 uvloop = ["uvloop"]
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.8.0"
+pytest = "^8.2.2"
 
 [tool.poetry.scripts]
 main = "pidroid.main:main"
