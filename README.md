@@ -4,15 +4,9 @@ Pidroid is a custom discord bot for TheoTown written in Python using Rapptz's [d
 
 ## Production use
 
-To use Pidroid in production, first we need to build a Pidroid [docker](https://www.docker.com) image with this command:
+To use Pidroid in production, you'll need to have [Docker](https://www.docker.com) installed.
 
-```shell
-docker build . --file Dockerfile --build-arg GIT_COMMIT=$(git rev-parse --short HEAD) --tag pidroid
-```
-
-The same command is provided in a **build.sh** file for convenience. If you do not have Git installed, you can omit the build-arg part. Pidroid uses it for transparency when providing version information.
-
-After building the docker image, we need to make sure we have a environment file for configuration set up. You can read how to do so [here](#configuration).
+You will also need to make sure we have a environment file for configuration set up. You can read how to do so [here](#configuration).
 
 Pidroid uses a Postgres database to store its information. You can read about setting it up [here](#database).
 By default, running with the provided docker compose will also create and run the postgres database.
@@ -48,18 +42,18 @@ The bot uses a Postgres database. It accepts the login credentials as a [DSN](#d
 After setting up the database, you will need to do the database table creation and migrations using alembic:
 
 ```shell
-poetry run migrate
+poetry run migrate -e config.env
 ```
 
-You might have to provide the postgres DSN as an environment variable as stated in the [manual](#configuration).
+The -e argument specifies which file to use for the environment variables.
+
+Running via Poetry is recommended as it automatically loads the environment file or provides ways of doing so.
 
 Lastly, all you have to do is run the bot. You can do so by running this command:
 
 ```shell
 poetry run start -e config.env
 ```
-
-The -e argument specifies which file to use for the environment variables.
 
 ### Database
 
