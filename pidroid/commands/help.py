@@ -199,7 +199,7 @@ class HelpCommandCog(commands.Cog):
             prefix = ctx.prefix or "P"
             embed = PidroidEmbed(
                 title=f"{get_full_command_name(command)}",
-                description=command.brief or "No description."
+                description=command.__original_kwargs__.get("info", None) or command.brief or "No description."
             )
             embed.add_field(name="Usage", value=get_command_usage(prefix, command), inline=False)
 

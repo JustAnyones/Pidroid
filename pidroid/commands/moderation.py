@@ -7,7 +7,7 @@ import logging
 
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
-from discord import ui, ButtonStyle, Interaction, app_commands, Member, Message, RawMessageDeleteEvent
+from discord import Object, ui, ButtonStyle, Interaction, app_commands, Member, Message, RawMessageDeleteEvent
 from discord.colour import Colour
 from discord.embeds import Embed
 from discord.emoji import Emoji
@@ -19,7 +19,7 @@ from discord.partial_emoji import PartialEmoji
 from discord.role import Role
 from discord.user import User
 from discord.utils import escape_markdown, get
-from typing import TYPE_CHECKING, Any, Self, TypedDict, override
+from typing import TYPE_CHECKING, Any, Callable, Self, TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
@@ -690,6 +690,31 @@ class UserSemaphoreDict(TypedDict):
     created: datetime.datetime
 
 
+def is_not_pinned(message: Message):
+    return not message.pinned
+
+async def purge_amount(ctx: Context[Pidroid], channel: MessageableGuildChannel, amount: int, check: Callable[[Message], bool]) -> list[Message]:
+    """
+    Purges a specified amount of messages from the specified channel.
+    
+    Performs input validation by throwing BadArgument exceptions.
+    """
+    if amount <= 0:
+        raise BadArgument("That's not a valid amount!")
+
+    # Evan proof
+    if amount > 500:
+        raise BadArgument("The maximum amount of messages I can purge at once is 500!")
+
+    #await ctx.message.delete(delay=0)
+    return await channel.purge(before=Object(id=ctx.message.id), limit=amount, check=check)
+
+async def purge_after(ctx: Context[Pidroid], channel: MessageableGuildChannel, message_id: int, check: Callable[[Message], bool]) -> list[Message]:
+    """
+    Purges messages after a specified message ID from the specified channel.
+    """
+    return await channel.purge(before=Object(id=ctx.message.id), after=Object(id=message_id), check=check)
+
 class ModerationCommandCog(commands.Cog):
     """This class implements cog which contains commands for moderation."""
 
@@ -782,8 +807,13 @@ class ModerationCommandCog(commands.Cog):
 
     @commands.hybrid_group(
         name="purge",
-        brief='Removes messages from the channel, that are not pinned. The amount corresponds to the amount of messages to search.',
-        usage='<amount>',
+        brief="Removes messages from the channel, that are not pinned.",
+        info="""
+        Removes messages from the channel, that are not pinned.
+        The amount corresponds to the amount of messages to search.
+        If a message is referenced, messages after it will be removed.
+        """,
+        usage='[amount]',
         category=ModerationCategory,
         invoke_without_command=True,
         fallback="any"
@@ -791,48 +821,61 @@ class ModerationCommandCog(commands.Cog):
     @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.can_purge()
     @commands.guild_only()
-    async def purge_command(self, ctx: Context[Pidroid], amount: int):
+    async def purge_command(self, ctx: Context[Pidroid], amount: int | None = None):
         if ctx.invoked_subcommand is None:
 
-            def is_not_pinned(message: Message):
-                return not message.pinned
+            if amount and ctx.message.reference and ctx.message.reference.message_id:
+                raise BadArgument("You cannot purge by message amount and message reference!")
 
-            if amount <= 0:
-                raise BadArgument("That's not a valid amount!")
+            message_id = None
+            if ctx.message.reference and ctx.message.reference.message_id:
+                message_id = ctx.message.reference.message_id
 
-            # Evan proof
-            if amount > 500:
-                raise BadArgument("The maximum amount of messages I can purge at once is 500!")
-
-            await ctx.message.delete(delay=0)
+            if amount is None and message_id is None:
+                raise BadArgument("Please specify the amount of messages to purge!")
 
             assert isinstance(ctx.channel, MessageableGuildChannelTuple)
-            deleted = await ctx.channel.purge(limit=amount, check=is_not_pinned)
+            if message_id:
+                deleted = await purge_after(ctx, ctx.channel, message_id, is_not_pinned)
+            else:
+                assert amount
+                deleted = await purge_amount(ctx, ctx.channel, amount, is_not_pinned)
             _ = await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @purge_command.command(
         name="user",
-        brief="Removes a specified amount of messages sent by specified user, that are not pinned. The amount corresponds to the amount of messages to search, not purge.",
-        usage="<user> <amount>",
+        brief="Removes a specified amount of messages sent by specified user, that are not pinned.",
+        info="""
+        Removes a specified amount of messages sent by specified user, that are not pinned.
+        The amount corresponds to the amount of messages to search, not purge.
+        If a message is referenced, messages after it will be removed.
+        """,
+        usage="<user> [amount]",
         category=ModerationCategory
     )
     @commands.bot_has_permissions(manage_messages=True, send_messages=True)
     @command_checks.can_purge()
     @commands.guild_only()
-    async def purge_user_command(self, ctx: Context[Pidroid], member: Member, amount: int):
+    async def purge_user_command(self, ctx: Context[Pidroid], member: Member, amount: int | None = None):
         def is_member(message: Message):
             return message.author.id == member.id and not message.pinned
+        
+        if amount and ctx.message.reference and ctx.message.reference.message_id:
+            raise BadArgument("You cannot purge by message amount and message reference!")
 
-        if amount <= 0:
-            raise BadArgument("That's not a valid amount!")
+        message_id = None
+        if ctx.message.reference and ctx.message.reference.message_id:
+            message_id = ctx.message.reference.message_id
 
-        # Evan proof
-        if amount > 500:
-            raise BadArgument("The maximum amount of messages I can purge at once is 500!")
+        if amount is None and message_id is None:
+            raise BadArgument("Please specify the amount of messages to purge!")
 
-        await ctx.message.delete(delay=0)
         assert isinstance(ctx.channel, MessageableGuildChannelTuple)
-        deleted = await ctx.channel.purge(limit=amount, check=is_member)
+        if message_id:
+            deleted = await purge_after(ctx, ctx.channel, message_id, is_member)
+        else:
+            assert amount
+            deleted = await purge_amount(ctx, ctx.channel, amount, is_member)
         _ = await ctx.send(f'Purged {len(deleted)} message(s)!', delete_after=2.0)
 
     @commands.command(hidden=True)
