@@ -9,14 +9,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Build the Docker image
+    - name: Build the Docker image and tag it
       run: ./build.sh
 
     - name: Login to ghcr.io
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
 
-    - name: Tag the image
-      run: docker tag pidroid ghcr.io/justanyones/pidroid
-
     - name: Push to ghcr.io
-      run: docker push ghcr.io/justanyones/pidroid:latest
+      run: docker image push --all-tags ghcr.io/justanyones/pidroid
