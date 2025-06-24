@@ -6,14 +6,13 @@ import logging
 import math
 import random
 
-from discord import Guild, Member, Message, MessageType, Role, User, Object
-from discord.abc import Snowflake
-from discord.ext import commands, tasks
-from typing import TYPE_CHECKING, override
+from discord import Guild, Member, Message, MessageType, Role, User
+from discord.ext import commands
+from typing import TYPE_CHECKING
 
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.utils.db.levels import LevelRewards, UserLevels
-from pidroid.utils.db.role_change_queue import RoleAction
+from pidroid.utils.debouncer import RoleChangeDebouncer, RoleAction
 from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
@@ -73,12 +72,7 @@ class LevelingService(commands.Cog):
         self.client = client
         self.__cooldown_storage: dict[int, dict[int, UserBucket]] = {}
         self.__startup_sync_finished = asyncio.Event()
-        _ = self.process_role_queue.start()
-
-    @override
-    async def cog_unload(self):
-        """Ensure that all the tasks are stopped and cancelled on cog unload."""
-        self.process_role_queue.cancel()
+        self.__role_debouncer = RoleChangeDebouncer(client, 20)
 
     def get_bucket(self, guild_id: int, user_id: int) -> UserBucket:
         """Returns the user cooldown bucket."""
@@ -96,62 +90,18 @@ class LevelingService(commands.Cog):
         if any(r.id == role_id for r in member.roles):
             return
         logger.debug(f"Adding role ({role_id}) add to queue for {member} in {member.guild}: {reason}")
-        await self.client.api.insert_role_change(RoleAction.add, member.guild.id, member.id, role_id)
+        await self.__role_debouncer.update_user_role(
+            RoleAction.add, member.guild.id, member.id, role_id
+        )
     
     async def queue_remove(self, member: Member, role_id: int, reason: str, bypass_cache: bool = False):
         # If member doesn't have the role, don't bother
         if not bypass_cache and not any(r.id == role_id for r in member.roles):
             return
         logger.debug(f"Adding role ({role_id}) removal to queue for {member} in {member.guild}: {reason}")
-        await self.client.api.insert_role_change(RoleAction.remove, member.guild.id, member.id, role_id)
-
-    @tasks.loop(seconds=60)
-    async def process_role_queue(self) -> None:
-        """This task runs periodically to apply role changes to members from a queue."""
-        #logger.debug("Processing role queue")
-        for guild in self.client.guilds:
-            # Acquire guild information
-            conf = await self.client.fetch_guild_configuration(guild.id)
-            if not conf.xp_system_active:
-                continue
-            
-            role_changes = await self.client.api.fetch_role_changes(guild.id)
-            if role_changes:
-                pass
-                #logger.debug(f"Managing role changes for {guild}")
-            for role_change in role_changes:
-                member = guild.get_member(role_change.member_id)
-                # If we have the member object
-                if member:
-                    logger.debug(f"Managing role changes for {member} in {guild}")
-                    updated_roles: list[Snowflake] = []
-
-                    # Manage mostly removed roles
-                    for role in member.roles:
-                        # If the current role in loop is due for removal
-                        # Do not add it to the list and continue the loop
-                        if any(role.id == removed_role_id for removed_role_id in role_change.roles_removed):
-                            continue
-                        updated_roles.append(role)
-
-                    # Manage added roles
-                    for role_id in role_change.roles_added:
-                        # If the current loop role is already in the member roles, ignore
-                        if any(role_id == r.id for r in updated_roles):
-                            continue
-                        updated_roles.append(Object(id=role_id))
-
-                    # If roles actually changed
-                    if set(r.id for r in updated_roles) != set(r.id for r in member.roles):
-                        _ = await member.edit(roles=updated_roles, reason="Pidroid level rewards")
-
-                    await role_change.pop()
-
-    @process_role_queue.before_loop
-    async def before_process_role_queue(self) -> None:
-        """Runs before process_role_queue task to ensure that the task is ready to run."""
-        await self.client.wait_until_guild_configurations_loaded()
-        _ = await self.__startup_sync_finished.wait()
+        await self.__role_debouncer.update_user_role(
+            RoleAction.remove, member.guild.id, member.id, role_id
+        )
 
     async def _sync_guild_state(self, guild: Guild, reason: str) -> None:
         """An expensive method that syncs guild level reward state."""

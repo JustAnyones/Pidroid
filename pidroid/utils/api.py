@@ -17,7 +17,6 @@ from pidroid.utils.db.levels import LevelRewards, UserLevels
 from pidroid.utils.db.linked_account import LinkedAccount
 from pidroid.utils.db.punishment import PunishmentCounterTable, PunishmentTable
 from pidroid.utils.db.reminder import Reminder
-from pidroid.utils.db.role_change_queue import MemberRoleChanges, RoleAction, RoleChangeQueue, RoleQueueState
 from pidroid.utils.db.tag import TagTable
 from pidroid.utils.db.translation import Translation
 from pidroid.utils.http import HTTP, APIResponse, Route
@@ -920,53 +919,7 @@ class API:
                 await self.fetch_user_level_info(guild_id, member_id)
             )
 
-    """Role change queue management in postgres database"""
-
-    async def insert_role_change(self, action: RoleAction, guild_id: int, member_id: int, role_id: int):
-        """Inserts a role change to a queue."""
-        async with self.session() as session: 
-            async with session.begin():
-                entry = RoleChangeQueue(
-                    action=action.value,
-                    status=RoleQueueState.enqueued.value,
-                    guild_id=guild_id,
-                    member_id=member_id,
-                    role_id=role_id
-                )
-                session.add(entry)
-            await session.commit()
-
-    async def fetch_role_changes(self, guild_id: int) -> list[MemberRoleChanges]:
-        """Returns a list of pending role changes in the guild."""
-        async with self.session() as session: 
-            statement = select(
-                func.array_agg(RoleChangeQueue.id).label('ids'),
-                RoleChangeQueue.member_id,
-                func.array_agg(RoleChangeQueue.role_id).filter(RoleChangeQueue.action == 1).label('role_added'),
-                func.array_agg(RoleChangeQueue.role_id).filter(RoleChangeQueue.action == 0).label('role_removed')
-            ).where(
-                RoleChangeQueue.guild_id == guild_id
-            ).group_by(
-                RoleChangeQueue.member_id
-            )
-            result = await session.execute(statement)
-
-        changes: list[MemberRoleChanges] = []
-        for row in result.fetchall():
-            row: tuple[list[int], int, list[int], list[int]]
-            ids, member_id, roles_added, roles_removed = row
-            obj = MemberRoleChanges(self, guild_id, member_id, ids, roles_added, roles_removed)
-            changes.append(obj)
-        return changes
-    
-    async def delete_role_changes(self, ids: list[int]):
-        """Removes role changes for specified IDs from the queue."""
-        async with self.session() as session: 
-            async with session.begin():
-                _ = await session.execute(delete(RoleChangeQueue).filter(RoleChangeQueue.id.in_(ids)))
-            await session.commit()
-
-    """Remind me related"""
+    """Reminder system related"""
 
     async def insert_reminder(
         self,
