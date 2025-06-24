@@ -48,10 +48,7 @@ class ReasonModal(PidroidModal, title='Custom reason modal'):
 class LengthModal(PidroidModal, title='Custom length modal'):
     length_input: ui.TextInput[ModerationMenu] = ui.TextInput(label="Length", placeholder="Please provide the length")
 
-class BaseButton(ui.Button):
-    if TYPE_CHECKING:
-        view: ModerationMenu
-
+class BaseButton(ui.Button["ModerationMenu"]):
     def __init__(self, style: ButtonStyle, label: str | None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None):
         super().__init__(style=style, label=label, disabled=disabled, emoji=emoji)
 
@@ -60,8 +57,8 @@ class ValueButton(BaseButton):
         super().__init__(ButtonStyle.gray, label)
         # If value doesn't exist, mark it as custom
         if value is None:
-            self.label = label or "Custom..."
-            self.style = ButtonStyle.blurple
+            self.label: str = label or "Custom..."
+            self.style: ButtonStyle = ButtonStyle.blurple
         # If value is -1, consider it permanent and therefore colour the button red
         elif value == -1:
             self.style = ButtonStyle.red
@@ -76,34 +73,41 @@ class LengthButton(ValueButton):
 
     @override
     async def callback(self, interaction: Interaction) -> None:
+        assert self.view
         value = self.value
         if value is None:
             value, interaction, timed_out = await self.view.custom_length_modal(interaction)
 
             if timed_out:
-                return await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                return
 
             if value is None:
-                return await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
+                await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
+                return
 
             try:
                 value = try_convert_duration_to_relativedelta(value)
             except InvalidDuration as e:
-                return await interaction.response.send_message(str(e), ephemeral=True)
+                await interaction.response.send_message(str(e), ephemeral=True)
+                return
 
             now = utcnow()
             delta = now - (now - value)
 
             if delta.total_seconds() < 5 * 60:
-                return await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
+                await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
+                return
             
             assert self.view._punishment is not None
             if isinstance(self.view._punishment, Timeout):
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
-                    return await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
+                    await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
+                    return
 
         if self.view.is_finished():
-            return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            return
 
         self.view.select_length(value)
         await self.view.show_confirmation_menu(interaction)
@@ -114,21 +118,26 @@ class ReasonButton(ValueButton):
 
     @override
     async def callback(self, interaction: Interaction) -> None:
+        assert self.view
         value = self.value
         if value is None:
             value, interaction, timed_out = await self.view.custom_reason_modal(interaction)
 
             if timed_out:
-                return await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                return
 
             if value is None:
-                return await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
+                await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
+                return
 
             if len(value) > 480:
-                return await interaction.response.send_message("Punishment reason cannot be longer than 480 characters!", ephemeral=True)
+                await interaction.response.send_message("Punishment reason cannot be longer than 480 characters!", ephemeral=True)
+                return
 
         if self.view.is_finished():
-            return await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            return
 
         self.view.select_reason(value)
         await self.view.show_length_selection_menu(interaction)
@@ -517,7 +526,7 @@ class ModerationMenu(BaseView):
         await self._update_view(interaction)
 
     @discord.ui.button(label='Confirm', style=discord.ButtonStyle.green)
-    async def on_confirm_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_confirm_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the punishment confirmation button."""
         await interaction.response.defer()
         self.stop()
@@ -533,14 +542,14 @@ class ModerationMenu(BaseView):
         )
 
     @discord.ui.button(label='Cancel', style=discord.ButtonStyle.red)
-    async def on_cancel_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_cancel_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the cancel button."""
         await self.close_view(interaction)
 
     """Punishment buttons"""
 
     @discord.ui.button(label='Ban', style=discord.ButtonStyle.red, emoji='🔨')
-    async def on_type_ban_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_ban_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the ban type button."""
         self.punishment = Ban(
             self._api, self.guild,
@@ -550,7 +559,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Unban', style=discord.ButtonStyle.red, emoji='🔨')
-    async def on_type_unban_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_unban_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the unban type button."""
         self.punishment = Ban(
             self._api, self.guild,
@@ -562,7 +571,7 @@ class ModerationMenu(BaseView):
         await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Kick', style=discord.ButtonStyle.gray)
-    async def on_type_kick_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_kick_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the kick type button."""
         assert isinstance(self.user, Member)
         self.punishment = Kick(
@@ -572,7 +581,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Jail', style=discord.ButtonStyle.gray)
-    async def on_type_jail_button(self, interaction: discord.Interaction, _: discord.ui.Button[Self]):
+    async def on_type_jail_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the jail type button."""
         assert isinstance(self.user, Member)
         assert self._jail_role
@@ -584,7 +593,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Kidnap', style=discord.ButtonStyle.gray)
-    async def on_type_kidnap_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_kidnap_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the kidnap type button."""
         assert isinstance(self.user, Member)
         assert self._jail_role
@@ -596,7 +605,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Release from jail', style=discord.ButtonStyle.gray)
-    async def on_type_unjail_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_unjail_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the unjail type button."""
         assert isinstance(self.user, Member)
         assert self._jail_role
@@ -611,7 +620,7 @@ class ModerationMenu(BaseView):
         await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Time-out', style=discord.ButtonStyle.gray)
-    async def on_type_timeout_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_timeout_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the timeout type button."""
         assert isinstance(self.user, Member)
         self.punishment = Timeout(
@@ -621,7 +630,7 @@ class ModerationMenu(BaseView):
         await self.show_reason_selection_menu(interaction)
 
     @discord.ui.button(label='Remove time-out', style=discord.ButtonStyle.gray)
-    async def on_type_timeout_remove_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_timeout_remove_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the timeout removal type button."""
         assert isinstance(self.user, Member)
         self.punishment = Timeout(
@@ -634,7 +643,7 @@ class ModerationMenu(BaseView):
         await self.finalize_view(interaction, self.punishment.public_message_revoke_embed)
 
     @discord.ui.button(label='Warn', style=discord.ButtonStyle.gray, emoji='⚠️')
-    async def on_type_warn_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def on_type_warn_button(self, interaction: discord.Interaction, _: ui.Button[Self]):
         """Reacts to the warn type button."""
         assert isinstance(self.user, Member)
         self.punishment = Warning(

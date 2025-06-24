@@ -5,7 +5,7 @@ import datetime
 from discord import User
 from discord.ext.commands.errors import BadArgument
 from discord.utils import MISSING
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -58,12 +58,14 @@ class Tag:
         name: str,
         content: str,
         author: int
-    ):
+    ) -> Tag:
         cls.validate_name(name)
         cls.validate_content(content)
 
         row = await client.api.insert_tag(guild_id, name, content, [author])
-        return await client.api.fetch_tag(row)
+        tag = await client.api.fetch_tag(row)
+        assert tag
+        return tag
 
     @classmethod
     def from_table(cls, client: Pidroid, table: TagTable):
@@ -191,7 +193,7 @@ class Tag:
         if len(value) > 2000:
             raise ValueError("Tag content is too long! Please keep it below 2000 characters!")
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict[str, Any]:
         """Returns the dict representation of the object."""
         return {
             "row": self.row,
@@ -207,11 +209,11 @@ class Tag:
         """Returns true if specified user is an author."""
         return user_id in self.__authors
 
-    def get_authors(self) -> list[Optional[User]]:
+    def get_authors(self) -> list[User | None]:
         """Returns a list of optional user objects which represent the tag authors."""
         return [self.__client.get_user(auth_id) for auth_id in self.__authors]
 
-    async def fetch_authors(self) -> list[Optional[User]]:
+    async def fetch_authors(self) -> list[User | None]:
         """Returns a list of optional user objects which represent the tag authors.
         
         This does a fetch if user is not found in cache."""

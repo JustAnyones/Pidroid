@@ -1,5 +1,3 @@
-# pyright: reportAny=false
-
 import ast
 import asyncio
 import discord

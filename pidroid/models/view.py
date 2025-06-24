@@ -155,7 +155,7 @@ class BaseView(View):
     """Generic buttons"""
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.red, row=2)
-    async def close_button(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def close_button(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         """Closes the view."""
         await self.close_view(interaction)
 
@@ -223,6 +223,7 @@ class PaginatingView(BaseView):
         if close_button:
             self.add_item(self.close_button)
 
+    @override
     async def send(self):
         if self._source is not None:
             await self.initialize_paginator()
@@ -269,26 +270,26 @@ class PaginatingView(BaseView):
             pass
 
     @discord.ui.button(label='≪', style=discord.ButtonStyle.grey)
-    async def go_to_first_page(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def go_to_first_page(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         """go to the first page"""
         await self.show_page(interaction, 0)
 
     @discord.ui.button(label='Back', style=discord.ButtonStyle.grey)
-    async def go_to_previous_page(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def go_to_previous_page(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         """go to the previous page"""
         await self.show_checked_page(interaction, self._current_page - 1)
 
     @discord.ui.button(label='Current', style=discord.ButtonStyle.grey, disabled=True)
-    async def go_to_current_page(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def go_to_current_page(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         pass
 
     @discord.ui.button(label='Next', style=discord.ButtonStyle.grey)
-    async def go_to_next_page(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def go_to_next_page(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         """go to the next page"""
         await self.show_checked_page(interaction, self._current_page + 1)
 
     @discord.ui.button(label='≫', style=discord.ButtonStyle.grey)
-    async def go_to_last_page(self, interaction: discord.Interaction, _: discord.ui.Button):
+    async def go_to_last_page(self, interaction: discord.Interaction, _: discord.ui.Button[View]):
         """go to the last page"""
         # The call here is safe because it's guarded by skip_if
         await self.show_page(interaction, self.source.get_max_pages() - 1)

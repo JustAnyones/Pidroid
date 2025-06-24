@@ -2,6 +2,7 @@ import datetime
 import re
 
 from dateutil.relativedelta import relativedelta
+from typing import TypedDict
 
 from pidroid.models.exceptions import InvalidConverterFormat, InvalidDuration
 
@@ -14,6 +15,15 @@ DURATION_PATTERN = re.compile((
     r"((?P<minutes>\d+?) ?(minutes|minute|m) ?)?"
     r"((?P<seconds>\d+?) ?(seconds|second|S|s))?"
 ))
+
+class DurationDict(TypedDict):
+    years: int
+    months: int
+    weeks: int
+    days: int
+    hours: int
+    minutes: int
+    seconds: int
 
 HELP_DATE_FORMATTING: str = (
     "Pidroid supports the following formats for date input:\n"
@@ -101,8 +111,10 @@ def duration_to_relativedelta(duration_str: str) -> relativedelta | None:
     if not match:
         return None
 
-    duration_dict = {unit: int(amount) for unit, amount in match.groupdict(default=0).items()}
-    return relativedelta(**duration_dict) # we never pass dt1, dt2 regardless
+    duration_dict: DurationDict = {
+        unit: int(amount) for unit, amount in match.groupdict(default=0).items()
+    }
+    return relativedelta(**duration_dict)
 
 def datetime_to_timedelta(date: datetime.datetime) -> datetime.timedelta:
     """Converts a datetime object to a timedelta object."""
