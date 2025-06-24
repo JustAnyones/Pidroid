@@ -27,13 +27,13 @@ To begin, you'll need to install Python. Pidroid requires **Python 3.12** or abo
 python --version
 ```
 
-After installing Python, you will also need to install [Poetry](https://python-poetry.org/).
+After installing Python, you will also need to install [uv](https://docs.astral.sh/uv/getting-started/installation/).
 Pidroid uses it for dependency management.
 
-After you installed Poetry, now we need to install Pidroid's dependencies:
+After you installed uv, now we need to install Pidroid's dependencies:
 
 ```shell
-poetry install
+uv sync --locked
 ```
 
 After installing all the required packages, we need to configure the bot itself. Please check out the [configuration manual](#configuration) on how to do so.
@@ -42,17 +42,17 @@ The bot uses a Postgres database. It accepts the login credentials as a [DSN](#d
 After setting up the database, you will need to do the database table creation and migrations using alembic:
 
 ```shell
-poetry run migrate -e config.env
+uv run migrate -e config.env
 ```
 
 The -e argument specifies which file to use for the environment variables.
 
-Running via Poetry is recommended as it automatically loads the environment file or provides ways of doing so.
+Running via uv is recommended as it automatically loads the environment file or provides ways of doing so.
 
 Lastly, all you have to do is run the bot. You can do so by running this command:
 
 ```shell
-poetry run start -e config.env
+uv run pidroid -e config.env
 ```
 
 ### Database

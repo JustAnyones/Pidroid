@@ -15,7 +15,7 @@ get_toml_value() {
 }  
 
 # Extract the version from pyproject.toml
-VERSION_CODE=$(get_toml_value "./pyproject.toml" "tool.poetry" "version")
+VERSION_CODE=$(get_toml_value "./pyproject.toml" "project" "version")
 if [ -z "$VERSION_CODE" ]; then
   echo "Error: Unable to retrieve version from pyproject.toml."
   exit 1
