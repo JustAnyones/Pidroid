@@ -112,7 +112,7 @@ class TagCommandCog(commands.Cog):
                         break
 
                 if not found:
-                    source = TagListPaginator(f"Tags matching your query", tag_list)
+                    source = TagListPaginator("Tags matching your query", tag_list)
                     view = PaginatingView(self.client, ctx, source=source)
                     return await view.send()
 

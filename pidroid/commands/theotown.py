@@ -3,13 +3,11 @@ import logging
 import random
 
 from discord import File
-from discord.errors import Forbidden
 from discord.ext import commands
 from discord.ext.commands import BadArgument, MissingRequiredArgument
 from discord.ext.commands.context import Context
-from discord.member import Member
 from io import BytesIO
-from typing import Any, TypedDict
+from typing import TypedDict
 
 from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
@@ -19,10 +17,9 @@ from pidroid.models.view import PaginatingView
 from pidroid.services.error_handler import notify
 from pidroid.utils import http, format_version_code
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.http import Route
 from pidroid.utils.paginators import PluginListPaginator
-from pidroid.utils.time import utcnow
 
 logger = logging.getLogger("Pidroid")
 

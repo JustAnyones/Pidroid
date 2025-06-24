@@ -214,7 +214,7 @@ def get_function_decorators(func) -> list[Decorator]:
             for decorator_node in node.decorator_list:
                 assert isinstance(decorator_node, ast.Call)
                 decorators.append(decorator_node)
-                print(f"Decorator:", ast.dump(decorator_node))
+                print("Decorator:", ast.dump(decorator_node))
 
     print()
     parsed: list[Decorator] = []

@@ -148,7 +148,7 @@ class BaseView(View):
         # If we can't for some reason update the view, ignore the exception
         try:
             await self._update_view(interaction, files) # Update message with latest information
-        except:
+        except Exception:
             pass
         self.stop() # Stop responding to any interaction
 
