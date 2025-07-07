@@ -38,6 +38,9 @@ COPY --from=builder --chown=app:app /app/.venv /app/.venv
 COPY alembic/ /app/alembic/
 COPY alembic.ini /app/alembic.ini
 
+ARG GIT_COMMIT
+ENV GIT_COMMIT=$GIT_COMMIT
+
 # Change the working directory to the `app` directory
 WORKDIR /app
 
