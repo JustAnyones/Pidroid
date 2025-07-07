@@ -96,6 +96,7 @@ class Pidroid(commands.Bot):
             'services.theotown.events',
             'services.theotown.guild_statistics',
             'services.theotown.plugin_store',
+            'services.theotown.spam_detection',
             'services.theotown.spoiler_reactions',
             'services.theotown.suggestion_deletion',
 
