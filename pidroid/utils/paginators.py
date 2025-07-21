@@ -215,7 +215,7 @@ class PluginListPaginator(ListPageSource):
         _ = self.embed.clear_fields()
         for plugin in page:
             _ = self.embed.add_field(
-                name=f"#{plugin.id}",
+                name=f"{plugin.id}",
                 value=plugin.clean_title,
                 inline=True
             )
