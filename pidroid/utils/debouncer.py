@@ -20,7 +20,7 @@ class PendingUpdate(TypedDict):
     task: asyncio.Task[Any] | None
     operations: list[PendingRoleChange]
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.role_debouncer')
 
 class RoleChangeDebouncer:
     def __init__(self, client: Pidroid, delay_seconds: float = 0.5):
@@ -69,7 +69,7 @@ class RoleChangeDebouncer:
             return
 
         # Perform the actual role update
-        await member.edit(roles=[Object(id=role_id) for role_id in calculated_final_roles], reason="Role changes processed by debouncer.")
+        await member.edit(roles=[Object(id=role_id) for role_id in calculated_final_roles], reason="Pidroid level rewards via debouncer.")
 
 
     async def update_user_role(self, action: RoleAction, guild_id: int, user_id: int, role: int):

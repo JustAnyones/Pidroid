@@ -15,7 +15,7 @@ from pidroid.utils.db.levels import LevelRewards, UserLevels
 from pidroid.utils.debouncer import RoleChangeDebouncer, RoleAction
 from pidroid.utils.time import utcnow
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.leveling')
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -170,10 +170,10 @@ class LevelingService(commands.Cog):
             - user joins or role gets deleted while bot is offline;
         """
         await self.client.wait_until_guild_configurations_loaded()
-        logger.debug("Syncing level reward state")
+        logger.info("Syncing level reward state")
         for guild in self.client.guilds:
             await self._sync_guild_state(guild, "Start-up role reward state sync")
-        logger.debug("Level reward state synced")
+        logger.info("Level reward state synced")
         self.__startup_sync_finished.set()
 
     @commands.Cog.listener()

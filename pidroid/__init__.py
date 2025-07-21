@@ -6,14 +6,18 @@ from argparse import ArgumentParser
 from dotenv import load_dotenv
 from importlib import metadata
 
-# Setup Pidroid level logging
-logger = logging.getLogger("Pidroid")
-#logger.setLevel(logging.WARNING)
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
+# Set up logging
 formatter = logging.Formatter('[%(asctime)s %(name)s:%(levelname)s]: %(message)s', "%Y-%m-%d %H:%M:%S")
+# Set up root logger and legacy logger for compatibility
+root_logger = logging.getLogger("pidroid")
+root_logger_legacy = logging.getLogger("Pidroid")
+root_logger.setLevel(logging.DEBUG)
+root_logger_legacy.setLevel(logging.DEBUG)
+# Add a StreamHandler to both loggers
+ch = logging.StreamHandler()
 ch.setFormatter(formatter)
-logger.addHandler(ch)
+root_logger.addHandler(ch)
+root_logger_legacy.addHandler(ch)
 
 def _load_env():
     arg_parser = ArgumentParser()
@@ -21,7 +25,7 @@ def _load_env():
 
     args, unknown = arg_parser.parse_known_args()
     if args.envfile:
-        logger.info(f"Loading environment from {args.envfile} file")
+        root_logger.info(f"Loading environment from {args.envfile} file")
         _ = load_dotenv(args.envfile)
     else:
         _ = load_dotenv()
