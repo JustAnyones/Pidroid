@@ -77,27 +77,14 @@ class LevelCommandCog(commands.Cog):
         async with self.client.api.session() as session:
             _ = embed.add_field(name='Rank', value=f'#{await info.calculate_rank(session):,}')       
 
-        # Create a progress bar
-        # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
-        dashes = 10
-        current_dashes = int(info.current_xp / int(info.xp_to_next_level / dashes))
-
-        # Select progress character to use
-        character = info.default_progress_character
-        if info.progress_character:
-            character = info.progress_character
-
         # Select the colour to use
         embed.colour = info.default_embed_colour
         if info.embed_colour:
             embed.colour = info.embed_colour
 
-        current_prog = f'{character}' * current_dashes
-        remaining_prog = '⬛' * (dashes - current_dashes)
-
         _ = embed.add_field(
             name=f'Level progress ({info.current_xp:,} / {info.xp_to_next_level:,} XP)',
-            value=f"{current_prog}{remaining_prog}", inline=False
+            value=f"{info.get_progress_bar()}", inline=False
         )
 
         return await ctx.reply(embed=embed)

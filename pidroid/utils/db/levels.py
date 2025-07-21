@@ -15,7 +15,28 @@ COLOUR_BINDINGS = {
     "red": (":red_square:", "#dd2e44"),
     "white": (":white_large_square:", "#e6e7e8"),
     "yellow": (":yellow_square:", "#fdcb58"), 
+    "ja": (":black_square_button:", "#AD8B87"), # custom logic
 }
+SQUARE_COUNT = 10
+
+JA_CURRENT_SQUARES = [
+    "<:ja1:1396837098882990150>",
+    "<:ja2:1396837111126036553>",
+    "<:ja3:1396837120190054532>",
+    "<:ja4:1396837128159236249>",
+    "<:ja5:1396837144613355673>",
+    "<:ja6:1396837154814169162>",
+]
+JA_REMAINING_SQUARES = [
+    "<:ja1g:1396837478400262266>",
+    "<:ja2g:1396837487963406456>",
+    "<:ja3g:1396837495634792458>",
+    "<:ja4g:1396837503465689240>",
+    "<:ja5g:1396837514790178907>",
+    "<:ja6g:1396837522235068517>",
+]
+
+assert len(JA_CURRENT_SQUARES) == len(JA_REMAINING_SQUARES), "JA_CURRENT_SQUARES must be the same length as JA_REMAINING_SQUARES"
 
 class UserLevels(Base):
     __tablename__ = "UserLevels"
@@ -85,6 +106,38 @@ class UserLevels(Base):
         if bindings:
             return Colour.from_str(bindings[1])
         return None
+    
+    def __get_ja_progress_bar(self, current_square_count: int) -> str:
+        """Returns a progress bar string for the current level using JA emotes."""
+        total_square_count = len(JA_CURRENT_SQUARES)
+
+        current_prog = ""
+        remaining_prog = ""
+        for i in range(current_square_count):
+            current_prog += JA_CURRENT_SQUARES[i]
+        for i in range(current_square_count, total_square_count):
+            remaining_prog += JA_REMAINING_SQUARES[i]
+
+        return f'{current_prog}{remaining_prog}'
+
+    def get_progress_bar(self) -> str:
+        """Returns a progress bar string for the current level."""
+        # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
+        dashes = SQUARE_COUNT
+        current_dashes = int(self.current_xp / int(self.xp_to_next_level / dashes))
+
+        # JA theme has custom logic
+        if self.theme_name == "ja":
+            return self.__get_ja_progress_bar(current_dashes)
+
+        # Select progress character to use
+        character = self.default_progress_character
+        if self.progress_character:
+            character = self.progress_character
+
+        current_prog = f'{character}' * current_dashes
+        remaining_prog = '⬛' * (dashes - current_dashes)
+        return f'{current_prog}{remaining_prog}'
 
     @override
     def __repr__(self) -> str:
