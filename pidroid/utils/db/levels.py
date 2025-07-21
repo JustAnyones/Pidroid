@@ -107,9 +107,10 @@ class UserLevels(Base):
             return Colour.from_str(bindings[1])
         return None
     
-    def __get_ja_progress_bar(self, current_square_count: int) -> str:
+    def __get_ja_progress_bar(self) -> str:
         """Returns a progress bar string for the current level using JA emotes."""
         total_square_count = len(JA_CURRENT_SQUARES)
+        current_square_count = int(self.current_xp / int(self.xp_to_next_level / total_square_count))
 
         current_prog = ""
         remaining_prog = ""
@@ -122,13 +123,13 @@ class UserLevels(Base):
 
     def get_progress_bar(self) -> str:
         """Returns a progress bar string for the current level."""
+        # JA theme has custom logic
+        if self.theme_name == "ja":
+            return self.__get_ja_progress_bar()
+
         # https://github.com/KumosLab/Discord-Levels-Bot/blob/b01e22a9213b004eed5f88d68b500f4f4cd04891/KumosLab/Database/Create/RankCard/text.py
         dashes = SQUARE_COUNT
         current_dashes = int(self.current_xp / int(self.xp_to_next_level / dashes))
-
-        # JA theme has custom logic
-        if self.theme_name == "ja":
-            return self.__get_ja_progress_bar(current_dashes)
 
         # Select progress character to use
         character = self.default_progress_character
