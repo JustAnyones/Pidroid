@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import enum
+
 from discord.embeds import Embed
 from discord.utils import escape_markdown
 from typing import Any
@@ -10,7 +12,7 @@ from pidroid.utils.embeds import PidroidEmbed
 URL_TO_USER = 'https://forum.theotown.com/memberlist.php?mode=viewprofile&u='
 
 
-class Platforms:
+class Platforms(enum.Enum):
     ANDROID = 1 << 0
     IOS     = 1 << 1 # noqa
     DESKTOP = 1 << 2
@@ -33,19 +35,18 @@ class Plugin:
     """This class represents a TheoTown plugin."""
 
     def __init__(self, data: dict[str, Any]):
-        self._download_url = None
-
         self.id: int = data['plugin_id']
         self.title: str = data['name']
         self.description: str = data['description']
         self.author = TheoTownUser(data['author_id'], data['username'])
         self.price: int = data['price']
         self.version: int = data['version']
-        self.revision_id = data['revision_id']
-        self._preview_file = data['preview_file']
+        self.revision_id: int = data['revision_id']
+        self._preview_file: str = data['preview_file']
         self.min_version: int = data['min_version']
         self._platforms: int = data['platforms']
-        self._demonetized: bool = data['demonetized'] == 1    
+        self._demonetized: bool = data['demonetized'] == 1
+        self.__download_count: int | None = data.get('download_count', None)
 
     @property
     def clean_title(self) -> str:
@@ -80,17 +81,17 @@ class Plugin:
     @property
     def is_on_android(self) -> bool:
         """Returns true if plugin is available on Android."""
-        return self._platforms & Platforms.ANDROID != 0
+        return self._platforms & Platforms.ANDROID.value != 0
 
     @property
     def is_on_ios(self) -> bool:
         """Returns true if plugin is available on iOS."""
-        return self._platforms & Platforms.IOS != 0
+        return self._platforms & Platforms.IOS.value != 0
 
     @property
     def is_on_desktop(self) -> bool:
         """Returns true if plugin is available on desktop."""
-        return self._platforms & Platforms.DESKTOP != 0
+        return self._platforms & Platforms.DESKTOP.value != 0
 
     def to_embed(self) -> Embed:
         """Returns a discord Embed object."""
@@ -112,6 +113,9 @@ class Plugin:
             .add_field(name='**Author**', value=author, inline=False)
         )
 
+        if self.__download_count is not None:
+            embed.add_field(name='**Downloads**', value=f'{self.__download_count:,}', inline=False)
+
         availability = "???"
         if self.is_ubiquitous:
             availability = "All platforms"
@@ -123,7 +127,7 @@ class Plugin:
             )
         embed.add_field(name="**Availability**", value=availability)
 
-        if self.min_version is not None and self.min_version != 0:
+        if self.min_version != 0:
             if self.min_version > 400:
                 min_version = format_version_code(self.min_version)
                 embed.add_field(name='**Minimal version required**', value=min_version)
