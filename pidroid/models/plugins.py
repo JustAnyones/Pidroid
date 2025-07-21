@@ -21,9 +21,12 @@ class Platforms(enum.Enum):
 class TheoTownUser:
     """This class represents a TheoTown user."""
 
-    def __init__(self, user_id: int, username: str):
+    def __init__(self, user_id: int, username: str | None):
         self.id = user_id
-        self.username = username
+        if username is None:
+            self.username = 'Former Member'
+        else:
+            self.username = username
 
     @property
     def url(self) -> str:
@@ -46,7 +49,7 @@ class Plugin:
         self.min_version: int = data['min_version']
         self._platforms: int = data['platforms']
         self._demonetized: bool = data['demonetized'] == 1
-        self.__download_count: int | None = data.get('download_count', None)
+        self.__download_count: int | None = data.get('downloads', None)
 
     @property
     def clean_title(self) -> str:
