@@ -20,8 +20,9 @@ from pidroid.models.categories import Category, register_categories
 from pidroid.models.event_types import EventName, EventType
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionManagementView
-from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
+from pidroid.modules.moderation.models.case import Case
+from pidroid.modules.moderation.models.types import PunishmentType2
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 from pidroid.utils.types import ConfigDict
@@ -99,6 +100,8 @@ class Pidroid(commands.Bot):
             'services.theotown.spam_detection',
             'services.theotown.spoiler_reactions',
             'services.theotown.suggestion_deletion',
+
+            'modules.moderation.commands',
 
             # Load the error handler last
             'services.error_handler',
@@ -218,14 +221,14 @@ class Pidroid(commands.Bot):
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of warning cases for specified guild and user."""
-        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType.warning]
+        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType2.WARNING]
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of active warning cases for specified guild and user."""
         return [
             c
             for c in await self.fetch_cases(guild_id, user_id)
-            if c.type == PunishmentType.warning and not c.has_expired
+            if c.type == PunishmentType2.WARNING and not c.has_expired
         ]
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> discord.Member | None:

@@ -1,5 +1,6 @@
 import ast
 import asyncio
+import logging
 import discord
 import inspect
 import textwrap
@@ -88,7 +89,8 @@ async def try_message_user(
     user: DiscordUser,
     *,
     content: str | None = None,
-    embed: discord.Embed | None = None
+    embed: discord.Embed | None = None,
+    view: discord.ui.View | None = None
 ) -> discord.Message | None:
     """Tries to send a message to the user in direct messages. Returns bool whether message was delivered successfully."""
     try:
@@ -98,6 +100,10 @@ async def try_message_user(
             message = await user.send(content=content)
         return message
     except Exception: # nosec
+        logging.getLogger("pidroid.utils").exception(
+            f"Failed to send message to user {user.id} ({user.name}) in DMs. "
+            "This is most likely because the user has DMs disabled."
+        )
         return None
 
 function_return_value = TypeVar("function_return_value")

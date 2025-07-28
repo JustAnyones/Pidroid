@@ -31,7 +31,7 @@ from discord.utils import format_dt
 from typing import TYPE_CHECKING, override
 
 from pidroid.models.plugins import Plugin
-from pidroid.models.punishments import Case
+from pidroid.modules.moderation.models.case import Case
 from pidroid.utils.embeds import PidroidEmbed
 
 if TYPE_CHECKING:
