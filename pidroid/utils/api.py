@@ -11,7 +11,7 @@ from pidroid.models.plugins import NewPlugin, Plugin
 from pidroid.models.accounts import TheoTownAccount
 from pidroid.models.translation import TranslationEntryDict
 from pidroid.modules.moderation.models.case import Case
-from pidroid.modules.moderation.models.types import PunishmentType2
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.db.expiring_thread import ExpiringThread
 from pidroid.utils.db.guild_configuration import GuildConfigurationTable
 from pidroid.utils.db.levels import LevelRewards, UserLevels
@@ -440,7 +440,7 @@ class API:
 
     async def expire_cases_by_type(
         self,
-        type: PunishmentType2,
+        type: PunishmentType,
         guild_id: int, user_id: int
     ) -> None:
         """Expires a case entry by making it expired using the specified type, user ID and guild ID."""
@@ -518,7 +518,7 @@ class API:
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
-        return await self.__is_currently_punished(PunishmentType2.JAIL.value, guild_id, user_id)
+        return await self.__is_currently_punished(PunishmentType.JAIL.value, guild_id, user_id)
 
     async def fetch_active_guild_bans(self, guild_id: int) -> list[Case]:
         """
@@ -539,7 +539,7 @@ class API:
                     # Explicit statement to know if case was already handled
                     PunishmentTable.handled == False,
 
-                    PunishmentTable.type == PunishmentType2.BAN.value,
+                    PunishmentTable.type == PunishmentType.BAN.value,
                     PunishmentTable.visible == True
                 )
             )

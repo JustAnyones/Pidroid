@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import datetime
 
-from discord import Embed, User
+from discord import Embed
 from discord.ext.commands import BadArgument
 from typing import TYPE_CHECKING
 
-from pidroid.modules.moderation.models.types import PunishmentType2
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import humanize, time_since, utcnow
 from pidroid.utils.types import DiscordUser
@@ -26,7 +26,7 @@ class Case:
         self.__api = api
         self.__id = data.id
         self.__case_id = data.case_id
-        self.__type = PunishmentType2[data.type.upper()]
+        self.__type = PunishmentType[data.type.upper()]
         self.__guild_id = data.guild_id
 
         self.__user_id = data.user_id
@@ -51,7 +51,7 @@ class Case:
         return self.__case_id
 
     @property
-    def type(self) -> PunishmentType2:
+    def type(self) -> PunishmentType:
         """Returns the type of the punishment."""
         return self.__type
 
@@ -126,7 +126,7 @@ class Case:
         """Invalidates the specified case.
 
         Note, this only works for warnings."""
-        if self.type != PunishmentType2.WARNING:
+        if self.type != PunishmentType.WARNING:
             raise BadArgument("Only warnings can be invalidated!")
         self.__date_expires = utcnow()
         self.__handled = True

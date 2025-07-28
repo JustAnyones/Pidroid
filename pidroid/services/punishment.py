@@ -6,7 +6,7 @@ from discord.ext import tasks, commands
 from typing import override
 
 from pidroid.client import Pidroid
-from pidroid.modules.moderation.models.types import PunishmentType2
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.aliases import DiscordUser
 
 logger = logging.getLogger("Pidroid")
@@ -31,7 +31,7 @@ class PunishmentService(commands.Cog):
             for guild in self.client.guilds:
                 bans = await self.client.api.fetch_active_guild_bans(guild.id)
                 for ban in bans:
-                    assert ban.type == PunishmentType2.BAN
+                    assert ban.type == PunishmentType.BAN
                     # Immediately expire the punishment as far as DB is concerned
                     await ban.expire()
                     # If user is not able to be resolved, just skip everything
@@ -71,7 +71,7 @@ class PunishmentService(commands.Cog):
     async def on_member_unban(self, guild: discord.Guild, user: DiscordUser) -> None:
         """Removes ban records from the database for an unbanned user."""
         await self.client.wait_until_ready()
-        await self.client.api.expire_cases_by_type(PunishmentType2.BAN, guild.id, user.id)
+        await self.client.api.expire_cases_by_type(PunishmentType.BAN, guild.id, user.id)
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
@@ -87,7 +87,7 @@ class PunishmentService(commands.Cog):
 
         if changed_roles[0].id == c.jail_role_id:
             if await self.client.api.is_currently_jailed(guild_id, after.id):
-                return await self.client.api.expire_cases_by_type(PunishmentType2.JAIL, guild_id, after.id)
+                return await self.client.api.expire_cases_by_type(PunishmentType.JAIL, guild_id, after.id)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(PunishmentService(client))
