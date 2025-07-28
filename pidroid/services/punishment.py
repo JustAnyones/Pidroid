@@ -35,11 +35,12 @@ class PunishmentService(commands.Cog):
                     # Immediately expire the punishment as far as DB is concerned
                     await ban.expire()
                     # If user is not able to be resolved, just skip everything
-                    if ban.user is None:
+                    banned_user = await self.client.get_or_fetch_user(ban.user_id)
+                    if banned_user is None:
                         continue
                     # Remove ban entry from Discord
                     with suppress(Exception):
-                        await guild.unban(ban.user, reason=f"Ban expired | Case #{ban.case_id}")
+                        await guild.unban(banned_user, reason=f"Ban expired | Case #{ban.case_id}")
         except Exception:
             logger.exception("An exception was encountered while trying remove expired bans")
 

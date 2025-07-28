@@ -343,9 +343,7 @@ class API:
             )
         r = result.scalar()
         if r:
-            c = Case(self)
-            await c._from_table(r)
-            return c
+            return Case(self, r)
         return None
 
     async def _fetch_case(self, guild_id: int, case_id: int) -> Case | None:
@@ -361,9 +359,7 @@ class API:
             )
         r = result.scalar()
         if r:
-            c = Case(self)
-            await c._from_table(r)
-            return c
+            return Case(self, r)
         return None
 
     async def fetch_guilds_user_was_punished_in(self, user_id: int) -> list[Guild]:
@@ -399,9 +395,7 @@ class API:
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
     
     async def fetch_cases_by_username(self, guild_id: int, username: str) -> list[Case]:
@@ -418,9 +412,7 @@ class API:
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
 
     async def update_case_by_internal_id(
@@ -553,9 +545,7 @@ class API:
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
 
     """Translation related"""
