@@ -26,7 +26,7 @@ from discord.utils import format_dt, get
 from pidroid.client import Pidroid
 from pidroid.constants import EMBED_COLOUR
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType2
+from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType
 from pidroid.modules.moderation.ui.modmenu.buttons import CancelPunishmentButton, ConfirmPunishmentButton, EditButton, ExpirationSelectionButton, PunishmentSelectionButton, ReasonSelectionButton
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
 from pidroid.utils.aliases import DiscordUser
@@ -43,7 +43,7 @@ class PunishmentInfo:
     moderator: DiscordUser
     target: DiscordUser
 
-    punishment_type: PunishmentType2 | None = None
+    punishment_type: PunishmentType | None = None
     punishment_mode: PunishmentMode = PunishmentMode.ISSUE
     reason: str | None = None
     expires_at: datetime.datetime | None = None
@@ -63,7 +63,7 @@ def create_section(title: str, value: str, button: Button[ModmenuView]) -> Secti
 
 class MenuContainer(Container["ModmenuView"]):
 
-    def add_punishment_type_part(self, punishment_type: PunishmentType2 | None, is_revocation: bool = False) -> None:
+    def add_punishment_type_part(self, punishment_type: PunishmentType | None, is_revocation: bool = False) -> None:
         """Adds a punishment type section to the container."""
         if punishment_type is None:
             self.add_item(TextDisplay("### Type\nSelect a punishment type"))
@@ -256,64 +256,64 @@ class ModmenuView(LayoutView):
         if self.__is_target_banned:
             buttons.append(
                 PunishmentSelectionButton[Self](
-                    "Unban", PunishmentType2.BAN, PunishmentMode.REVOKE,
-                    PunishmentType2.BAN.can_be_revoked(self.__ctx)
+                    "Unban", PunishmentType.BAN, PunishmentMode.REVOKE,
+                    PunishmentType.BAN.can_be_revoked(self.__ctx)
                 )
             )
         else:
             buttons.append(
                 PunishmentSelectionButton[Self](
-                    "Ban", PunishmentType2.BAN, PunishmentMode.ISSUE,
-                    PunishmentType2.BAN.can_be_issued(self.__ctx)
+                    "Ban", PunishmentType.BAN, PunishmentMode.ISSUE,
+                    PunishmentType.BAN.can_be_issued(self.__ctx)
                 )
             )
 
         # Kick button
         buttons.append(
             PunishmentSelectionButton[Self](
-                "Kick", PunishmentType2.KICK, PunishmentMode.ISSUE,
-                PunishmentType2.KICK.can_be_issued(self.__ctx) and is_member
+                "Kick", PunishmentType.KICK, PunishmentMode.ISSUE,
+                PunishmentType.KICK.can_be_issued(self.__ctx) and is_member
             )
         )
 
         # Jail button
         if self.__is_target_jailed:
             buttons.append(PunishmentSelectionButton[Self](
-                "Release from Jail", PunishmentType2.JAIL, PunishmentMode.REVOKE,
-                PunishmentType2.JAIL.can_be_revoked(self.__ctx) and is_member and self.__info.jail_role is not None
+                "Release from Jail", PunishmentType.JAIL, PunishmentMode.REVOKE,
+                PunishmentType.JAIL.can_be_revoked(self.__ctx) and is_member and self.__info.jail_role is not None
             ))
         else:
             buttons.append(PunishmentSelectionButton[Self](
-                "Jail", PunishmentType2.JAIL, PunishmentMode.ISSUE,
-                PunishmentType2.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
+                "Jail", PunishmentType.JAIL, PunishmentMode.ISSUE,
+                PunishmentType.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
             ))
             if is_guild_theotown(self.__ctx.guild):
                 buttons.append(PunishmentSelectionButton[Self](
-                    "Kidnap", PunishmentType2.JAIL, PunishmentMode.ISSUE,
-                    PunishmentType2.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
+                    "Kidnap", PunishmentType.JAIL, PunishmentMode.ISSUE,
+                    PunishmentType.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
                 ))
 
         # Timeout button
         if self.__is_target_timed_out:
             buttons.append(
                 PunishmentSelectionButton[Self](
-                    "Remove Timeout", PunishmentType2.TIMEOUT, PunishmentMode.REVOKE,
-                    PunishmentType2.TIMEOUT.can_be_revoked(self.__ctx) and is_member
+                    "Remove Timeout", PunishmentType.TIMEOUT, PunishmentMode.REVOKE,
+                    PunishmentType.TIMEOUT.can_be_revoked(self.__ctx) and is_member
                 )
             )
         else:
             buttons.append(
                 PunishmentSelectionButton[Self](
-                    "Timeout", PunishmentType2.TIMEOUT, PunishmentMode.ISSUE,
-                    PunishmentType2.TIMEOUT.can_be_issued(self.__ctx) and is_member
+                    "Timeout", PunishmentType.TIMEOUT, PunishmentMode.ISSUE,
+                    PunishmentType.TIMEOUT.can_be_issued(self.__ctx) and is_member
                 )
             )
 
         # Warn button
         buttons.append(
             PunishmentSelectionButton[Self](
-                "Warn", PunishmentType2.WARNING, PunishmentMode.ISSUE,
-                PunishmentType2.WARNING.can_be_issued(self.__ctx) and is_member
+                "Warn", PunishmentType.WARNING, PunishmentMode.ISSUE,
+                PunishmentType.WARNING.can_be_issued(self.__ctx) and is_member
             )
         )
 
@@ -379,7 +379,7 @@ class ModmenuView(LayoutView):
         self.__custom_container = Container(accent_color=accent_color)
         self.__custom_container.add_item(TextDisplay(f"### {title}\n{text}"))
 
-    def set_punishment_type(self, punishment_type: PunishmentType2, mode: PunishmentMode) -> None:
+    def set_punishment_type(self, punishment_type: PunishmentType, mode: PunishmentMode) -> None:
         """Sets the punishment type."""
         self.__info.punishment_type = punishment_type
         self.__info.punishment_mode = mode

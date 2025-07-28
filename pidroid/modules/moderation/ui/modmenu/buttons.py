@@ -6,7 +6,7 @@ from discord import Guild, ui, ButtonStyle, Interaction, Role
 from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypeVar, TypedDict, override
 
 from pidroid.models.exceptions import InvalidDuration
-from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType2, ExpiringPunishment, Jail2, RevokeablePunishment
+from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
 from pidroid.modules.moderation.ui.modmenu.modals import LengthModal, ReasonModal
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
 from pidroid.utils.aliases import DiscordUser
@@ -19,7 +19,7 @@ V = TypeVar('V', bound='ModmenuView', covariant=True)
 
 class PunishmentSelectionButton(ui.Button[V]):
     """Button to select the punishment type."""
-    def __init__(self, label: str, punishment_type: PunishmentType2, mode: PunishmentMode = PunishmentMode.ISSUE, enabled: bool = False):
+    def __init__(self, label: str, punishment_type: PunishmentType, mode: PunishmentMode = PunishmentMode.ISSUE, enabled: bool = False):
         super().__init__(label=label or punishment_type.name, style=ButtonStyle.secondary, disabled=not enabled)
         self.__punishment_type = punishment_type
         self.__mode = mode
@@ -128,7 +128,7 @@ class ExpirationSelectionButton(ValueButton[V]):
             
             # If the punishment is a timeout, we check if the duration is longer than 4 weeks
             # Discord does not allow timeouts longer than 4 weeks
-            if self.view.get_info().punishment_type == PunishmentType2.TIMEOUT:
+            if self.view.get_info().punishment_type == PunishmentType.TIMEOUT:
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
                     await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
                     return

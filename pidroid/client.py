@@ -22,7 +22,7 @@ from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionManagementView
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
 from pidroid.modules.moderation.models.case import Case
-from pidroid.modules.moderation.models.types import PunishmentType2
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 from pidroid.utils.types import ConfigDict
@@ -221,14 +221,14 @@ class Pidroid(commands.Bot):
 
     async def fetch_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of warning cases for specified guild and user."""
-        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType2.WARNING]
+        return [c for c in await self.fetch_cases(guild_id, user_id) if c.type == PunishmentType.WARNING]
 
     async def fetch_active_warnings(self, guild_id: int, user_id: int) -> list[Case]:
         """Returns a list of active warning cases for specified guild and user."""
         return [
             c
             for c in await self.fetch_cases(guild_id, user_id)
-            if c.type == PunishmentType2.WARNING and not c.has_expired
+            if c.type == PunishmentType.WARNING and not c.has_expired
         ]
 
     async def get_or_fetch_member(self, guild: Guild, member_id: int) -> discord.Member | None:

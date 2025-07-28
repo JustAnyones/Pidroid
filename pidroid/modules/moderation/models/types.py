@@ -49,7 +49,7 @@ class PunishmentOptions:
     supports_messages_deletion: bool = False
 
 
-class PunishmentType2(enum.Enum):
+class PunishmentType(enum.Enum):
     BAN = "ban"
     KICK = "kick"
     JAIL = "jail"
@@ -97,32 +97,32 @@ class PunishmentType2(enum.Enum):
         return constructor
     
 
-PUNISHMENT_ACTIONS: dict[PunishmentType2, PunishmentOptions] = {
-    PunishmentType2.BAN: PunishmentOptions(
+PUNISHMENT_ACTIONS: dict[PunishmentType, PunishmentOptions] = {
+    PunishmentType.BAN: PunishmentOptions(
         check_issue=lambda ctx: is_normal_moderator(ctx, ban_members=True) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
         check_revoke=lambda ctx: is_senior_moderator(ctx, ban_members=True) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
         supports_expiration=True, supports_messages_deletion=True
     ),
-    PunishmentType2.KICK: PunishmentOptions(
+    PunishmentType.KICK: PunishmentOptions(
         check_issue=lambda ctx: is_junior_moderator(ctx, kick_members=True) and member_has_guild_permission(ctx.me, "kick_members"), # pyright: ignore[reportArgumentType]
     ),
-    PunishmentType2.JAIL: PunishmentOptions(
+    PunishmentType.JAIL: PunishmentOptions(
         check_issue=lambda ctx: member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
         check_revoke=lambda ctx: member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
     ),
-    PunishmentType2.TIMEOUT: PunishmentOptions(
+    PunishmentType.TIMEOUT: PunishmentOptions(
         check_issue=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
         check_revoke=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
         supports_expiration=True
     ),
-    PunishmentType2.WARNING: PunishmentOptions(
+    PunishmentType.WARNING: PunishmentOptions(
         check_issue=lambda _: True, # Any moderator can warn
     ),
 }
 
 # Default reasons for punishments. Tuples are (name, description).
-DEFAULT_PUNISHMENT_REASONS: dict[PunishmentType2, list[tuple[str, str]]] = {
-    PunishmentType2.BAN: [
+DEFAULT_PUNISHMENT_REASONS: dict[PunishmentType, list[tuple[str, str]]] = {
+    PunishmentType.BAN: [
         ("Ignoring moderator's orders", "Ignoring moderator's orders."),
         ("Hacked content", "Sharing, spreading or using hacked content."),
         ("Offensive content or hate-speech", "Posting or spreading offensive content or hate-speech."),
@@ -133,7 +133,7 @@ DEFAULT_PUNISHMENT_REASONS: dict[PunishmentType2, list[tuple[str, str]]] = {
         ("Alternative account", "Alternative accounts are not allowed."),
         ("Underage user", "You are under the allowed age as defined in Discord's Terms of Service."),
     ],
-    PunishmentType2.KICK: [
+    PunishmentType.KICK: [
         ("Spam", "Spam."),
         ("Alternative account", "Alternative accounts are not allowed."),
         (
@@ -141,13 +141,13 @@ DEFAULT_PUNISHMENT_REASONS: dict[PunishmentType2, list[tuple[str, str]]] = {
             "You are under the allowed age as defined in Discord's Terms of Service. Please rejoin when you're older."
         ),
     ],
-    PunishmentType2.JAIL: [],
-    PunishmentType2.TIMEOUT: [
+    PunishmentType.JAIL: [],
+    PunishmentType.TIMEOUT: [
         ("Being emotional or upset", "Being emotional or upset."),
         ("Spam", "Spam."),
         ("Disrupting the chat", "Disrupting the chat."),
     ],
-    PunishmentType2.WARNING: [
+    PunishmentType.WARNING: [
         ("Spam", "Spam."),
         ("Failure to follow orders", "Failure to follow orders."),
         ("Failure to comply with verbal warning", "Failure to comply with a verbal warning."),
@@ -159,8 +159,8 @@ DEFAULT_PUNISHMENT_REASONS: dict[PunishmentType2, list[tuple[str, str]]] = {
 }
 
 # Default length of punishments. Tuples are (name, length). -1 means permanent.
-DEFAULT_PUNISHMENT_LENGTHS: dict[PunishmentType2, list[tuple[str, timedelta | Literal[-1]]]] = {
-    PunishmentType2.TIMEOUT: [
+DEFAULT_PUNISHMENT_LENGTHS: dict[PunishmentType, list[tuple[str, timedelta | Literal[-1]]]] = {
+    PunishmentType.TIMEOUT: [
         ("30 minutes", timedelta(minutes=30)),
         ("An hour", timedelta(hours=1)),
         ("2 hours", timedelta(hours=2)),
@@ -169,7 +169,7 @@ DEFAULT_PUNISHMENT_LENGTHS: dict[PunishmentType2, list[tuple[str, timedelta | Li
         ("A week", timedelta(weeks=1)),
         ("4 weeks (max)", timedelta(weeks=4)),
     ],
-    PunishmentType2.BAN: [
+    PunishmentType.BAN: [
         ("24 hours", timedelta(hours=24)),
         ("A week", timedelta(weeks=1)),
         ("2 weeks", timedelta(weeks=2)),
@@ -181,7 +181,7 @@ DEFAULT_PUNISHMENT_LENGTHS: dict[PunishmentType2, list[tuple[str, timedelta | Li
 
 def format_dm_embed(
     guild: Guild,
-    punishment_type: PunishmentType2,
+    punishment_type: PunishmentType,
     reason: Reason,
 ) -> Embed:
     """Creates an embed for the punishment revoke DM."""
@@ -193,7 +193,7 @@ def format_dm_embed(
 
 def format_dm_revoke_embed(
     guild: Guild,
-    punishment_type: PunishmentType2,
+    punishment_type: PunishmentType,
     reason: Reason
 ) -> Embed:
     """Creates an embed for the punishment revocation private message."""
@@ -292,7 +292,7 @@ class BasePunishment(IssueablePunishment, ABC):
 
     @property
     @abstractmethod
-    def punishment_type(self) -> PunishmentType2:
+    def punishment_type(self) -> PunishmentType:
         """Returns the type of the punishment."""
         pass
 
@@ -309,7 +309,7 @@ class BasePunishment(IssueablePunishment, ABC):
         embed.title = "Punishment Received"
         return embed
 
-    async def _expire_cases_by_type(self, type: PunishmentType2) -> None:
+    async def _expire_cases_by_type(self, type: PunishmentType) -> None:
         """Removes all punishments of specified type for the current user."""
         await self._api.expire_cases_by_type(type, self._guild.id, self._target.id)
 
@@ -343,9 +343,9 @@ class Kick2(BasePunishment):
 
     @property
     @override
-    def punishment_type(self) -> PunishmentType2:
+    def punishment_type(self) -> PunishmentType:
         """Returns the type of the punishment."""
-        return PunishmentType2.KICK
+        return PunishmentType.KICK
 
     @property
     def audit_log_issue_reason(self) -> str:
@@ -367,8 +367,8 @@ class Kick2(BasePunishment):
     @override
     async def _register_case(self) -> Case:
         # When we ban the user, we will remove their jail, mute punishments
-        await self._expire_cases_by_type(PunishmentType2.JAIL)
-        await self._expire_cases_by_type(PunishmentType2.MUTE)
+        await self._expire_cases_by_type(PunishmentType.JAIL)
+        await self._expire_cases_by_type(PunishmentType.MUTE)
         return await self._create_case_record()
 
     @override
@@ -405,8 +405,8 @@ class Warning2(BasePunishment, ExpiringPunishment):
 
     @property
     @override
-    def punishment_type(self) -> PunishmentType2:
-        return PunishmentType2.WARNING
+    def punishment_type(self) -> PunishmentType:
+        return PunishmentType.WARNING
 
     @property
     @override
@@ -449,8 +449,8 @@ class Ban2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
 
     @property
     @override
-    def punishment_type(self) -> PunishmentType2:
-        return PunishmentType2.BAN
+    def punishment_type(self) -> PunishmentType:
+        return PunishmentType.BAN
     
     @property
     def audit_log_issue_reason(self) -> str:
@@ -523,8 +523,8 @@ class Ban2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
     @override
     async def _register_case(self):
         # When we ban the user, we will remove their jail, mute punishments
-        await self._expire_cases_by_type(PunishmentType2.JAIL)
-        await self._expire_cases_by_type(PunishmentType2.MUTE)
+        await self._expire_cases_by_type(PunishmentType.JAIL)
+        await self._expire_cases_by_type(PunishmentType.MUTE)
         # Actually, Discord persists timeouts during bans
         return await self._create_case_record()
 
@@ -546,7 +546,7 @@ class Ban2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
     @override
     async def revoke(self) -> None:
         await self._guild.unban(self._target, reason=self.audit_log_revoke_reason)
-        await self._expire_cases_by_type(PunishmentType2.BAN)
+        await self._expire_cases_by_type(PunishmentType.BAN)
         await try_message_user(self._target, embed=self.private_revoke_embed)
 
 class Jail2(BasePunishment, RevokeablePunishment):
@@ -568,8 +568,8 @@ class Jail2(BasePunishment, RevokeablePunishment):
 
     @property
     @override
-    def punishment_type(self) -> PunishmentType2:
-        return PunishmentType2.JAIL
+    def punishment_type(self) -> PunishmentType:
+        return PunishmentType.JAIL
 
     @property
     def audit_log_issue_reason(self) -> str:
@@ -636,7 +636,7 @@ class Jail2(BasePunishment, RevokeablePunishment):
     async def revoke(self):
         assert isinstance(self._target, Member), "Target must be a Member instance"
         await self._target.remove_roles(self._jail_role, reason=self.audit_log_revoke_reason)
-        await self._expire_cases_by_type(PunishmentType2.JAIL)
+        await self._expire_cases_by_type(PunishmentType.JAIL)
         await try_message_user(
             self._target, embed=self.private_revoke_embed
         )
@@ -658,8 +658,8 @@ class Timeout2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
 
     @property
     @override
-    def punishment_type(self) -> PunishmentType2:
-        return PunishmentType2.TIMEOUT
+    def punishment_type(self) -> PunishmentType:
+        return PunishmentType.TIMEOUT
     
     @property
     def audit_log_issue_reason(self) -> str:
@@ -738,15 +738,15 @@ class Timeout2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
     async def revoke(self) -> None:
         assert isinstance(self._target, Member), "Target must be a Member instance"
         await self._target.edit(timed_out_until=None, reason=self.audit_log_revoke_reason)
-        await self._expire_cases_by_type(PunishmentType2.TIMEOUT)
+        await self._expire_cases_by_type(PunishmentType.TIMEOUT)
         await try_message_user(
             self._target, embed=self.private_revoke_embed
         )
 
-PUNISHMENT_CONSTRUCTORS: dict[PunishmentType2, type[BasePunishment]] = {
-    PunishmentType2.BAN: Ban2,
-    PunishmentType2.KICK: Kick2,
-    PunishmentType2.JAIL: Jail2,
-    PunishmentType2.TIMEOUT: Timeout2,
-    PunishmentType2.WARNING: Warning2,
+PUNISHMENT_CONSTRUCTORS: dict[PunishmentType, type[BasePunishment]] = {
+    PunishmentType.BAN: Ban2,
+    PunishmentType.KICK: Kick2,
+    PunishmentType.JAIL: Jail2,
+    PunishmentType.TIMEOUT: Timeout2,
+    PunishmentType.WARNING: Warning2,
 }
