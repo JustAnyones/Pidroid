@@ -7,7 +7,9 @@ requires-python = "~=3.12,<3.13"
 readme = "README.md"
 license = "MIT"
 dependencies = [
-    "discord.py>=2.5.2,<3",
+    #"discord.py>=2.5.2,<3",
+    # installed via uv add git+https://github.com/DA-344/d.py.git@feat/components-v2#egg=discord.py
+    "discord-py",
     "python-dateutil>=2.9.0.post0,<3",
     "sqlalchemy>=2.0.31,<3",
     "asyncpg>=0.30.0,<0.31",
@@ -55,3 +57,6 @@ ignore = ["alembic/versions"]
 reportMissingTypeStubs = false
 reportUnusedCallResult = false
 pythonVersion = "3.12"
+
+[tool.uv.sources]
+discord-py = { git = "https://github.com/DA-344/d.py.git", rev = "feat/components-v2" }
