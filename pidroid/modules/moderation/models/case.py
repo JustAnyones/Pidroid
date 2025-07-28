@@ -18,41 +18,22 @@ if TYPE_CHECKING:
 MAX_REASON_LENGTH = 512
 
 class Case:
-
-    if TYPE_CHECKING:
-        __user_id: int
-        __moderator_id: int
-
-        __user_name: str | None
-        __moderator_name: str | None
-
-        __user: User | None
-        __moderator: User | None
-
-        __reason: str | None
-        __date_issued: datetime.datetime
-        __date_expires: datetime.datetime | None
-
-        __visible: bool
-        __handled: bool
-
-    def __init__(self, api: API) -> None:
+    def __init__(
+        self,
+        api: API,
+        data: PunishmentTable
+    ) -> None:
         self.__api = api
-
-    async def _from_table(self, data: PunishmentTable):
-        self.__id: int = data.id
-        self.__case_id: int = data.case_id
-        self.__type: PunishmentType2 = PunishmentType2[data.type.upper()]
-        self.__guild_id: int = data.guild_id
+        self.__id = data.id
+        self.__case_id = data.case_id
+        self.__type = PunishmentType2[data.type.upper()]
+        self.__guild_id = data.guild_id
 
         self.__user_id = data.user_id
         self.__moderator_id = data.moderator_id
 
         self.__user_name = data.user_name
         self.__moderator_name = data.moderator_name
-
-        self.__user = await self.__api.client.get_or_fetch_user(self.__user_id)
-        self.__moderator = await self.__api.client.get_or_fetch_user(self.__moderator_id)
 
         self.__reason = data.reason
         self.__date_issued = data.issue_date
@@ -77,20 +58,12 @@ class Case:
     @property
     def user_name(self) -> str:
         """Returns user name. Priority is given to the one saved in the database."""
-        if self.__user:
-            return self.__user_name or str(self.__user)
         return self.__user_name or str(self.__user_id)
 
     @property
     def moderator_name(self) -> str:
         """Returns moderator name. Priority is given to the one saved in the database."""
-        if self.__moderator:
-            return self.__moderator_name or str(self.__moderator)
         return self.__moderator_name or str(self.__moderator_id)
-
-    @property
-    def user(self) -> User | None:
-        return self.__user
 
     @property
     def user_id(self) -> int:
