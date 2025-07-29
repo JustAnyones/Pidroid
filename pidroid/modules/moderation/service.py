@@ -9,7 +9,7 @@ from pidroid.client import Pidroid
 from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.aliases import DiscordUser
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.moderation.punishment_service")
 
 class PunishmentService(commands.Cog):
     """This class implements a cog for automatic punishment revocation and reassignment."""
