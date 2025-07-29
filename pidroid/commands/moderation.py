@@ -20,7 +20,6 @@ from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
 from pidroid.modules.core.ui.view import ReadonlyContainerView
 from pidroid.modules.moderation.models.types import Timeout2
-from pidroid.utils import user_mention
 from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
 from pidroid.utils.checks import is_guild_moderator
 from pidroid.utils.decorators import command_checks
@@ -28,8 +27,6 @@ from pidroid.utils.file import Resource
 from pidroid.utils.time import delta_to_datetime
 
 logger = logging.getLogger("pidroid.legacy-moderation")
-
-BUNNY_ID = 793465265237000212
 
 def is_not_pinned(message: Message):
     return not message.pinned
@@ -198,39 +195,6 @@ class ModerationCommandCog(commands.Cog):
                 accent_color=Color.red()
             ))
         )
-
-    @commands.command(
-        name="punish-bunny",
-        brief='Bans (times out) bunny for 4 weeks.',
-        hidden=True,
-        category=ModerationCategory
-    )
-    @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True)
-    @command_checks.is_junior_moderator(moderate_members=True)
-    @commands.guild_only()
-    async def punish_bunny_command(
-        self,
-        ctx: Context[Pidroid]
-    ):
-        assert ctx.guild
-        assert isinstance(ctx.message.author, Member)
-        assert isinstance(ctx.channel, MessageableGuildChannelTuple)
-
-        member = await self.client.get_or_fetch_member(ctx.guild, BUNNY_ID)
-
-        if member is None:
-            raise BadArgument("I could not find Bunny in this server.")
-
-        if member.top_role >= ctx.message.author.top_role:
-            raise BadArgument("Bunny is above or shares the same role with you, you cannot punish her!")
-
-        if member.top_role > ctx.guild.me.top_role:
-            raise BadArgument("Bunny is above me, I cannot punish her!")
-        
-        timed_out_until = delta_to_datetime(timedelta(weeks=4))
-
-        _ = await member.edit(reason=":)", timed_out_until=timed_out_until)
-        _ = await ctx.reply(f"{user_mention(BUNNY_ID)}, can you hear me now?")
 
 async def setup(client: Pidroid):
     await client.add_cog(ModerationCommandCog(client))
