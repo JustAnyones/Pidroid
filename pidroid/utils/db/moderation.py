@@ -96,13 +96,11 @@ class ModerationCase(Base):
         nullable=True, unique=True
     )
 
-    active_punishment: Mapped[ActivePunishment] = relationship(
-        foreign_keys=[managed_punishment_id],
-        uselist=False
+    active_punishment: Mapped[ActivePunishment | None] = relationship(
+        foreign_keys=[managed_punishment_id]
     )
-    revocation_data: Mapped[RevocationData] = relationship(
-        foreign_keys=[revocation_data_id],
-        uselist=False
+    revocation_data: Mapped[RevocationData | None] = relationship(
+        foreign_keys=[revocation_data_id]
     )
 
     # Whether this modlog was created due to an action outside of Pidroid
