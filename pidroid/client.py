@@ -86,7 +86,6 @@ class Pidroid(commands.Bot):
             'services.leveling',
             'services.logging',
             'services.presence',
-            'services.punishment',
             'services.reminders',
             'services.thread_archiver',
 
@@ -102,6 +101,7 @@ class Pidroid(commands.Bot):
             'services.theotown.suggestion_deletion',
 
             'modules.moderation.commands',
+            'modules.moderation.service',
 
             # Load the error handler last
             'services.error_handler',
