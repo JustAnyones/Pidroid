@@ -16,7 +16,8 @@ from pidroid.utils.db.expiring_thread import ExpiringThread
 from pidroid.utils.db.guild_configuration import GuildConfigurationTable
 from pidroid.utils.db.levels import LevelRewards, UserLevels
 from pidroid.utils.db.linked_account import LinkedAccount
-from pidroid.utils.db.punishment import PunishmentCounterTable, PunishmentTable
+from pidroid.utils.db.moderation import GuildCaseCounter, ModerationCase, ActivePunishment, RevocationData
+from pidroid.utils.db.punishment import PunishmentTable
 from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.db.tag import TagTable
 from pidroid.utils.db.translation import Translation
@@ -297,10 +298,10 @@ class API:
     ) -> Case:
         async with self.session() as session: 
             async with session.begin():
-                insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id).on_conflict_do_update(
-                    index_elements=[PunishmentCounterTable.guild_id],
-                    set_=dict(counter=PunishmentCounterTable.counter + 1)
-                ).returning(PunishmentCounterTable.counter)
+                insert_stmt = pg_insert(GuildCaseCounter).values(guild_id=guild_id).on_conflict_do_update(
+                    index_elements=[GuildCaseCounter.guild_id],
+                    set_=dict(counter=GuildCaseCounter.counter + 1)
+                ).returning(GuildCaseCounter.counter)
 
                 res = await session.execute(insert_stmt)
                 counter = res.scalar()
