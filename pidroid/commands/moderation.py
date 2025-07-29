@@ -5,10 +5,12 @@ import logging
 from datetime import timedelta
 from discord import (
     app_commands,
+    Color,
     File,
     Member,
     Message,
-    Object
+    Object,
+    ui
 )
 from discord.ext import commands
 from discord.ext.commands import BadArgument, Context
@@ -16,6 +18,7 @@ from typing import Callable
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import ModerationCategory
+from pidroid.modules.core.ui.view import ReadonlyContainerView
 from pidroid.modules.moderation.models.types import Timeout2
 from pidroid.utils import user_mention
 from pidroid.utils.aliases import MessageableGuildChannel, MessageableGuildChannelTuple
@@ -187,8 +190,14 @@ class ModerationCommandCog(commands.Cog):
             reason="Suspended communications",
             date_expire=delta_to_datetime(timedelta(days=7))
         )
-        await t.issue()
-        await ctx.reply(embed=t.public_issue_message)
+        c = await t.issue()
+        title=f"Punishment Issued (Case #{c.case_id})",
+        await ctx.reply(view=ReadonlyContainerView(
+            container=ui.Container(
+                ui.TextDisplay(f"### {title}\n{t.public_issue_message}"),
+                accent_color=Color.red()
+            ))
+        )
 
     @commands.command(
         name="punish-bunny",

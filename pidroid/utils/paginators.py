@@ -259,14 +259,14 @@ class CasePaginator(ListPageSource):
             return (
                 f"**Issued to:** {case.user_name} ({case.user_id})\n"
                 f"**Issued by:** {case.moderator_name}\n"
-                f"**Issued on:** {format_dt(case.date_issued)}\n"
-                f"**Expires on:** {expires}\n"
+                f"**Issued at:** {format_dt(case.date_issued)}\n"
+                f"**Expires at:** {expires}\n"
                 f"**Reason:** {case.clean_reason.capitalize()}"
             )
         return (
             f"**Issued by:** {case.moderator_name}\n"
-            f"**Issued on:** {format_dt(case.date_issued)}\n"
-            f"**Expires on:** {expires}\n"
+            f"**Issued at:** {format_dt(case.date_issued)}\n"
+            f"**Expires at:** {expires}\n"
             f"**Reason:** {case.clean_reason.capitalize()}"
         )
 
