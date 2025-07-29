@@ -6,18 +6,17 @@ from discord.ext import tasks, commands
 from typing import override
 
 from pidroid.client import Pidroid
-from pidroid.models.punishments import PunishmentType, Ban, Warning, Jail, Kick, Timeout
-from pidroid.utils import try_message_user
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.aliases import DiscordUser
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.moderation.punishment_service")
 
 class PunishmentService(commands.Cog):
     """This class implements a cog for automatic punishment revocation and reassignment."""
 
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
-        self.client = client
+        self.client: Pidroid = client
         _ = self.remove_expired_bans.start()
 
     @override
@@ -32,15 +31,16 @@ class PunishmentService(commands.Cog):
             for guild in self.client.guilds:
                 bans = await self.client.api.fetch_active_guild_bans(guild.id)
                 for ban in bans:
-                    assert ban.type == PunishmentType.ban
+                    assert ban.type == PunishmentType.BAN
                     # Immediately expire the punishment as far as DB is concerned
                     await ban.expire()
                     # If user is not able to be resolved, just skip everything
-                    if ban.user is None:
+                    banned_user = await self.client.get_or_fetch_user(ban.user_id)
+                    if banned_user is None:
                         continue
                     # Remove ban entry from Discord
                     with suppress(Exception):
-                        await guild.unban(ban.user, reason=f"Ban expired | Case #{ban.case_id}")
+                        await guild.unban(banned_user, reason=f"Ban expired | Case #{ban.case_id}")
         except Exception:
             logger.exception("An exception was encountered while trying remove expired bans")
 
@@ -71,7 +71,7 @@ class PunishmentService(commands.Cog):
     async def on_member_unban(self, guild: discord.Guild, user: DiscordUser) -> None:
         """Removes ban records from the database for an unbanned user."""
         await self.client.wait_until_ready()
-        await self.client.api.expire_cases_by_type(PunishmentType.ban, guild.id, user.id)
+        await self.client.api.expire_cases_by_type(PunishmentType.BAN, guild.id, user.id)
 
     @commands.Cog.listener()
     async def on_member_update(self, before: discord.Member, after: discord.Member) -> None:
@@ -87,53 +87,7 @@ class PunishmentService(commands.Cog):
 
         if changed_roles[0].id == c.jail_role_id:
             if await self.client.api.is_currently_jailed(guild_id, after.id):
-                return await self.client.api.expire_cases_by_type(PunishmentType.jail, guild_id, after.id)
-
-    """Listen to Pidroid punishment creations and send notifications."""
-
-    # Listeners
-    @commands.Cog.listener()
-    async def on_pidroid_ban_issue(self, ban: Ban):
-        pass
-
-    @commands.Cog.listener()
-    async def on_pidroid_ban_revoke(self, ban: Ban):
-        _ = await try_message_user(ban.user, embed=ban.private_message_revoke_embed)
-
-    @commands.Cog.listener()
-    async def on_pidroid_ban_expire(self, ban: Ban):
-        # TODO: implement
-        pass
-
-    @commands.Cog.listener()
-    async def on_pidroid_kick_issue(self, kick: Kick):
-        pass
-
-    @commands.Cog.listener()
-    async def on_pidroid_jail_issue(self, jail: Jail):
-        _ = await try_message_user(jail.user, embed=jail.private_message_issue_embed)
-
-    @commands.Cog.listener()
-    async def on_pidroid_jail_revoke(self, jail: Jail):
-        _ = await try_message_user(jail.user, embed=jail.private_message_revoke_embed)
-
-    @commands.Cog.listener()
-    async def on_pidroid_timeout_issue(self, timeout: Timeout):
-        _ = await try_message_user(timeout.user, embed=timeout.private_message_issue_embed)
-
-    @commands.Cog.listener()
-    async def on_pidroid_timeout_revoke(self, timeout: Timeout):
-        _ = await try_message_user(timeout.user, embed=timeout.private_message_revoke_embed)
-
-    @commands.Cog.listener()
-    async def on_pidroid_timeout_expire(self, timeout: Timeout):
-        # TODO: implement
-        pass
-
-    @commands.Cog.listener()
-    async def on_pidroid_warning_issue(self, warning: Warning):
-        _ = await try_message_user(warning.user, embed=warning.private_message_issue_embed)
-
+                return await self.client.api.expire_cases_by_type(PunishmentType.JAIL, guild_id, after.id)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(PunishmentService(client))

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from discord import Member, User, Guild, GroupChannel
+from discord import Member, NotFound, User, Guild, GroupChannel
 from discord.ext.commands import BotMissingPermissions, MissingPermissions, Context
 from discord.flags import flag_value
 from discord.utils import get
@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from pidroid.constants import THEOTOWN_DEVELOPERS, THEOTOWN_GUILD, PIDROID_ID
 from pidroid.models.exceptions import MissingUserPermissions
-from pidroid.utils.aliases import GuildChannel
+from pidroid.utils.aliases import DiscordUser, GuildChannel
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -127,7 +127,13 @@ def is_guild_theotown(guild: Guild | None) -> bool:
         return guild.id == THEOTOWN_GUILD
     return False
 
-
+async def is_user_banned(guild: Guild, user: DiscordUser) -> bool:
+    """Returns true if user is currently banned in the specified guild."""
+    try:
+        _ = await guild.fetch_ban(user)
+        return True
+    except NotFound:
+        return False
 
 
 class TheoTownChecks:
@@ -294,3 +300,27 @@ def assert_senior_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
             raise MissingUserPermissions('You need to be at least a senior moderator to run this command!')
         return
     assert_channel_permissions(ctx, **perms)
+
+def is_junior_moderator(ctx: Context[Pidroid], **perms: bool) -> bool:
+    """Returns whether the author is a junior moderator based on role in TheoTown and permissions in other guilds."""
+    try:
+        assert_junior_moderator_permissions(ctx, **perms)
+        return True
+    except (MissingUserPermissions, MissingPermissions):
+        return False
+
+def is_normal_moderator(ctx: Context[Pidroid], **perms: bool) -> bool:
+    """Returns whether the author is a normal moderator based on role in TheoTown and permissions in other guilds."""
+    try:
+        assert_normal_moderator_permissions(ctx, **perms)
+        return True
+    except (MissingUserPermissions, MissingPermissions):
+        return False
+
+def is_senior_moderator(ctx: Context[Pidroid], **perms: bool) -> bool:
+    """Returns whether the author is a senior moderator based on role in TheoTown and permissions in other guilds."""
+    try:
+        assert_senior_moderator_permissions(ctx, **perms)
+        return True
+    except (MissingUserPermissions, MissingPermissions):
+        return False

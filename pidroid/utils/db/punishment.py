@@ -6,13 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from pidroid.utils.db.base import Base
 
-class PunishmentCounterTable(Base):
-    __tablename__ = "PunishmentCounters"
-
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    guild_id: Mapped[int] = mapped_column(BigInteger, unique=True)
-    counter: Mapped[int] = mapped_column(BigInteger, server_default="1")
-
 class PunishmentTable(Base):
     __tablename__ = "Punishments"
 

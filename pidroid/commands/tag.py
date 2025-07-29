@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from discord import AllowedMentions, Attachment, File, Member, Message
 from discord.ext import commands
 from discord.ext.commands import Context
@@ -18,6 +20,8 @@ from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 from pidroid.utils.paginators import ListPageSource
 
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, users=False, roles=False, replied_user=False)
+
+NUMERATION_ESCAPE_REGEX = re.compile(r"(\d+)\.") # designed to escape it anywhere in the text
 
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
@@ -38,7 +42,7 @@ class TagListPaginator(ListPageSource):
         offset = menu._current_page * self.per_page + 1
         values = ""
         for i, item in enumerate(page):
-            values += f"{i + offset}. {item.name}\n"
+            values += f"{i + offset}. {NUMERATION_ESCAPE_REGEX.sub(r"\1\.", item.name)}\n"
         self.embed.description = values.strip()
         return self.embed
 

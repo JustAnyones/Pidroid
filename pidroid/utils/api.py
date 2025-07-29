@@ -8,14 +8,16 @@ from typing import TYPE_CHECKING, Any
 from pidroid.models.tags import Tag
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.plugins import NewPlugin, Plugin
-from pidroid.models.punishments import Case, PunishmentType
 from pidroid.models.accounts import TheoTownAccount
 from pidroid.models.translation import TranslationEntryDict
+from pidroid.modules.moderation.models.case import Case
+from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.db.expiring_thread import ExpiringThread
 from pidroid.utils.db.guild_configuration import GuildConfigurationTable
 from pidroid.utils.db.levels import LevelRewards, UserLevels
 from pidroid.utils.db.linked_account import LinkedAccount
-from pidroid.utils.db.punishment import PunishmentCounterTable, PunishmentTable
+from pidroid.utils.db.moderation import GuildCaseCounter, ModerationCase, ActivePunishment, RevocationData
+from pidroid.utils.db.punishment import PunishmentTable
 from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.db.tag import TagTable
 from pidroid.utils.db.translation import Translation
@@ -296,10 +298,10 @@ class API:
     ) -> Case:
         async with self.session() as session: 
             async with session.begin():
-                insert_stmt = pg_insert(PunishmentCounterTable).values(guild_id=guild_id).on_conflict_do_update(
-                    index_elements=[PunishmentCounterTable.guild_id],
-                    set_=dict(counter=PunishmentCounterTable.counter + 1)
-                ).returning(PunishmentCounterTable.counter)
+                insert_stmt = pg_insert(GuildCaseCounter).values(guild_id=guild_id).on_conflict_do_update(
+                    index_elements=[GuildCaseCounter.guild_id],
+                    set_=dict(counter=GuildCaseCounter.counter + 1)
+                ).returning(GuildCaseCounter.counter)
 
                 res = await session.execute(insert_stmt)
                 counter = res.scalar()
@@ -342,9 +344,7 @@ class API:
             )
         r = result.scalar()
         if r:
-            c = Case(self)
-            await c._from_table(r)
-            return c
+            return Case(self, r)
         return None
 
     async def _fetch_case(self, guild_id: int, case_id: int) -> Case | None:
@@ -360,9 +360,7 @@ class API:
             )
         r = result.scalar()
         if r:
-            c = Case(self)
-            await c._from_table(r)
-            return c
+            return Case(self, r)
         return None
 
     async def fetch_guilds_user_was_punished_in(self, user_id: int) -> list[Guild]:
@@ -398,9 +396,7 @@ class API:
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
     
     async def fetch_cases_by_username(self, guild_id: int, username: str) -> list[Case]:
@@ -417,9 +413,7 @@ class API:
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
 
     async def update_case_by_internal_id(
@@ -525,7 +519,7 @@ class API:
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
-        return await self.__is_currently_punished(PunishmentType.jail.value, guild_id, user_id)
+        return await self.__is_currently_punished(PunishmentType.JAIL.value, guild_id, user_id)
 
     async def fetch_active_guild_bans(self, guild_id: int) -> list[Case]:
         """
@@ -546,15 +540,13 @@ class API:
                     # Explicit statement to know if case was already handled
                     PunishmentTable.handled == False,
 
-                    PunishmentTable.type == PunishmentType.ban.value,
+                    PunishmentTable.type == PunishmentType.BAN.value,
                     PunishmentTable.visible == True
                 )
             )
         case_list: list[Case] = []
         for r in result.scalars():
-            c = Case(self)
-            await c._from_table(r)
-            case_list.append(c)
+            case_list.append(Case(self, r))
         return case_list
 
     """Translation related"""
