@@ -9,7 +9,7 @@ from pidroid.models.view import PidroidModal
 from pidroid.utils.checks import TheoTownChecks, is_guild_theotown, member_has_channel_permission
 from pidroid.utils.time import utcnow
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.persistent_views')
 
 MAX_REASON_LENGTH = 255
 
