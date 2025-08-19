@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, NotRequired, TypeVar, 
 
 from pidroid.models.exceptions import InvalidDuration
 from pidroid.modules.moderation.models.dataclass import PunishmentInfo
-from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
+from pidroid.modules.moderation.models.types import Ban2, PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
 from pidroid.modules.moderation.ui.modmenu.modals import LengthModal, ReasonModal
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
 from pidroid.utils.aliases import DiscordUser
@@ -201,6 +201,7 @@ class ConfirmPunishmentButton(ui.Button[V]):
             date_expire: NotRequired[datetime.datetime | None]
             jail_role:  NotRequired[Role]
             is_kidnapping: NotRequired[bool]
+            delete_message_days: NotRequired[int]
 
         kwargs: TypedKwargs = {
             "guild": info.guild,
@@ -220,6 +221,10 @@ class ConfirmPunishmentButton(ui.Button[V]):
             kwargs["jail_role"] = info.jail_role
             kwargs["is_kidnapping"] = info.is_kidnapping
 
+        # Ban requires delete_message_days parameter
+        # This is the number of days of messages to delete from the user
+        if punishment_constructor is Ban2:
+            kwargs["delete_message_days"] = info.delete_message_days
 
         # Construct the punishment object
         punishment = info.punishment_type.object_constructor(

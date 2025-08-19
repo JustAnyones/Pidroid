@@ -441,11 +441,16 @@ class Ban2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
         target: DiscordUser,
         moderator: DiscordUser,
         reason: str | None = None,
-        date_expire: DateExpire | None = None
+        date_expire: DateExpire | None = None,
+        delete_message_days: int = 1,
     ) -> None:
+        """
+        delete_message_days is the number of days of messages to delete from the user.
+        """
         super().__init__(api, guild=guild, target=target, moderator=moderator, reason=reason)
         self._date_expire: DateExpire | None = date_expire
         self._appeal_url: str | None = None
+        self.__delete_message_days = delete_message_days
 
     @property
     @override
@@ -535,7 +540,11 @@ class Ban2(BasePunishment, ExpiringPunishment, RevokeablePunishment):
             self._appeal_url = conf.appeal_url
         message = await try_message_user(self._target, embed=self.private_issue_embed)
         try:
-            await self._guild.ban(user=self._target, reason=self.audit_log_issue_reason, delete_message_days=1)
+            await self._guild.ban(
+                user=self._target,
+                reason=self.audit_log_issue_reason,
+                delete_message_days=self.__delete_message_days
+            )
         except Exception as e:
             if message:
                 await message.delete()
