@@ -16,7 +16,7 @@ from pidroid.models.logs import _ChannelData, _OverwriteData, _MemberRoleUpdateD
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.logging')
 
 class AuditLogDiffWrapper:
     def __init__(self, diff: AuditLogDiff, *, log: bool = False) -> None:
