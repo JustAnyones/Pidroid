@@ -107,7 +107,7 @@ class ModerationCase(Base):
     external: Mapped[bool] = mapped_column(Boolean, server_default="false")
 
 class RevocationData(Base):
-    __tablename__: str = 'RevocationDatas'
+    __tablename__: str = "RevocationDatas"
     
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     moderator_id: Mapped[int] = mapped_column(BigInteger)

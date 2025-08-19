@@ -25,7 +25,7 @@ from pidroid.modules.moderation.models.case import Case
 from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
-from pidroid.utils.types import ConfigDict
+from pidroid.utils.types import ConfigDict, VersionInfo
 
 if TYPE_CHECKING:
     from discord.types.threads import ThreadArchiveDuration
@@ -114,7 +114,7 @@ class Pidroid(commands.Bot):
         self._guild_prefix_cache_ready = asyncio.Event()
         self.__cached_guild_prefixes: dict[int, list[str]] = {}
 
-        self.client_version = __VERSION__
+        self.client_version: VersionInfo = __VERSION__
 
         self.command_categories: list[Category] = []
 
@@ -122,7 +122,7 @@ class Pidroid(commands.Bot):
 
         self.session = None
 
-        self.api = API(self, self.config["postgres_dsn"], self.debugging)
+        self.api: API = API(self, self.config["postgres_dsn"], self.debugging)
 
         self.__queues: dict[int, AbstractMessageQueue] = {}
         self.__tasks: list[tasks.Loop] = []

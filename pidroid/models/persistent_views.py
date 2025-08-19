@@ -11,8 +11,15 @@ from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('Pidroid')
 
-class SuggestionMarkContextModal(PidroidModal, title='Mark as modal'):
-    reason_input: TextInput[View] = TextInput(label="Mark as", placeholder="Please provide the reason you are closing this suggestion.")
+MAX_REASON_LENGTH = 255
+
+class SuggestionMarkContextModal(PidroidModal, title='Provide reason for closing'):
+    reason_input: TextInput[View] = TextInput(
+        label="Reason",
+        placeholder="Please provide the reason you are closing this suggestion.",
+        max_length=MAX_REASON_LENGTH,
+        style=discord.TextStyle.paragraph
+    )
 
 class PersistentSuggestionManagementView(View):
     def __init__(self):
@@ -74,8 +81,8 @@ class PersistentSuggestionManagementView(View):
 
         interaction = modal.interaction
         value = modal.reason_input.value
-        if len(value) > 255:
-            return await interaction.response.send_message("Keep the reason up to 255 characters.", ephemeral=True)
+        if len(value) > MAX_REASON_LENGTH:
+            return await interaction.response.send_message(f"Keep the reason up withib {MAX_REASON_LENGTH} characters.", ephemeral=True)
 
         await PersistentSuggestionManagementView.close_suggestion(
             message, str(interaction.user), value
