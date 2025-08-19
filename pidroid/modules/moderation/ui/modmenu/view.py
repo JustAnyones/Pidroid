@@ -4,28 +4,27 @@ import datetime
 import logging
 
 from collections.abc import Awaitable, Sequence
-from dataclasses import dataclass
-from typing import Callable, Self, override
-
 from discord import (
     Color,
-    Guild,
+    File,
     Interaction,
     Member,
     Message,
-    Role
 )
 from discord.ext.commands import BadArgument, Context
 from discord.ui import (
     ActionRow, Button, Container,
     Section, TextDisplay, Separator,
+    MediaGallery,
     LayoutView,
 )
 from discord.utils import format_dt, get
+from typing import Callable, Self, override
 
 from pidroid.client import Pidroid
 from pidroid.constants import EMBED_COLOUR
 from pidroid.models.guild_configuration import GuildConfiguration
+from pidroid.modules.moderation.models.dataclass import PunishmentInfo
 from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType
 from pidroid.modules.moderation.ui.modmenu.buttons import CancelPunishmentButton, ConfirmPunishmentButton, EditButton, ExpirationSelectionButton, PunishmentSelectionButton, ReasonSelectionButton
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
@@ -34,25 +33,6 @@ from pidroid.utils.api import API
 from pidroid.utils.checks import is_guild_theotown, is_user_banned
 
 logger = logging.getLogger("pidroid.moderation.modmenu")
-
-@dataclass
-class PunishmentInfo:
-    guild: Guild
-    channel_id: int
-
-    moderator: DiscordUser
-    target: DiscordUser
-
-    punishment_type: PunishmentType | None = None
-    punishment_mode: PunishmentMode = PunishmentMode.ISSUE
-    reason: str | None = None
-    expires_at: datetime.datetime | None = None
-
-    is_public: bool = True
-    delete_messages: bool = True
-
-    jail_role: Role | None = None
-    is_kidnapping: bool = False
 
 def create_section(title: str, value: str, button: Button[ModmenuView]) -> Section[ModmenuView]:
     """Creates a section with a title, value, and a button."""
@@ -163,6 +143,8 @@ class ModmenuView(LayoutView):
         self.__wizard = True
         # Custom container for the final view state
         self.__custom_container: Container[Self] | None = None
+        # Custom file to be sent with the final view state
+        self.__custom_attachments: list[File] = []
         # Stores information about the punishment being issued
         # Information stored here will be used to issue/revoke the punishment
         self.__info = PunishmentInfo(
@@ -376,12 +358,25 @@ class ModmenuView(LayoutView):
         if self.__menu_stage == MenuStage.CONFIRMATION:
             self.__wizard = False
 
-    def set_final_view(self, title: str, text: str, accent_color: Color | None = None) -> None:
+    def set_final_view(
+        self,
+        title: str,
+        text: str,
+        accent_color: Color | None = None,
+        file: File | None = None,
+    ) -> None:
         """Sets the final view contents."""
         if accent_color is None:
             accent_color = Color(EMBED_COLOUR)
         self.__custom_container = Container(accent_color=accent_color)
         self.__custom_container.add_item(TextDisplay(f"### {title}\n{text}"))
+        if file is not None:
+            self.__custom_container.add_item(
+                MediaGallery().add_item(
+                    media=file
+                )
+            )
+            self.__custom_attachments = [file]
 
     def set_punishment_type(self, punishment_type: PunishmentType, mode: PunishmentMode) -> None:
         """Sets the punishment type."""
@@ -443,11 +438,11 @@ class ModmenuView(LayoutView):
         self._build_view()
 
         if interaction:
-            await interaction.response.edit_message(view=self)
+            await interaction.response.edit_message(view=self, attachments=self.__custom_attachments)
             return
 
         if self.__message:
-            await self.__message.edit(view=self)
+            await self.__message.edit(view=self, attachments=self.__custom_attachments)
             return
         
         logger.error("refresh_view method requires an interaction to be passed, or a message to be set.")

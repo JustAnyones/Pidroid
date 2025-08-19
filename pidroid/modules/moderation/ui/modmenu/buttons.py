@@ -6,6 +6,7 @@ from discord import Guild, ui, ButtonStyle, Interaction, Role
 from typing import TYPE_CHECKING, Any, Callable, Literal, NotRequired, TypeVar, TypedDict, override
 
 from pidroid.models.exceptions import InvalidDuration
+from pidroid.modules.moderation.models.dataclass import PunishmentInfo
 from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
 from pidroid.modules.moderation.ui.modmenu.modals import LengthModal, ReasonModal
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
@@ -13,7 +14,7 @@ from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
 
 if TYPE_CHECKING:
-    from pidroid.modules.moderation.ui.modmenu.view import ModmenuView, PunishmentInfo
+    from pidroid.modules.moderation.ui.modmenu.view import ModmenuView
 
 V = TypeVar('V', bound='ModmenuView', covariant=True)
 
@@ -230,7 +231,8 @@ class ConfirmPunishmentButton(ui.Button[V]):
             case = await punishment.issue()
             self.view.set_final_view(
                 title=f"Punishment Issued (Case #{case.case_id})",
-                text=punishment.public_issue_message
+                text=punishment.public_issue_message,
+                file=punishment.public_issue_file
             )
         else:
             assert isinstance(punishment, RevokeablePunishment), "Revoke mode can only be used with revokeable punishments."
