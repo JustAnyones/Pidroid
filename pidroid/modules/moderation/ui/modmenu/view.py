@@ -288,9 +288,13 @@ class ModmenuView(LayoutView):
                 PunishmentType.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
             ))
             if is_guild_theotown(self.__ctx.guild):
+                def mark_as_kidnapping(info: PunishmentInfo) -> None:
+                    """Callback to mark the punishment as kidnapping."""
+                    info.is_kidnapping = True
                 buttons.append(PunishmentSelectionButton[Self](
                     "Kidnap", PunishmentType.JAIL, PunishmentMode.ISSUE,
-                    PunishmentType.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None
+                    PunishmentType.JAIL.can_be_issued(self.__ctx) and is_member and self.__info.jail_role is not None,
+                    callback=mark_as_kidnapping
                 ))
 
         # Timeout button

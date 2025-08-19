@@ -11,7 +11,7 @@ from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('pidroid.persistent_views')
 
-MAX_REASON_LENGTH = 255
+MAX_REASON_LENGTH = 400
 
 class SuggestionMarkContextModal(PidroidModal, title='Provide reason for closing'):
     reason_input: TextInput[View] = TextInput(

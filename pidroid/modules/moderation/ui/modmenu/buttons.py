@@ -3,7 +3,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
 from discord import Guild, ui, ButtonStyle, Interaction, Role
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypeVar, TypedDict, override
+from typing import TYPE_CHECKING, Any, Callable, Literal, NotRequired, TypeVar, TypedDict, override
 
 from pidroid.models.exceptions import InvalidDuration
 from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
@@ -13,21 +13,38 @@ from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
 
 if TYPE_CHECKING:
-    from pidroid.modules.moderation.ui.modmenu.view import ModmenuView
+    from pidroid.modules.moderation.ui.modmenu.view import ModmenuView, PunishmentInfo
 
 V = TypeVar('V', bound='ModmenuView', covariant=True)
 
 class PunishmentSelectionButton(ui.Button[V]):
     """Button to select the punishment type."""
-    def __init__(self, label: str, punishment_type: PunishmentType, mode: PunishmentMode = PunishmentMode.ISSUE, enabled: bool = False):
+    def __init__(
+        self,
+        label: str,
+        punishment_type: PunishmentType, mode: PunishmentMode = PunishmentMode.ISSUE,
+        enabled: bool = False,
+        callback: Callable[[PunishmentInfo], None] | None = None
+    ):
+        """
+        Initializes a button to select a punishment type.
+
+        Callback is a function that takes PunishmentInfo and returns None.
+        Called just before the view is refreshed, useful to set additional
+        information in PunishmentInfo, such as is_kidnapping.
+        """
+
         super().__init__(label=label or punishment_type.name, style=ButtonStyle.secondary, disabled=not enabled)
         self.__punishment_type = punishment_type
         self.__mode = mode
+        self.__callback = callback
 
     @override
     async def callback(self, interaction: Interaction):
         assert self.view
         self.view.set_punishment_type(self.__punishment_type, self.__mode)
+        if self.__callback:
+            self.__callback(self.view.get_info())
         await self.view.refresh_view(interaction)
 
 
