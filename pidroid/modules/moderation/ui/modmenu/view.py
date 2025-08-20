@@ -26,7 +26,7 @@ from pidroid.constants import EMBED_COLOUR
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.modules.moderation.models.dataclass import PunishmentInfo
 from pidroid.modules.moderation.models.types import PunishmentMode, PunishmentType
-from pidroid.modules.moderation.ui.modmenu.buttons import CancelPunishmentButton, ConfirmPunishmentButton, EditButton, ExpirationSelectionButton, PunishmentSelectionButton, ReasonSelectionButton
+from pidroid.modules.moderation.ui.modmenu.buttons import CancelPunishmentButton, ConfirmPunishmentButton, DeleteMessageDaysSelectionButton, EditButton, ExpirationSelectionButton, PunishmentSelectionButton, ReasonSelectionButton
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
 from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.api import API
@@ -63,8 +63,8 @@ class MenuContainer(Container["ModmenuView"]):
             title="Reason",
             value=reason_value,
             button=EditButton(
-                stage=MenuStage.REASON_EDIT,
-                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.REASON_EDIT
+                stage=MenuStage.EDIT_REASON,
+                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_REASON
             )
         ))
         self.add_item(Separator())
@@ -78,8 +78,27 @@ class MenuContainer(Container["ModmenuView"]):
             title="Expires at",
             value=expires_value,
             button=EditButton(
-                stage=MenuStage.EXPIRES_EDIT,
-                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EXPIRES_EDIT
+                stage=MenuStage.EDIT_DATE_EXPIRE,
+                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_DATE_EXPIRE
+            )
+        ))
+        self.add_item(Separator())
+
+    def add_delete_message_days_part(self, view: "ModmenuView", days: int) -> None:
+        value_as_str = f"Messages that were made {days} "
+        if days == 0:
+            value_as_str = "No messages will be deleted"
+        elif days == 1:
+            value_as_str += "day ago"
+        else:
+            value_as_str += "days ago"
+
+        self.add_item(create_section(
+            title="Delete messages after ban",
+            value=value_as_str,
+            button=EditButton(
+                stage=MenuStage.EDIT_DELETE_MESSAGE_DAYS,
+                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_DELETE_MESSAGE_DAYS
             )
         ))
         self.add_item(Separator())
@@ -104,9 +123,14 @@ class MenuContainer(Container["ModmenuView"]):
         # If we have punishment type, we can add the reason and expires sections
         if info.punishment_type:
             container.add_reason_part(view, info.reason)
+
             # If punishment type supports expiration, we can add the expires section
             if info.punishment_type.options.supports_expiration and not is_revocation:
                 container.add_expires_part(view, info.expires_at)
+
+            # If punishment is ban, we can add an option to select how many days of messages to delete
+            if info.punishment_type == PunishmentType.BAN and not is_revocation:
+                container.add_delete_message_days_part(view, info.delete_message_days)
 
         # Informative footer section
         if view.get_stage() == MenuStage.TIMED_OUT:
@@ -174,7 +198,6 @@ class ModmenuView(LayoutView):
             self.__ctx.message.id,
             self.__ctx.message.jump_url
         )
-
 
         # Get the jail role if it exists
         if self.__configuration.jail_role_id is not None:
@@ -317,7 +340,7 @@ class ModmenuView(LayoutView):
             return self.get_punishment_buttons() + [CancelPunishmentButton[Self]()]
         
         # If we are in the reason edit stage, we return the reason selection buttons
-        if self.__menu_stage == MenuStage.REASON_EDIT:
+        if self.__menu_stage == MenuStage.EDIT_REASON:
             assert self.__info.punishment_type
             return [ReasonSelectionButton[Self](label, value) for label, value in self.__info.punishment_type.reasons] + [
                 ReasonSelectionButton[Self](None, None),  # Custom reason button
@@ -325,10 +348,19 @@ class ModmenuView(LayoutView):
             ]
         
         # If we are in the expires edit stage, we return the expiration selection buttons
-        if self.__menu_stage == MenuStage.EXPIRES_EDIT:
+        if self.__menu_stage == MenuStage.EDIT_DATE_EXPIRE:
             assert self.__info.punishment_type
             return [ExpirationSelectionButton[Self](label, value) for label, value in self.__info.punishment_type.lengths] + [
                 ExpirationSelectionButton[Self](None, None),  # Custom length button
+                CancelPunishmentButton[Self]()
+            ]
+
+        if self.__menu_stage == MenuStage.EDIT_DELETE_MESSAGE_DAYS:
+            return [
+                DeleteMessageDaysSelectionButton[Self]("Don't delete messages", 0),
+                DeleteMessageDaysSelectionButton[Self]("Last day", 1),
+                DeleteMessageDaysSelectionButton[Self]("Last week", 7),
+                DeleteMessageDaysSelectionButton[Self](None, None),
                 CancelPunishmentButton[Self]()
             ]
         
@@ -372,7 +404,7 @@ class ModmenuView(LayoutView):
         self.__custom_container.add_item(TextDisplay(f"### {title}\n{text}"))
         if file is not None:
             self.__custom_container.add_item(
-                MediaGallery().add_item(
+                MediaGallery[Self]().add_item(
                     media=file
                 )
             )
@@ -385,7 +417,7 @@ class ModmenuView(LayoutView):
         if not self.__wizard or mode == PunishmentMode.REVOKE:
             self.set_stage(MenuStage.CONFIRMATION)
             return
-        self.set_stage(MenuStage.REASON_EDIT)
+        self.set_stage(MenuStage.EDIT_REASON)
 
     def set_punishment_reason(self, reason: str) -> None:
         """Sets the punishment reason."""
@@ -396,13 +428,18 @@ class ModmenuView(LayoutView):
             return
         
         if self.__info.punishment_type.options.supports_expiration:
-            self.set_stage(MenuStage.EXPIRES_EDIT)
+            self.set_stage(MenuStage.EDIT_DATE_EXPIRE)
         else:
             self.set_stage(MenuStage.CONFIRMATION)
 
     def set_punishment_expires_at(self, expires_at: datetime.datetime | None) -> None:
         """Sets the punishment expiration time."""
         self.__info.expires_at = expires_at
+        self.set_stage(MenuStage.CONFIRMATION)
+
+    def set_punishment_delete_message_days(self, days: int) -> None:
+        """Sets the days to delete messages from for the punishment."""
+        self.__info.delete_message_days = days
         self.set_stage(MenuStage.CONFIRMATION)
 
     @override

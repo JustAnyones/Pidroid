@@ -728,7 +728,7 @@ class SettingCommandCog(commands.Cog):
         prefixes = config.prefixes or self.client.prefixes
         prefix_str = '**, **'.join(prefixes)
 
-        return await ctx.reply(f"My prefixes are: **{prefix_str}**")
+        return await ctx.reply(f"My prefixes are: **{prefix_str}** and can be changed via `{prefixes[0]}configure` command.")
 
 async def setup(client: Pidroid):
     await client.add_cog(SettingCommandCog(client))

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Literal, NotRequired, TypeVar, 
 from pidroid.models.exceptions import InvalidDuration
 from pidroid.modules.moderation.models.dataclass import PunishmentInfo
 from pidroid.modules.moderation.models.types import Ban2, PunishmentMode, PunishmentType, ExpiringPunishment, Jail2, RevokeablePunishment
-from pidroid.modules.moderation.ui.modmenu.modals import LengthModal, ReasonModal
+from pidroid.modules.moderation.ui.modmenu.modals import DeleteMessageDaysModal, LengthModal, ReasonModal
 from pidroid.modules.moderation.ui.modmenu.stage import MenuStage
 from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relativedelta, utcnow
@@ -124,7 +124,7 @@ class ExpirationSelectionButton(ValueButton[V]):
             value, interaction, timed_out = await self.custom_modal(interaction)
 
             if timed_out:
-                await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
                 return
 
             if value is None:
@@ -165,6 +165,50 @@ class ExpirationSelectionButton(ValueButton[V]):
         self.view.set_punishment_expires_at(value)
         await self.view.refresh_view(interaction)
 
+class DeleteMessageDaysSelectionButton(ValueButton[V]):
+    """Button to select days of messages to delete for the punishment."""
+    def __init__(self, label: str | None, value: int | None):
+        super().__init__(label, value)
+        self.value: int | None = value
+
+    async def custom_modal(self, interaction: Interaction) -> tuple[str | None, Interaction, bool]:
+        """Opens a modal to input a custom day count for the punishment."""
+        modal = DeleteMessageDaysModal()
+        await interaction.response.send_modal(modal)
+        timed_out = await modal.wait()
+        return modal.length_input.value, modal.interaction, timed_out
+
+    @override
+    async def callback(self, interaction: Interaction) -> None:
+        assert self.view
+        value = self.value
+        if value is None:
+            value, interaction, timed_out = await self.custom_modal(interaction)
+
+            if timed_out:
+                await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
+                return
+
+            if value is None:
+                await interaction.response.send_message("Value cannot be empty!", ephemeral=True)
+                return
+
+            try:
+                value = int(value)
+            except ValueError as e:
+                await interaction.response.send_message("Invalid number", ephemeral=True)
+                return
+            
+            if not(0 <= value <= 7):
+                await interaction.response.send_message("Must be between 0 and 7 days", ephemeral=True)
+                return
+
+        if self.view.is_finished():
+            await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            return
+        
+        self.view.set_punishment_delete_message_days(value)
+        await self.view.refresh_view(interaction)
 
 class CancelPunishmentButton(ui.Button[V]):
     """Button to cancel the punishment."""
