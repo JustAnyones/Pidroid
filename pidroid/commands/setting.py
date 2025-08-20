@@ -4,20 +4,19 @@ import discord
 import logging
 import re
 
+from collections.abc import Sequence
 from contextlib import suppress
 from discord import AllowedMentions, Colour, Interaction, NotFound, TextChannel, Role
-from discord.emoji import Emoji
-from discord.enums import ButtonStyle
 from discord.ext import commands
 from discord.ext.commands.context import Context
 from discord.ext.commands.errors import BadArgument
-from discord.partial_emoji import PartialEmoji
-from typing import TYPE_CHECKING, override
+from typing import Generic, TypeVar, override
 
 from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, BotCategory
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.models.setting_ui import BooleanSetting, ChannelSetting, NumberSetting, ReadonlySetting, RoleSetting, Submenu, TextButton, TextModal, TextSetting
+from pidroid.modules.core.ui.opt.impl import BooleanOptionImpl, ChannelOptionImpl, FloatOptionImpl, RoleOptionImpl, StringButton, StringOptionImpl
+from pidroid.modules.core.ui.opt.option import BooleanOption, ChannelOption, FloatOption, Option, ReadonlyOption, RoleOption, StringOption
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 
 logger = logging.getLogger('Pidroid')
@@ -35,38 +34,25 @@ URL_REGEX = re.compile((
 
 FORBIDDEN_PREFIXES = [',', '\\', '/']
 
-class ChangePrefixesButton(TextButton):
+RV = TypeVar('RV')  # Return value of the button callback
+V = TypeVar('V', bound='discord.ui.view.BaseView', covariant=True)
 
-    def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
-        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
-
-    @override
-    def create_modal(self) -> TextModal:
-        modal = TextModal(title=self.label, timeout=120)
-        _ = modal.add_item(discord.ui.TextInput(
-            label="Prefixes", placeholder="Provide uh, anyway",
-            required=False
-        ))
-        return modal
+class NewChangePrefixesButton(StringButton[V, list[str]]):
 
     @override
-    async def handle_input(self, modal: TextModal):
-        raw_value = modal.children[0].value.strip()
+    async def handle_value(self, value: str) -> tuple[list[str], str | None]:
+        value, err = self.parse_string_value(value)
+        if err:
+            return [], err
+        assert value
 
-        if raw_value == ",":
-            return await modal.interaction.response.send_message(
-                "Comma is a forbidden character.",
-                ephemeral=True
-            )
-
-        split_values = raw_value.split(',')
+        if value == ",":
+            return [], "Comma is used as a separator, please use another character."
+        split_values = value.split(',')
         
         # Limit prefixes
         if len(split_values) > 5:
-            return await modal.interaction.response.send_message(
-                "You can only define up to 5 prefixes.",
-                ephemeral=True
-            )
+            return [], "You can only define up to 5 prefixes."
         
         cleaned_prefixes: list[str] = []
         for value in split_values:
@@ -74,197 +60,201 @@ class ChangePrefixesButton(TextButton):
             if stripped == "":
                 continue
             if stripped in FORBIDDEN_PREFIXES:
-                return await modal.interaction.response.send_message(
-                    f"'{stripped}' is a forbidden character.",
-                    ephemeral=True
-                )
+                return [], f"'{stripped}' cannot be used as a prefix."
             if len(stripped) > 5:
-                return await modal.interaction.response.send_message(
-                    f"For best user experience, please keep prefix '{stripped}' below 5 characters.",
-                    ephemeral=True
-                )
+                return [], f"For best user experience, please keep prefix '{stripped}' below 5 characters."
             cleaned_prefixes.append(stripped)
             
         if len(cleaned_prefixes) == 0:
-            return await modal.interaction.response.send_message(
-                "You did not specify any valid prefixes.",
-                ephemeral=True
-            )
+            return [], "You did not specify any valid prefixes."
 
-        await self._callback(cleaned_prefixes)
-        await self.view.refresh_menu(modal.interaction)
+        return cleaned_prefixes, None
 
-
-class ChangeBanAppealUrlButton(TextButton):
-
-    def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
-        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
+class NewChangeBanAppealUrlButton(StringButton[V, str]):
 
     @override
-    def create_modal(self) -> TextModal:
-        modal = TextModal(title=self.label, timeout=120)
-        _ = modal.add_item(discord.ui.TextInput(
-            label="Ban appeal URL", placeholder="Provide a valid url or nothing to remove it.",
-            required=False
-        ))
-        return modal
-
-    @override
-    async def handle_input(self, modal: TextModal):
-        url = modal.children[0].value.strip()
-
-        # Clear URL
-        if url == '':
-            await self._callback(None)
-            return await self.view.refresh_menu(modal.interaction)
+    async def handle_value(self, value: str) -> tuple[str, str | None]:
+        value, err = self.parse_string_value(value)
+        if err:
+            return "", err
+        
+        # Empty values are allowed as it's used to unset it
+        if value == '':
+            return value, None
 
         # If URL is valid
-        if re.search(URL_REGEX, url):
-            await self._callback(url)
-            return await self.view.refresh_menu(modal.interaction)
-
+        if re.search(URL_REGEX, value):
+            return value, None
+        
         # If URL is not valid
-        await modal.interaction.response.send_message(
-            "The URL that you have provided is not a valid URL.",
-            ephemeral=True
-        )
+        return "", "The URL that you have provided is not a valid URL."
 
-class XpMultiplierButton(TextButton):
 
-    def __init__(self, *, style: ButtonStyle = ButtonStyle.secondary, label: str | None = None, disabled: bool = False, emoji: str | Emoji | PartialEmoji | None = None, callback):
-        super().__init__(style=style, label=label, disabled=disabled, emoji=emoji, callback=callback)
+class Submenu(Generic[V]):
 
-    @override
-    def create_modal(self) -> TextModal:
-        modal = TextModal(title=self.label, timeout=120)
-        _ = modal.add_item(discord.ui.TextInput(
-            label="XP multiplier", placeholder="Provide a floating point value between 0 and 2."
-        ))
-        return modal
+    def __init__(self, *, name: str, description: str, view: V, settings: Sequence[Option[V]]) -> None:
+        self.__name = name
+        self.__description = description
+        self.view: V = view
+        self.__settings = settings
 
-    @override
-    async def handle_input(self, modal: TextModal):
-        value = modal.children[0].value.strip().replace(",", ".")
+    @property
+    def embed(self) -> PidroidEmbed:
+        embed = PidroidEmbed(title=self.__name, description=self.__description)
+        assert embed.description
+        for setting in self.__settings:
+            if setting.description:
+                embed.description += f"\n- {setting.name}: {setting.description}"
+            embed.add_field(name=setting.name, value=setting.value_as_str)
+        embed.set_footer(text="Any change that you make here will be applied instantly.")
+        return embed
+    
+    @property
+    def items(self) -> list[discord.ui.Item[V]]:
+        return [
+            setting.as_item()
+            for setting in self.__settings
+            if not isinstance(setting, ReadonlyOption)
+        ]
 
-        # Try converting value into a float
-        try:
-            value_as_float = float(value)
-        except ValueError:
-            return await modal.interaction.response.send_message(
-                "The value that you entered is not a valid float.",
-                ephemeral=True
-            )
-        
-        # If value is outside the range
-        if value_as_float > 2 or value_as_float < 0:
-            return await modal.interaction.response.send_message(
-                "Value is outside the specified range of 0 ≤ x ≤ 2",
-                ephemeral=True
-            )
-        
-        # Otherwise, accept it
-        await self._callback(round(value_as_float, 2))
-        await self.view.refresh_menu(modal.interaction)
-
-class SubmenuSelect(discord.ui.Select):
-
-    if TYPE_CHECKING:
-        view: GuildConfigurationView
+class SubmenuSelect(discord.ui.Select['GuildConfigurationView']):
 
     def __init__(self) -> None:
         super().__init__(placeholder="Select submenu", options=SUBMENU_OPTIONS)
 
     @override
     async def callback(self, interaction: Interaction):
+        assert self.view is not None
         success = await self.view.change_menu(interaction, self.values[0])
         if not success:
             await interaction.response.send_message("You selected a menu that does not exist!", ephemeral=True)
 
-class CloseButton(discord.ui.Button):
-
-    if TYPE_CHECKING:
-        view: GuildConfigurationView
+class CloseButton(discord.ui.Button['GuildConfigurationView']):
 
     def __init__(self):
         super().__init__(style=discord.ButtonStyle.red, label="Close")
 
     @override
     async def callback(self, interaction: Interaction):
+        assert self.view is not None
         await self.view.close_interface(interaction)
 
-class GeneralSubmenu(Submenu):
 
-    def __init__(self, *, configuration: GuildConfiguration) -> None:
+class GeneralSubmenu(Submenu['GuildConfigurationView']):
+
+    def __init__(self, *, view: GuildConfigurationView, configuration: GuildConfiguration) -> None:
         prefixes = configuration.prefixes or configuration.api.client.prefixes
+
+        async def change_prefixes_callback(interaction: Interaction, prefixes: list[str]):
+            await configuration.edit(prefixes=prefixes)
+            await view.refresh_menu(interaction)
+
+        async def toggle_tag_management_callback(interaction: Interaction):
+            await configuration.edit(public_tags=not configuration.public_tags)
+            await view.refresh_menu(interaction)
+
         settings=[
-            TextSetting(
-                cls=ChangePrefixesButton,
+            StringOption(
                 name="Prefixes",
                 value=', '.join(prefixes),
-                label="Change prefixes",
-                callback=lambda prefixes: configuration.edit(prefixes=prefixes),
+                impl=StringOptionImpl[GuildConfigurationView, list[str]](
+                    cls=NewChangePrefixesButton,
+                    label="Change prefixes",
+                    modal_title="Change command prefixes",
+                    placeholder="Provide a comma-separated list of prefixes. E.g. !, ?, P, TT",
+                ),
+                callback=change_prefixes_callback,  
             ),
-            BooleanSetting(
+            BooleanOption(
                 name="Everyone can manage tags",
                 value=configuration.public_tags,
-                label_true="Allow everyone to manage tags",
-                label_false="Don't allow everyone to manage tags",
-                callback=lambda: configuration.edit(
-                    public_tags=not configuration.public_tags
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Allow everyone to manage tags",
+                    label_false="Don't allow everyone to manage tags"
                 ),
+                callback=toggle_tag_management_callback,
             ),
         ]
         super().__init__(
             name="General settings",
             description="This submenu contains general settings related to the functioning of Pidroid within this server.",
+            view=view,
             settings=settings
         )
 
-class ModerationSubmenu(Submenu):
+class ModerationSubmenu(Submenu['GuildConfigurationView']):
 
-    def __init__(self, *, configuration: GuildConfiguration) -> None:
+    def __init__(self, *, view: GuildConfigurationView, configuration: GuildConfiguration) -> None:
+        assert configuration.guild is not None
+
+        async def change_jail_role_callback(interaction: Interaction, role_ids: list[int]):
+            await configuration.edit(jail_role_id=role_ids[0] if role_ids else None)
+            await view.refresh_menu(interaction)
+
+        async def change_jail_channel_callback(interaction: Interaction, channel_ids: list[int]):
+            await configuration.edit(jail_channel_id=channel_ids[0] if channel_ids else None)
+            await view.refresh_menu(interaction)
+
+        async def change_allow_to_punish_moderators_callback(interaction: Interaction):
+            await configuration.edit(allow_moderator_punishing=not configuration.allow_to_punish_moderators)
+            await view.refresh_menu(interaction)
+
+        async def change_ban_appeal_url_callback(interaction: Interaction, appeal_url: str):
+            await configuration.edit(appeal_url=appeal_url)
+            await view.refresh_menu(interaction)
+
         settings=[
-            RoleSetting(
+            RoleOption(
                 name="Jail role",
                 value=configuration.jail_role_id,
-                configuration=configuration,
-                placeholder="Change jail role",
-                callback=lambda role_id: configuration.edit(jail_role_id=role_id),
+                guild=configuration.guild,
+                impl=RoleOptionImpl[GuildConfigurationView](
+                    placeholder="Change jail role",
+                ),
+                callback=change_jail_role_callback,
             ),
-            ChannelSetting(
+            ChannelOption(
                 name="Jail channel",
                 value=configuration.jail_channel_id,
-                configuration=configuration,
-                channel_types=[discord.ChannelType.text],
-                placeholder="Change jail channel",
-                callback=lambda channel_id: configuration.edit(jail_channel_id=channel_id),
+                guild=configuration.guild,
+                impl=ChannelOptionImpl[GuildConfigurationView](
+                    channel_types=[discord.ChannelType.text],
+                    placeholder="Change jail channel",
+                ),
+                callback=change_jail_channel_callback,
             ),
-            BooleanSetting(
+            BooleanOption(
                 name="Allow to punish moderators",
                 value=configuration.allow_to_punish_moderators,
-                label_true="Allow to punish moderators",
-                label_false="Don't allow to punish moderators",
-                callback=lambda: configuration.edit(
-                    allow_moderator_punishing=not configuration.allow_to_punish_moderators
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Allow to punish moderators",
+                    label_false="Don't allow to punish moderators",
                 ),
+                callback=change_allow_to_punish_moderators_callback,
             ),
-            TextSetting(
-                cls=ChangeBanAppealUrlButton,
+            StringOption(
                 name="Ban appeal URL",
-                value=configuration.appeal_url,
-                label="Change ban appeal URL",
-                callback=lambda appeal_url: configuration.edit(appeal_url=appeal_url),
+                value=configuration.appeal_url or "Not set",
+                impl=StringOptionImpl[GuildConfigurationView, str](
+                    cls=NewChangeBanAppealUrlButton,
+                    label="Change ban appeal URL",
+                    modal_title="Change ban appeal URL",
+                    placeholder="Provide a valid URL or nothing to remove it.",
+                    required=False
+                ),
+                callback=change_ban_appeal_url_callback,
             )
         ]
         super().__init__(
             name="Moderation settings",
             description="This submenu contains settings related to the Pidroid's punishment and moderation system.",
+            view=view,
             settings=settings
         )
         
-class LevelingSubmenu(Submenu):
+class LevelingSubmenu(Submenu['GuildConfigurationView']):
 
-    def __init__(self, *, configuration: GuildConfiguration) -> None:
+    def __init__(self, *, view: GuildConfigurationView, configuration: GuildConfiguration) -> None:
         assert configuration.guild is not None
         # Store xp exempt channel mentions
         channels: list[str] = []
@@ -278,85 +268,127 @@ class LevelingSubmenu(Submenu):
             role = configuration.guild.get_role(r_id)
             if role:
                 roles.append(role.mention)
+
+        async def toggle_leveling_system_callback(interaction: Interaction):
+            await configuration.edit(
+                xp_system_active=not configuration.xp_system_active
+            )
+            await view.refresh_menu(interaction)
+
+        async def change_xp_multiplier_callback(interaction: Interaction, multiplier: float):
+            await configuration.edit(xp_multiplier=multiplier)
+            await view.refresh_menu(interaction)
+
+        async def toggle_reward_stacking_callback(interaction: Interaction):
+            await configuration.edit(
+                stack_level_rewards=not configuration.level_rewards_stacked
+            )
+            await view.refresh_menu(interaction)
+        
         settings=[
-            BooleanSetting(
+            BooleanOption(
                 name="Leveling system active",
                 value=configuration.xp_system_active,
-                label_true="Enable leveling system",
-                label_false="Disable leveling system",
-                callback=lambda: configuration.edit(
-                    xp_system_active=not configuration.xp_system_active
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Enable leveling system",
+                    label_false="Disable leveling system",
                 ),
+                callback=toggle_leveling_system_callback,
             ),
-            NumberSetting(
-                cls=XpMultiplierButton,
+            FloatOption(
                 name="XP multiplier",
                 value=configuration.xp_multiplier,
-                label="Change XP multiplier",
-                callback=lambda multiplier: configuration.edit(
-                    xp_multiplier=multiplier
+                impl=FloatOptionImpl[GuildConfigurationView](
+                    label="Change XP multiplier",
+                    modal_title="Change XP multiplier",
+                    placeholder="Provide a floating point value between 0 and 2.",
+                    min_value=0,
+                    max_value=2
                 ),
+                callback=change_xp_multiplier_callback,    
             ),
-            ReadonlySetting(
+            ReadonlyOption[GuildConfigurationView](
                 name="XP exempt channels",
                 description="You can manage this setting with a subcommand.",
                 value=','.join(channels) if channels else None
             ),
-            ReadonlySetting(
+            ReadonlyOption[GuildConfigurationView](
                 name="XP exempt roles",
                 description="You can manage this setting with a subcommand.",
                 value=','.join(roles) if roles else None
             ),
-            BooleanSetting(
+            BooleanOption(
                 name="XP rewards stacked",
                 value=configuration.level_rewards_stacked,
-                label_true="Enable level reward stacking",
-                label_false="Disable level reward stacking",
-                callback=lambda: configuration.edit(
-                    stack_level_rewards=not configuration.level_rewards_stacked
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Stack level rewards",
+                    label_false="Don't stack level rewards",
                 ),
+                callback=toggle_reward_stacking_callback,
             ),
         ]
         super().__init__(
             name="Leveling settings",
             description="This submenu contains settings related to Pidroid's XP and level rewards system.",
+            view=view,
             settings=settings
         )
 
-class SuggestionSubmenu(Submenu):
+class SuggestionSubmenu(Submenu['GuildConfigurationView']):
 
-    def __init__(self, *, configuration: GuildConfiguration) -> None:
+    def __init__(self, *, view: GuildConfigurationView, configuration: GuildConfiguration) -> None:
+        assert configuration.guild is not None
+
+        async def toggle_suggestion_callback(interaction: Interaction):
+            await configuration.edit(
+                suggestion_system_active=not configuration.suggestion_system_active
+            )
+            await view.refresh_menu(interaction)
+
+        async def toggle_suggestion_threads_callback(interaction: Interaction):
+            await configuration.edit(
+                suggestion_threads_enabled=not configuration.suggestion_threads_enabled
+            )
+            await view.refresh_menu(interaction)
+
+        async def change_suggestion_channel_callback(interaction: Interaction, channel_ids: list[int]):
+            await configuration.edit(suggestion_channel_id=channel_ids[0] if channel_ids else None)
+            await view.refresh_menu(interaction)
+
         settings=[
-            BooleanSetting(
+            BooleanOption(
                 name="Suggestion system active",
                 value=configuration.suggestion_system_active,
-                label_true="Enable suggestion system",
-                label_false="Disable suggestion system",
-                callback=lambda: configuration.edit(
-                    suggestion_system_active=not configuration.suggestion_system_active
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Enable suggestion system",
+                    label_false="Disable suggestion system",
                 ),
+                callback=toggle_suggestion_callback,
             ),
-            BooleanSetting(
+            BooleanOption(
                 name="Create threads for suggestions",
                 value=configuration.suggestion_threads_enabled,
-                label_true="Enable threads for suggestions",
-                label_false="Disable threads for suggestions",
-                callback=lambda: configuration.edit(
-                    suggestion_threads_enabled=not configuration.suggestion_threads_enabled
+                impl=BooleanOptionImpl[GuildConfigurationView](
+                    label_true="Enable threads for suggestions",
+                    label_false="Disable threads for suggestions",
                 ),
+                callback=toggle_suggestion_threads_callback,
             ),
-            ChannelSetting(
+            ChannelOption(
                 name="Suggestion channel",
                 value=configuration.suggestions_channel_id,
-                configuration=configuration,
-                channel_types=[discord.ChannelType.text],
-                placeholder="Change suggestion channel",
-                callback=lambda channel_id: configuration.edit(suggestion_channel_id=channel_id),
+                guild=configuration.guild,
+                impl=ChannelOptionImpl[GuildConfigurationView](
+                    channel_types=[discord.ChannelType.text],
+                    placeholder="Change suggestion channel",
+                ),
+                callback=change_suggestion_channel_callback,
             ),
         ]
         super().__init__(
             name="Suggestion settings",
             description="This submenu contains settings related to Pidroid's suggestion system.",
+            view=view,
             settings=settings
         )
 
@@ -421,7 +453,7 @@ class GuildConfigurationView(discord.ui.View):
         assert self.__ctx.guild is not None
         config = await self.__client.fetch_guild_configuration(self.__ctx.guild.id)
         
-        menu = submenu(configuration=config)
+        menu = submenu(view=self, configuration=config)
 
         self.__embed = menu.embed
         self.clear_items()
@@ -485,7 +517,7 @@ class GuildConfigurationView(discord.ui.View):
         await self.timeout_interface(None)
 
     @override
-    async def on_error(self, interaction: Interaction, error: Exception, item: discord.ui.Item) -> None:
+    async def on_error(self, interaction: Interaction, error: Exception, item: discord.ui.Item[V]) -> None:
         """Called when view catches an error."""
         logger.exception(error)
         logger.error(f"The above exception is caused by {str(item)} item")
