@@ -12,7 +12,7 @@ from pidroid.modules.core.ui.opt.impl import (
 V = TypeVar('V', bound='ui.view.BaseView', covariant=True)
 RV = TypeVar('RV')
 
-class Option(Generic[V]):
+class Control(Generic[V]):
     """
     Base class for all options provided to Pidroid UI components.
     """
@@ -40,7 +40,7 @@ class Option(Generic[V]):
         """Returns the option as an item that can be interacted with."""
         raise NotImplementedError
 
-class ReadonlyOption(Option[V]):
+class ReadonlyControl(Control[V]):
     """
     This class represents a readonly option.
     """
@@ -56,7 +56,7 @@ class ReadonlyOption(Option[V]):
             return "Not set"
         return self.__value
 
-class StringOption(Option[V], Generic[V, RV]):
+class StringControl(Control[V], Generic[V, RV]):
 
     """
     This class represents a string option.
@@ -99,7 +99,7 @@ class StringOption(Option[V], Generic[V, RV]):
             callback=self.__callback
         )
 
-class FloatOption(Option[V]):
+class FloatControl(Control[V]):
 
     """
     This class represents a float option.
@@ -142,7 +142,7 @@ class FloatOption(Option[V]):
             callback=self.__callback
         )
 
-class BooleanOption(Option[V]):
+class BooleanControl(Control[V]):
 
     """
     This class represents a boolean option.
@@ -181,7 +181,7 @@ class BooleanOption(Option[V]):
             callback=self.__callback
         )
 
-class RoleOption(Option[V]):
+class RoleControl(Control[V]):
     """
     This class represents a role option.
     """
@@ -224,7 +224,7 @@ class RoleOption(Option[V]):
             callback=self.__callback
         )
 
-class ChannelOption(Option[V]):
+class ChannelControl(Control[V]):
     """
     This class represents a channel option.
     """

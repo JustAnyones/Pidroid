@@ -16,7 +16,7 @@ from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, BotCategory
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.modules.core.ui.opt.impl import BooleanOptionImpl, ChannelOptionImpl, FloatOptionImpl, RoleOptionImpl, StringButton, StringOptionImpl
-from pidroid.modules.core.ui.opt.option import BooleanOption, ChannelOption, FloatOption, Option, ReadonlyOption, RoleOption, StringOption
+from pidroid.modules.core.ui.opt.control import BooleanControl, ChannelControl, FloatControl, Control, ReadonlyControl, RoleControl, StringControl
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 
 logger = logging.getLogger('Pidroid')
@@ -92,7 +92,7 @@ class NewChangeBanAppealUrlButton(StringButton[V, str]):
 
 class Submenu(Generic[V]):
 
-    def __init__(self, *, name: str, description: str, view: V, settings: Sequence[Option[V]]) -> None:
+    def __init__(self, *, name: str, description: str, view: V, settings: Sequence[Control[V]]) -> None:
         self.__name = name
         self.__description = description
         self.view: V = view
@@ -114,7 +114,7 @@ class Submenu(Generic[V]):
         return [
             setting.as_item()
             for setting in self.__settings
-            if not isinstance(setting, ReadonlyOption)
+            if not isinstance(setting, ReadonlyControl)
         ]
 
 class SubmenuSelect(discord.ui.Select['GuildConfigurationView']):
@@ -154,7 +154,7 @@ class GeneralSubmenu(Submenu['GuildConfigurationView']):
             await view.refresh_menu(interaction)
 
         settings=[
-            StringOption(
+            StringControl(
                 name="Prefixes",
                 value=', '.join(prefixes),
                 impl=StringOptionImpl[GuildConfigurationView, list[str]](
@@ -165,7 +165,7 @@ class GeneralSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=change_prefixes_callback,  
             ),
-            BooleanOption(
+            BooleanControl(
                 name="Everyone can manage tags",
                 value=configuration.public_tags,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -204,7 +204,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
             await view.refresh_menu(interaction)
 
         settings=[
-            RoleOption(
+            RoleControl(
                 name="Jail role",
                 value=configuration.jail_role_id,
                 guild=configuration.guild,
@@ -213,7 +213,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=change_jail_role_callback,
             ),
-            ChannelOption(
+            ChannelControl(
                 name="Jail channel",
                 value=configuration.jail_channel_id,
                 guild=configuration.guild,
@@ -223,7 +223,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=change_jail_channel_callback,
             ),
-            BooleanOption(
+            BooleanControl(
                 name="Allow to punish moderators",
                 value=configuration.allow_to_punish_moderators,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -232,7 +232,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=change_allow_to_punish_moderators_callback,
             ),
-            StringOption(
+            StringControl(
                 name="Ban appeal URL",
                 value=configuration.appeal_url or "Not set",
                 impl=StringOptionImpl[GuildConfigurationView, str](
@@ -286,7 +286,7 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
             await view.refresh_menu(interaction)
         
         settings=[
-            BooleanOption(
+            BooleanControl(
                 name="Leveling system active",
                 value=configuration.xp_system_active,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -295,7 +295,7 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=toggle_leveling_system_callback,
             ),
-            FloatOption(
+            FloatControl(
                 name="XP multiplier",
                 value=configuration.xp_multiplier,
                 impl=FloatOptionImpl[GuildConfigurationView](
@@ -307,17 +307,17 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=change_xp_multiplier_callback,    
             ),
-            ReadonlyOption[GuildConfigurationView](
+            ReadonlyControl[GuildConfigurationView](
                 name="XP exempt channels",
                 description="You can manage this setting with a subcommand.",
                 value=','.join(channels) if channels else None
             ),
-            ReadonlyOption[GuildConfigurationView](
+            ReadonlyControl[GuildConfigurationView](
                 name="XP exempt roles",
                 description="You can manage this setting with a subcommand.",
                 value=','.join(roles) if roles else None
             ),
-            BooleanOption(
+            BooleanControl(
                 name="XP rewards stacked",
                 value=configuration.level_rewards_stacked,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -356,7 +356,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
             await view.refresh_menu(interaction)
 
         settings=[
-            BooleanOption(
+            BooleanControl(
                 name="Suggestion system active",
                 value=configuration.suggestion_system_active,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -365,7 +365,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=toggle_suggestion_callback,
             ),
-            BooleanOption(
+            BooleanControl(
                 name="Create threads for suggestions",
                 value=configuration.suggestion_threads_enabled,
                 impl=BooleanOptionImpl[GuildConfigurationView](
@@ -374,7 +374,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
                 ),
                 callback=toggle_suggestion_threads_callback,
             ),
-            ChannelOption(
+            ChannelControl(
                 name="Suggestion channel",
                 value=configuration.suggestions_channel_id,
                 guild=configuration.guild,
