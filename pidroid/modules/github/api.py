@@ -117,7 +117,7 @@ class GithubAPI:
         body = "# Suggestion\n\n"
         body += text
 
-        if attachments is not None:
+        if attachments:
             body += "\n\n# Attachments"
             for attachment in attachments:
                 body += f"\n\n![{attachment.filename}]({attachment.url})"
