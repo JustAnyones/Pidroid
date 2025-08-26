@@ -15,8 +15,8 @@ from typing import Generic, TypeVar, override
 from pidroid.client import Pidroid
 from pidroid.models.categories import AdministrationCategory, BotCategory
 from pidroid.models.guild_configuration import GuildConfiguration
-from pidroid.modules.core.ui.opt.impl import BooleanOptionImpl, ChannelOptionImpl, FloatOptionImpl, RoleOptionImpl, StringButton, StringOptionImpl
-from pidroid.modules.core.ui.opt.control import BooleanControl, ChannelControl, FloatControl, Control, ReadonlyControl, RoleControl, StringControl
+from pidroid.modules.core.ui.opt.impl import BooleanOptionImpl, ChannelOptionImpl, FloatOptionImpl, RoleOptionImpl, StringLikeInputModal, StringOptionImpl
+from pidroid.modules.core.ui.opt.control import BooleanControl, ChannelControl, FloatControl, Control, ReadonlyControl, RoleControl, StringControl, SupportsItems
 from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
 
 logger = logging.getLogger('Pidroid')
@@ -37,7 +37,7 @@ FORBIDDEN_PREFIXES = [',', '\\', '/']
 RV = TypeVar('RV')  # Return value of the button callback
 V = TypeVar('V', bound='discord.ui.view.BaseView', covariant=True)
 
-class NewChangePrefixesButton(StringButton[V, list[str]]):
+class NewChangePrefixesButton(StringLikeInputModal[list[str]]):
 
     @override
     async def handle_value(self, value: str) -> tuple[list[str], str | None]:
@@ -70,7 +70,7 @@ class NewChangePrefixesButton(StringButton[V, list[str]]):
 
         return cleaned_prefixes, None
 
-class NewChangeBanAppealUrlButton(StringButton[V, str]):
+class NewChangeBanAppealUrlButton(StringLikeInputModal[str]):
 
     @override
     async def handle_value(self, value: str) -> tuple[str, str | None]:
@@ -112,9 +112,9 @@ class Submenu(Generic[V]):
     @property
     def items(self) -> list[discord.ui.Item[V]]:
         return [
-            setting.as_item()
+            setting.as_legacy_item()
             for setting in self.__settings
-            if not isinstance(setting, ReadonlyControl)
+            if isinstance(setting, SupportsItems)
         ]
 
 class SubmenuSelect(discord.ui.Select['GuildConfigurationView']):
@@ -149,8 +149,8 @@ class GeneralSubmenu(Submenu['GuildConfigurationView']):
             await configuration.edit(prefixes=prefixes)
             await view.refresh_menu(interaction)
 
-        async def toggle_tag_management_callback(interaction: Interaction):
-            await configuration.edit(public_tags=not configuration.public_tags)
+        async def toggle_tag_management_callback(interaction: Interaction, value: bool):
+            await configuration.edit(public_tags=value)
             await view.refresh_menu(interaction)
 
         settings=[
@@ -158,7 +158,7 @@ class GeneralSubmenu(Submenu['GuildConfigurationView']):
                 name="Prefixes",
                 value=', '.join(prefixes),
                 impl=StringOptionImpl[GuildConfigurationView, list[str]](
-                    cls=NewChangePrefixesButton,
+                    modal=NewChangePrefixesButton,
                     label="Change prefixes",
                     modal_title="Change command prefixes",
                     placeholder="Provide a comma-separated list of prefixes. E.g. !, ?, P, TT",
@@ -168,7 +168,7 @@ class GeneralSubmenu(Submenu['GuildConfigurationView']):
             BooleanControl(
                 name="Everyone can manage tags",
                 value=configuration.public_tags,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Allow everyone to manage tags",
                     label_false="Don't allow everyone to manage tags"
                 ),
@@ -195,8 +195,8 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
             await configuration.edit(jail_channel_id=channel_ids[0] if channel_ids else None)
             await view.refresh_menu(interaction)
 
-        async def change_allow_to_punish_moderators_callback(interaction: Interaction):
-            await configuration.edit(allow_moderator_punishing=not configuration.allow_to_punish_moderators)
+        async def change_allow_to_punish_moderators_callback(interaction: Interaction, value: bool):
+            await configuration.edit(allow_moderator_punishing=value)
             await view.refresh_menu(interaction)
 
         async def change_ban_appeal_url_callback(interaction: Interaction, appeal_url: str):
@@ -204,11 +204,11 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
             await view.refresh_menu(interaction)
 
         settings=[
-            RoleControl(
+            RoleControl[GuildConfigurationView](
                 name="Jail role",
                 value=configuration.jail_role_id,
                 guild=configuration.guild,
-                impl=RoleOptionImpl[GuildConfigurationView](
+                impl=RoleOptionImpl(
                     placeholder="Change jail role",
                 ),
                 callback=change_jail_role_callback,
@@ -217,7 +217,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
                 name="Jail channel",
                 value=configuration.jail_channel_id,
                 guild=configuration.guild,
-                impl=ChannelOptionImpl[GuildConfigurationView](
+                impl=ChannelOptionImpl(
                     channel_types=[discord.ChannelType.text],
                     placeholder="Change jail channel",
                 ),
@@ -226,7 +226,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
             BooleanControl(
                 name="Allow to punish moderators",
                 value=configuration.allow_to_punish_moderators,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Allow to punish moderators",
                     label_false="Don't allow to punish moderators",
                 ),
@@ -236,7 +236,7 @@ class ModerationSubmenu(Submenu['GuildConfigurationView']):
                 name="Ban appeal URL",
                 value=configuration.appeal_url or "Not set",
                 impl=StringOptionImpl[GuildConfigurationView, str](
-                    cls=NewChangeBanAppealUrlButton,
+                    modal=NewChangeBanAppealUrlButton,
                     label="Change ban appeal URL",
                     modal_title="Change ban appeal URL",
                     placeholder="Provide a valid URL or nothing to remove it.",
@@ -269,27 +269,23 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
             if role:
                 roles.append(role.mention)
 
-        async def toggle_leveling_system_callback(interaction: Interaction):
-            await configuration.edit(
-                xp_system_active=not configuration.xp_system_active
-            )
+        async def toggle_leveling_system_callback(interaction: Interaction, value: bool):
+            await configuration.edit(xp_system_active=value)
             await view.refresh_menu(interaction)
 
         async def change_xp_multiplier_callback(interaction: Interaction, multiplier: float):
             await configuration.edit(xp_multiplier=multiplier)
             await view.refresh_menu(interaction)
 
-        async def toggle_reward_stacking_callback(interaction: Interaction):
-            await configuration.edit(
-                stack_level_rewards=not configuration.level_rewards_stacked
-            )
+        async def toggle_reward_stacking_callback(interaction: Interaction, value: bool):
+            await configuration.edit(stack_level_rewards=value)
             await view.refresh_menu(interaction)
         
         settings=[
             BooleanControl(
                 name="Leveling system active",
                 value=configuration.xp_system_active,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Enable leveling system",
                     label_false="Disable leveling system",
                 ),
@@ -298,14 +294,14 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
             FloatControl(
                 name="XP multiplier",
                 value=configuration.xp_multiplier,
-                impl=FloatOptionImpl[GuildConfigurationView](
+                impl=FloatOptionImpl(
                     label="Change XP multiplier",
                     modal_title="Change XP multiplier",
                     placeholder="Provide a floating point value between 0 and 2.",
                     min_value=0,
                     max_value=2
                 ),
-                callback=change_xp_multiplier_callback,    
+                callback=change_xp_multiplier_callback,
             ),
             ReadonlyControl[GuildConfigurationView](
                 name="XP exempt channels",
@@ -320,7 +316,7 @@ class LevelingSubmenu(Submenu['GuildConfigurationView']):
             BooleanControl(
                 name="XP rewards stacked",
                 value=configuration.level_rewards_stacked,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Stack level rewards",
                     label_false="Don't stack level rewards",
                 ),
@@ -339,16 +335,12 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
     def __init__(self, *, view: GuildConfigurationView, configuration: GuildConfiguration) -> None:
         assert configuration.guild is not None
 
-        async def toggle_suggestion_callback(interaction: Interaction):
-            await configuration.edit(
-                suggestion_system_active=not configuration.suggestion_system_active
-            )
+        async def toggle_suggestion_callback(interaction: Interaction, value: bool):
+            await configuration.edit(suggestion_system_active=value)
             await view.refresh_menu(interaction)
 
-        async def toggle_suggestion_threads_callback(interaction: Interaction):
-            await configuration.edit(
-                suggestion_threads_enabled=not configuration.suggestion_threads_enabled
-            )
+        async def toggle_suggestion_threads_callback(interaction: Interaction, value: bool):
+            await configuration.edit(suggestion_threads_enabled=value)
             await view.refresh_menu(interaction)
 
         async def change_suggestion_channel_callback(interaction: Interaction, channel_ids: list[int]):
@@ -359,7 +351,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
             BooleanControl(
                 name="Suggestion system active",
                 value=configuration.suggestion_system_active,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Enable suggestion system",
                     label_false="Disable suggestion system",
                 ),
@@ -368,7 +360,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
             BooleanControl(
                 name="Create threads for suggestions",
                 value=configuration.suggestion_threads_enabled,
-                impl=BooleanOptionImpl[GuildConfigurationView](
+                impl=BooleanOptionImpl(
                     label_true="Enable threads for suggestions",
                     label_false="Disable threads for suggestions",
                 ),
@@ -378,7 +370,7 @@ class SuggestionSubmenu(Submenu['GuildConfigurationView']):
                 name="Suggestion channel",
                 value=configuration.suggestions_channel_id,
                 guild=configuration.guild,
-                impl=ChannelOptionImpl[GuildConfigurationView](
+                impl=ChannelOptionImpl(
                     channel_types=[discord.ChannelType.text],
                     placeholder="Change suggestion channel",
                 ),

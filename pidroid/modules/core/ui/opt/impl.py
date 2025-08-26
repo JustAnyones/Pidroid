@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from collections.abc import Coroutine
 from dataclasses import dataclass
 from discord import ChannelType, Interaction, ui
@@ -11,66 +12,57 @@ RV = TypeVar('RV') # Return value
 
 StringCallbackType = Callable[[Interaction, RV], Coroutine[Any, Any, None]]
 FloatCallbackType = Callable[[Interaction, float], Coroutine[Any, Any, None]]
-BooleanCallbackType = Callable[[Interaction], Coroutine[Any, Any, None]]
+BooleanCallbackType = Callable[[Interaction, bool], Coroutine[Any, Any, None]]
 RoleSelectCallbackType = Callable[[Interaction, list[int]], Coroutine[Any, Any, None]]
 ChannelSelectCallbackType = Callable[[Interaction, list[int]], Coroutine[Any, Any, None]]
 
-class BaseTextInputButton(ui.Button[V]):
-    """
-    Base class for buttons that open a modal with text input.
-    
-    This class is designed to be subclassed for specific text input buttons.
-    It provides a structure for creating a modal and handling the input from it.
-    """
 
+class UserInputModal:
+    """
+    This class is used to represent a modal that collects user input.
+    It is designed to be subclassed for specific types of user input.
+    """
     def __init__(
         self,
         *,
-        label: str | None = None,
-        disabled: bool = False,
+        title: str,
+        timeout: int = 120
     ):
-        super().__init__(label=label, disabled=disabled)
+        self.modal: ui.Modal = ui.Modal(title=title, timeout=timeout)
+        self.modal.on_submit = self.on_submit
 
-    def create_modal(self) -> ui.Modal:
-        """Creates a custom modal for current TextButton."""
+    async def on_submit(self, interaction: Interaction) -> None:
+        """This method gets called when the modal is submitted.
+        It should be overridden by subclasses to handle the user input.
+        """
         raise NotImplementedError
 
-    async def on_submit(self, interaction: Interaction, modal: ui.Modal) -> None:
-        raise NotImplementedError
-
-    @override
-    async def callback(self, interaction: Interaction):
-        assert self.view is not None
-
-        # This is the callback that will be called when the modal is submitted
-        async def on_submit(interaction: Interaction):
-            await self.on_submit(interaction, modal)
-
-        # Construct a custom TextModal for our current button
-        modal = self.create_modal()
-        modal.on_submit = on_submit
-
-        # Respond with a modal and wait for it to be sent back
-        await interaction.response.send_modal(modal)
-        timed_out = await modal.wait()
+    async def send(self, interaction: Interaction):
+        """
+        This method is used to send the modal to the user.
+        """
+        await interaction.response.send_modal(self.modal)
+        timed_out = await self.modal.wait()
+        # TODO: handle modal timeout and parent view timeout
         # If it times out, notify the user, otherwise continue on to checking the user input
-        if timed_out:
-            return
-            return await interaction.response.send_message("Modal has timed out!", ephemeral=True)
+        #if timed_out:
+        #    return
+        #    return await interaction.response.send_message("Modal has timed out!", ephemeral=True)
 
         # Check if parent view is timed out or no longer responds
-        if self.view.is_finished():
-            return
-            return await interaction.response.send_message("Settings menu has timed out!", ephemeral=True)
+        #if self.view.is_finished():
+        #    return
+        #    return await interaction.response.send_message("Settings menu has timed out!", ephemeral=True)
 
-class StringButton(BaseTextInputButton[V], Generic[V, RV]):
+
+class StringLikeInputModal(ABC, UserInputModal, Generic[RV]):
+
     def __init__(
         self,
         *,
-        label: str,
-        disabled: bool = False,
+        title: str,
+        timeout: int = 120,
 
-        modal_title: str,
         input_label: str,
         placeholder: str | None = None,
 
@@ -81,29 +73,18 @@ class StringButton(BaseTextInputButton[V], Generic[V, RV]):
         
         callback: StringCallbackType[RV],
     ):
-        super().__init__(label=label, disabled=disabled)
-        self.__modal_title = modal_title
-        self.__input_label = input_label
-        self.__placeholder = placeholder
-
-        self.__default_value = default_value
+        super().__init__(title=title, timeout=timeout)
+        self.modal.add_item(ui.TextInput(
+            label=input_label,
+            placeholder=placeholder,
+            default=default_value,
+            min_length=min_length,
+            max_length=max_length,
+            required=required,
+        ))
         self.__min_length = min_length
         self.__max_length = max_length
-        self.__required = required
         self.__callback = callback
-
-    @override
-    def create_modal(self) -> ui.Modal:
-        modal = ui.Modal(title=self.__modal_title, timeout=120)
-        _ = modal.add_item(ui.TextInput(
-            label=self.__input_label,
-            placeholder=self.__placeholder,
-            default=self.__default_value,
-            min_length=self.__min_length,
-            max_length=self.__max_length,
-            required=self.__required,
-        ))
-        return modal
     
     def parse_string_value(self, value: str) -> tuple[str, str | None]:
         """
@@ -122,7 +103,7 @@ class StringButton(BaseTextInputButton[V], Generic[V, RV]):
     
         return stripped_value, None
     
-    
+    @abstractmethod
     async def handle_value(self, value: str) -> tuple[RV, str | None]:
         """
         This method must be overridden to handle the value before passing it to the callback.
@@ -134,9 +115,9 @@ class StringButton(BaseTextInputButton[V], Generic[V, RV]):
         raise NotImplementedError
 
     @override
-    async def on_submit(self, interaction: Interaction, modal: ui.Modal):
-        assert len(modal.children) > 0, "Modal should have at least one TextInput"
-        first_item = modal.children[0]
+    async def on_submit(self, interaction: Interaction):
+        assert len(self.modal.children) > 0, "Modal should have at least one TextInput"
+        first_item = self.modal.children[0]
         assert isinstance(first_item, ui.TextInput), "Expected first item to be a TextInput"
         parsed, err = await self.handle_value(first_item.value)
         if err:
@@ -144,59 +125,75 @@ class StringButton(BaseTextInputButton[V], Generic[V, RV]):
             return
         await self.__callback(interaction, parsed)
 
+class StringInputModal(StringLikeInputModal[str]):
 
-class FloatButton(BaseTextInputButton[V]):
     def __init__(
         self,
         *,
-        label: str,
-        disabled: bool = False,
+        title: str,
+        timeout: int = 120,
 
-        modal_title: str,
         input_label: str,
         placeholder: str | None = None,
 
         default_value: str | None = None,
+        min_length: int | None = None,
+        max_length: int | None = None,
+        required: bool = False,
+        
+        callback: StringCallbackType[str],
+    ):
+        super().__init__(
+            title=title, timeout=timeout, input_label=input_label,
+            placeholder=placeholder, default_value=default_value,
+            min_length=min_length, max_length=max_length, required=required,
+            callback=callback
+        )
+    
+    @override
+    async def handle_value(self, value: str) -> tuple[str, str | None]:
+        return self.parse_string_value(value)
+
+class FloatInputModal(UserInputModal):
+
+    def __init__(
+        self,
+        *,
+        title: str,
+        timeout: int = 120,
+
+        input_label: str,
+        placeholder: str | None = None,
+
+        default_value: int | float | None = None,
         required: bool = False,
 
-        max_value: float | None = None,
         min_value: float | None = None,
+        max_value: float | None = None,
         round_to: int = 2,
         
         callback: FloatCallbackType
     ):
-        super().__init__(label=label, disabled=disabled)
-        self.__modal_title = modal_title
-        self.__input_label = input_label
-        self.__placeholder = placeholder
-
-        self.__default_value = default_value
-        self.__required = required
-
-        self.__max_value = max_value
+        super().__init__(title=title, timeout=timeout)
+        value = str(default_value) if default_value is not None else None
+        self.modal.add_item(ui.TextInput(
+            label=input_label,
+            placeholder=placeholder,
+            default=value,
+            min_length=None,
+            max_length=64,
+            required=required,
+        ))
         self.__min_value = min_value
+        self.__max_value = max_value
         self.__round_to = round_to
         assert self.__round_to >= 0, "round_to must be a non-negative integer"
-
         self.__callback = callback
 
     @override
-    def create_modal(self) -> ui.Modal:
-        modal = ui.Modal(title=self.__modal_title, timeout=120)
-        _ = modal.add_item(ui.TextInput(
-            label=self.__input_label,
-            placeholder=self.__placeholder,
-            default=self.__default_value,
-            min_length=None,
-            max_length=64,
-            required=self.__required,
-        ))
-        return modal
-
-    @override
-    async def on_submit(self, interaction: Interaction, modal: ui.Modal):
-        assert len(modal.children) > 0, "Modal should have at least one TextInput"
-        first_item = modal.children[0]
+    async def on_submit(self, interaction: Interaction):
+        assert len(self.modal.children) > 0, "Modal should have at least one TextInput"
+        first_item = self.modal.children[0]
         assert isinstance(first_item, ui.TextInput), "Expected first item to be a TextInput"
         stripped_value = first_item.value.strip().replace(",", ".")
         
@@ -241,64 +238,12 @@ class FloatButton(BaseTextInputButton[V]):
 
         await self.__callback(interaction, rounded)
 
-
-class BooleanButton(ui.Button[V]):
-    def __init__(
-        self,
-        *,
-        label: str | None = None,
-        disabled: bool = False,
-        callback: BooleanCallbackType
-    ):
-        super().__init__(label=label, disabled=disabled)
-        self.__callback = callback
-
-    @override
-    async def callback(self, interaction: Interaction):
-        await self.__callback(interaction)
-
-class RoleSelect(ui.RoleSelect[V]):
-    def __init__(
-        self,
-        *,
-        placeholder: str | None = None,
-        min_values: int = 1,
-        max_values: int = 1,
-        disabled: bool = False,
-        callback: RoleSelectCallbackType
-    ) -> None:
-        super().__init__(placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled)
-        self.__callback = callback
-
-    @override
-    async def callback(self, interaction: Interaction):
-        await self.__callback(interaction, [item.id for item in self.values])
-
-class ChannelSelect(ui.ChannelSelect[V]):
-
-    def __init__(
-        self,
-        *,
-        channel_types: list[ChannelType] = MISSING,
-        placeholder: str | None = None,
-        min_values: int = 1,
-        max_values: int = 1,
-        disabled: bool = False,
-        callback: ChannelSelectCallbackType
-    ) -> None:
-        super().__init__(channel_types=channel_types, placeholder=placeholder, min_values=min_values, max_values=max_values, disabled=disabled)
-        self.__callback = callback
-
-    @override
-    async def callback(self, interaction: Interaction):
-        await self.__callback(interaction, [item.id for item in self.values])
-
 @dataclass
 class StringOptionImpl(Generic[V, RV]):
     """
     This dataclass provides the necessary information to create a StringButton.
     """
-    cls: type[StringButton[V, RV]] = StringButton
+    modal: type[StringLikeInputModal[RV]] = StringLikeInputModal[RV]
     label: str = "Change"
     modal_title: str = "Change Value"
     input_label: str = "Enter a new value"
@@ -308,11 +253,11 @@ class StringOptionImpl(Generic[V, RV]):
     required: bool = True
 
 @dataclass
-class FloatOptionImpl(Generic[V]):
+class FloatOptionImpl:
     """
     This dataclass provides the necessary information to create a FloatButton.
     """
-    cls: type[FloatButton[V]] = FloatButton
+    modal: type[FloatInputModal] = FloatInputModal
     label: str = "Change"
     modal_title: str = "Change Value"
     input_label: str = "Enter a new value"
@@ -323,27 +268,24 @@ class FloatOptionImpl(Generic[V]):
     required: bool = True
 
 @dataclass
-class BooleanOptionImpl(Generic[V]):
+class BooleanOptionImpl:
     """
-    This dataclass provides the necessary information to create a BooleanButton.
+    This dataclass provides the necessary information to create a BooleanControl.
     """
-    cls: type[BooleanButton[V]] = BooleanButton
     label_true: str = "True"
     label_false: str = "False"
 
 @dataclass
-class RoleOptionImpl(Generic[V]):
+class RoleOptionImpl:
     """
-    This dataclass provides the necessary information to create a RoleSelect.
+    This dataclass provides the necessary information to create a RoleControl.
     """
-    cls: type[RoleSelect[V]] = RoleSelect
     placeholder: str | None = None
 
 @dataclass
-class ChannelOptionImpl(Generic[V]):
+class ChannelOptionImpl:
     """
-    This dataclass provides the necessary information to create a ChannelSelect.
+    This dataclass provides the necessary information to create a ChannelControl.
     """
-    cls: type[ChannelSelect[V]] = ChannelSelect
     channel_types: list[ChannelType] = MISSING
     placeholder: str | None = None

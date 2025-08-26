@@ -13,6 +13,7 @@ from discord.ext.commands.errors import BadArgument
 from pidroid.client import Pidroid
 from pidroid.constants import JUSTANYONE_ID, TEMPORARY_FILE_PATH
 from pidroid.models.categories import OwnerCategory
+from pidroid.modules.core.ui.opt.view import ImplView
 from pidroid.utils.aliases import DiscordUser
 from pidroid.utils.checks import member_has_guild_permission
 from pidroid.utils.data import PersistentDataStore
@@ -187,6 +188,24 @@ class OwnerCommandCog(commands.Cog):
             sys.path.remove(file_name)
         logger.critical("Temp extension has been unloaded")
         return await ctx.reply("Extension unloaded successfully")
+
+    @commands.command(
+        name="test-view",
+        brief="Unloads a temporary extension that is currently loaded.",
+        category=OwnerCategory,
+        hidden=True,
+    )
+    @commands.is_owner()
+    @commands.bot_has_permissions(send_messages=True)
+    async def test_view_command(self, ctx: Context[Pidroid]):
+        assert ctx.guild is not None, "This command can only be used in a guild context."
+        view = ImplView(
+            guild=ctx.guild
+        )
+        await view.update(None)  # Initialize the view
+        await ctx.reply(
+            view=view
+        )
 
     # Work in progress
     @commands.command(
