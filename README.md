@@ -113,7 +113,7 @@ TENOR_API_KEY=
 
 # Optional: Used to create issues on TheoTown GitHub
 GITHUB_APP_ID=
-# Base64 encoded PEM string
+# Base64 encoded PEM string, can be obtained via `cat private-key.pem | base64 -w 0`
 GITHUB_APP_PEM=
 GITHUB_OWNER=
 GITHUB_REPO=

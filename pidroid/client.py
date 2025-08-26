@@ -21,6 +21,7 @@ from pidroid.models.event_types import EventName, EventType
 from pidroid.models.guild_configuration import GuildConfiguration
 from pidroid.models.persistent_views import PersistentSuggestionManagementView
 from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, MessageQueue
+from pidroid.modules.github.api import GithubAPI
 from pidroid.modules.moderation.models.case import Case
 from pidroid.modules.moderation.models.types import PunishmentType
 from pidroid.utils.api import API
@@ -123,6 +124,7 @@ class Pidroid(commands.Bot):
         self.session = None
 
         self.api: API = API(self, self.config["postgres_dsn"], self.debugging)
+        self.github_api: GithubAPI = GithubAPI(self)
 
         self.__queues: dict[int, AbstractMessageQueue] = {}
         self.__tasks: list[tasks.Loop] = []
