@@ -1,5 +1,6 @@
 import os
 import random
+import logging
 
 from contextlib import suppress
 from datetime import timedelta
@@ -41,6 +42,8 @@ REFUSE_COMMAND_RESPONSES = [
     'You may not run your command here.',
     'Sorry, I cannot do that here.'
 ]
+
+logger = logging.getLogger('pidroid.suggestion')
 
 
 class SuggestionCommandCog(commands.Cog):
@@ -122,7 +125,7 @@ class SuggestionCommandCog(commands.Cog):
             attachments = ctx.message.attachments
             if attachments:
                 if len(attachments) > 1:
-                    raise BadArgument("Only one picture can be submitted for a suggestion!")
+                    raise BadArgument("Only one image can be submitted for a suggestion!")
 
                 attachment = attachments[0]
                 if attachment.size >= ctx.filesize_limit:
@@ -143,13 +146,28 @@ class SuggestionCommandCog(commands.Cog):
 
             # Send the suggestion message
             if file:
-                message = await channel.send(embed=embed, file=file, view=view)
+                message = await channel.send(embed=embed, files=[file], view=view)
             else:
                 message = await channel.send(embed=embed, view=view)
 
             # Add reactions to the sent message
             for key in reactions:
                 await message.add_reaction(key)
+
+            # If this is TheoTown guild, also create a GitHub issue for the suggestion
+            if is_theotown_guild and self.client.github_api:
+                try:
+                    data = await self.client.github_api.create_suggestion(
+                        title=truncate_string(suggestion, 100),
+                        text=suggestion,
+                        author=ctx.author,
+                        attachments=message.attachments,
+                        message_url=message.jump_url
+                    )
+                    embed.url = data["html_url"]
+                    await message.edit(embed=embed)
+                except Exception as e:
+                    logger.exception(f"Failed to create suggestion issue on GitHub: {e}")
 
             if config.suggestion_threads_enabled:
                 _ = await self.client.create_expiring_thread(

@@ -124,7 +124,11 @@ class Pidroid(commands.Bot):
         self.session = None
 
         self.api: API = API(self, self.config["postgres_dsn"], self.debugging)
-        self.github_api: GithubAPI = GithubAPI(self)
+        try:
+            self.github_api: GithubAPI | None = GithubAPI(self)
+        except ValueError:
+            self.github_api = None
+            logger.warning("GitHub integration is not properly configured, GitHub features will be disabled.")
 
         self.__queues: dict[int, AbstractMessageQueue] = {}
         self.__tasks: list[tasks.Loop] = []
