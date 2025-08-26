@@ -110,6 +110,13 @@ DEEPL_API_KEY=
 UNBELIEVABOAT_API_KEY=
 # Optional: Tenor API key for gif command
 TENOR_API_KEY=
+
+# Optional: Used to create issues on TheoTown GitHub
+GITHUB_APP_ID=
+# Base64 encoded PEM string
+GITHUB_APP_PEM=
+GITHUB_OWNER=
+GITHUB_REPO=
 ```
 
 Please note that if your credentials contain a dollar sign, you need to add another dollar sign to make it a literal.

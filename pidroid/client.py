@@ -52,8 +52,8 @@ class Pidroid(commands.Bot):
         )
 
         # Load configuration
-        self.config = config
-        self.debugging = config["debugging"]
+        self.config: ConfigDict = config
+        self.debugging: bool = config["debugging"]
         self.prefixes: list[str] = config["prefixes"]
 
         # This defines hot-reloadable cogs and various files
