@@ -164,7 +164,11 @@ class SuggestionCommandCog(commands.Cog):
                         attachments=message.attachments,
                         message_url=message.jump_url
                     )
-                    embed.url = data["html_url"]
+                    embed.set_author(
+                        name=ctx.author,
+                        url=data["html_url"],
+                        icon_url=ctx.author.display_avatar.url
+                    )
                     await message.edit(embed=embed)
                 except Exception as e:
                     logger.exception(f"Failed to create suggestion issue on GitHub: {e}")
