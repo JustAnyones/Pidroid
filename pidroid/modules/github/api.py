@@ -100,7 +100,7 @@ class GithubAPI:
             data = await r.json()
             self.__token_data = _TokenContainer(
                 data["token"],
-                datetime.datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ")
+                datetime.datetime.fromisoformat(data["expires_at"])
             )
         return self.__token_data.token
 
