@@ -445,10 +445,11 @@ class ModmenuView(LayoutView):
     @override
     async def on_error(self, interaction: Interaction, error: Exception, _) -> None:
         logger.error(f"An error occurred in ModmenuView: {error}", exc_info=error)
-        await interaction.response.send_message(
-            "An error occurred while processing your request. Please try again later.",
-            ephemeral=True
-        )
+        message = "An unexpected error occurred. Please try again later."
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+            return
+        await interaction.response.send_message(message, ephemeral=True)
 
     @override
     async def on_timeout(self) -> None:
@@ -475,7 +476,13 @@ class ModmenuView(LayoutView):
         self._build_view()
 
         if interaction:
-            await interaction.response.edit_message(view=self, attachments=self.__custom_attachments)
+            if interaction.response.is_done():
+                if not self.__message:
+                    logger.error("refresh_view method requires an interaction to be passed, or a message to be set.")
+                    return
+                await interaction.followup.edit_message(message_id=self.__message.id, view=self, attachments=self.__custom_attachments)
+            else:
+                await interaction.response.edit_message(view=self, attachments=self.__custom_attachments)
             return
 
         if self.__message:

@@ -232,6 +232,7 @@ class ConfirmPunishmentButton(ui.Button[V]):
     @override
     async def callback(self, interaction: Interaction) -> None:
         assert self.view
+        await interaction.response.defer()
 
         info = self.view.get_info()
         assert info.punishment_type is not None, "Punishment type is None, this should not happen."
