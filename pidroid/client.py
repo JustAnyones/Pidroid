@@ -101,6 +101,7 @@ class Pidroid(commands.Bot):
             'services.theotown.spoiler_reactions',
             'services.theotown.suggestion_deletion',
 
+            'modules.fun.truth_check_service',
             'modules.moderation.commands',
             'modules.moderation.service',
 
