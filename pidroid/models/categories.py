@@ -59,7 +59,7 @@ class Category:
                 continue
 
             orig_kwargs: dict = command.__original_kwargs__
-            command_category = orig_kwargs.get("category", UncategorizedCategory)
+            command_category = command.extras.get("category", orig_kwargs.get("category", UncategorizedCategory) )
             if not isinstance(self, command_category):
                 continue
             cmd_list.append(command)

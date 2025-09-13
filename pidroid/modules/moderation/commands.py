@@ -98,7 +98,9 @@ class ModerationCommandsCog(commands.Cog):
         brief="Open user moderation and punishment menu.",
         usage="<user/member>",
         aliases=['punish'],
-        category=ModerationCategory
+        extras={
+            'category': ModerationCategory,
+        },
     )
     @app_commands.describe(user="Member or user you are trying to punish.")
     @commands.bot_has_permissions(send_messages=True)
@@ -141,10 +143,6 @@ class ModerationCommandsCog(commands.Cog):
         sem = self.get_user_semaphore(ctx.guild.id, user.id)
         if sem is not None and sem.semaphore.locked():
             raise BadArgument(f"The moderation menu is already open for the user at {sem.message_url}")
-
-       # menu = ModerationMenu(ctx, user, is_moderator)
-        #await menu.display()
-
 
         view = ModmenuView(
             api=self.client.api,
