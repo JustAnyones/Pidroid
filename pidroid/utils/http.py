@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 DEFAULT_HEADERS = {'User-Agent': 'Pidroid bot by JustAnyone'}
 
-DataDict = dict[str, bytes | int | str | None]
+DataDict = dict[str, list[Any] | bytes | int | str | None]
 HeaderDict = dict[str, str]
 
 @dataclass

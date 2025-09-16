@@ -74,14 +74,12 @@ def remove_urls(string: str) -> str:
 class ParserFlags:
     NORMAL     = 1 << 0 # noqa
     LOWERCASED = 1 << 1
-    BASE64     = 1 << 2 # noqa
     BYPASSED   = 1 << 3 # noqa
     FAIL       = 1 << 4 # noqa
 
 
 FLAG_FOOTERS = {
     ParserFlags.LOWERCASED: "Text has been lowercased",
-    ParserFlags.BASE64: "Text has been converted from supposed base64",
     ParserFlags.FAIL: "Failed parsing a supposed base64 string"
 }
 
@@ -120,24 +118,25 @@ class ChatTranslationService(commands.Cog):
 
     def __init__(self, client: Pidroid):
         super().__init__()
-        self.client = client
-        self.endpoint = "https://api.deepl.com/v2"
+        self.client: Pidroid = client
+        self.endpoint: str = "https://api.deepl.com/v2"
         self.auth_key = self.client.config.get("deepl_api_key", None)
 
         self._translating = asyncio.Event()
         self._translating.set()
 
-        self.daily_char_limit = 50000
-        self.used_chars = 0
+        self.daily_char_limit: int = 50000
+        self.used_chars: int = 0
         self.last_reset = utcnow()
 
     async def translate(self, text: str) -> list[TranslationEntryDict]:
         self._translating.clear()
         try:
             async with await post(self.client, self.endpoint + "/translate", {
-                "auth_key": self.auth_key,
-                "text": text,
+                "text": [text],
                 "target_lang": "EN"
+            },headers={
+                "Authorization": f"DeepL-Auth-Key {self.auth_key}"
             }) as r:
                 data: TranslateApiResponseDict = await r.json()
         except Exception as e:
@@ -147,13 +146,6 @@ class ChatTranslationService(commands.Cog):
             return []
         self._translating.set()
         return data["translations"]
-
-    async def get_usage(self) -> dict:
-        async with await post(self.client, self.endpoint + "/usage", {
-            "auth_key": self.auth_key
-        }) as r:
-            data = await r.json()
-        return data
 
     def is_valid(self, message: Message) -> bool:
         return (
