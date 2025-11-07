@@ -1,6 +1,6 @@
 [project]
 name = "pidroid"
-version = "5.25.1"
+version = "5.25.2"
 description = "Pidroid Discord bot for TheoTown"
 authors = [{ name = "JustAnyone", email = "dominykas@svetikas.lt" }]
 requires-python = "~=3.12,<3.13"
