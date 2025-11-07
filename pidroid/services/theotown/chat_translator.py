@@ -20,8 +20,9 @@ from pidroid.utils.time import utcnow
 class TranslateApiResponseDict(TypedDict):
     translations: list[TranslationEntryDict]
 
-# https://www.deepl.com/docs-api/translating-text/request/
+# https://developers.deepl.com/docs/getting-started/supported-languages#translation-target-languages
 LANGUAGE_MAPPING = {
+    "AR": "Arabic",
     "BG": "Bulgarian",
     "CS": "Czech",
     "DA": "Danish",
@@ -32,6 +33,7 @@ LANGUAGE_MAPPING = {
     "ET": "Estonian",
     "FI": "Finnish",
     "FR": "French",
+    "HE": "Hebrew",
     "HU": "Hungarian",
     "ID": "Indonesian",
     "IT": "Italian",
@@ -48,7 +50,9 @@ LANGUAGE_MAPPING = {
     "SK": "Slovak",
     "SL": "Slovenian",
     "SV": "Swedish",
+    "TH": "Thai",
     "TR": "Turkish",
+    "VI": "Vietnamese",
     "UK": "Ukrainian",
     "ZH": "Chinese"
 }
