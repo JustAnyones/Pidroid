@@ -161,8 +161,7 @@ class TruthCheckService(commands.Cog):
 
         content = message.content.lower().strip()
         if (
-            len(message.mentions) == 1
-            and message.mentions[0].id == self.client.user.id
+            any(mention.id == self.client.user.id for mention in message.mentions)
             and "is this true" in content
         ):
             async with message.channel.typing():
