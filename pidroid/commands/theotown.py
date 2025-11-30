@@ -246,8 +246,8 @@ class TheoTownCommandCog(commands.Cog):
                 raise BadArgument("I could not find any plugins to download by the specified ID!")
 
             plugin = plugins[0]
-            _ = await ctx.author.send(f"Here's a link for '{plugin.clean_title}' plugin: {plugin.download_url}")
-            return await ctx.reply(f"The download link for '{plugin.clean_title}' plugin has been sent to you via a DM!")
+            _ = await ctx.author.send(f"Here's a link for '{plugin.clean_name}' plugin: {plugin.download_url}")
+            return await ctx.reply(f"The download link for '{plugin.clean_name}' plugin has been sent to you via a DM!")
 
     @commands.command(
         name='link-account',

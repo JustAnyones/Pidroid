@@ -27,10 +27,11 @@ from __future__ import annotations
 
 import discord
 
+from collections.abc import Sequence
 from discord.utils import format_dt
 from typing import TYPE_CHECKING, override
 
-from pidroid.models.plugins import Plugin
+from pidroid.models.plugins import AbstractPlugin
 from pidroid.modules.moderation.models.case import Case
 from pidroid.utils.embeds import PidroidEmbed
 
@@ -203,20 +204,20 @@ The following definitions are custom made for the specific use case.
 """
 
 class PluginListPaginator(ListPageSource):
-    def __init__(self, original_query: str, data: list[Plugin]):
+    def __init__(self, original_query: str, data: Sequence[AbstractPlugin]):
         super().__init__(data, per_page=12)
-        self.embed = (
+        self.embed: discord.Embed = (
             PidroidEmbed(title=f'{len(data)} plugins have been found matching your query')
             .set_footer(text=f"Queried: {original_query} | You can use Pfind-plugin id <id> to find out more")
         )
 
     @override
-    async def format_page(self, menu: PaginatingView, page: list[Plugin]):
+    async def format_page(self, menu: PaginatingView, page: list[AbstractPlugin]) -> discord.Embed:
         _ = self.embed.clear_fields()
         for plugin in page:
             _ = self.embed.add_field(
-                name=f"{plugin.id}",
-                value=plugin.clean_title,
+                name=f"{plugin.plugin_id}",
+                value=plugin.clean_name,
                 inline=True
             )
         return self.embed

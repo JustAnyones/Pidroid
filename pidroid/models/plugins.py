@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import abc
 import enum
 
 from discord.embeds import Embed
 from discord.utils import escape_markdown
-from typing import Any
+from typing import Any, override
 
 from pidroid.utils import clean_inline_translations, format_version_code, truncate_string
 from pidroid.utils.embeds import PidroidEmbed
@@ -34,32 +35,56 @@ class TheoTownUser:
         return f'{URL_TO_USER}{self.id}'
 
 
-class Plugin:
-    """This class represents a TheoTown plugin."""
+class AbstractPlugin(abc.ABC):
 
     def __init__(self, data: dict[str, Any]):
-        self.id: int = data['plugin_id']
-        self.title: str = data['name']
-        self.description: str = data['description']
-        self.author = TheoTownUser(data['author_id'], data['username'])
-        self.price: int = data['price']
-        self.version: int = data['version']
-        self.revision_id: int = data['revision_id']
-        self._preview_file: str = data['preview_file']
-        self.min_version: int = data['min_version']
-        self._platforms: int = data['platforms']
+        self._plugin_id: int = data['plugin_id']
+        self._revision_id: int = data['revision_id']
+        self._version: int = data['version']
+        self._author: TheoTownUser = TheoTownUser(data['author_id'], data['username'])
+
+        self._name: str = data['name']
+        self._description: str = data['description']
+        self._price: int = data['price']
         self._demonetized: bool = data['demonetized'] == 1
-        self.__download_count: int | None = data.get('downloads', None)
+        self._min_version: int = data['min_version']
+        self._category_id: int = data['category']
+
+        self._submission_time: int = data['submission_time']
+        self._approval_time: int = data['approval_time']
+
+        self._preview_file: str = data['preview_file']
+        self._platforms: int = data['platforms']
 
     @property
-    def clean_title(self) -> str:
-        """Returns plugin title with all of the inline translations removed."""
-        return clean_inline_translations(self.title)
+    def plugin_id(self) -> int:
+        """Returns plugin ID."""
+        return self._plugin_id
+
+    @property
+    def revision_id(self) -> int:
+        """Returns plugin revision ID."""
+        return self._revision_id
+    
+    @property
+    def submission_time(self) -> int:
+        """Returns plugin submission time."""
+        return self._submission_time
+
+    @property
+    def approval_time(self) -> int:
+        """Returns plugin approval time."""
+        return self._approval_time
+
+    @property
+    def clean_name(self) -> str:
+        """Returns plugin name with all of the inline translations removed."""
+        return clean_inline_translations(self._name)
 
     @property
     def clean_description(self) -> str:
         """Returns plugin description with all of the inline translations removed."""
-        return clean_inline_translations(self.description)
+        return clean_inline_translations(self._description)
 
     @property
     def preview(self) -> str:
@@ -69,12 +94,12 @@ class Plugin:
     @property
     def url(self) -> str:
         """Returns a plugin URL for the plugin store."""
-        return f"https://forum.theotown.com/plugins/list?term=%3A{self.id}"
+        return f"https://forum.theotown.com/plugins/list?term=%3A{self._plugin_id}"
 
     @property
     def download_url(self) -> str:
         """Returns a URL to download the plugin with."""
-        return f"https://forum.theotown.com/plugins/list?download={self.revision_id}"
+        return f"https://forum.theotown.com/plugins/list?download={self._revision_id}"
 
     @property
     def is_ubiquitous(self) -> bool:
@@ -98,16 +123,16 @@ class Plugin:
 
     def to_embed(self) -> Embed:
         """Returns a discord Embed object."""
-        name = truncate_string(self.clean_title)
+        name = truncate_string(self.clean_name)
         description = truncate_string(escape_markdown(self.clean_description), 1024)
-        author = f'[{escape_markdown(self.author.username)}]({self.author.url})'
-        if self.price == 0:
+        author = f'[{escape_markdown(self._author.username)}]({self._author.url})'
+        if self._price == 0:
             price = "🎁 Free"
         else:
-            price = f'{self.price:,} <:diamond:423898110293704724>'
+            price = f'{self._price:,} <:diamond:423898110293704724>'
             if self._demonetized:
                 price += " 🚫"
-        footer = f'#{self.id}:{self.version} [{self.revision_id}]'
+        footer = f'#{self._plugin_id}:{self._version} [{self.revision_id}]'
 
         embed = (
             PidroidEmbed(title=name, url=self.url)
@@ -115,9 +140,6 @@ class Plugin:
             .add_field(name='**Price**', value=price, inline=False)
             .add_field(name='**Author**', value=author, inline=False)
         )
-
-        if self.__download_count is not None:
-            embed.add_field(name='**Downloads**', value=f'{self.__download_count:,}', inline=False)
 
         availability = "???"
         if self.is_ubiquitous:
@@ -130,23 +152,45 @@ class Plugin:
             )
         embed.add_field(name="**Availability**", value=availability)
 
-        if self.min_version != 0:
-            if self.min_version > 400:
-                min_version = format_version_code(self.min_version)
+        if self._min_version != 0:
+            if self._min_version > 400:
+                min_version = format_version_code(self._min_version)
                 embed.add_field(name='**Minimal version required**', value=min_version)
         embed.set_footer(text=footer)
         embed.set_image(url=self.preview)
         return embed
 
-class NewPlugin(Plugin):
+class NewPlugin(AbstractPlugin):
     """This class represents a new TheoTown plugin. This class differs from Plugin class since it additionally contains time property."""
 
     def __init__(self, data: dict[str, Any]):
         super().__init__(data)
-        self._time: int = data["time"]
-        self.approval_author_id: int = data["approval_author"]
 
-    @property
-    def time(self) -> int:
-        """Returns plugin approval time."""
-        return self._time
+class Plugin(AbstractPlugin):
+    """This class represents a new TheoTown plugin. This class differs from Plugin class since it additionally contains time property."""
+
+    def __init__(self, data: dict[str, Any]):
+        super().__init__(data)
+        self._download_count: int = data['downloads']
+
+    @override
+    def to_embed(self) -> Embed:
+        embed = super().to_embed()
+        embed.add_field(name='**Downloads**', value=f'{self._download_count:,}', inline=False)
+        return embed
+
+class NewPluginRevision(AbstractPlugin):
+    """This class represents a new TheoTown plugin revision."""
+
+    def __init__(self, data: dict[str, Any]):
+        super().__init__(data)
+        self._author_comments: str = data["author_comments"]
+        self._approval_author_id: int = data["approval_author"]
+
+    @override
+    def to_embed(self) -> Embed:
+        embed = super().to_embed()
+        if self._author_comments != "":
+            author_comments = truncate_string(escape_markdown(self._author_comments), 1024)
+            embed.add_field(name='**Author Comments**', value=author_comments, inline=False)
+        return embed

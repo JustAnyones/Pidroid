@@ -96,8 +96,7 @@ class PluginStoreService(commands.Cog):
                 self.new_plugins_cache = []
                 return
 
-            latest_approval_time = plugins[0].time
-
+            latest_approval_time = plugins[0].approval_time
             if latest_approval_time > last_approval_time:
 
                 async with PersistentDataStore() as store:
@@ -105,9 +104,9 @@ class PluginStoreService(commands.Cog):
 
                 for plugin in plugins:
 
-                    if plugin.id in self.new_plugins_cache:
+                    if plugin.plugin_id in self.new_plugins_cache:
                         continue
-                    self.new_plugins_cache.append(plugin.id)
+                    self.new_plugins_cache.append(plugin.plugin_id)
 
                     message = await channel.send(embed=plugin.to_embed())
 
@@ -117,7 +116,7 @@ class PluginStoreService(commands.Cog):
 
                     if self.use_threads:
                         _ = await self.client.create_expiring_thread(
-                            message, f"{truncate_string(plugin.clean_title, 89)} discussion",
+                            message, f"{truncate_string(plugin.clean_name, 89)} discussion",
                             timedelta_to_datetime(timedelta(days=14))
                         )
         except ServerDisconnectedError:
@@ -154,7 +153,7 @@ class PluginStoreService(commands.Cog):
                 self.new_revisions_cache = []
                 return
 
-            last_plugin_time = plugins[-1].time
+            last_plugin_time = plugins[-1].submission_time
             if last_plugin_time > last_query_time:
 
                 async with PersistentDataStore() as store:
@@ -165,7 +164,14 @@ class PluginStoreService(commands.Cog):
                         continue
                     self.new_revisions_cache.append(plugin.revision_id)
 
-                    await channel.send(embed=plugin.to_embed())
+                    # Only announce unapproved revisions
+                    if plugin.approval_time > 0:
+                        continue
+
+                    await channel.send(
+                        embed=plugin.to_embed(),
+                        content=f"New revision for plugin ID {plugin.plugin_id} submitted."
+                    )
 
 
         except ServerDisconnectedError:
