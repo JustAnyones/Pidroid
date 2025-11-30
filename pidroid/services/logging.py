@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
 logger = logging.getLogger('pidroid.logging')
+logger.setLevel(logging.INFO)
 
 class AuditLogDiffWrapper:
     def __init__(self, diff: AuditLogDiff, *, log: bool = False) -> None:
