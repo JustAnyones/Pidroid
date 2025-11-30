@@ -154,17 +154,16 @@ class PluginStoreService(commands.Cog):
                 self.new_revisions_cache = []
                 return
 
-            latest_time = plugins[0].time
-            if latest_time > last_query_time:
+            last_plugin_time = plugins[-1].time
+            if last_plugin_time > last_query_time:
 
                 async with PersistentDataStore() as store:
-                    await store.set("last_plugin_revision_query_time", str(latest_time))
+                    await store.set("last_plugin_revision_query_time", str(last_plugin_time))
 
                 for plugin in plugins:
-
-                    if plugin.id in self.new_revisions_cache:
+                    if plugin.revision_id in self.new_revisions_cache:
                         continue
-                    self.new_revisions_cache.append(plugin.id)
+                    self.new_revisions_cache.append(plugin.revision_id)
 
                     await channel.send(embed=plugin.to_embed())
 
