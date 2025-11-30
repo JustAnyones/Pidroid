@@ -993,6 +993,15 @@ class API:
         res.raise_on_error()
         return [NewPlugin(np) for np in res.data]
 
+    async def fetch_new_revisions(self, last_query_time: int) -> list[NewPlugin]:
+        """Queries the TheoTown API for new plugin revisions after the specified query time."""
+        res = await self.get(Route(
+            "/game/revisions/new",
+            {"last_query_time": last_query_time}
+        ))
+        res.raise_on_error()
+        return [NewPlugin(np) for np in res.data]
+
     async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""
         res = await self.get(Route(

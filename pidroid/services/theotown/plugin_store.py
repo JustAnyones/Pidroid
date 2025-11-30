@@ -17,9 +17,10 @@ from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import timedelta_to_datetime
 
 PLUGIN_SHOWCASE_CHANNEL_ID = 640522649033769000
+PLUGIN_REVISION_CHANNEL_ID = 1444621889686470821
 PLUGIN_INFORMATION_CHANNEL_ID = 640521916943171594
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.plugin_store")
 
 class CreatorEntry(TypedDict):
     author_name: str
@@ -52,12 +53,14 @@ class PluginStoreService(commands.Cog):
         super().__init__()
         self.client = client
 
-        self.use_threads = True
-        self.add_reactions = True
+        self.use_threads: bool = True
+        self.add_reactions: bool = True
 
         self.new_plugins_cache: list[int] = []
+        self.new_revisions_cache: list[int] = []
 
         _ = self.retrieve_new_plugins.start()
+        _ = self.retrieve_new_plugin_revisions.start()
         self.monthly_plugin_cronjob = self.client.loop.create_task(
             start_cronjob(self.client, monthly_plugin_cronjob, "Monthly plugin statistics")
         )
@@ -66,6 +69,7 @@ class PluginStoreService(commands.Cog):
     async def cog_unload(self):
         """Ensure that tasks are cancelled on cog unload."""
         self.retrieve_new_plugins.cancel()
+        self.retrieve_new_plugin_revisions.cancel()
         _ = self.monthly_plugin_cronjob.cancel()
 
     @tasks.loop(seconds=60)
@@ -126,6 +130,54 @@ class PluginStoreService(commands.Cog):
         """Runs before retrieve_new_plugins task to ensure that the task is ready to run."""
         await self.client.wait_until_ready()
 
+    @tasks.loop(seconds=60)
+    async def retrieve_new_plugin_revisions(self) -> None:
+        """Retrieves new plugin store plugin revisions and publishes them to a hidden channel."""
+
+        channel = await self.client.get_or_fetch_channel(PLUGIN_REVISION_CHANNEL_ID)
+        if channel is None:
+            return logger.warning("Revision channel could not be resolved!")
+        assert isinstance(channel, TextChannel)
+
+        try:
+            async with PersistentDataStore() as store:
+                time = await store.get("last_plugin_revision_query_time")
+
+            if time is None:
+                last_query_time = -1
+            else:
+                last_query_time = int(time)
+
+            plugins = await self.client.api.fetch_new_revisions(last_query_time)
+
+            if len(plugins) == 0:
+                self.new_revisions_cache = []
+                return
+
+            latest_time = plugins[0].time
+            if latest_time > last_query_time:
+
+                async with PersistentDataStore() as store:
+                    await store.set("last_plugin_revision_query_time", str(latest_time))
+
+                for plugin in plugins:
+
+                    if plugin.id in self.new_revisions_cache:
+                        continue
+                    self.new_revisions_cache.append(plugin.id)
+
+                    await channel.send(embed=plugin.to_embed())
+
+
+        except ServerDisconnectedError:
+            logger.exception("A server disconnection was encountered while trying to retrieve and publish new plugin revisions")
+        except Exception:
+            logger.exception("An exception was encountered while trying to retrieve and publish new plugin revisions")
+
+    @retrieve_new_plugin_revisions.before_loop
+    async def before_new_plugin_revisions_retriever(self) -> None:
+        """Runs before retrieve_new_plugin_revisions task to ensure that the task is ready to run."""
+        await self.client.wait_until_ready()
 
 @aiocron.crontab('0 9 1 * *', start=False) # At 8 in the morning of the first day every month
 async def monthly_plugin_cronjob(client: Pidroid) -> None:
