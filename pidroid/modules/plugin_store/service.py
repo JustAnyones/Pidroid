@@ -1,57 +1,33 @@
 import aiocron
-import calendar
 import logging
 
 from aiohttp.client_exceptions import ServerDisconnectedError
+from asyncio import Task
 from datetime import timedelta
 from discord.channel import TextChannel
 from discord.ext import tasks, commands
-from discord.utils import escape_markdown
-from typing import TypedDict, override
+from typing import override
 
 from pidroid.client import Pidroid
-from pidroid.utils import http, truncate_string, clean_inline_translations
+from pidroid.modules.plugin_store.types import PluginStoreStatisticsDict
+from pidroid.modules.plugin_store.ui import MonthlyPluginReportLayout
+from pidroid.utils import http, truncate_string
 from pidroid.utils.cronjobs import start_cronjob
 from pidroid.utils.data import PersistentDataStore
-from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import timedelta_to_datetime
 
 PLUGIN_SHOWCASE_CHANNEL_ID = 640522649033769000
 PLUGIN_REVISION_CHANNEL_ID = 1444621889686470821
 PLUGIN_INFORMATION_CHANNEL_ID = 640521916943171594
 
-logger = logging.getLogger("pidroid.plugin_store")
-
-class CreatorEntry(TypedDict):
-    author_name: str
-    plugins: str
-    downloads: str
-
-class TopPluginEntry(TypedDict):
-    name: str
-    author_name: str
-    downloads: str
-
-class TopCreatorEntry(TypedDict):
-    author_name: str
-    plugins: str
-    downloads: str
-
-PluginStoreStatisticsDict = TypedDict('PluginStoreStatisticsDict', {
-    'year': str,
-    'month': str,
-    'plugin count last month': str,
-    'plugin creators last month': list[CreatorEntry],
-    'plugins all time': list[TopPluginEntry],
-    'plugin creators all time by downloads': list[TopCreatorEntry]
-})
+logger = logging.getLogger("pidroid.plugin_store.service")
 
 class PluginStoreService(commands.Cog):
     """This class implements a cog for handling of automatic tasks related to TheoTown's plugin store."""
 
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
-        self.client = client
+        self.client: Pidroid = client
 
         self.use_threads: bool = True
         self.add_reactions: bool = True
@@ -61,7 +37,7 @@ class PluginStoreService(commands.Cog):
 
         _ = self.retrieve_new_plugins.start()
         _ = self.retrieve_new_plugin_revisions.start()
-        self.monthly_plugin_cronjob = self.client.loop.create_task(
+        self.monthly_plugin_cronjob: Task[None] = self.client.loop.create_task(
             start_cronjob(self.client, monthly_plugin_cronjob, "Monthly plugin statistics")
         )
 
@@ -193,9 +169,7 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
         async with await http.get(client, "https://api.theotown.com/store/get_stats") as response:
             data: PluginStoreStatisticsDict = await response.json()
 
-        year_of_data = int(data["year"])
         month_of_data = int(data["month"])
-        month_name = calendar.month_name[month_of_data]
 
         async with PersistentDataStore() as store:
             previous_month = await store.get("last_plugin_statistic_month")
@@ -208,40 +182,8 @@ async def monthly_plugin_cronjob(client: Pidroid) -> None:
             async with PersistentDataStore() as store:
                 await store.set("last_plugin_statistic_month", str(month_of_data))
 
-            top_creators_last = data['plugin creators last month']
-            plugins_all_time = data['plugins all time']
-            creators_all_time = data['plugin creators all time by downloads']
-
-            initial_embed = PidroidEmbed(
-                title=f"Plugin store statistics for {month_name}",
-                description=f"In total **{data['plugin count last month']}** new plugins have been released in **{month_name} of {year_of_data}**.\nMost of them were contributed by:"
-            )
-            top_plugins_embed = PidroidEmbed(title="Most popular plugins of all time")
-            top_creators_embed = PidroidEmbed(title="Most popular plugin creators of all time")
-            _ = top_creators_embed.set_footer(text="This message is automated. More information, as always, can be found on our forums.")
-
-            for creator in top_creators_last:
-                _ = initial_embed.add_field(
-                    name=f"• {escape_markdown(creator['author_name'])}",
-                    value=f"{creator['plugins']} plugin(s) which reached {int(creator['downloads']):,} downloads!",
-                    inline=False
-                )
-
-            for i in range(9): # Only 9 results
-                top_plugin = plugins_all_time[i]
-                top_creator = creators_all_time[i]
-                _ = top_plugins_embed.add_field(
-                    name=f"{i+1}. {clean_inline_translations(top_plugin['name'])}",
-                    value=f"Made by **{escape_markdown(top_plugin['author_name'])}** reaching {int(top_plugin['downloads']):,} downloads!",
-                    inline=False
-                )
-                _ = top_creators_embed.add_field(
-                    name=f"{i+1}. {escape_markdown(top_creator['author_name'])}",
-                    value=f"And their {top_creator['plugins']} plugin(s) reaching {int(top_creator['downloads']):,} downloads!",
-                    inline=False
-                )
-
-            _ = await channel.send(embeds=[initial_embed, top_plugins_embed, top_creators_embed])
+            layout = MonthlyPluginReportLayout(data)
+            _ = await channel.send(view=layout)
     except Exception:
         logger.exception("An exception was encountered while trying announce monthly plugin information")
 

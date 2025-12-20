@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("Pidroid")
 
 def _is_theotown_service(service: str):
-    return service.startswith("services.theotown")
+    return service.startswith("services.theotown") or service.startswith("theotown:")
 
 class Pidroid(commands.Bot):
     """This class represents the Pidroid bot client object."""
@@ -96,7 +96,6 @@ class Pidroid(commands.Bot):
             'services.theotown.copypasta',
             'services.theotown.events',
             'services.theotown.guild_statistics',
-            'services.theotown.plugin_store',
             'services.theotown.spam_detection',
             'services.theotown.spoiler_reactions',
             'services.theotown.suggestion_deletion',
@@ -104,6 +103,10 @@ class Pidroid(commands.Bot):
             'modules.fun.truth_check_service',
             'modules.moderation.commands',
             'modules.moderation.service',
+
+            # TheoTown specific handler extensions
+            # NOTE: these handlers are not loaded if current client ID is not Pidroid.
+            'theotown:modules.plugin_store.service',
 
             # Load the error handler last
             'services.error_handler',
