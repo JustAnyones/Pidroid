@@ -11,13 +11,22 @@ from pidroid.utils.time import utcnow
 
 logger = logging.getLogger('pidroid.persistent_views')
 
-MAX_REASON_LENGTH = 400
+MAX_REASON_LENGTH = 512
+
+def user_id_from_icon_url(icon_url: str) -> int | None:
+    """Extracts user ID from a Discord avatar URL, if possible."""
+    try:
+        split = icon_url.split('https://cdn.discordapp.com/avatars/')[1].split('/')[0]
+        return int(split)
+    except Exception:
+        return None
 
 class SuggestionMarkContextModal(PidroidModal, title='Provide reason for closing'):
     reason_input: TextInput[View] = TextInput(
         label="Reason",
         placeholder="Please provide the reason you are closing this suggestion.",
         max_length=MAX_REASON_LENGTH,
+        required=True,
         style=discord.TextStyle.paragraph
     )
 
@@ -53,14 +62,25 @@ class PersistentSuggestionManagementView(View):
         _ = await message.edit(embed=embed, view=None)
         await message.clear_reactions()
 
+        icon_url = embed.author.icon_url
+        author_id = None
+        if icon_url:
+            author_id = user_id_from_icon_url(icon_url)
 
         # Lock the suggestion thread, if available
         if thread:
-            _ = await thread.send(f":lock: {responsible_user} closed this for the following reason:\n{reason}")
+            users_to_mention: list[str] = []
+            if author_id:
+                users_to_mention.append(f"<@{author_id}>")
+
+            _ = await thread.send(
+                f":lock: {responsible_user} closed this for the following reason:\n{reason}\n{' '.join(users_to_mention)}",
+                allowed_mentions=discord.AllowedMentions(users=True)
+            )
             _ = await thread.edit(locked=True)
 
     @discord.ui.button(
-        label='Mark as...',
+        label='Close...',
         style=discord.ButtonStyle.gray,
         custom_id='persistent_suggestion_management_view:mark_as_completed_button'
     )
@@ -77,17 +97,16 @@ class PersistentSuggestionManagementView(View):
         await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
         if timed_out:
-            return await interaction.response.send_message("Modal timed out.", ephemeral=True)
+            return await interaction.response.send_message(f"Modal timed out, you typed:\n{modal.reason_input.value}", ephemeral=True)
 
         interaction = modal.interaction
         value = modal.reason_input.value
         if len(value) > MAX_REASON_LENGTH:
-            return await interaction.response.send_message(f"Keep the reason up withib {MAX_REASON_LENGTH} characters.", ephemeral=True)
+            return await interaction.response.send_message(f"Keep the reason up within {MAX_REASON_LENGTH} characters.", ephemeral=True)
 
         await PersistentSuggestionManagementView.close_suggestion(
             message, str(interaction.user), value
         )
-        await interaction.response.defer()
 
     @discord.ui.button(
         label='Remove',
@@ -143,11 +162,7 @@ class PersistentSuggestionManagementView(View):
         icon_url = interaction.message.embeds[0].author.icon_url
         author_id_from_icon = None
         if icon_url:
-            try:
-                split = icon_url.split('https://cdn.discordapp.com/avatars/')[1].split('/')[0]
-                author_id_from_icon = int(split)
-            except Exception:
-                author_id_from_icon = None
+            author_id_from_icon = user_id_from_icon_url(icon_url)
 
         # If it's the message author
         if author_id_from_icon and author_id_from_icon == interaction.user.id:

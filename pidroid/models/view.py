@@ -4,7 +4,7 @@ import discord
 import logging
 
 from contextlib import suppress
-from discord import ClientUser, Embed, File, Interaction, Message, NotFound
+from discord import Client, ClientUser, Embed, File, Interaction, Message, NotFound
 from discord.utils import MISSING # pyright: ignore[reportAny]
 from discord.ext.commands import Context
 from discord.ui import Item, Modal, View
@@ -30,7 +30,7 @@ class PidroidModal(Modal):
         self.stop()
 
     @property
-    def interaction(self) -> Interaction[Pidroid]:
+    def interaction(self) -> Interaction[Client]:
         if self.__interaction is None:
             raise RuntimeError("Attempted to obtain interaction from PidroidModal object that did not exist yet")
         return self.__interaction
