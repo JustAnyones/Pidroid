@@ -291,6 +291,16 @@ class Pidroid(commands.Bot):
         await self.wait_until_guild_configurations_loaded()
         return commands.when_mentioned_or(*await self.get_prefixes(message))(self, message)
 
+    @override
+    async def load_extension(self, name: str, *, package: str | None = None):
+        name = name.removeprefix('theotown:')
+        return await super().load_extension(name, package=package)
+    
+    @override
+    async def unload_extension(self, name: str, *, package: str | None = None):
+        name = name.removeprefix('theotown:')
+        return await super().unload_extension(name, package=package)
+
     async def handle_reload(self):
         """Reloads all cogs of the client, excluding DB and API extensions.
         \nWarning: this is an experimental method and should not be depended on!"""
