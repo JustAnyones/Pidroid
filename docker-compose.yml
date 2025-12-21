@@ -9,8 +9,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      rabbit:
+        condition: service_healthy
 
-  # It is not recommended to expose anything to the outside world
   db:
     image: postgres:15-bullseye
     restart: unless-stopped
@@ -27,5 +28,21 @@ services:
         - pg_isready -d $${DB_NAME} -U $${DB_USER}
       interval: 15s
       timeout: 60s
+      retries: 5
+      start_period: 5s
+
+  rabbit:
+    image: rabbitmq:alpine
+    restart: unless-stopped
+    volumes:
+      - ./data/rabbitmq:/var/lib/rabbitmq
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - check_running
+      interval: 15s
+      timeout: 10s
       retries: 5
       start_period: 5s

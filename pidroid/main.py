@@ -77,6 +77,7 @@ def config_from_env() -> ConfigDict:
         "github_app_pem": os.environ.get("GITHUB_APP_PEM"),
         "github_owner": os.environ.get("GITHUB_OWNER"),
         "github_repo": os.environ.get("GITHUB_REPO"),
+        "rabbitmq_url": os.environ.get("RABBITMQ_URL"),
     }
 
 def migrate():

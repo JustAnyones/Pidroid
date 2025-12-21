@@ -24,6 +24,7 @@ from pidroid.models.queue import AbstractMessageQueue, EmbedMessageQueue, Messag
 from pidroid.modules.github.api import GithubAPI
 from pidroid.modules.moderation.models.case import Case
 from pidroid.modules.moderation.models.types import PunishmentType
+from pidroid.services.faststream_service import FastStreamService
 from pidroid.utils.api import API
 from pidroid.utils.checks import is_client_pidroid
 from pidroid.utils.types import ConfigDict, VersionInfo
@@ -136,12 +137,22 @@ class Pidroid(commands.Bot):
 
         self.__queues: dict[int, AbstractMessageQueue] = {}
         self.__tasks: list[tasks.Loop] = []
+        self.__faststream_service = FastStreamService(self)
 
     @override
     async def setup_hook(self):
         await self.api.test_connection()
         await self.load_cogs()
+        await self.__faststream_service.start()
         self.add_persistent_views()
+
+    @override
+    async def close(self) -> None:
+        """Called when Pidroid is being shut down."""
+        await super().close()
+        for task in self.__tasks:
+            task.stop()
+        await self.__faststream_service.stop()
 
     def add_persistent_views(self):
         """Adds persistent views that do not timeout."""
@@ -338,13 +349,6 @@ class Pidroid(commands.Bot):
         """Attempts to load all extensions as defined in client object."""
         logger.info("Loading extensions")
         await self.load_all_extensions()
-
-    @override
-    async def close(self) -> None:
-        """Called when Pidroid is being shut down."""
-        await super().close()
-        for task in self.__tasks:
-            task.stop()
 
     def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False, delay: float = -1) -> AbstractMessageQueue:
         """Creates a queue and returns the queue object."""

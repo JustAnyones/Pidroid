@@ -16,6 +16,7 @@ class ConfigDict(TypedDict):
     github_app_pem: str | None
     github_owner: str | None
     github_repo: str | None
+    rabbitmq_url: str | None
 
 class VersionInfo(NamedTuple):
     major: int
