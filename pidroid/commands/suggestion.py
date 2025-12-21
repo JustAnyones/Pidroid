@@ -51,16 +51,16 @@ class SuggestionCommandCog(commands.Cog):
 
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
-        self.client = client
+        self.client: Pidroid = client
 
     @commands.hybrid_command(
         name="suggest",
         brief='Send a suggestion to the server suggestions channel.',
         usage='<suggestion>',
-        examples=[
-            ("Suggest a luxurious building", 'suggest A luxury pickle-themed building'),
-        ],
-        category=UtilityCategory
+        extras={
+            'examples': [("Suggest a luxurious building", 'suggest A luxury pickle-themed building')],
+            'category': UtilityCategory
+        }
     )
     @commands.guild_only()
     @commands.cooldown(rate=1, per=60 * 5, type=commands.BucketType.user)
