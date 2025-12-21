@@ -5,14 +5,14 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./pidroid-bot
     steps:
     - uses: actions/checkout@v4
 
     - name: Install uv
       uses: astral-sh/setup-uv@v5
-
-    - name: Navigate to pidroid-bot folder
-      run: cd pidroid-bot
 
     - name: "Set up Python"
       uses: actions/setup-python@v5
