@@ -16,3 +16,7 @@ venv/*
 
 # Disallow the coverage file
 .coverage
+
+# Ignore the frontend and backend for now
+pidroid-api/*
+pidroid-web/*
