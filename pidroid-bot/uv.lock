@@ -768,7 +768,7 @@ wheels = [
 
 [[package]]
 name = "pidroid"
-version = "5.27.1"
+version = "5.27.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiocron" },
