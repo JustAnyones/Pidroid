@@ -99,7 +99,7 @@ class API:
             result = await session.execute(
                 select(TagTable).
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(tag_name)).
-                order_by(TagTable.name.asc())
+                order_by(func.lower(TagTable.name.asc()))
             )
         row = result.scalar()
         if row:
@@ -112,7 +112,7 @@ class API:
             result = await session.execute(
                 select(TagTable).
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
-                order_by(TagTable.name.asc())
+                order_by(func.lower(TagTable.name.asc()))
             )
         return [Tag.from_table(self.client, r) for r in result.scalars()]
 
@@ -122,7 +122,7 @@ class API:
             result = await session.execute(
                 select(TagTable).
                 filter(TagTable.guild_id == guild_id).
-                order_by(TagTable.name.asc())
+                order_by(func.lower(TagTable.name.asc()))
             )
         return [Tag.from_table(self.client, r) for r in result.scalars()]
 
