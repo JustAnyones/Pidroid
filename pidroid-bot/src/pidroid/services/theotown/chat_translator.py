@@ -210,7 +210,7 @@ class ChatTranslationService(commands.Cog):
         self._translating = asyncio.Event()
         self._translating.set()
 
-        self.daily_char_limit: int = 50000
+        self.daily_char_limit: int = 100_000
         self.used_chars: int = 0
         self.last_reset = utcnow()
 
@@ -315,7 +315,7 @@ class ChatTranslationService(commands.Cog):
                 detected_lang = translation["detected_source_language"]
                 embeds.append((
                     PidroidEmbed(description=text)
-                    .set_footer(text=f"Detected source language: {LANGUAGE_MAPPING.get(detected_lang, detected_lang)}")
+                    .set_footer(text=f"Detected source language: {LANGUAGE_MAPPING.get(detected_lang, detected_lang)} | {self.used_chars}/{self.daily_char_limit} chars used")
                 ))
 
         # Go over each embed and set author values or other stuff
