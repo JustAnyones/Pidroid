@@ -1,14 +1,13 @@
 from discord.ext import commands
 from discord.ext.commands import MissingRequiredArgument
 from discord.ext.commands.context import Context
-from discord.utils import format_dt
 
 from pidroid.client import Pidroid
 from pidroid.models.accounts import ForumAccount
 from pidroid.models.categories import TheoTownCategory
 from pidroid.services.error_handler import notify
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import PidroidEmbed, SuccessEmbed
+from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.http import Route
 
 class ForumCommandCog(commands.Cog):
@@ -40,9 +39,7 @@ class ForumCommandCog(commands.Cog):
                 .add_field(name='Group', value=account.group_name, inline=True)
                 .add_field(name='Rank', value=account.rank, inline=True)
                 .add_field(name='Post count', value=account.post_count, inline=True)
-                .add_field(name='Reaction count', value=account.reaction_count, inline=True)
                 .add_field(name='Plugins', value=f'[Forum plugins]({account.forum_plugin_url})\n[Plugin store plugins]({account.plugin_store_url})', inline=False)
-                .add_field(name='Registered', value=format_dt(account.date_registered), inline=True)
                 .set_thumbnail(url=account.avatar_url)
             )
             return await ctx.reply(embed=embed)
@@ -92,28 +89,6 @@ class ForumCommandCog(commands.Cog):
         )
         return await ctx.reply(f'{amount:,} region coins have been gifted to {data["name"]}!')
 
-    @commands.command(
-        name='forum-activate',
-        brief='Activates specified user\'s forum account.',
-        usage='<forum username/ID>',
-        category=TheoTownCategory
-    )
-    @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_theotown_developer()
-    async def forum_activate_command(self, ctx: Context[Pidroid], user: str):
-        async with ctx.typing():
-            data: dict[str, str] = await self.client.api.legacy_post(
-                Route("/forum/account/activate"),
-                {"user": user}
-            )
-            return await ctx.reply(embed=SuccessEmbed(data['details']))
-
-    @forum_activate_command.error
-    async def on_forum_activate_command_error(self, ctx: Context[Pidroid], error: Exception):
-        if isinstance(error, MissingRequiredArgument):
-            if error.param.name == "username":
-                return await notify(ctx, "Please specify the username of the user you are trying to authorize.")
-        setattr(error, 'unhandled', True)
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(ForumCommandCog(client))

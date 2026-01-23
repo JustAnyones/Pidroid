@@ -14,8 +14,6 @@ class ForumAccount:
         group_name: str
         rank: str
         post_count: int
-        reaction_count: int
-        date_registered: datetime.datetime
         date_latest_login: datetime.datetime | None
         _avatar: str
 
@@ -30,9 +28,6 @@ class ForumAccount:
 
         self.rank = data["rank_title"]
         self.post_count = data["user_posts"]
-        self.reaction_count = data["user_reactions"]
-
-        self.date_registered = timestamp_to_datetime(data["user_regdate"])
         if data["user_lastvisit"] == 0:
             self.date_latest_login = None
         else:
