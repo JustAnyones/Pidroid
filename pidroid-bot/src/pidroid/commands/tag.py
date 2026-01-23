@@ -58,10 +58,9 @@ async def _resolve_attachments(ctx: Context[Pidroid], maybe_file: Attachment | N
     message = ctx.message
 
     if ctx.interaction and maybe_file is not None:
-        await ctx.interaction.response.defer()
+        _ = await ctx.interaction.response.defer()
         file_bytes = await maybe_file.read()
         try:
-            raise ValueError("Simulate failure of uploading attachment via slash command")
             msg = await ctx.reply(
                 "Attachments received via slash commands are ephemeral and will expire. Therefore, I have reuploaded it for it to be usable in tags.",
                 file=File(BytesIO(file_bytes), filename=maybe_file.filename)
