@@ -51,7 +51,7 @@ class TagCommandCog(commands.Cog):
 
     def __init__(self, client: Pidroid):
         super().__init__()
-        self.client = client
+        self.client: Pidroid = client
 
     async def fetch_tag(self, ctx: Context[Pidroid], tag_name: str) -> Tag:
         """Fetches a tag by specified name using the context."""
@@ -90,12 +90,11 @@ class TagCommandCog(commands.Cog):
         name="tag",
         brief='Returns a server tag by the specified name.',
         usage='[tag name]',
-        category=TagCategory,
-        invoke_without_command=True,
         fallback="get",
-        examples=[
-            ("Show a tag that contains the name files", 'tag files'),
-        ],
+        extras={
+            'category': TagCategory,
+            'examples': [("Show a tag that contains the name files", 'tag files')],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -104,9 +103,11 @@ class TagCommandCog(commands.Cog):
             tag_list = await self.find_tags(ctx, tag_name)
             assert tag_name is not None
 
+            # If there's only a single tag, return it right away
+            message_content = ""
             if len(tag_list) == 1:
                 message_content = tag_list[0].content
-
+            # Otherwise, check for exact match first
             else:            
                 found = False
                 for tag in tag_list:
@@ -114,14 +115,16 @@ class TagCommandCog(commands.Cog):
                         message_content = tag.content
                         found = True
                         break
-
                 if not found:
                     source = TagListPaginator("Tags matching your query", tag_list)
                     view = PaginatingView(self.client, ctx, source=source)
                     return await view.send()
+                
+            assert message_content != "", "Message content should have been found at this point"
 
             if ctx.message.reference and ctx.message.reference.message_id:
                 message = await ctx.channel.fetch_message(ctx.message.reference.message_id)
+                await ctx.message.delete(delay=0) # delete invoking message to reduce clutter
                 return await message.reply(
                     message_content,
                     allowed_mentions=ALLOWED_MENTIONS.merge(AllowedMentions(replied_user=True))
