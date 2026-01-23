@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+import logging
 
-from discord import AllowedMentions, Attachment, File, Member, Message
+from discord import AllowedMentions, Attachment, File, Member
 from discord.ext import commands
 from discord.ext.commands import Context
 from discord.ext.commands.errors import BadArgument
@@ -26,10 +27,12 @@ NUMERATION_ESCAPE_REGEX = re.compile(r"(\d+)\.") # designed to escape it anywher
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
+logger = logging.getLogger("pidroid.commands.tag")
+
 class TagListPaginator(ListPageSource):
     def __init__(self, title: str, data: list[Tag]):
         super().__init__(data, per_page=20)
-        self.embed = PidroidEmbed(title=title)
+        self.embed: PidroidEmbed = PidroidEmbed(title=title)
 
         amount = len(data)
         if amount == 1:
@@ -39,12 +42,38 @@ class TagListPaginator(ListPageSource):
 
     @override
     async def format_page(self, menu: PaginatingView, page: list[Tag]):
-        offset = menu._current_page * self.per_page + 1
+        offset = menu.current_page * self.per_page + 1
         values = ""
         for i, item in enumerate(page):
             values += f"{i + offset}. {NUMERATION_ESCAPE_REGEX.sub(r"\1\.", item.name)}\n"
         self.embed.description = values.strip()
         return self.embed
+
+
+async def _resolve_attachments(ctx: Context[Pidroid], maybe_file: Attachment | None) -> list[Attachment]:
+    """
+    Returns list of useable tag attachments from the context.
+    If command was invoked via slash command, it will upload the provided attachment first. If it cannot, it will raise BadArgument.
+    """
+    message = ctx.message
+
+    if ctx.interaction and maybe_file is not None:
+        await ctx.interaction.response.defer()
+        file_bytes = await maybe_file.read()
+        try:
+            raise ValueError("Simulate failure of uploading attachment via slash command")
+            msg = await ctx.reply(
+                "Attachments received via slash commands are ephemeral and will expire. Therefore, I have reuploaded it for it to be usable in tags.",
+                file=File(BytesIO(file_bytes), filename=maybe_file.filename)
+            )
+            return msg.attachments
+        except Exception as e:
+            logger.exception("Failed to reupload attachment received via slash command")
+            raise BadArgument(
+                "Attachments received via slash commands are ephemeral and will expire. Please provide a link to the file instead."
+            ) from e
+    
+    return message.attachments
 
 class TagCommandCog(commands.Cog):
     """This class implements a cog for dealing with guild tag related commands.."""
@@ -72,28 +101,14 @@ class TagCommandCog(commands.Cog):
             raise BadArgument("I couldn't find any tags matching that name!")
         return tag_list
 
-    async def resolve_attachments(self, message: Message) -> str | None:
-        """Returns attachment URL from the message. None if there are no attachments.
-        
-        Will raise BadArgument if more than one attachment is provided."""
-        if len(message.attachments) == 0:
-            return None
-
-        if len(message.attachments) > 1:
-            raise BadArgument("Tags can only support a single attachment!")
-
-        attachment = message.attachments[0]
-        return attachment.url
-
-
     @commands.hybrid_group(
         name="tag",
-        brief='Returns a server tag by the specified name.',
-        usage='[tag name]',
+        brief="Returns a server tag by the specified name.",
+        usage="[tag name]",
         fallback="get",
         extras={
-            'category': TagCategory,
-            'examples': [("Show a tag that contains the name files", 'tag files')],
+            "category": TagCategory,
+            "examples": [("Show a tag that contains the name files", "tag files")],
         }
     )
     @commands.bot_has_permissions(send_messages=True)
@@ -135,7 +150,9 @@ class TagCommandCog(commands.Cog):
     @tag_command.command(
         name="list",
         brief="Returns a list of available server tags.",
-        category=TagCategory
+        extras={
+            "category": TagCategory,
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -151,12 +168,12 @@ class TagCommandCog(commands.Cog):
 
     @tag_command.command(
         name="info",
-        brief='Returns information about a specific server tag.',
-        usage='<tag name>',
-        category=TagCategory,
-        examples=[
-            ("Show tag information. Note how you have to use the full name.", 'tag info role explanations'),
-        ],
+        brief="Returns information about a specific server tag.",
+        usage="<tag name>",
+        extras={
+            "category": TagCategory,
+            "examples": [("Show tag information. Note how you have to use the full name.", "tag info role explanations")],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.guild_only()
@@ -182,12 +199,12 @@ class TagCommandCog(commands.Cog):
 
     @tag_command.command(
         name="raw",
-        brief='Returns raw tag content.',
-        usage='<tag name>',
-        category=TagCategory,
-        examples=[
-            ("Show raw tag content. Note how you have to use the full name.", 'tag raw role explanations'),
-        ],
+        brief="Returns raw tag content.",
+        usage="<tag name>",
+        extras={
+            "category": TagCategory,
+            "examples": [("Show raw tag content. Note how you have to use the full name.", 'tag raw role explanations')],
+        }
     )
     @commands.bot_has_permissions(send_messages=True, attach_files=True)
     @commands.guild_only()
@@ -204,10 +221,12 @@ class TagCommandCog(commands.Cog):
         name="create",
         brief="Create a server tag.",
         usage="<tag name> <tag content>",
-        category=TagCategory,
-        examples=[
-            ("Create a tag called Role explanations", 'tag create "Role explanations" amazing role tag'),
-        ],
+        extras={
+            "category": TagCategory,
+            "examples": [
+                ("Create a tag called Role explanations", 'tag create "Role explanations" amazing role tag'),
+            ],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @commands.cooldown(rate=10, per=60, type=commands.BucketType.user)
@@ -220,11 +239,12 @@ class TagCommandCog(commands.Cog):
 
         if await self.client.api.fetch_guild_tag(ctx.guild.id, stripped_name) is not None:
             raise BadArgument("There's already a tag by the specified name!")
-
-        attachment_url = await self.resolve_attachments(ctx.message) # The file from interactions are also obtained this way
-        if content is None and attachment_url is None:
-            raise BadArgument("Please provide content or an attachment for the tag!")
-        parsed_content = ((content or "") + "\n" + (attachment_url or "")).strip()
+        
+        attachments = await _resolve_attachments(ctx, file)
+        if content is None and len(attachments) == 0:
+            raise BadArgument("Please provide content or an attachments for the tag!")
+        attachment_urls = ''.join(attachment.url + '\n' for attachment in attachments)
+        parsed_content = ((content or "") + "\n" + attachment_urls).strip()
 
         tag = await Tag.create(
             self.client,
@@ -245,10 +265,10 @@ class TagCommandCog(commands.Cog):
         name="edit",
         brief="Edit a server tag.",
         usage="<tag name> <tag content>",
-        category=TagCategory,
-        examples=[
-            ("Edit a tag called Role explanations", 'tag edit "Role explanations" amazingly edited tag'),
-        ],
+        extras={
+            "category": TagCategory,
+            "examples": [("Edit a tag called Role explanations", 'tag edit "Role explanations" amazingly edited tag')],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -264,10 +284,11 @@ class TagCommandCog(commands.Cog):
             if not tag.is_author(ctx.author.id):
                 raise BadArgument("You cannot edit a tag you don't own or co-author!")
 
-        attachment_url = await self.resolve_attachments(ctx.message) # The file from interactions are also obtained this way
-        if content is None and attachment_url is None:
-            raise BadArgument("Please provide content or an attachment for the tag!")
-        parsed_content = ((content or "") + "\n" + (attachment_url or "")).strip()
+        attachments = await _resolve_attachments(ctx, file)
+        if content is None and len(attachments) == 0:
+            raise BadArgument("Please provide content or an attachments for the tag!")
+        attachment_urls = ''.join(attachment.url + '\n' for attachment in attachments)
+        parsed_content = ((content or "") + "\n" + attachment_urls).strip()
 
         await tag.edit(content=parsed_content)
         await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
@@ -281,10 +302,10 @@ class TagCommandCog(commands.Cog):
         name="add-author",
         brief="Add a new tag co-author.",
         usage="<tag name> <member>",
-        category=TagCategory,
-        examples=[
-            ("Allow JustAnyone to edit role tag", 'tag add-author "Role explanations" JustAnyone'),
-        ],
+        extras={
+            "category": TagCategory,
+            "examples": [("Allow JustAnyone to edit role tag", 'tag add-author "Role explanations" JustAnyone')],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -312,10 +333,10 @@ class TagCommandCog(commands.Cog):
         name="remove-author",
         brief="Remove a tag co-author.",
         usage="<tag name> <member>",
-        category=TagCategory,
-        examples=[
-            ("Remove JustAnyone from authors", 'tag remove-author "Role explanations" JustAnyone'),
-        ],
+        extras={
+            "category": TagCategory,
+            "examples": [("Remove JustAnyone from authors", 'tag remove-author "Role explanations" JustAnyone')],
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -340,7 +361,9 @@ class TagCommandCog(commands.Cog):
         name="claim",
         brief="Claim a server tag in the case the tag owner leaves.",
         usage="<tag name>",
-        category=TagCategory
+        extras={
+            "category": TagCategory,
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -377,7 +400,9 @@ class TagCommandCog(commands.Cog):
         name="transfer",
         brief="Transfer a server tag to someone else.",
         usage="<tag name> <member>",
-        category=TagCategory
+        extras={
+            "category": TagCategory,
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
@@ -408,7 +433,9 @@ class TagCommandCog(commands.Cog):
         name="remove",
         brief="Remove a server tag.",
         usage="<tag name>",
-        category=TagCategory
+        extras={
+            "category": TagCategory,
+        }
     )
     @commands.bot_has_permissions(send_messages=True)
     @command_checks.can_modify_tags()
