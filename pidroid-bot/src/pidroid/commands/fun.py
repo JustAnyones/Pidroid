@@ -15,9 +15,7 @@ from pidroid.models.categories import RandomCategory
 from pidroid.services.error_handler import notify
 from pidroid.utils.checks import assert_bot_channel_permissions
 from pidroid.utils.decorators import command_checks
-from pidroid.utils.embeds import ErrorEmbed
 from pidroid.utils.file import Resource
-from pidroid.utils.http import get
 
 CLOAKER_LINES = [
     'cloaker_1', 'cloaker_2', 'cloaker_3',
@@ -77,15 +75,7 @@ class FunCommandCog(commands.Cog):
 
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
-        self.client = client
-
-    @property
-    def tenor_token(self) -> str:
-        """Returns TENOR GIF API token."""
-        try:
-            return self.client.config['tenor_api_key']
-        except KeyError:
-            raise BadArgument("Credentials for TENOR GIF API could not be found!")
+        self.client: Pidroid = client
 
     @commands.command(
         name="color",
@@ -141,33 +131,6 @@ class FunCommandCog(commands.Cog):
                 allowed_mentions=AllowedMentions(users=False),
                 file=discord.File(Resource('evan.png'))
             )
-
-    @commands.command(
-        name="gif",
-        brief='Queries a GIF from TENOR.',
-        usage='<search term>',
-        category=RandomCategory
-    )
-    @commands.bot_has_permissions(send_messages=True)
-    async def gif_command(self, ctx: Context[Pidroid], *, query: str):
-        async with ctx.typing():
-            async with await get(
-                self.client,
-                f"https://api.tenor.com/v1/search?q={query}&key={self.tenor_token}&limit=30&contentfilter=medium"
-            ) as response:
-                data = await response.json()
-            if 'results' in data:
-                if len(data["results"]) > 0:
-                    gif = random.choice(data['results']) # nosec
-                    return await ctx.reply(gif['url'])
-            await ctx.reply(embed=ErrorEmbed("I couldn't find any GIFs for the specified query!"))
-
-    @gif_command.error
-    async def on_gif_command_error(self, ctx: Context[Pidroid], error: Exception):
-        if isinstance(error, MissingRequiredArgument):
-            if error.param.name == "query":
-                return await notify(ctx, "Please specify a value to query GIFs with.")
-        setattr(error, 'unhandled', True)
 
     @commands.command(
         name="dice",

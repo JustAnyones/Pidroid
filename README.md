@@ -108,8 +108,6 @@ TT_API_KEY=
 DEEPL_API_KEY=
 # Optional: Unbelievaboat API key for economy integration in TheoTown guild
 UNBELIEVABOAT_API_KEY=
-# Optional: Tenor API key for gif command
-TENOR_API_KEY=
 
 # Optional: Used to create issues on TheoTown GitHub
 GITHUB_APP_ID=
