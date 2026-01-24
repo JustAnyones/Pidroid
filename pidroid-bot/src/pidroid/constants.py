@@ -4,6 +4,9 @@ from discord.mentions import AllowedMentions
 
 ALLOWED_MENTIONS = AllowedMentions(everyone=False, replied_user=False)
 
+TT_MODERATOR_CHAT_ROLE_ID = 1461803514207404106
+
+
 PIDROID_ID = 700465365435678840
 
 LOBBY_ID = 364343400461238272

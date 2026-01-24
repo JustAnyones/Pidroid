@@ -17,7 +17,7 @@ from pidroid.utils.file import Resource
 from pidroid.utils.time import delta_to_datetime, humanize
 from pidroid.utils.types import DiscordUser
 from pidroid.utils.checks import (
-    is_junior_moderator, is_normal_moderator, is_senior_moderator, member_has_guild_permission
+    Capabilities, has_capability, member_has_guild_permission
 )
 
 DateExpire = datetime.datetime | None
@@ -99,20 +99,20 @@ class PunishmentType(enum.Enum):
 
 PUNISHMENT_ACTIONS: dict[PunishmentType, PunishmentOptions] = {
     PunishmentType.BAN: PunishmentOptions(
-        check_issue=lambda ctx: is_normal_moderator(ctx, ban_members=True) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
-        check_revoke=lambda ctx: is_senior_moderator(ctx, ban_members=True) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
+        check_issue=lambda ctx: has_capability(ctx, required_capability=Capabilities.ban) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
+        check_revoke=lambda ctx: has_capability(ctx, required_capability=Capabilities.unban) and member_has_guild_permission(ctx.me, "ban_members"), # pyright: ignore[reportArgumentType]
         supports_expiration=True, supports_messages_deletion=True
     ),
     PunishmentType.KICK: PunishmentOptions(
-        check_issue=lambda ctx: is_junior_moderator(ctx, kick_members=True) and member_has_guild_permission(ctx.me, "kick_members"), # pyright: ignore[reportArgumentType]
+        check_issue=lambda ctx: has_capability(ctx, required_capability=Capabilities.kick) and member_has_guild_permission(ctx.me, "kick_members"), # pyright: ignore[reportArgumentType]
     ),
     PunishmentType.JAIL: PunishmentOptions(
-        check_issue=lambda ctx: member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
-        check_revoke=lambda ctx: member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
+        check_issue=lambda ctx: has_capability(ctx, required_capability=Capabilities.jail) and member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
+        check_revoke=lambda ctx: has_capability(ctx, required_capability=Capabilities.jail) and member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
     ),
     PunishmentType.TIMEOUT: PunishmentOptions(
-        check_issue=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
-        check_revoke=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
+        check_issue=lambda ctx: has_capability(ctx, required_capability=Capabilities.timeout) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
+        check_revoke=lambda ctx: has_capability(ctx, required_capability=Capabilities.timeout) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
         supports_expiration=True
     ),
     PunishmentType.WARNING: PunishmentOptions(

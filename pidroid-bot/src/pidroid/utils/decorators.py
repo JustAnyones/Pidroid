@@ -10,7 +10,7 @@ from pidroid.utils.checks import (
     is_client_pidroid, is_guild_theotown,
     check_can_modify_tags,
     assert_junior_moderator_permissions, assert_normal_moderator_permissions, assert_senior_moderator_permissions,
-    assert_channel_permissions
+    assert_channel_permissions, Capabilities, assert_capability
 )
 
 class command_checks:
@@ -99,13 +99,21 @@ class command_checks:
         return commands.check(predicate)
 
     @staticmethod
+    def has_capability(capability: Capabilities):
+        """Checks whether the command is invoked by a senior moderator or a member with appropriate permissions."""
+        async def predicate(ctx: Context[Pidroid]):
+            assert_capability(ctx, required_capability=capability)
+            return True
+        return commands.check(predicate)
+
+    @staticmethod
     def can_purge():
         """Checks whether the command is invoked by a member which can purge."""
         async def predicate(ctx: Context[Pidroid]):
             assert ctx.guild is not None
             assert isinstance(ctx.author, Member)
             if is_guild_theotown(ctx.guild):
-                if not TheoTownChecks.is_normal_moderator(ctx.author):
+                if not TheoTownChecks.is_normal_moderator_or_higher(ctx.author):
                     raise MissingUserPermissions('You need to be at least a moderator to run this command!')
                 return True
             assert_channel_permissions(ctx, manage_messages=True)
