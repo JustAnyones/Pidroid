@@ -135,7 +135,7 @@ class ModerationCommandCog(commands.Cog):
 
     @commands.command(hidden=True)
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, attach_files=True)
-    @command_checks.is_junior_moderator(manage_messages=True)
+    @command_checks.is_moderator(manage_messages=True)
     @commands.guild_only()
     async def deletethis(self, ctx: Context[Pidroid]):
         assert isinstance(ctx.channel, MessageableGuildChannelTuple)
@@ -151,7 +151,7 @@ class ModerationCommandCog(commands.Cog):
     )
     @app_commands.describe(member="Member you are trying to suspend.")
     @commands.bot_has_permissions(manage_messages=True, send_messages=True, moderate_members=True)
-    @command_checks.is_junior_moderator(moderate_members=True)
+    @command_checks.is_moderator(moderate_members=True)
     @commands.guild_only()
     async def suspend_command(
         self,

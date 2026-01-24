@@ -179,6 +179,14 @@ class TheoTownChecks:
         )
 
     @staticmethod
+    def is_chat_moderator(member: Member) -> bool:
+        """Returns true if the member is considered to be at least a chat moderator on TheoTown guild."""
+        return (
+            _member_has_role(member, 1461803514207404106)
+            or TheoTownChecks.is_junior_moderator(member)
+        )
+
+    @staticmethod
     def is_event_manager(member: Member) -> bool:
         """Returns true if the member is considered to be an event manager."""
         return _member_has_role(member, 584109249903198210)
@@ -216,7 +224,7 @@ def is_guild_moderator(member: Member) -> bool:
     This should not be used for anything except for a very generic check
     to see if a member is definitely a moderator."""
     if is_guild_theotown(member.guild):
-        return TheoTownChecks.is_junior_moderator(member) # Junior moderator by design can be considered to be a minimal moderation role
+        return TheoTownChecks.is_chat_moderator(member) # Junior moderator by design can be considered to be a minimal moderation role
     
     return (
         is_guild_administrator(member)
@@ -231,7 +239,7 @@ def has_moderator_guild_permissions(ctx: Context[Pidroid], **perms: bool) -> boo
     """Returns true if the author is a moderator and has the specified guild permissions."""
     assert isinstance(ctx.author, Member)
     if is_guild_theotown(ctx.guild):
-        return TheoTownChecks.is_junior_moderator(ctx.author)
+        return TheoTownChecks.is_chat_moderator(ctx.author)
 
     # Ugly, I don't care
     try:
@@ -259,11 +267,23 @@ async def check_can_modify_tags(ctx: Context[Pidroid]):
         return True
 
     if is_guild_theotown(ctx.guild):
-        if not TheoTownChecks.is_junior_moderator(ctx.author):
+        if not TheoTownChecks.is_chat_moderator(ctx.author):
             raise MissingUserPermissions('You need to be at least a junior moderator to run this command!')
         return True
     assert_guild_permissions(ctx, manage_messages=True)
     return True
+
+def assert_chat_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
+    """Checks whether author has chat moderator permissions in TheoTown guild channel
+    or the equivalent permissions in other guild channels.
+    
+    Raises exception on failure."""
+    assert isinstance(ctx.author, Member)
+    if is_guild_theotown(ctx.guild):
+        if not TheoTownChecks.is_chat_moderator(ctx.author):
+            raise MissingUserPermissions('You need to be at least a chat moderator to run this command!')
+        return
+    assert_channel_permissions(ctx, **perms)
 
 def assert_junior_moderator_permissions(ctx: Context[Pidroid], **perms: bool):
     """Checks whether author has junior moderator permissions in TheoTown guild channel
@@ -305,6 +325,14 @@ def is_junior_moderator(ctx: Context[Pidroid], **perms: bool) -> bool:
     """Returns whether the author is a junior moderator based on role in TheoTown and permissions in other guilds."""
     try:
         assert_junior_moderator_permissions(ctx, **perms)
+        return True
+    except (MissingUserPermissions, MissingPermissions):
+        return False
+
+def is_chat_moderator(ctx: Context[Pidroid], **perms: bool) -> bool:
+    """Returns whether the author is a chat moderator based on role in TheoTown and permissions in other guilds."""
+    try:
+        assert_chat_moderator_permissions(ctx, **perms)
         return True
     except (MissingUserPermissions, MissingPermissions):
         return False

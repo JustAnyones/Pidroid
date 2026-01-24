@@ -9,12 +9,17 @@ from pidroid.utils.checks import (
     TheoTownChecks,
     is_client_pidroid, is_guild_theotown,
     check_can_modify_tags,
-    assert_junior_moderator_permissions, assert_normal_moderator_permissions, assert_senior_moderator_permissions,
+    assert_chat_moderator_permissions, assert_senior_moderator_permissions,
     assert_channel_permissions
 )
 
 class command_checks:
-    """This class contains custom command check decorators."""
+    """
+    This class contains custom command check decorators.
+    
+    These checks are evaluated before command invocation to determine whether the command should be executed.
+    For permission checks at runtime, use the `pidroid.utils.checks` module.
+    """
 
     @staticmethod
     def is_theotown_developer():
@@ -75,18 +80,15 @@ class command_checks:
         return commands.check(predicate)
 
     @staticmethod
-    def is_junior_moderator(**perms: bool):
-        """Checks whether the command is invoked by a junior moderator or a member with appropriate permissions."""
-        async def predicate(ctx: Context[Pidroid]):
-            assert_junior_moderator_permissions(ctx, **perms)
-            return True
-        return commands.check(predicate)
-
-    @staticmethod
     def is_moderator(**perms: bool):
-        """Checks whether the command is invoked by a normal moderator or a member with appropriate permissions."""
+        """
+        Checks whether the command is invoked by a moderator or a member with appropriate permissions.
+        
+        Evaluation is scoped to channel permissions if not in TheoTown guild.
+        In TheoTown, a moderator is considered anyone with at least chat moderator role.
+        """
         async def predicate(ctx: Context[Pidroid]):
-            assert_normal_moderator_permissions(ctx, **perms)
+            assert_chat_moderator_permissions(ctx, **perms)
             return True
         return commands.check(predicate)
 

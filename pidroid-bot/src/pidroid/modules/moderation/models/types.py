@@ -17,7 +17,7 @@ from pidroid.utils.file import Resource
 from pidroid.utils.time import delta_to_datetime, humanize
 from pidroid.utils.types import DiscordUser
 from pidroid.utils.checks import (
-    is_junior_moderator, is_normal_moderator, is_senior_moderator, member_has_guild_permission
+    is_chat_moderator, is_junior_moderator, is_normal_moderator, is_senior_moderator, member_has_guild_permission
 )
 
 DateExpire = datetime.datetime | None
@@ -111,8 +111,8 @@ PUNISHMENT_ACTIONS: dict[PunishmentType, PunishmentOptions] = {
         check_revoke=lambda ctx: member_has_guild_permission(ctx.me, "manage_roles"), # pyright: ignore[reportArgumentType]
     ),
     PunishmentType.TIMEOUT: PunishmentOptions(
-        check_issue=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
-        check_revoke=lambda ctx: is_junior_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
+        check_issue=lambda ctx: is_chat_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
+        check_revoke=lambda ctx: is_chat_moderator(ctx, moderate_members=True) and member_has_guild_permission(ctx.me, "moderate_members"), # pyright: ignore[reportArgumentType]
         supports_expiration=True
     ),
     PunishmentType.WARNING: PunishmentOptions(

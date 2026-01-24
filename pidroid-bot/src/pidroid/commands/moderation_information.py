@@ -66,7 +66,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     @app_commands.rename()
     @app_commands.describe(case_id="Numerical case ID.", reason="Updated case reason.")
     @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_junior_moderator(kick_members=True)
+    @command_checks.is_moderator(kick_members=True)
     @commands.guild_only()
     async def case_command(self, ctx: Context[Pidroid], case_id: int, *, reason: str | None):
         assert ctx.guild is not None
@@ -280,7 +280,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     )
     @app_commands.describe(user="Member you are trying to query.")
     @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_junior_moderator(kick_members=True)
+    @command_checks.is_moderator(kick_members=True)
     @commands.guild_only()
     async def moderator_statistics_command(
         self,
@@ -310,7 +310,7 @@ class ModeratorInformationCommandCog(commands.Cog):
     )
     @app_commands.describe(username="Username of the user that was previously punished.")
     @commands.bot_has_permissions(send_messages=True)
-    @command_checks.is_junior_moderator(kick_members=True)
+    @command_checks.is_moderator(kick_members=True)
     @commands.guild_only()
     async def search_cases_command(
         self,
