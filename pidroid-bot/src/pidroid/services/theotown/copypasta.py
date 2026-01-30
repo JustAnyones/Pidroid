@@ -177,23 +177,27 @@ class CopypastaService(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message): # noqa: C901
-        if message.author.bot or not message.guild or not is_guild_theotown(message.guild):
+        if message.author.bot or not message.guild:
             return
 
         content = message.clean_content.lower()
 
-        # Reply as Pidroid to JA's pings
-        if message.author.id != JUSTANYONE_ID:
+        # Only reply to JA pings outside TheoTown guild
+        if not is_guild_theotown(message.guild) and message.author.id != JUSTANYONE_ID:
             if len(message.mentions) > 0 and any(mention.id == JUSTANYONE_ID for mention in message.mentions):
                 if self.check_cooldown("ping_ja", 60 * 60 * 24):
                     _ = await message.reply(file=File(Resource('ja ping.png')), delete_after=0.9)
+
+        # Only allow copypastas in TheoTown guild
+        if not is_guild_theotown(message.guild):
+            return
 
         # Linux copypasta
         if self.is_linux(content):
             if self.check_cooldown("linux", 60 * 60 * 7):
                 if self.check_probability(5): # 20%
                     async with message.channel.typing():
-                        await asyncio.sleep(67)
+                        await asyncio.sleep(30)
                         _ = await message.reply(LINUX_COPYPASTA, delete_after=120)
                     return
 
