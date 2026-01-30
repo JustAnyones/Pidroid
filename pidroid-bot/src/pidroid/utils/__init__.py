@@ -99,10 +99,15 @@ async def try_message_user(
         else:
             message = await user.send(content=content)
         return message
+    except discord.errors.Forbidden as e:
+        if e.code == 50007:  # Cannot send messages to this user
+            return None
+        logging.getLogger("pidroid.utils").exception(
+            f"Failed to send message to user {user.id} ({user.name}) in DMs."
+        )
     except Exception: # nosec
         logging.getLogger("pidroid.utils").exception(
-            f"Failed to send message to user {user.id} ({user.name}) in DMs. "
-            "This is most likely because the user has DMs disabled."
+            f"Failed to send message to user {user.id} ({user.name}) in DMs."
         )
         return None
 
