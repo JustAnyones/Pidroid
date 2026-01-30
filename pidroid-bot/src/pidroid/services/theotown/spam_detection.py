@@ -30,7 +30,7 @@ KEY = tuple[int, str]
 # list of infractions
 VALUE = list[Infraction] 
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.services.theotown.spam_detection')
 
 class SpamDetectionService(commands.Cog):
     """

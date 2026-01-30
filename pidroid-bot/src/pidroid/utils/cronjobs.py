@@ -6,7 +6,7 @@ from contextlib import suppress
 
 from pidroid.client import Pidroid
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.utils.cronjobs")
 
 async def start_cronjob(client: Pidroid, cronjob: aiocron.Cron, cron_name: str = "Generic") -> None:
     """Creates a new cronjob task with specified parameters."""

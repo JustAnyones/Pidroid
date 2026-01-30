@@ -4,7 +4,7 @@ from asyncio import Queue, sleep
 from discord import AllowedMentions, Embed, TextChannel
 from typing import override
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.models.queue')
 
 def split_text_into_chunks(text: str, max_chunk_length: int = 2000):
     """Splits text into nice chunks."""

@@ -27,7 +27,7 @@ if sys.platform == 'win32':
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.client")
 
 def get_postgres_dsn() -> str:
     postgres_dsn = os.environ.get("POSTGRES_DSN", None)

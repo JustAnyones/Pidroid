@@ -8,7 +8,7 @@ from typing import override
 from pidroid.client import Pidroid
 from pidroid.utils.time import utcnow
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.services.thread_archiver")
 
 class ThreadArchiverService(commands.Cog):
     """This class implements a cog for automatic handling of threads that get archived after some time."""

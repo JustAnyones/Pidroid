@@ -7,7 +7,7 @@ from pidroid.client import Pidroid
 from pidroid.constants import THEOTOWN_GUILD
 from pidroid.utils.http import Route
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.services.theotown.guild_statistics")
 
 class GuildStatisticsService(commands.Cog):
     """This class implements a cog for synchronizing TheoTown's guild member count with the TheoTown API."""

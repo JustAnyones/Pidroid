@@ -16,7 +16,7 @@ from pidroid.utils.paginators import PageSource
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.models.view")
 
 class PidroidModal(Modal):
 

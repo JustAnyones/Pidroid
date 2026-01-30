@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from pidroid.client import Pidroid
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.services.presence")
 
 class PresenceService(commands.Cog):
     def __init__(self, client: Pidroid):

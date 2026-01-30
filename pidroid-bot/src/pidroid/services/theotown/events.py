@@ -15,7 +15,7 @@ from pidroid.utils.checks import TheoTownChecks as TTChecks, is_guild_moderator,
 EVENTS_CHANNEL_ID = 371731826601099264
 EVENTS_FORUM_CHANNEL_ID = 1085224525924417617
 
-logger = logging.getLogger('Pidroid')
+logger = logging.getLogger('pidroid.services.theotown.events')
 
 def is_message_in_events_forum(message: Message) -> bool:
     """Returns true if the message belongs to a events forum channel thread."""

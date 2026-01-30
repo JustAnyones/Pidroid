@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from pidroid.constants import COOLDOWN_FILE_PATH
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.utils.cooldowns")
 
 def _get_cooldown_file(filename: str) -> str:
     """Returns path to the cooldown file by the specified name."""

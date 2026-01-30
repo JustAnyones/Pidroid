@@ -145,7 +145,7 @@ CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
 BASE64_PATTERN = re.compile(r'^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$')
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.services.theotown.chat_translator")
 
 def remove_emojis(string: str) -> str:
     """Removes all emojis from a string."""

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pidroid.client import Pidroid
 
-logger = logging.getLogger("Pidroid.FastStream")
+logger = logging.getLogger("pidroid.services.faststream")
 
 
 class FastStreamService:

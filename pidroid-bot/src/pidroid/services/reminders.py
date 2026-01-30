@@ -13,7 +13,7 @@ from pidroid.utils.db.reminder import Reminder
 from pidroid.utils.embeds import PidroidEmbed
 from pidroid.utils.time import utcnow
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.services.reminders")
 
 class ReminderService(commands.Cog):
     """This class implements a cog for handling deliveries of reminders."""
