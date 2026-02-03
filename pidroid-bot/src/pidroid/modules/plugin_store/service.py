@@ -144,7 +144,7 @@ class PluginStoreService(commands.Cog):
                     if plugin.approval_time > 0:
                         continue
 
-                    await channel.send(
+                    _ = await channel.send(
                         embed=plugin.to_embed(),
                         content=f"New revision for plugin ID {plugin.plugin_id} submitted."
                     )

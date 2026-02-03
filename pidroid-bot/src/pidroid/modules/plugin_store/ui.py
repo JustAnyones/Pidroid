@@ -44,10 +44,10 @@ class PluginEntryContainer(ui.Container["MonthlyPluginReportLayout"]):
         super().__init__()
         title = f"### {index + 1}. {clean_inline_translations(entry['name'])}"
         text = ""
-        text += "**Author:** " + utils.escape_markdown(entry['author_name']) + "\n"
-        text += f"**Downloads:** {entry['downloads']:,}\n"
+        text += "**👤 Author:** " + utils.escape_markdown(entry['author_name']) + "\n"
+        text += f"**📥 Downloads:** {entry['downloads']:,}\n"
         rating_percentage = round(entry['rating_sum'] / entry['rating_count'] * 100)
-        text += f"**Rating:** {rating_percentage}% by {entry['rating_count']:,} ratings\n"
+        text += f"**📊 Rating:** {rating_percentage}% ({entry['rating_count']:,} ratings)\n"
 
         url = f"https://data.theotown.com/get_file.php?t=pf&name={entry['img']}"
         self.add_item(ui.Section(
@@ -70,11 +70,11 @@ class MonthlyPluginReportLayout(ui.LayoutView):
         month_name = calendar.month_name[month_of_data]
 
         # Display creators of last month
-        text = f"## Plugin store statistics for {month_name}\n"
+        text = f"## Plugin Store statistics for {month_name}\n"
         text += f"In total {plugin_count_last_month} new plugins have been released in {month_name} of {year_of_data}. Major contributors were:\n"
         for i, entry in enumerate(plugin_creators_last_month):
             escaped_name = utils.escape_markdown(entry['author_name'])
-            text += f"{i+1}. {escaped_name}\n {entry['plugins']:,} plugin(s) which reached {entry['downloads']:,} downloads!\n"
+            text += f"{i+1}. {escaped_name}\n {entry['plugins']:,} plugin(s) | {entry['downloads']:,} downloads\n"
         self.add_item(ui.TextDisplay(text))
 
         # Show those plugins in a gallery, allocating slots fairly based on plugin count
@@ -86,27 +86,33 @@ class MonthlyPluginReportLayout(ui.LayoutView):
                     f"https://data.theotown.com/get_file.php?t=pf&name={plugin_creators_last_month[i]["plugin arr"][j]['img']}"
                 ))
         if gallery_items:
-            self.add_item(ui.MediaGallery(
+            _ = self.add_item(ui.MediaGallery(
                 *gallery_items
             ))
 
-        # Display most popular creators of all time and by downloads
-        most_popular_creators = "## Most popular plugin creators of all time\n"
+        # Display most popular creators of all time by plugin count and by downloads
+        most_popular_creators = "## Most Prolific Creators\n"
         for i, entry in enumerate(plugin_creators_all_time):
             if i >= 10:
                 break
-            most_popular_creators += f"{i+1}. {entry['author_name']}\n And their {entry['plugins']:,} plugin(s) reaching {entry['downloads']:,} downloads!\n"
-        self.add_item(ui.TextDisplay(most_popular_creators))
+            name = entry['author_name']
+            if i == 0:
+                name += " 🏆"
+            most_popular_creators += f"{i+1}. {name}\n {entry['plugins']:,} plugin(s) | {entry['downloads']:,} downloads\n"
+        _ = self.add_item(ui.TextDisplay(most_popular_creators))
 
-        most_popular_creators_by_downloads = "## Most popular plugin creators of all time by downloads\n"
+        most_popular_creators_by_downloads = "## Most Popular Creators\n"
         for i, entry in enumerate(plugin_creators_all_time_by_downloads):
             if i >= 10:
                 break
-            most_popular_creators_by_downloads += f"{i+1}. {entry['author_name']}\n And their {entry['plugins']:,} plugin(s) reaching {entry['downloads']:,} downloads!\n"
-        self.add_item(ui.TextDisplay(most_popular_creators_by_downloads + "## Most popular plugins of all time"))
+            name = entry['author_name']
+            if i == 0:
+                name += " 🏆"
+            most_popular_creators_by_downloads += f"{i+1}. {name}\n {entry['plugins']:,} | {entry['downloads']:,} downloads\n"
+        _ = self.add_item(ui.TextDisplay(most_popular_creators_by_downloads + "## Current Community Favourites"))
 
         # Display top plugins of all time
         plugins_all_time = data['plugins all time']
         for i in range(9): # Only 9 results
             top_plugin = plugins_all_time[i]
-            self.add_item(PluginEntryContainer(i, top_plugin))
+            _ = self.add_item(PluginEntryContainer(i, top_plugin))
