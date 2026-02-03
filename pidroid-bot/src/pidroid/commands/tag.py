@@ -86,18 +86,18 @@ class TagCommandCog(commands.Cog):
         assert ctx.guild is not None
         tag = await self.client.api.fetch_guild_tag(ctx.guild.id, tag_name)
         if tag is None:
-            raise BadArgument("I couldn't find any tags matching that name!")
+            raise BadArgument(f"Could not find any tags matching '{tag_name}' name.")
         return tag
 
     async def find_tags(self, ctx: Context[Pidroid], tag_name: str) -> list[Tag]:
         """Returns a list of tags matching the specified tag name using the context."""
         if len(tag_name) < 3:
-            raise BadArgument("Query term is too short! Please keep it above 2 characters!")
+            raise BadArgument("Query term is too short. Please keep it above 2 characters.")
 
         assert ctx.guild is not None
         tag_list = await self.client.api.search_guild_tags(ctx.guild.id, tag_name)
         if len(tag_list) == 0:
-            raise BadArgument("I couldn't find any tags matching that name!")
+            raise BadArgument(f"Could not find any tags matching '{tag_name}' name.")
         return tag_list
 
     @commands.hybrid_group(
@@ -159,7 +159,7 @@ class TagCommandCog(commands.Cog):
         assert ctx.guild is not None
         guild_tags = await self.client.api.fetch_guild_tags(ctx.guild.id)
         if len(guild_tags) == 0:
-            raise BadArgument("This server has no defined tags!")
+            raise BadArgument("This server has not defined any tags.")
 
         source = TagListPaginator(f"{escape_markdown(ctx.guild.name)} server tag list", guild_tags)
         view = PaginatingView(self.client, ctx, source=source)
@@ -183,7 +183,7 @@ class TagCommandCog(commands.Cog):
 
         embed = PidroidEmbed(title=tag.name, description=tag.content)
         if authors[0]:
-            embed.add_field(name="Tag owner", value=authors[0].mention)
+            _ = embed.add_field(name="Tag owner", value=authors[0].mention)
         if len(authors[1:]) > 0:
             author_value = ""
             for i, user in enumerate(authors[1:]):
@@ -191,9 +191,9 @@ class TagCommandCog(commands.Cog):
                     author_value += f'{tag.co_author_ids[i]} '
                 else:
                     author_value += f'{user.mention} '
-            embed.add_field(name="Co-authors", value=author_value.strip())
-        embed.add_field(name="Date created", value=format_dt(tag.date_created))
-        await ctx.reply(embed=embed)
+            _ = embed.add_field(name="Co-authors", value=author_value.strip())
+        _ = embed.add_field(name="Date created", value=format_dt(tag.date_created))
+        _ = await ctx.reply(embed=embed)
 
 
     @tag_command.command(
@@ -237,11 +237,11 @@ class TagCommandCog(commands.Cog):
         stripped_name = tag_name.strip()
 
         if await self.client.api.fetch_guild_tag(ctx.guild.id, stripped_name) is not None:
-            raise BadArgument("There's already a tag by the specified name!")
+            raise BadArgument(f"There's already a tag named '{stripped_name}'.")
         
         attachments = await _resolve_attachments(ctx, file)
         if content is None and len(attachments) == 0:
-            raise BadArgument("Please provide content or an attachments for the tag!")
+            raise BadArgument("Please provide content or an attachments for the tag.")
         attachment_urls = ''.join(attachment.url + '\n' for attachment in attachments)
         parsed_content = ((content or "") + "\n" + attachment_urls).strip()
 
@@ -277,15 +277,15 @@ class TagCommandCog(commands.Cog):
         tag = await self.fetch_tag(ctx, tag_name)
 
         if tag.locked:
-            raise BadArgument("Tag cannot be modified as it is locked!")
+            raise BadArgument("Tag cannot be modified as it is locked.")
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             if not tag.is_author(ctx.author.id):
-                raise BadArgument("You cannot edit a tag you don't own or co-author!")
+                raise BadArgument("You cannot edit a tag you don't own or co-author.")
 
         attachments = await _resolve_attachments(ctx, file)
         if content is None and len(attachments) == 0:
-            raise BadArgument("Please provide content or an attachments for the tag!")
+            raise BadArgument("Please provide content or an attachments for the tag.")
         attachment_urls = ''.join(attachment.url + '\n' for attachment in attachments)
         parsed_content = ((content or "") + "\n" + attachment_urls).strip()
 
@@ -315,10 +315,10 @@ class TagCommandCog(commands.Cog):
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
-                raise BadArgument("You cannot add a co-author to a tag you don't own!")
+                raise BadArgument("You cannot add a co-author to a tag you don't own.")
 
         if member.bot:
-            raise BadArgument("You cannot add a bot as co-author, that'd be stupid!")
+            raise BadArgument("You cannot add a bot as a tag co-author.")
 
         await tag.add_co_author(member.id)
         await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully!"))
@@ -346,7 +346,7 @@ class TagCommandCog(commands.Cog):
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
-                raise BadArgument("You cannot remove a co-author from a tag you don't own!")
+                raise BadArgument("You cannot remove a co-author from a tag you don't own.")
 
         await tag.remove_co_author(member.id)
         await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully!"))
@@ -372,12 +372,12 @@ class TagCommandCog(commands.Cog):
         tag = await self.fetch_tag(ctx, tag_name)
 
         if ctx.author.id == tag.author_id:
-            raise BadArgument("You are the tag owner, there is no need to claim it!")
+            raise BadArgument("You are the tag owner, there is no need to claim it.")
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             # First, check if owner is still in the server
             if await self.client.get_or_fetch_member(ctx.guild, tag.author_id) is not None:
-                raise BadArgument("Tag owner is still in the server!")
+                raise BadArgument("Tag owner is still in the server.")
 
             # First check if we can elevate user from co-author to owner
             if ctx.author.id not in tag.co_author_ids:
@@ -385,10 +385,10 @@ class TagCommandCog(commands.Cog):
                 # if we can't, we have to check every author and if at least a single one is in the server, raise exception
                 for co_author_id in tag.co_author_ids:
                     if await self.client.get_or_fetch_member(ctx.guild, co_author_id):
-                        raise BadArgument("There are still tag co-authors in the server! They can claim the tag too!")
+                        raise BadArgument("There are still tag co-authors in the server. They can claim the tag too.")
 
         await tag.edit(owner_id=ctx.author.id)
-        await ctx.reply(embed=SuccessEmbed("Tag claimed successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag claimed successfully."))
         self.client.log_event(
             EventType.tag_update, EventName.tag_claim, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
@@ -412,16 +412,16 @@ class TagCommandCog(commands.Cog):
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
-                raise BadArgument("You cannot transfer a tag you don't own!")
+                raise BadArgument("You cannot transfer a tag you don't own.")
 
         if ctx.author.id == member.id:
-            raise BadArgument("You cannot transfer a tag to yourself!")
+            raise BadArgument("You cannot transfer a tag to yourself.")
 
         if member.bot:
-            raise BadArgument("You cannot transfer a tag to a bot, that'd be stupid!")
+            raise BadArgument("You cannot transfer a tag to a bot.")
 
         await tag.edit(owner_id=member.id)
-        await ctx.reply(embed=SuccessEmbed(f"Tag transfered to {escape_markdown(str(member))} successfully!"))
+        await ctx.reply(embed=SuccessEmbed(f"Tag transfered to {escape_markdown(str(member))} successfully."))
         self.client.log_event(
             EventType.tag_update, EventName.tag_transfer, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
@@ -444,14 +444,14 @@ class TagCommandCog(commands.Cog):
         tag = await self.fetch_tag(ctx, tag_name)
 
         if tag.locked:
-            raise BadArgument("Tag cannot be modified as it is locked!")
+            raise BadArgument("Tag cannot be modified as it is locked.")
 
         if not has_moderator_guild_permissions(ctx, manage_messages=True):
             if ctx.author.id != tag.author_id:
-                raise BadArgument("You cannot remove a tag you don't own!")
+                raise BadArgument("You cannot remove a tag you don't own.")
 
         await self.client.api.delete_tag(tag.row)
-        await ctx.reply(embed=SuccessEmbed("Tag removed successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag removed successfully."))
         self.client.log_event(
             EventType.tag_delete, EventName.tag_delete, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
