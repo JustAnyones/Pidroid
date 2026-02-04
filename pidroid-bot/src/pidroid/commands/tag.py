@@ -86,7 +86,7 @@ class TagCommandCog(commands.Cog):
         assert ctx.guild is not None
         tag = await self.client.api.fetch_guild_tag(ctx.guild.id, tag_name)
         if tag is None:
-            raise BadArgument(f"Could not find any tags matching '{tag_name}' name.")
+            raise BadArgument(f"Could not find any tags matching '{tag_name}'.")
         return tag
 
     async def find_tags(self, ctx: Context[Pidroid], tag_name: str) -> list[Tag]:
@@ -97,7 +97,7 @@ class TagCommandCog(commands.Cog):
         assert ctx.guild is not None
         tag_list = await self.client.api.search_guild_tags(ctx.guild.id, tag_name)
         if len(tag_list) == 0:
-            raise BadArgument(f"Could not find any tags matching '{tag_name}' name.")
+            raise BadArgument(f"Could not find any tags matching '{tag_name}'.")
         return tag_list
 
     @commands.hybrid_group(
@@ -253,7 +253,7 @@ class TagCommandCog(commands.Cog):
             author=ctx.author.id
         )
 
-        await ctx.reply(embed=SuccessEmbed("Tag created successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag created successfully."))
         self.client.log_event(
             EventType.tag_create, EventName.tag_create, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
@@ -290,7 +290,7 @@ class TagCommandCog(commands.Cog):
         parsed_content = ((content or "") + "\n" + attachment_urls).strip()
 
         await tag.edit(content=parsed_content)
-        await ctx.reply(embed=SuccessEmbed("Tag edited successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag modified successfully."))
         self.client.log_event(
             EventType.tag_update, EventName.tag_edit, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
@@ -321,7 +321,7 @@ class TagCommandCog(commands.Cog):
             raise BadArgument("You cannot add a bot as a tag co-author.")
 
         await tag.add_co_author(member.id)
-        await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag co-author added successfully."))
         self.client.log_event(
             EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
@@ -349,7 +349,7 @@ class TagCommandCog(commands.Cog):
                 raise BadArgument("You cannot remove a co-author from a tag you don't own.")
 
         await tag.remove_co_author(member.id)
-        await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully!"))
+        await ctx.reply(embed=SuccessEmbed("Tag co-author removed successfully."))
         self.client.log_event(
             EventType.tag_update, EventName.tag_author_update, ctx.guild.id, tag.row, ctx.author.id,
             extra=tag.to_dict()
