@@ -1,7 +1,7 @@
 import logging
 
 from asyncio import Queue, sleep
-from discord import AllowedMentions, Embed, TextChannel
+from discord import AllowedMentions, Embed, TextChannel, Thread
 from typing import override
 
 logger = logging.getLogger('pidroid.models.queue')
@@ -37,7 +37,7 @@ def split_text_into_chunks(text: str, max_chunk_length: int = 2000):
 class AbstractMessageQueue:
     """This is an abstract message queue."""
 
-    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
+    def __init__(self, channel: TextChannel | Thread, *, delay: float = -1) -> None:
         self._queue: Queue[Embed | str] = Queue(maxsize=0)
         self._channel = channel
         self._delay = delay
@@ -55,7 +55,7 @@ class AbstractMessageQueue:
 class MessageQueue(AbstractMessageQueue):
     """This defines an generic message queue in a specific channel."""
 
-    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
+    def __init__(self, channel: TextChannel | Thread, *, delay: float = -1) -> None:
         super().__init__(channel, delay=delay)
 
     @override
@@ -112,7 +112,7 @@ class MessageQueue(AbstractMessageQueue):
 
 class EmbedMessageQueue(AbstractMessageQueue):
 
-    def __init__(self, channel: TextChannel, *, delay: float = -1) -> None:
+    def __init__(self, channel: TextChannel | Thread, *, delay: float = -1) -> None:
         super().__init__(channel, delay=delay)
 
     @override

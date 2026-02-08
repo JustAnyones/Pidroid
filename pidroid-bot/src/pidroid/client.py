@@ -268,6 +268,14 @@ class Pidroid(commands.Bot):
                 return await self.fetch_user(user_id)
         return user
 
+    async def get_or_fetch_guild_thread(self, guild: Guild, thread_id: int):
+        """Attempts to resolve guild thgread from thread_id by any means. Returns None if everything failed."""
+        channel = guild.get_thread(thread_id)
+        if channel is None:
+            with suppress(discord.HTTPException):
+                return await guild.fetch_channel(thread_id)
+        return channel
+
     async def get_or_fetch_guild_channel(self, guild: Guild, channel_id: int):
         """Attempts to resolve guild channel from channel_id by any means. Returns None if everything failed."""
         channel = guild.get_channel(channel_id)
@@ -350,7 +358,7 @@ class Pidroid(commands.Bot):
         logger.info("Loading extensions")
         await self.load_all_extensions()
 
-    def create_queue(self, channel: discord.TextChannel, embed_queue: bool = False, delay: float = -1) -> AbstractMessageQueue:
+    def create_queue(self, channel: discord.TextChannel | discord.Thread, embed_queue: bool = False, delay: float = -1) -> AbstractMessageQueue:
         """Creates a queue and returns the queue object."""
         queue: MessageQueue | EmbedMessageQueue
         if not embed_queue:
@@ -389,7 +397,7 @@ class Pidroid(commands.Bot):
                 del self.__queues[channel.id]
                 return
 
-    async def queue(self, channel: discord.TextChannel, item: str | discord.Embed, delay: float = -1):
+    async def queue(self, channel: discord.TextChannel | discord.Thread, item: str | discord.Embed, delay: float = -1):
         """Adds the specified item to a text channel queue.
         
         The item can be a string or an embed.

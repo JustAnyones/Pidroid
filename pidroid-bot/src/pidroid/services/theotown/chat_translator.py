@@ -4,7 +4,7 @@ import re
 import logging
 
 from contextlib import suppress
-from discord import Embed
+from discord import Embed, Thread
 from discord.ext import commands
 from discord.channel import TextChannel
 from discord.utils import remove_markdown
@@ -138,8 +138,16 @@ LANGUAGE_MAPPING = {
     "ZU": "Zulu"
 }
 
-FEED_CHANNEL_ID = 943920969637040140
-SOURCE_CHANNEL_ID = 692830641728782336
+# Maps channel IDs from which messages should be translated to thread IDs where translations should be sent to
+OLD_FEED_CHANNEL_ID = 943920969637040140
+SOURCE_TO_FEED_MAPPING = {
+    692830641728782336: 943920969637040140, # Old source channel to old feed channel, will be removed after a while
+    1464374673834770685: 1470022110796582913, #
+    1464374699587801118: 1470022042622361610, #
+    1465728789580484781: 1470021956400316528, #
+    1464374719678648411: 1470021889153040541, #
+    1464374748078149844: 1470021776749629474, #
+}
 
 CUSTOM_EMOJI_PATTERN = re.compile(r'<(a:.+?:\d+|:.+?:\d+)>')
 URL_PATTERN = re.compile(r'(https?:\/\/)(\s)*(www\.)?(\s)*((\w|\s)+\.)*([\w\-\s]+\/)*([\w\-]+)((\?)?[\w\s]*=\s*[\w\%&]*)*')
@@ -237,7 +245,7 @@ class ChatTranslationService(commands.Cog):
             self.auth_key is not None
             and message.guild is not None
             and not message.author.bot
-            and message.channel.id == SOURCE_CHANNEL_ID
+            and message.channel.id in SOURCE_TO_FEED_MAPPING.keys()
         )
 
     async def translate_message(self, message: Message, clean_text: str) -> list[TranslationEntryDict]:
@@ -280,18 +288,30 @@ class ChatTranslationService(commands.Cog):
         parser = TextParser(message.clean_content)
         translations = []
         flag = ParserFlags.BYPASSED
+
+        # Get mapped output channel ID
+        mapped_id = SOURCE_TO_FEED_MAPPING.get(message.channel.id, None)
+        if mapped_id is None:
+            logger.warning(f"Received a message in channel {message.channel.id} which is not mapped to any feed channel, skipping translation")
+            return
+
         if parser.should_translate:
             flag, text = parser.get_parsed_text()
             translations = await self.translate_message(message, text or parser.text)
 
         assert message.guild is not None
-        channel = await self.client.get_or_fetch_guild_channel(message.guild, FEED_CHANNEL_ID)
+        if mapped_id == OLD_FEED_CHANNEL_ID:
+            channel = await self.client.get_or_fetch_guild_channel(message.guild, mapped_id)
+        else:
+            channel = await self.client.get_or_fetch_guild_thread(message.guild, mapped_id)
+
         if channel is None:
-            return logger.warning("Translation output channel is None!")
-        assert isinstance(channel, TextChannel)
+            logger.warning(f"Output channel with ID {mapped_id} not found for message {message.id}, skipping translation")
+            return
+        assert isinstance(channel, (TextChannel, Thread))
         await self.dispatch_translation(channel, message, translations, flag)
 
-    async def dispatch_translation(self, channel: TextChannel, message: Message, translations: list[TranslationEntryDict], flag: int) -> None: # noqa C901
+    async def dispatch_translation(self, channel: TextChannel | Thread, message: Message, translations: list[TranslationEntryDict], flag: int) -> None: # noqa C901
         # If message contains a reply, track down the reference author
         action = None
         if message.reference and message.reference.message_id:
