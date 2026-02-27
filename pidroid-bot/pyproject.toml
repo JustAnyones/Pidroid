@@ -15,7 +15,7 @@ dependencies = [
     "aiohttp>=3.13.3,<4",
     "pytz~=2025.2",
     "psutil>=7.0.0,<8",
-    "pillow>=11.3.0,<12",
+    "pillow>=12.1.1,<12.2",
     "aiofiles>=24.1.0,<25",
     "aiodbm>=0.4.2,<0.5",
     "aiocron~=2.1",
@@ -27,7 +27,7 @@ dependencies = [
     "h2>=4.2.0,<5",
     "greenlet>=3.2.4,<3.3",
     "pyjwt>=2.10.1",
-    "cryptography>=45.0.7,<45.1",
+    "cryptography>=46.0.5,<46.1",
     "faststream[rabbit]>=0.6.4",
 ]
 
