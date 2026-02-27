@@ -43,14 +43,31 @@ def is_thread_part_of_events_forum(thread: Thread) -> bool:
         return False
     return thread.parent.id == EVENTS_FORUM_CHANNEL_ID
 
-def can_member_participate(member: Member) -> bool:
-    """Returns true if member can participate in the event."""
+def is_member_a_participant(member: Member) -> bool:
+    """
+    Returns true if member is a participant in the event.
+
+    Any member can be a participant, except for event managers and guild moderators.
+    """
     if TTChecks.is_event_manager(member) or is_guild_moderator(member):
         return False
     return True
 
 def can_member_vote_on_message(member: Member, message: Message) -> bool:
-    """Returns true if member can vote on the event submission message."""
+    """
+    Returns true if member can vote on the event submission message.
+
+    A member can vote if they are either:
+        - an event manager
+        - an event voter and not the author of the message
+    This is done so that:
+        1. Only event voters can vote on the submissions, so that we don't have random people voting on the submissions.
+        2. Event voters themselves can participate in the event, but they cannot vote on their own submission.
+        3. Event managers can do whatever they want.
+    """
+    # We trust event managers to not abuse their power, so they can vote on the submissions as well.
+    if TTChecks.is_event_manager(member):
+        return True
     return (
         TTChecks.is_event_voter(member)
         and member.id != message.author.id
@@ -65,9 +82,11 @@ class EventHandlerService(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
-        """Called when bot is ready.
+        """
+        Called when bot is ready.
         
-        This task updates reactions of last 200 messages in the events channel."""
+        This task updates the vote reactions of the last 200 messages in the events channel.
+        """
         guild = self.client.get_guild(THEOTOWN_GUILD)
         if guild is None:
             return logger.warning("Could not locate TheoTown guild when updating reactions.")
@@ -116,13 +135,17 @@ class EventHandlerService(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: Message):
-        """Add reactions to new messages in the events forum channel."""
+        """
+        If the message is sent in the events forum channel and the author is a participant, then:
+            - add a thumbs up reaction to it if it has attachments;
+            - otherwise delete the message and notify the user about it.
+        """
         if not is_message_in_events_forum(message):
             return
 
         assert isinstance(message.author, Member)
 
-        if can_member_participate(message.author):
+        if is_member_a_participant(message.author):
             if message.attachments:
                 return await message.add_reaction("👍")
             else:
@@ -175,15 +198,10 @@ class EventHandlerService(commands.Cog):
         if not message:
             return
 
-        can_vote = (
-            TTChecks.is_event_voter(payload.member)
-            and payload.member.id != message.author.id
-        )
-
         # Remove votes from unauthorised users in events channel
         # If message has attachments, the reaction is not made by a bot
         # and if the member cannot vote
-        if message.attachments and not payload.member.bot and not can_vote:
+        if message.attachments and not payload.member.bot and not can_member_vote_on_message(payload.member, message):
             with suppress(discord.NotFound):
                 await message.remove_reaction("👍", payload.member)
 
