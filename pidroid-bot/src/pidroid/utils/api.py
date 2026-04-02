@@ -514,8 +514,7 @@ class API:
                 )
             )
             row = result.scalar()
-            assert row
-            return row > 0
+            return row is not None
 
     async def is_currently_jailed(self, guild_id: int, user_id: int) -> bool:
         """Returns true if user is currently jailed in the guild."""
