@@ -159,7 +159,8 @@ class SpamDetectionService(commands.Cog):
             target=target,
             moderator=self.client.user,
             reason=reason,
-            date_expire=delta_to_datetime(datetime.timedelta(days=7))
+            date_expire=delta_to_datetime(datetime.timedelta(days=7)),
+            delete_message_days=0
         )
         _ = await ban.issue()
 
