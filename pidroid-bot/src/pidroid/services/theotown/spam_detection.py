@@ -3,15 +3,16 @@ import datetime
 import logging
 
 from collections import defaultdict
-from discord import AutoModAction, Member
+from discord import AutoModAction, Guild, Member
 from discord.ext import commands
 from discord.message import Message
 from typing import TypedDict, override
 
 from pidroid.client import Pidroid
+from pidroid.modules.moderation.models.types import Ban2
 from pidroid.utils.aliases import MessageableGuildChannelTuple
-from pidroid.utils.checks import is_guild_theotown
-from pidroid.utils.time import utcnow
+from pidroid.utils.checks import is_guild_moderator, is_guild_theotown
+from pidroid.utils.time import delta_to_datetime, utcnow
 
 # Threshold for the number of same messages in different channels from the same user
 # before they are considered spam.
@@ -19,6 +20,22 @@ CHANNEL_THRESHOLD = 3
 
 # The amount of time to keep a message from a member tracked before it is removed from the tracking list.
 KEEP_MESSAGE_TRACKED_FOR = 30 # seconds
+
+# IDs of AutoMod rules that we want to track for banning on matched phrases
+AUTOMOD_RULE_IDS_TO_TRACK = {
+    1492904663388000347,
+    1123571301693522020,
+}
+
+# A set of phrases that will trigger an automatic ban if matched.
+# * may be used for partial matching
+# (e.g., "*badword*" will match any content containing "badword",
+# "*badword" will match any content ending with "badword",
+# and "badword*" will match any content starting with "badword").
+BANNABLE_PHRASES: set[str] = {
+    "omg join girl in cam*"
+}
+
 
 class Infraction(TypedDict):
     channel_id: int
@@ -132,6 +149,22 @@ class SpamDetectionService(commands.Cog):
             except Exception:
                 logger.exception(f"An error occurred while timing out {member.display_name}")
 
+    async def _ban_user(self, guild: Guild, target: Member, reason: str):
+        assert self.client.user, "Client user is not available for banning. This should never happen."
+
+        logger.info(f"Banning user {str(target)} ({target.id}) in guild {guild.name} ({guild.id}) for {reason}.")
+        return
+
+        ban = Ban2(
+            self.client.api,
+            guild=guild,
+            target=target,
+            moderator=self.client.user,
+            reason=reason,
+            date_expire=delta_to_datetime(datetime.timedelta(days=7))
+        )
+        _ = await ban.issue()
+
     @commands.Cog.listener()
     async def on_automod_action(self, execution: AutoModAction):
         if not is_guild_theotown(execution.guild):
@@ -145,6 +178,44 @@ class SpamDetectionService(commands.Cog):
             execution.content
         )
 
+        # Ignore AutoMod actions that are not related to the rules we want to track
+        if execution.rule_id not in AUTOMOD_RULE_IDS_TO_TRACK:
+            return
+        
+        # Try to get the member object for the user who triggered the AutoMod action
+        maybe_member = execution.guild.get_member(execution.user_id)
+        if maybe_member is None:
+            logger.warning(f"Could not get member with ID {execution.user_id} in guild {execution.guild.id} for AutoModAction. Skipping ban check.")
+            return
+
+        # Make sure we're not banning a moderator
+        if is_guild_moderator(maybe_member):
+            logger.warning(f"User {execution.user_id} is a moderator but triggered AutoModAction for rule {execution.rule_id}. Skipping ban check.")
+            return
+
+        # Check if the content of the message matches any of the bannable phrases
+        normalized_content = execution.content.strip().lower()
+        for phrase in BANNABLE_PHRASES:
+            if phrase.startswith('*') and phrase.endswith('*'):
+                # Phrase can be matched anywhere in the content
+                if phrase[1:-1] in normalized_content:
+                    await self._ban_user(execution.guild, maybe_member, f"Matched partially bannable phrase: {phrase}")
+                    return
+            elif phrase.startswith('*'):
+                # Phrase can be matched at the end of the content
+                if normalized_content.endswith(phrase[1:]):
+                    await self._ban_user(execution.guild, maybe_member, f"Matched partially bannable phrase: {phrase}")
+                    return
+            elif phrase.endswith('*'):
+                # Phrase can be matched at the start of the content
+                if normalized_content.startswith(phrase[:-1]):
+                    await self._ban_user(execution.guild, maybe_member, f"Matched partially bannable phrase: {phrase}")
+                    return
+            else:
+                # Phrase must match exactly
+                if normalized_content == phrase:
+                    await self._ban_user(execution.guild, maybe_member, f"Matched exact bannable phrase: {phrase}")
+                    return
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(SpamDetectionService(client))

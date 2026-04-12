@@ -39,7 +39,7 @@ class GuildConfigurationService(commands.Cog):
             if prefixes is None:
                 config = await self.client.api.insert_guild_configuration(guild.id)
                 self.client.update_guild_prefixes_from_config(guild.id, config)
-                logger.warn(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
+                logger.warning(f"Guild \"{guild.name}\" ({guild.id}) did not have a guild configuration. Generated one automatically")
 
         self.client._guild_prefix_cache_ready.set()
         logger.debug("Guild prefix cache ready")
