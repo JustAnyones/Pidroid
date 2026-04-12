@@ -5,6 +5,7 @@ import datetime
 import logging
 import math
 import random
+import timeit
 
 from discord import Guild, Member, Message, MessageType, Role, User
 from discord.ext import commands
@@ -171,8 +172,17 @@ class LevelingService(commands.Cog):
         """
         await self.client.wait_until_guild_configurations_loaded()
         logger.info("Syncing level reward state")
-        for guild in self.client.guilds:
-            await self._sync_guild_state(guild, "Start-up role reward state sync")
+
+        async def _wrapped_sync(guild: Guild):
+            start_time = timeit.default_timer()
+            try:
+                await self._sync_guild_state(guild, "Start-up sync")
+            except Exception:
+                logger.exception(f"Error occurred while syncing guild {guild.id}")
+            end_time = timeit.default_timer()
+            logger.debug(f"Synced guild {guild.id} in {end_time - start_time} seconds")
+
+        _ = await asyncio.gather(*[_wrapped_sync(guild) for guild in self.client.guilds])
         logger.info("Level reward state synced")
         self.__startup_sync_finished.set()
 
