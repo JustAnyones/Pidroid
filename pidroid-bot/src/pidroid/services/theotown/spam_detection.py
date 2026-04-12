@@ -3,7 +3,7 @@ import datetime
 import logging
 
 from collections import defaultdict
-from discord import Member
+from discord import AutoModAction, Member
 from discord.ext import commands
 from discord.message import Message
 from typing import TypedDict, override
@@ -131,6 +131,20 @@ class SpamDetectionService(commands.Cog):
                 del self.message_tracker[(user_id, normalized_content)]
             except Exception:
                 logger.exception(f"An error occurred while timing out {member.display_name}")
+
+    @commands.Cog.listener()
+    async def on_automod_action(self, execution: AutoModAction):
+        if not is_guild_theotown(execution.guild):
+            return
+        
+        logger.debug(
+            "AutoModAction executed for user %s in channel %s with action %s for rule %s (trigger type: %s) with content: %s",
+            execution.user_id, execution.channel_id,
+            execution.action, execution.rule_id,
+            execution.rule_trigger_type, 
+            execution.content
+        )
+
 
 async def setup(client: Pidroid) -> None:
     await client.add_cog(SpamDetectionService(client))
