@@ -153,8 +153,6 @@ class SpamDetectionService(commands.Cog):
         assert self.client.user, "Client user is not available for banning. This should never happen."
         reason = f"AutoMod rule triggered for matched disallowed content: {truncate_string(text, 64)}"
         logger.info(f"Banning user {str(target)} ({target.id}) in guild {guild.name} ({guild.id}) for {reason}.")
-
-        return
         ban = Ban2(
             self.client.api,
             guild=guild,
