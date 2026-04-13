@@ -1,5 +1,5 @@
 [project]
-name = "pidroid-bot"
+name = "pidroid"
 version = "5.28.7"
 description = "Pidroid Discord bot for TheoTown"
 authors = [{ name = "Dominykas Svetikas", email = "dominykas@svetikas.lt" }]
