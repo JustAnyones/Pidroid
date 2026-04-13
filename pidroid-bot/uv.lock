@@ -771,7 +771,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pidroid-bot"
+name = "pidroid"
 version = "5.28.7"
 source = { editable = "." }
 dependencies = [

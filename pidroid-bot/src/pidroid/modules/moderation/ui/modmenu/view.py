@@ -13,13 +13,13 @@ from discord import (
 )
 from discord.ext.commands import BadArgument, Context
 from discord.ui import (
-    ActionRow, Button, Container,
+    ActionRow, Button, Container, Item,
     Section, TextDisplay, Separator,
     MediaGallery,
     LayoutView,
 )
 from discord.utils import format_dt, get
-from typing import Callable, Self, override
+from typing import Callable, Self, cast, override
 
 from pidroid.client import Pidroid
 from pidroid.constants import EMBED_COLOUR
@@ -46,43 +46,43 @@ class MenuContainer(Container["ModmenuView"]):
     def add_punishment_type_part(self, punishment_type: PunishmentType | None, is_revocation: bool = False) -> None:
         """Adds a punishment type section to the container."""
         if punishment_type is None:
-            self.add_item(TextDisplay("### Type\nSelect a punishment type"))
+            _ = self.add_item(TextDisplay("### Type\nSelect a punishment type"))
         else:
             if is_revocation:
-                self.add_item(TextDisplay(f"### Type\nRevoking {punishment_type.name}"))
+                _ = self.add_item(TextDisplay(f"### Type\nRevoking {punishment_type.name}"))
             else:
-                self.add_item(TextDisplay(f"### Type\n{punishment_type}"))
-        self.add_item(Separator())
+                _ = self.add_item(TextDisplay(f"### Type\n{punishment_type}"))
+        _ = self.add_item(Separator())
 
     def add_reason_part(self, view: "ModmenuView", reason: str | None) -> None:
         """Adds a reason section to the container."""
         reason_value = "No reason specified"
         if reason is not None:
             reason_value = reason
-        self.add_item(create_section(
+        _ = self.add_item(create_section(
             title="Reason",
             value=reason_value,
             button=EditButton(
                 stage=MenuStage.EDIT_REASON,
-                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_REASON
+                disabled=view.in_wizard or view.is_finished() or view.is_submitting or view.get_stage() == MenuStage.EDIT_REASON
             )
         ))
-        self.add_item(Separator())
+        _ = self.add_item(Separator())
 
     def add_expires_part(self, view: "ModmenuView", expires_at: datetime.datetime | None) -> None:
         """Adds an expires section to the container."""
         expires_value = "Never"
         if expires_at is not None:
             expires_value = f"{format_dt(expires_at, 'F')} ({format_dt(expires_at, 'R')})"
-        self.add_item(create_section(
+        _ = self.add_item(create_section(
             title="Expires at",
             value=expires_value,
             button=EditButton(
                 stage=MenuStage.EDIT_DATE_EXPIRE,
-                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_DATE_EXPIRE
+                disabled=view.in_wizard or view.is_finished() or view.is_submitting or view.get_stage() == MenuStage.EDIT_DATE_EXPIRE
             )
         ))
-        self.add_item(Separator())
+        _ = self.add_item(Separator())
 
     def add_delete_message_days_part(self, view: "ModmenuView", days: int) -> None:
         value_as_str = f"Messages that were made {days} "
@@ -93,19 +93,19 @@ class MenuContainer(Container["ModmenuView"]):
         else:
             value_as_str += "days ago"
 
-        self.add_item(create_section(
+        _ = self.add_item(create_section(
             title="Delete messages after ban",
             value=value_as_str,
             button=EditButton(
                 stage=MenuStage.EDIT_DELETE_MESSAGE_DAYS,
-                disabled=view.in_wizard or view.is_finished() or view.get_stage() == MenuStage.EDIT_DELETE_MESSAGE_DAYS
+                disabled=view.in_wizard or view.is_finished() or view.is_submitting or view.get_stage() == MenuStage.EDIT_DELETE_MESSAGE_DAYS
             )
         ))
-        self.add_item(Separator())
+        _ = self.add_item(Separator())
 
     def add_footer_part(self, text: str) -> None:
         """Adds a footer to the container."""
-        self.add_item(TextDisplay(f"-# {text}"))
+        _ = self.add_item(TextDisplay(f"-# {text}"))
 
     @classmethod
     def from_info(cls, view: "ModmenuView", info: PunishmentInfo) -> Self:
@@ -114,8 +114,8 @@ class MenuContainer(Container["ModmenuView"]):
 
         is_revocation = info.punishment_mode == PunishmentMode.REVOKE
 
-        container.add_item(TextDisplay(f"# Punish {info.target}"))
-        container.add_item(Separator())
+        _ = container.add_item(TextDisplay(f"# Punish {info.target}"))
+        _ = container.add_item(Separator())
 
         # Punishment type section
         container.add_punishment_type_part(info.punishment_type, is_revocation)
@@ -169,6 +169,8 @@ class ModmenuView(LayoutView):
         self.__custom_container: Container[Self] | None = None
         # Custom file to be sent with the final view state
         self.__custom_attachments: list[File] = []
+        # Guards against concurrent confirm submissions.
+        self.__is_submitting: bool = False
         # Stores information about the punishment being issued
         # Information stored here will be used to issue/revoke the punishment
         self.__info = PunishmentInfo(
@@ -227,17 +229,41 @@ class ModmenuView(LayoutView):
         if self.__is_locked_fn(self.__info.guild.id, self.__info.target.id):
             await self.__unlock_fn(self.__info.guild.id, self.__info.target.id)
 
-    def _build_view(self) -> None:
-        """Builds the view with the current information."""
+    def _build_view(self, *, only_toggle: bool = False) -> None:
+        """
+        Builds the view with the current information.
+
+        :param only_toggle: If true, only updates the toggle buttons without rebuilding the entire view.
+        This is used to prevent resetting the view state when toggling options in the confirmation stage.
+        """
         # If we have a custom container, we clear the items and add it
         if self.__custom_container is not None:
-            self.clear_items()
-            self.add_item(self.__custom_container)
+            assert only_toggle is False, "Cannot use only_toggle when custom container is set"
+            _ = self.clear_items()
+            _ = self.add_item(self.__custom_container)
+            return
+        
+        # Recursively disable buttons if we are only toggling
+        # to prevent resetting the view state
+        if only_toggle:
+            def recursive_disable(item: Item[Self]) -> None:
+                if isinstance(item, Button):
+                    item.disabled = self.is_submitting or self.is_finished() or item.disabled
+                elif hasattr(item, 'accessory'):
+                    accessory = cast(Item[Self], getattr(item, 'accessory'))
+                    if isinstance(accessory, Button):
+                        accessory.disabled = self.is_submitting or self.is_finished() or accessory.disabled
+                elif hasattr(item, 'children'):
+                    item_with_children = cast(list[Item[Self]], getattr(item, 'children'))
+                    for child in item_with_children:
+                        recursive_disable(child)
+            for item in self.children:
+                recursive_disable(item)
             return
 
         container = MenuContainer.from_info(self, self.__info)
-        self.clear_items()
-        self.add_item(container)
+        _ = self.clear_items()
+        _ = self.add_item(container)
 
         items = self.__get_action_row_items()
         if not items:
@@ -250,7 +276,7 @@ class ModmenuView(LayoutView):
             action_rows = [ActionRow(*items)]
 
         for row in action_rows:
-            self.add_item(row)
+            _ = self.add_item(row)
 
     def get_punishment_buttons(self) -> list[PunishmentSelectionButton[Self]]:
         """Returns a list of punishment selection buttons based on the target's and moderator's status."""
@@ -333,6 +359,15 @@ class ModmenuView(LayoutView):
         """Returns whether the view is in wizard mode."""
         return self.__wizard
 
+    @property
+    def is_submitting(self) -> bool:
+        """Returns whether confirmation is currently being processed."""
+        return self.__is_submitting
+
+    def set_submitting(self, value: bool) -> None:
+        """Sets submitting guard to prevent concurrent confirm callbacks."""
+        self.__is_submitting = value
+
     def __get_action_row_items(self) -> Sequence[Button[Self]]:
         """Returns a list of buttons for the action row."""
         # If we are in the type selection stage, we return the punishment type buttons
@@ -366,7 +401,10 @@ class ModmenuView(LayoutView):
         
         # If we are in the confirmation stage, we return the confirm and cancel buttons
         if self.__menu_stage == MenuStage.CONFIRMATION:
-            return [ConfirmPunishmentButton[Self](), CancelPunishmentButton[Self]()]
+            return [
+                ConfirmPunishmentButton[Self](),
+                CancelPunishmentButton[Self]()
+            ]
 
         # By this point, we are either in the cancelled stage or an unknown stage,
         # in which case we return an empty list.
@@ -401,9 +439,9 @@ class ModmenuView(LayoutView):
         if accent_color is None:
             accent_color = Color(EMBED_COLOUR)
         self.__custom_container = Container(accent_color=accent_color)
-        self.__custom_container.add_item(TextDisplay(f"### {title}\n{text}"))
+        _ = self.__custom_container.add_item(TextDisplay(f"### {title}\n{text}"))
         if file is not None:
-            self.__custom_container.add_item(
+            _ = self.__custom_container.add_item(
                 MediaGallery[Self]().add_item(
                     media=file
                 )
@@ -449,7 +487,7 @@ class ModmenuView(LayoutView):
         if interaction.response.is_done():
             await interaction.followup.send(message, ephemeral=True)
             return
-        await interaction.response.send_message(message, ephemeral=True)
+        _ = await interaction.response.send_message(message, ephemeral=True)
 
     @override
     async def on_timeout(self) -> None:
@@ -462,10 +500,10 @@ class ModmenuView(LayoutView):
         """Ensure that the interaction is called by the moderator."""
         if interaction.user and interaction.user.id == self.__info.moderator.id:
             return True
-        await interaction.response.send_message('This menu cannot be controlled by you!', ephemeral=True)
+        _ = await interaction.response.send_message('This menu cannot be controlled by you.', ephemeral=True)
         return False
-    
-    async def refresh_view(self, interaction: Interaction | None) -> None:
+
+    async def refresh_view(self, interaction: Interaction | None, *, only_toggle: bool = False) -> None:
         """Refreshes the view by updating the items and action rows."""
         # If the menu is cancelled or timed out,
         # we need to stop the view and perform cleanup.
@@ -473,20 +511,20 @@ class ModmenuView(LayoutView):
             self.stop()  # Stop listening for interactions
             await self._cleanup() # Unlock the semaphore if it was locked
 
-        self._build_view()
+        self._build_view(only_toggle=only_toggle)
 
         if interaction:
             if interaction.response.is_done():
                 if not self.__message:
                     logger.error("refresh_view method requires an interaction to be passed, or a message to be set.")
                     return
-                await interaction.followup.edit_message(message_id=self.__message.id, view=self, attachments=self.__custom_attachments)
+                _ = await interaction.followup.edit_message(message_id=self.__message.id, view=self, attachments=self.__custom_attachments)
             else:
-                await interaction.response.edit_message(view=self, attachments=self.__custom_attachments)
+                _ = await interaction.response.edit_message(view=self, attachments=self.__custom_attachments)
             return
 
         if self.__message:
-            await self.__message.edit(view=self, attachments=self.__custom_attachments)
+            _ = await self.__message.edit(view=self, attachments=self.__custom_attachments)
             return
         
         logger.error("refresh_view method requires an interaction to be passed, or a message to be set.")

@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from dateutil.relativedelta import relativedelta
 from datetime import timedelta
@@ -15,6 +16,8 @@ from pidroid.utils.time import delta_to_datetime, try_convert_duration_to_relati
 
 if TYPE_CHECKING:
     from pidroid.modules.moderation.ui.modmenu.view import ModmenuView
+
+logger = logging.getLogger('pidroid.modules.moderation.ui.modmenu.buttons')
 
 V = TypeVar('V', bound='ModmenuView', covariant=True)
 
@@ -84,19 +87,19 @@ class ReasonSelectionButton(ValueButton[V]):
             value, interaction, timed_out = await self.custom_modal(interaction)
 
             if timed_out:
-                await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment reason modal has timed out!", ephemeral=True)
                 return
 
             if value is None:
-                await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment reason cannot be empty!", ephemeral=True)
                 return
 
             if len(value) > 480:
-                await interaction.response.send_message("Punishment reason cannot be longer than 480 characters!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment reason cannot be longer than 480 characters!", ephemeral=True)
                 return
 
         if self.view.is_finished():
-            await interaction.response.send_message("Modmenu has timed out!", ephemeral=True)
+            _ = await interaction.response.send_message("Modmenu has timed out!", ephemeral=True)
             return
 
         self.view.set_punishment_reason(value)
@@ -124,35 +127,35 @@ class ExpirationSelectionButton(ValueButton[V]):
             value, interaction, timed_out = await self.custom_modal(interaction)
 
             if timed_out:
-                await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
                 return
 
             if value is None:
-                await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment duration cannot be empty!", ephemeral=True)
                 return
 
             try:
                 value = try_convert_duration_to_relativedelta(value)
             except InvalidDuration as e:
-                await interaction.response.send_message(str(e), ephemeral=True)
+                _ = await interaction.response.send_message(str(e), ephemeral=True)
                 return
 
             now = utcnow()
             delta = now - (now - value)
 
             if delta.total_seconds() < 5 * 60:
-                await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment duration cannot be shorter than 5 minutes!", ephemeral=True)
                 return
             
             # If the punishment is a timeout, we check if the duration is longer than 4 weeks
             # Discord does not allow timeouts longer than 4 weeks
             if self.view.get_info().punishment_type == PunishmentType.TIMEOUT:
                 if delta.total_seconds() > 2419200: # 4 * 7 * 24 * 60 * 60
-                    await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
+                    _ = await interaction.response.send_message("Timeouts cannot be longer than 4 weeks!", ephemeral=True)
                     return
 
         if self.view.is_finished():
-            await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            _ = await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
             return
         
         # If the value is -1, we set the expiration to None (permanent)
@@ -174,7 +177,7 @@ class DeleteMessageDaysSelectionButton(ValueButton[V]):
     async def custom_modal(self, interaction: Interaction) -> tuple[str | None, Interaction, bool]:
         """Opens a modal to input a custom day count for the punishment."""
         modal = DeleteMessageDaysModal()
-        await interaction.response.send_modal(modal)
+        _ = await interaction.response.send_modal(modal)
         timed_out = await modal.wait()
         return modal.length_input.value, modal.interaction, timed_out
 
@@ -186,25 +189,25 @@ class DeleteMessageDaysSelectionButton(ValueButton[V]):
             value, interaction, timed_out = await self.custom_modal(interaction)
 
             if timed_out:
-                await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
+                _ = await interaction.response.send_message("Punishment modal has timed out!", ephemeral=True)
                 return
 
             if value is None:
-                await interaction.response.send_message("Value cannot be empty!", ephemeral=True)
+                _ = await interaction.response.send_message("Value cannot be empty!", ephemeral=True)
                 return
 
             try:
                 value = int(value)
-            except ValueError as e:
-                await interaction.response.send_message("Invalid number", ephemeral=True)
+            except ValueError:
+                _ = await interaction.response.send_message("Invalid number", ephemeral=True)
                 return
             
             if not(0 <= value <= 7):
-                await interaction.response.send_message("Must be between 0 and 7 days", ephemeral=True)
+                _ = await interaction.response.send_message("Must be between 0 and 7 days", ephemeral=True)
                 return
 
         if self.view.is_finished():
-            await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
+            _ = await interaction.response.send_message("Interaction has timed out!", ephemeral=True)
             return
         
         self.view.set_punishment_delete_message_days(value)
@@ -219,6 +222,9 @@ class CancelPunishmentButton(ui.Button[V]):
     @override
     async def callback(self, interaction: Interaction) -> None:
         assert self.view
+        if self.view.is_submitting:
+            _ = await interaction.response.send_message("Punishment is already being processed.", ephemeral=True)
+            return
         self.view.set_stage(MenuStage.CANCELLED)
         await self.view.refresh_view(interaction)
 
@@ -231,69 +237,87 @@ class ConfirmPunishmentButton(ui.Button[V]):
 
     @override
     async def callback(self, interaction: Interaction) -> None:
-        assert self.view
-        await interaction.response.defer()
+        assert self.view is not None, "View should never be None in a button callback"
 
-        info = self.view.get_info()
-        assert info.punishment_type is not None, "Punishment type is None, this should not happen."
-        punishment_constructor = info.punishment_type.object_constructor
+        if self.view.is_finished():
+            _ = await interaction.response.send_message("Modmenu has timed out!", ephemeral=True)
+            return
 
-        class TypedKwargs(TypedDict):
-            guild: Guild
-            moderator: DiscordUser
-            target: DiscordUser
-            reason: str | None
-            date_expire: NotRequired[datetime.datetime | None]
-            jail_role:  NotRequired[Role]
-            is_kidnapping: NotRequired[bool]
-            delete_message_days: NotRequired[int]
+        if self.view.is_submitting:
+            _ = await interaction.response.send_message("Punishment is already being processed.", ephemeral=True)
+            return
 
-        kwargs: TypedKwargs = {
-            "guild": info.guild,
-            "moderator": info.moderator,
-            "target": info.target,
-            "reason": info.reason,
-        }
+        # Block buttons to prevent multiple submissions
+        self.view.set_submitting(True)
+        # Only toggle buttons to prevent rebuilding the entire view, which would cause the view to be lost,
+        # and therefore the buttons would lose access to view and break.
+        await self.view.refresh_view(interaction, only_toggle=True)
 
-        # If the punishment type supports expiration, we set the date_expire
-        if issubclass(punishment_constructor, ExpiringPunishment):
-            kwargs["date_expire"] = info.expires_at
+        try:
+            info = self.view.get_info()
+            assert info.punishment_type is not None, "Punishment type is None, this should not happen."
+            punishment_constructor = info.punishment_type.object_constructor
+
+            class TypedKwargs(TypedDict):
+                guild: Guild
+                moderator: DiscordUser
+                target: DiscordUser
+                reason: str | None
+                date_expire: NotRequired[datetime.datetime | None]
+                jail_role:  NotRequired[Role]
+                is_kidnapping: NotRequired[bool]
+                delete_message_days: NotRequired[int]
+
+            kwargs: TypedKwargs = {
+                "guild": info.guild,
+                "moderator": info.moderator,
+                "target": info.target,
+                "reason": info.reason,
+            }
+
+            # If the punishment type supports expiration, we set the date_expire
+            if issubclass(punishment_constructor, ExpiringPunishment):
+                kwargs["date_expire"] = info.expires_at
 
 
-        # Jail requires jail_role and is_kidnapping parameters
-        if punishment_constructor is Jail2:
-            assert info.jail_role is not None, "Jail role is None, this should not happen."
-            kwargs["jail_role"] = info.jail_role
-            kwargs["is_kidnapping"] = info.is_kidnapping
+            # Jail requires jail_role and is_kidnapping parameters
+            if punishment_constructor is Jail2:
+                assert info.jail_role is not None, "Jail role is None, this should not happen."
+                kwargs["jail_role"] = info.jail_role
+                kwargs["is_kidnapping"] = info.is_kidnapping
 
-        # Ban requires delete_message_days parameter
-        # This is the number of days of messages to delete from the user
-        if punishment_constructor is Ban2:
-            kwargs["delete_message_days"] = info.delete_message_days
+            # Ban requires delete_message_days parameter
+            # This is the number of days of messages to delete from the user
+            if punishment_constructor is Ban2:
+                kwargs["delete_message_days"] = info.delete_message_days
 
-        # Construct the punishment object
-        punishment = info.punishment_type.object_constructor(
-            self.view.get_api(), **kwargs # pyright: ignore[reportCallIssue]
-        )
-
-        # Either issue or revoke the punishment based on the mode
-        if info.punishment_mode == PunishmentMode.ISSUE:
-            case = await punishment.issue()
-            self.view.set_final_view(
-                title=f"Punishment Issued (Case #{case.case_id})",
-                text=punishment.public_issue_message,
-                file=punishment.public_issue_file
-            )
-        else:
-            assert isinstance(punishment, RevokeablePunishment), "Revoke mode can only be used with revokeable punishments."
-            await punishment.revoke()
-            self.view.set_final_view(
-                title="Punishment Revoked",
-                text=punishment.public_revoke_message
+            # Construct the punishment object
+            punishment = info.punishment_type.object_constructor(
+                self.view.get_api(), **kwargs # pyright: ignore[reportCallIssue]
             )
 
-        self.view.set_stage(MenuStage.FINISHED)
-        await self.view.refresh_view(interaction)
+            # Either issue or revoke the punishment based on the mode
+            if info.punishment_mode == PunishmentMode.ISSUE:
+                case = await punishment.issue()
+                self.view.set_final_view(
+                    title=f"Punishment Issued (Case #{case.case_id})",
+                    text=punishment.public_issue_message,
+                    file=punishment.public_issue_file
+                )
+            else:
+                assert isinstance(punishment, RevokeablePunishment), "Revoke mode can only be used with revokeable punishments."
+                await punishment.revoke()
+                self.view.set_final_view(
+                    title="Punishment Revoked",
+                    text=punishment.public_revoke_message
+                )
+
+            self.view.set_stage(MenuStage.FINISHED)
+            await self.view.refresh_view(interaction)
+        except Exception:
+            logger.exception("Error occurred while processing punishment")
+            # Should probably unblock them on error to allow 
+            self.view.set_submitting(False)
 
 class EditButton(ui.Button[V]):
     """
