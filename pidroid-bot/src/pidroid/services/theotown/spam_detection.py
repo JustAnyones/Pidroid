@@ -123,8 +123,9 @@ class SpamDetectionService(commands.Cog):
                 computed_hash = imagehash.average_hash(image, hash_size=32) # pyright: ignore[reportUnknownMemberType]
                 for known_hash in KNOWN_SCAM_IMAGE_HASHES:
                     # The threshold of 30 for the hash difference is chosen based on experimentation
-                    if computed_hash - known_hash <= 30:
-                        return str(known_hash), computed_hash - known_hash
+                    hamming_distance = computed_hash - known_hash
+                    if hamming_distance <= 30:
+                        return str(known_hash), hamming_distance
                 return None, 0
             except Exception:
                 logger.exception(f"Failed to compute image hash for attachment {attachment.url} in message {message.id}")
@@ -134,14 +135,15 @@ class SpamDetectionService(commands.Cog):
             attachment_data = await attachment.read()
             computed_hash, distance = await run_in_executor(compare_image_hash, image_data=attachment_data)
             if computed_hash:
-                logger.info(
-                    f"Detected potential scam image in message {message.id} from user {message.author.id} ({str(message.author)})"
-                )
                 self.client.dispatch('pidroid_log', ScamImageLog(ScamImageHashData(
                     message=message,
                     hash=computed_hash,
                     distance=distance
                 )))
+                # Should definitely be a scam image
+                #assert isinstance(message.author, Member)
+                #if distance < 5 and not is_guild_moderator(message.author):
+                #    await message.delete(delay=0)
                 return
 
     @commands.Cog.listener()
@@ -155,6 +157,7 @@ class SpamDetectionService(commands.Cog):
         # If the message content is empty after normalization (e.g., just an attachment), skip
         normalized_content = message.content.strip().lower()
         if not normalized_content:
+            await self.check_message_for_scam_image_links(message)
             return
         
         assert isinstance(message.author, Member)
@@ -228,13 +231,13 @@ class SpamDetectionService(commands.Cog):
         if not is_guild_theotown(execution.guild):
             return
         
-        logger.debug(
+        """logger.debug(
             "AutoModAction executed for user %s in channel %s with action %s for rule %s (trigger type: %s) with content: %s",
             execution.user_id, execution.channel_id,
             execution.action, execution.rule_id,
             execution.rule_trigger_type, 
             execution.content
-        )
+        )"""
 
         # Ignore AutoMod actions that are not related to the rules we want to track
         if execution.rule_id not in AUTOMOD_RULE_IDS_TO_TRACK:
