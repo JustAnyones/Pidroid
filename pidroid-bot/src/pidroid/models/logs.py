@@ -1,12 +1,18 @@
 import datetime
 
 from dataclasses import dataclass
-from discord import Asset, ChannelFlags, ChannelType, Colour, Embed, Member, Object, PermissionOverwrite, Permissions, Role, User, Guild, VideoQualityMode, abc
+from discord import Asset, ChannelFlags, ChannelType, Colour, Embed, Member, Message, Object, PermissionOverwrite, Permissions, Role, User, Guild, VideoQualityMode, abc
 from discord.utils import format_dt
 
 from pidroid.constants import EMBED_COLOUR
 from pidroid.utils import channel_mention, normalize_permission_name, role_mention, user_mention
 from pidroid.utils.aliases import DiscordUser
+
+@dataclass
+class ScamImageHashData:
+    message: Message
+    hash: str
+    distance: int
 
 @dataclass
 class BaseData:
@@ -210,6 +216,23 @@ class PidroidLog:
     def as_embed(self) -> Embed:
         """Returns the internal log embed object."""
         return self.__embed
+
+class ScamImageLog(PidroidLog):
+
+    __logname__ = "Scam image detected"
+
+    def __init__(self, data: ScamImageHashData) -> None:
+        assert data.message.guild is not None, "Guild should not be none for a ScamImageLog"
+        super().__init__(BaseData(
+            guild=data.message.guild,
+            user=data.message.author if isinstance(data.message.author, Member) else None,
+            reason=None,
+            created_at=data.message.created_at
+        ))
+
+        self.set_description(f"Message: {data.message.jump_url}")
+        self.add_field("Image hash", data.hash)
+        self.add_field("Distance from known scam image", str(data.distance))
 
 
 class RoleCreateLog(PidroidLog):
