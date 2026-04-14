@@ -13,7 +13,7 @@ from typing import TypedDict, override
 
 from pidroid.client import Pidroid
 from pidroid.models.logs import ScamImageHashData, ScamImageLog
-from pidroid.modules.moderation.models.types import Ban2
+from pidroid.modules.moderation.models.types import Ban2, Timeout2
 from pidroid.utils import run_in_executor, truncate_string
 from pidroid.utils.aliases import MessageableGuildChannelTuple
 from pidroid.utils.checks import is_guild_moderator, is_guild_theotown
@@ -140,10 +140,20 @@ class SpamDetectionService(commands.Cog):
                     hash=computed_hash,
                     distance=distance
                 )))
-                # Should definitely be a scam image
-                #assert isinstance(message.author, Member)
-                #if distance < 5 and not is_guild_moderator(message.author):
-                #    await message.delete(delay=0)
+                await message.delete(delay=0)
+                assert message.guild, "Message guild is not available for timing out. This should never happen."
+                assert self.client.user, "Client user is not available for timing out. This should never happen."
+
+                if isinstance(message.author, Member):
+                    timeout = Timeout2(
+                        self.client.api,
+                        guild=message.guild,
+                        target=message.author,
+                        moderator=self.client.user,
+                        reason="Posting known scam image",
+                        date_expire=utcnow() + datetime.timedelta(days=1)
+                    )
+                    _ = await timeout.issue()
                 return
 
     @commands.Cog.listener()
@@ -152,6 +162,9 @@ class SpamDetectionService(commands.Cog):
             return
 
         if not message.guild or not is_guild_theotown(message.guild):
+            return
+        
+        if isinstance(message.author, Member) and is_guild_moderator(message.author):
             return
 
         # If the message content is empty after normalization (e.g., just an attachment), skip
