@@ -41,4 +41,4 @@ _update_system_path()
 from pidroid.utils.types import VersionInfo
 version_field = metadata.version('pidroid')
 major, minor, micro = version_field.split('.')
-__VERSION__ = VersionInfo(major=int(major), minor=int(minor), micro=int(micro), commit_id=os.environ.get('GIT_COMMIT', ''))
+__VERSION__ = VersionInfo(major=major, minor=minor, micro=micro, commit_id=os.environ.get('GIT_COMMIT', ''))

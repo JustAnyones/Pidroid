@@ -19,7 +19,7 @@ class ConfigDict(TypedDict):
     rabbitmq_url: str | None
 
 class VersionInfo(NamedTuple):
-    major: int
-    minor: int
-    micro: int
+    major: str
+    minor: str
+    micro: str
     commit_id: str

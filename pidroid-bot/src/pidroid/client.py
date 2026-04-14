@@ -32,7 +32,7 @@ from pidroid.utils.types import ConfigDict, VersionInfo
 if TYPE_CHECKING:
     from discord.types.threads import ThreadArchiveDuration
 
-logger = logging.getLogger("Pidroid")
+logger = logging.getLogger("pidroid.client")
 
 def _is_theotown_service(service: str):
     return service.startswith("services.theotown") or service.startswith("theotown:")
