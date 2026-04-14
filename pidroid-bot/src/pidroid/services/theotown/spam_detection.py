@@ -37,7 +37,13 @@ AUTOMOD_RULE_IDS_TO_TRACK = {
 # "*badword" will match any content ending with "badword",
 # and "badword*" will match any content starting with "badword").
 BANNABLE_PHRASES: set[str] = {
-    "omg join girl in cam*"
+    "omg join girl in cam*",
+    "*discord.gg/PJYyqGMZfe",
+    "*discordapp.com/invite/PJrt6k5xns",
+    "*discord.gg/cam-girl",
+    "*discord.gg/sweetygirl",
+    "*discord.com/invite/sugar-girls",
+    "*https://discord.gg/dolls-girls",
 }
 
 # A set of known scam image hashes (computed using average_hash with hash size 32)
@@ -85,6 +91,7 @@ class SpamDetectionService(commands.Cog):
         # Task to periodically clean up old messages from the tracker
         self.cleanup_task: asyncio.Task[None] = self.client.loop.create_task(self._cleanup_messages())
         self.scam_image_worker_task: asyncio.Task[None] = self.client.loop.create_task(self._process_scam_image_queue())
+        self.bannable_phrases: set[str] = BANNABLE_PHRASES.copy()
 
     @override
     async def cog_unload(self):
@@ -308,7 +315,7 @@ class SpamDetectionService(commands.Cog):
 
         # Check if the content of the message matches any of the bannable phrases
         normalized_content = execution.content.strip().lower()
-        for phrase in BANNABLE_PHRASES:
+        for phrase in self.bannable_phrases:
             if phrase.startswith('*') and phrase.endswith('*'):
                 # Phrase can be matched anywhere in the content
                 if phrase[1:-1] in normalized_content:
