@@ -54,6 +54,12 @@ class Infraction(TypedDict):
     message_id: int
     timestamp: datetime.datetime
 
+class ScamImageQueueItem(TypedDict):
+    message: Message
+    image_data: bytes
+    attachment_url: str
+    result_future: asyncio.Future[tuple[str | None, int]]
+
 # (user_id, message_content)
 KEY = tuple[int, str]
 # list of infractions
@@ -71,15 +77,19 @@ class SpamDetectionService(commands.Cog):
     """
     def __init__(self, client: Pidroid):
         super().__init__()
-        self.client = client
+        self.client: Pidroid = client
         # Dictionary to store message tracking
         self.message_tracker: dict[KEY, VALUE] = defaultdict(list)
+        # Queue and worker for scam image hash checks.
+        self.scam_image_queue: asyncio.Queue[ScamImageQueueItem] = asyncio.Queue()
         # Task to periodically clean up old messages from the tracker
-        self.cleanup_task = self.client.loop.create_task(self._cleanup_messages())
+        self.cleanup_task: asyncio.Task[None] = self.client.loop.create_task(self._cleanup_messages())
+        self.scam_image_worker_task: asyncio.Task[None] = self.client.loop.create_task(self._process_scam_image_queue())
 
     @override
     async def cog_unload(self):
-        self.cleanup_task.cancel()
+        _ = self.cleanup_task.cancel()
+        _ = self.scam_image_worker_task.cancel()
 
     async def _cleanup_messages(self):
         """
@@ -103,6 +113,45 @@ class SpamDetectionService(commands.Cog):
             for key in keys_to_remove:
                 del self.message_tracker[key]
 
+    @staticmethod
+    def _compare_image_hash(image_data: bytes, attachment_url: str, message_id: int) -> tuple[str | None, int]:
+        """
+        Computes the average hash of the given image data and compares it to the known scam image hashes.
+        """
+        try:
+            image = Image.open(BytesIO(image_data))
+            computed_hash = imagehash.average_hash(image, hash_size=32) # pyright: ignore[reportUnknownMemberType]
+            for known_hash in KNOWN_SCAM_IMAGE_HASHES:
+                # The threshold of 30 for the hash difference is chosen based on experimentation
+                hamming_distance = computed_hash - known_hash
+                if hamming_distance <= 30:
+                    return str(known_hash), hamming_distance
+            return None, 0
+        except Exception:
+            logger.exception(f"Failed to compute image hash for attachment {attachment_url} in message {message_id}")
+            return None, 0
+
+    async def _process_scam_image_queue(self):
+        """
+        Processes queued image hash checks one-by-one to avoid bursty parallel CPU work.
+        """
+        while True:
+            queue_item = await self.scam_image_queue.get()
+            try:
+                computed_hash, distance = await run_in_executor(
+                    self._compare_image_hash,
+                    image_data=queue_item['image_data'],
+                    attachment_url=queue_item['attachment_url'],
+                    message_id=queue_item['message'].id
+                )
+                if not queue_item['result_future'].done():
+                    queue_item['result_future'].set_result((computed_hash, distance))
+            except Exception as ex:
+                if not queue_item['result_future'].done():
+                    queue_item['result_future'].set_exception(ex)
+            finally:
+                self.scam_image_queue.task_done()
+
     async def check_message_for_scam_image_links(self, message: Message):
         if not message.attachments:
             return
@@ -113,27 +162,17 @@ class SpamDetectionService(commands.Cog):
             if att.content_type and att.content_type in ["image/png", "image/jpeg"] and att.size <= 5 * 1024 * 1024 # Only check images up to 5 MB
         ] 
 
-        def compare_image_hash(image_data: bytes) -> tuple[str | None, int]:
-            """
-            Computes the average hash of the given image data and compares it to the known scam image hashes.
-            Returns True if the image is similar to any of the known scam images, False otherwise.
-            """
-            try:
-                image = Image.open(BytesIO(image_data))
-                computed_hash = imagehash.average_hash(image, hash_size=32) # pyright: ignore[reportUnknownMemberType]
-                for known_hash in KNOWN_SCAM_IMAGE_HASHES:
-                    # The threshold of 30 for the hash difference is chosen based on experimentation
-                    hamming_distance = computed_hash - known_hash
-                    if hamming_distance <= 30:
-                        return str(known_hash), hamming_distance
-                return None, 0
-            except Exception:
-                logger.exception(f"Failed to compute image hash for attachment {attachment.url} in message {message.id}")
-                return None, 0
-
         for attachment in attachments_to_check:
             attachment_data = await attachment.read()
-            computed_hash, distance = await run_in_executor(compare_image_hash, image_data=attachment_data)
+            result_future: asyncio.Future[tuple[str | None, int]] = self.client.loop.create_future()
+            await self.scam_image_queue.put({
+                'message': message,
+                'image_data': attachment_data,
+                'attachment_url': attachment.url,
+                'result_future': result_future
+            })
+
+            computed_hash, distance = await result_future
             if computed_hash:
                 self.client.dispatch('pidroid_log', ScamImageLog(ScamImageHashData(
                     message=message,
