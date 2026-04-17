@@ -1,16 +1,18 @@
 import asyncio
 import datetime
-from io import BytesIO
 import imagehash
 import logging
+import os
 
 from collections import defaultdict
 from discord import AutoModAction, Guild, Member
 from discord.ext import commands
 from discord.message import Message
+from io import BytesIO
 from PIL import Image
 from typing import TypedDict, override
 
+from pidroid.constants import RESOURCE_FILE_PATH
 from pidroid.client import Pidroid
 from pidroid.models.logs import ScamImageHashData, ScamImageLog
 from pidroid.modules.moderation.models.types import Ban2, Timeout2
@@ -46,14 +48,26 @@ BANNABLE_PHRASES: set[str] = {
     "*https://discord.gg/dolls-girls",
 }
 
+def init_hashes():
+    """
+    Initializes the set of known scam image hashes.
+    The initialization includes computing the average hash for each known scam image and storing it in a set for quick comparison.
+    """
+    dir_path = os.path.join(RESOURCE_FILE_PATH, 'scam_images')
+    hashes: set[imagehash.ImageHash] = set()
+    for filename in os.listdir(dir_path):
+        try:
+            with Image.open(os.path.join(dir_path, filename)) as img:
+                hash = imagehash.average_hash(img, hash_size=32) # pyright: ignore[reportUnknownMemberType]
+                hashes.add(hash)
+        except Exception:
+            logger.exception(f"Failed to compute hash for scam image {filename}")
+    return hashes
+
 # A set of known scam image hashes (computed using average_hash with hash size 32)
-# TODO: don't really like having a huge set of hashes hardcoded in the code, maybe move this to a separate loaded file?
-KNOWN_SCAM_IMAGE_HASHES: set[imagehash.ImageHash] = {
-    imagehash.hex_to_hash("c1f8000000ffff800001ffff000000ff000000000000000000000000000000000000000000003dfe00003ffe20003ffe3fe03ffe001f7ffe007f7ffe007f7ffe00397ffe00057ffe3f017ffe00007ffe00707ffe00007ffe00007ffc00007ffc00007ffc00007ffc00007ffc00007ffc00007ffc00007ffc00003ffc000000fc"),
-    imagehash.hex_to_hash("00000000003fc000787fe000fffbffd8ffffc00000000000867f78008724000000000000800000008f800000cf8000008000000087f9fff0c7f1fff0c400001fc381fff0c1800000c7c001f8c3c0c1f8c3c001f8c7f80000c7f80000c3e00000c3c1f000c3c1f000c3c02efec3e1c0c0c0018078c0007efcc7e0fefcc7f0c6f8"),
-    imagehash.hex_to_hash("ffff1800ffffffffffffffffdffe70409ff460001fc000f18f8000718f8000011e8000008a7f00010fc00001800000010c60000180000000000000008e000001070000009fff0fc18fffffe083fe000183f8000003ffc00183fe000003fffff183ffe00000000000efe00000efffffc003fffc0003fffc0003fff00000000800"),
-    imagehash.hex_to_hash("00000000fffffffffffffffc000001e00000000000000000000000000000000001000000000000000000000080000000800000008000000000000000070019ff0001ff030001ffff0001ffff0001ffff0001ffff0001ffff0001ffff0000ffff0001fffe0001ffff0001ffff0000800000000000000000000000000000000000")
-}
+# TODO: storing increasingly more hashes in memory and comparing them will become inefficient
+# consider a more scalable approach in the future 
+KNOWN_SCAM_IMAGE_HASHES: set[imagehash.ImageHash] = init_hashes()
 
 class Infraction(TypedDict):
     channel_id: int
