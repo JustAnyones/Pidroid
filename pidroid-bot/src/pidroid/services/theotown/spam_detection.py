@@ -40,6 +40,8 @@ AUTOMOD_RULE_IDS_TO_TRACK = {
 # and "badword*" will match any content starting with "badword").
 BANNABLE_PHRASES: set[str] = {
     "omg join girl in cam*",
+    "OMGG look this girl in vc",
+    "shes on cam look",
     "*discord.gg/PJYyqGMZfe",
     "*discordapp.com/invite/PJrt6k5xns",
     "*discord.gg/cam-girl",
