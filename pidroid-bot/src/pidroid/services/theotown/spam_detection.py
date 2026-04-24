@@ -28,6 +28,10 @@ CHANNEL_THRESHOLD = 3
 # The amount of time to keep a message from a member tracked before it is removed from the tracking list.
 KEEP_MESSAGE_TRACKED_FOR = 30 # seconds
 
+# Keep moderation dedupe markers short-lived. They are only for race-window protection.
+TIMEOUT_DEDUPE_TTL = datetime.timedelta(minutes=10)
+BAN_DEDUPE_TTL = datetime.timedelta(minutes=10)
+
 # IDs of AutoMod rules that we want to track for banning on matched phrases
 AUTOMOD_RULE_IDS_TO_TRACK = {
     1123571301693522020,
@@ -103,6 +107,10 @@ class SpamDetectionService(commands.Cog):
         self.client: Pidroid = client
         # Dictionary to store message tracking
         self.message_tracker: dict[KEY, VALUE] = defaultdict(list)
+        # Prevent duplicate moderation actions when multiple events race for the same user.
+        self.moderation_action_lock: asyncio.Lock = asyncio.Lock()
+        self.timed_out_users: dict[int, datetime.datetime] = {}
+        self.banned_users: dict[int, datetime.datetime] = {}
         # Queue and worker for scam image hash checks.
         self.scam_image_queue: asyncio.Queue[ScamImageQueueItem] = asyncio.Queue()
         # Task to periodically clean up old messages from the tracker
@@ -136,6 +144,18 @@ class SpamDetectionService(commands.Cog):
 
             for key in keys_to_remove:
                 del self.message_tracker[key]
+
+            # Prune stale moderation dedupe entries so this state stays bounded.
+            self.timed_out_users = {
+                user_id: expires_at
+                for user_id, expires_at in self.timed_out_users.items()
+                if expires_at > now
+            }
+            self.banned_users = {
+                user_id: expires_at
+                for user_id, expires_at in self.banned_users.items()
+                if expires_at > now
+            }
 
     @staticmethod
     def _compare_image_hash(image_data: bytes, attachment_url: str, message_id: int) -> tuple[str | None, int]:
@@ -176,6 +196,74 @@ class SpamDetectionService(commands.Cog):
             finally:
                 self.scam_image_queue.task_done()
 
+    async def _timeout_member(self, member: Member, until: datetime.datetime, reason: str) -> bool:
+        async with self.moderation_action_lock:
+            now = utcnow()
+
+            known_ban_until = self.banned_users.get(member.id)
+            if known_ban_until and known_ban_until > now:
+                return False
+            if known_ban_until:
+                del self.banned_users[member.id]
+
+            known_timeout_until = self.timed_out_users.get(member.id)
+            if known_timeout_until and known_timeout_until > now:
+                return False
+            if known_timeout_until:
+                del self.timed_out_users[member.id]
+
+            current_timeout = getattr(member, 'timed_out_until', None)
+            if current_timeout and current_timeout > now:
+                self.timed_out_users[member.id] = now + TIMEOUT_DEDUPE_TTL
+                return False
+
+            assert self.client.user, "Client user is not available for timing out. This should never happen."
+            timeout = Timeout2(
+                self.client.api,
+                guild=member.guild,
+                target=member,
+                moderator=self.client.user,
+                reason=reason,
+                date_expire=until
+            )
+            _ = await timeout.issue()
+            self.timed_out_users[member.id] = now + TIMEOUT_DEDUPE_TTL
+            return True
+
+    async def _ban_member(self, guild: Guild, target: Member, reason: str, text: str) -> bool:
+        async with self.moderation_action_lock:
+            now = utcnow()
+
+            known_ban_until = self.banned_users.get(target.id)
+            if known_ban_until and known_ban_until > now:
+                return False
+            if known_ban_until:
+                del self.banned_users[target.id]
+
+            if guild.get_member(target.id) is None:
+                return False
+
+            assert self.client.user, "Client user is not available for banning. This should never happen."
+            logger.info(f"Banning user {str(target)} ({target.id}) in guild {guild.name} ({guild.id}) for {reason}.")
+            ban = Ban2(
+                self.client.api,
+                guild=guild,
+                target=target,
+                moderator=self.client.user,
+                reason=reason,
+                date_expire=delta_to_datetime(datetime.timedelta(days=7)),
+                delete_message_days=0
+            )
+
+            try:
+                _ = await ban.issue()
+            except Exception:
+                logger.exception(f"Failed to ban user {target.id} in guild {guild.id} for {truncate_string(text, 64)}")
+                raise
+
+            self.banned_users[target.id] = now + BAN_DEDUPE_TTL
+            return True
+
     async def check_message_for_scam_image_links(self, message: Message):
         if not message.attachments:
             return
@@ -208,15 +296,11 @@ class SpamDetectionService(commands.Cog):
                 assert self.client.user, "Client user is not available for timing out. This should never happen."
 
                 if isinstance(message.author, Member):
-                    timeout = Timeout2(
-                        self.client.api,
-                        guild=message.guild,
-                        target=message.author,
-                        moderator=self.client.user,
-                        reason="Posting known scam image",
-                        date_expire=utcnow() + datetime.timedelta(days=1)
+                    _ = await self._timeout_member(
+                        message.author,
+                        utcnow() + datetime.timedelta(days=1),
+                        "Posting known scam image"
                     )
-                    _ = await timeout.issue()
                 return
 
     @commands.Cog.listener()
@@ -261,7 +345,7 @@ class SpamDetectionService(commands.Cog):
             member = message.author
             reason = f"Spamming the same message in {len(unique_channels_for_message)} channels."
             try:
-                await member.timeout(utcnow() + datetime.timedelta(hours=24), reason=reason)
+                _ = await self._timeout_member(member, utcnow() + datetime.timedelta(hours=24), reason)
 
                 # Delete the messages from the channels where the user spammed
                 for infraction in self.message_tracker[(user_id, normalized_content)]:
@@ -284,19 +368,8 @@ class SpamDetectionService(commands.Cog):
         await self.check_message_for_scam_image_links(message)
 
     async def _ban_user(self, guild: Guild, target: Member, text: str):
-        assert self.client.user, "Client user is not available for banning. This should never happen."
         reason = f"AutoMod rule triggered for matched disallowed content: {truncate_string(text, 64)}"
-        logger.info(f"Banning user {str(target)} ({target.id}) in guild {guild.name} ({guild.id}) for {reason}.")
-        ban = Ban2(
-            self.client.api,
-            guild=guild,
-            target=target,
-            moderator=self.client.user,
-            reason=reason,
-            date_expire=delta_to_datetime(datetime.timedelta(days=7)),
-            delete_message_days=0
-        )
-        _ = await ban.issue()
+        _ = await self._ban_member(guild, target, reason, text)
 
     @commands.Cog.listener()
     async def on_automod_action(self, execution: AutoModAction):
