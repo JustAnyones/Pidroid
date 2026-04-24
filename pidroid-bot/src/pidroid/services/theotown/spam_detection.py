@@ -42,6 +42,7 @@ BANNABLE_PHRASES: set[str] = {
     "omg join girl in cam*",
     "OMGG look this girl in vc*",
     "shes on cam look*",
+    "look at this wtf*",
     "*discord.gg/PJYyqGMZfe",
     "*discordapp.com/invite/PJrt6k5xns",
     "*discord.gg/cam-girl",
