@@ -20,10 +20,9 @@ try:
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType]
 except ImportError:
     pass
-    
 
 # Use selector event loop since proactor has some issues
-if sys.platform == 'win32':
+if sys.platform == "win32":
     from asyncio import WindowsSelectorEventLoopPolicy
     asyncio.set_event_loop_policy(WindowsSelectorEventLoopPolicy())
 
@@ -35,18 +34,18 @@ def get_postgres_dsn() -> str:
         postgres_dsn = None
     if postgres_dsn is None:
         logger.debug("POSTGRES_DSN variable was not found, attempting to resolve from postgres variables")
-        
+
         user = os.environ.get("DB_USER", None)
         password = os.environ.get("DB_PASSWORD", None)
         host = os.environ.get("DB_HOST", "127.0.0.1")
-        
+
         if user is None or password is None:
             logger.critical((
                 "Unable to create a postgres DSN string. "
                 "DB_USER or DB_PASSWORD environment variable is missing."
             ))
             exit()
-        postgres_dsn = "postgresql+asyncpg://{}:{}@{}".format(user, password, host)
+        postgres_dsn = f"postgresql+asyncpg://{user}:{password}@{host}"
     return postgres_dsn
 
 def config_from_env() -> ConfigDict:
@@ -54,7 +53,7 @@ def config_from_env() -> ConfigDict:
 
     prefix_string = os.environ.get("PREFIXES", "P, p, TT")
     prefixes = [p.strip() for p in prefix_string.split(",")]
-    
+
     debugging = False
     if os.environ.get("DEBUGGING", "0").lower() in ['1', 'true']:
         debugging = True
@@ -63,7 +62,7 @@ def config_from_env() -> ConfigDict:
 
     return {
         "debugging": debugging,
-        
+
         "token": os.environ["TOKEN"],
         "prefixes": prefixes,
 
@@ -112,16 +111,16 @@ async def _start_bot(bot: Pidroid):
             bot.session = session
             await bot.start(bot.token)
 
-def main():
+def main() -> None:
 
     # Create directories in case they don't exist
-    if not os.path.exists(DATA_FILE_PATH):
-        os.mkdir(DATA_FILE_PATH)
-    if not os.path.exists(TEMPORARY_FILE_PATH):
-        os.mkdir(TEMPORARY_FILE_PATH)
+    if not DATA_FILE_PATH.exists():
+        DATA_FILE_PATH.mkdir()
+    if not TEMPORARY_FILE_PATH.exists():
+        TEMPORARY_FILE_PATH.mkdir()
 
     if os.environ.get("TOKEN", None) is None:
-        exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
+        sys.exit("No bot token was specified. Please specify it using the TOKEN environment variable.")
 
     # Create Pidroid instance with configuration from environment
     bot = Pidroid(config_from_env())

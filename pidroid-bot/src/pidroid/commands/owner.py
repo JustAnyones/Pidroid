@@ -23,7 +23,7 @@ logger = logging.getLogger('Pidroid')
 
 class OwnerCommandCog(commands.Cog):
     """This class implements a cog for special bot owner only commands."""
-    
+
     def __init__(self, client: Pidroid) -> None:
         super().__init__()
         self.client = client
@@ -147,24 +147,24 @@ class OwnerCommandCog(commands.Cog):
     async def load_temp_extension_command(self, ctx: Context[Pidroid]):
         if not ctx.message.attachments:
             raise BadArgument("Please provide a single python extension file")
-        
+
         extension_file = ctx.message.attachments[0]
         if not extension_file.filename.endswith(".py"):
             raise BadArgument("Please provide a single python extension file")
-        
+
         logger.critical("Attempting to load a temp extension")
         data = await extension_file.read()
 
-        file_name = os.path.join(TEMPORARY_FILE_PATH, "temp_extension.py")
-        if os.path.exists(file_name):
-            os.remove(file_name)
+        file_name = TEMPORARY_FILE_PATH / "temp_extension.py"
+        if file_name.exists():
+            file_name.unlink()
 
         async with aiofiles.open(file_name, "wb") as f:
             _ = await f.write(data)
 
         logger.critical("Modifying system path to load a temp extension")
-        if file_name not in sys.path:
-            sys.path.append(file_name)
+        if str(file_name) not in sys.path:
+            sys.path.append(str(file_name))
         await self.client.load_extension("data.temporary.temp_extension")
         logger.critical("Temp extension has been loaded")
         return await ctx.reply("Extension loaded successfully")
@@ -180,11 +180,11 @@ class OwnerCommandCog(commands.Cog):
     async def unload_temp_extension_command(self, ctx: Context[Pidroid]):
         logger.critical("Attempting to unload a temp extension")
         await self.client.unload_extension("data.temporary.temp_extension")
-        file_name = os.path.join(TEMPORARY_FILE_PATH, "temp_extension.py")
+        file_name = TEMPORARY_FILE_PATH / "temp_extension.py"
         logger.critical("Removing temp extension file and updating path")
-        if os.path.exists(file_name):
-            os.remove(file_name)
-            sys.path.remove(file_name)
+        if file_name.exists():
+            file_name.unlink()
+            sys.path.remove(str(file_name))
         logger.critical("Temp extension has been unloaded")
         return await ctx.reply("Extension unloaded successfully")
 

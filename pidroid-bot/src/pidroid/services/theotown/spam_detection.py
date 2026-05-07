@@ -2,7 +2,6 @@ import asyncio
 import datetime
 import imagehash
 import logging
-import os
 
 from collections import defaultdict
 from discord import AutoModAction, Guild, Member
@@ -55,16 +54,18 @@ BANNABLE_PHRASES: set[str] = {
     "*https://discord.gg/dolls-girls",
 }
 
-def init_hashes():
+def init_hashes() -> set[imagehash.ImageHash]:
     """
-    Initializes the set of known scam image hashes.
-    The initialization includes computing the average hash for each known scam image and storing it in a set for quick comparison.
+    Initialize a set of known scam image hashes.
+
+    The initialization includes computing the average hash for each known scam image
+    and storing it in a set for quick comparison.
     """
-    dir_path = os.path.join(RESOURCE_FILE_PATH, 'scam_images')
+    dir_path = RESOURCE_FILE_PATH / "scam_images"
     hashes: set[imagehash.ImageHash] = set()
-    for filename in os.listdir(dir_path):
+    for filename in dir_path.iterdir():
         try:
-            with Image.open(os.path.join(dir_path, filename)) as img:
+            with Image.open(filename) as img:
                 hash = imagehash.average_hash(img, hash_size=32) # pyright: ignore[reportUnknownMemberType]
                 hashes.add(hash)
         except Exception:
@@ -73,7 +74,7 @@ def init_hashes():
 
 # A set of known scam image hashes (computed using average_hash with hash size 32)
 # TODO: storing increasingly more hashes in memory and comparing them will become inefficient
-# consider a more scalable approach in the future 
+# consider a more scalable approach in the future
 KNOWN_SCAM_IMAGE_HASHES: set[imagehash.ImageHash] = init_hashes()
 
 class Infraction(TypedDict):

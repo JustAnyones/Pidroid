@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 
 from discord.mentions import AllowedMentions
 
@@ -13,18 +13,18 @@ JESSE_ID = 1118969194680156240
 
 THEOTOWN_DEVELOPERS = [
     JUSTANYONE_ID,
-    LOBBY_ID
+    LOBBY_ID,
 ]
 
 CHEESE_EATERS = [
     JUSTANYONE_ID,
-    ERKSMIT_ID
+    ERKSMIT_ID,
 ]
 
 EMERGENCY_SHUTDOWN = [
     JUSTANYONE_ID,
     LOBBY_ID,
-    ERKSMIT_ID
+    ERKSMIT_ID,
 ]
 
 EMBED_COLOUR = 5928495
@@ -33,7 +33,7 @@ EMBED_COLOUR = 5928495
 THEOTOWN_GUILD = 365478391719264276
 
 # Pidroid file structure
-DATA_FILE_PATH = os.path.join(os.getcwd(), 'data')
-RESOURCE_FILE_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'resources')
-TEMPORARY_FILE_PATH = os.path.join(DATA_FILE_PATH, 'temporary')
-COOLDOWN_FILE_PATH = os.path.join(DATA_FILE_PATH, 'cooldowns')
+DATA_FILE_PATH = Path(Path.cwd()) / "data"
+RESOURCE_FILE_PATH = Path(__file__).resolve().parent / "resources"
+TEMPORARY_FILE_PATH = DATA_FILE_PATH / "temporary"
+COOLDOWN_FILE_PATH = DATA_FILE_PATH / "cooldowns"

@@ -1,6 +1,5 @@
-import os
-
 from pidroid.constants import RESOURCE_FILE_PATH
+
 
 class Resource(str): # All this for type hints
 
@@ -9,4 +8,4 @@ class Resource(str): # All this for type hints
 
 def get_resource(*paths: str) -> str:
     """Returns absolute path to a Pidroid resource file."""
-    return os.path.join(RESOURCE_FILE_PATH, *paths)
+    return str(RESOURCE_FILE_PATH.joinpath(*paths))

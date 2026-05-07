@@ -159,26 +159,27 @@ class Pidroid(commands.Bot):
         self.add_view(PersistentSuggestionManagementView())
 
     async def register_categories(self):
-        """Registers command categories.
-        
-        Should be called on command update or cog reload."""
+        """
+        Register command categories based on loaded cogs and their commands.
+
+        Should be called on command update or cog reload to ensure that categories are up to date with currently loaded cogs.
+        """
         self.command_categories = register_categories(self)
 
     @property
     def token(self) -> str:
         """Returns client token."""
-        return self.config['token']
+        return self.config["token"]
 
     @property
     def version(self) -> str:
         """Returns shorthand client version."""
-        version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
-        return version_str
+        return ".".join((str(v) for i, v in enumerate(self.client_version) if i < 3))
 
     @property
     def full_version(self) -> str:
         """Returns full client version."""
-        version_str = '.'.join((str(v) for i, v in enumerate(self.client_version) if i < 3))
+        version_str = ".".join((str(v) for i, v in enumerate(self.client_version) if i < 3))
         return f"{version_str} {self.client_version.commit_id}"
 
     async def wait_until_guild_configurations_loaded(self):
@@ -209,7 +210,7 @@ class Pidroid(commands.Bot):
             config = await self.api.insert_guild_configuration(guild_id)
         self.update_guild_prefixes_from_config(guild_id, config)
         return config
-    
+
     def get_guild_prefixes(self, guild_id: int) -> list[str] | None:
         """Returns guild prefixes from internal cache."""
         return self.__cached_guild_prefixes.get(guild_id)
@@ -314,7 +315,7 @@ class Pidroid(commands.Bot):
     async def load_extension(self, name: str, *, package: str | None = None):
         name = name.removeprefix('theotown:')
         return await super().load_extension(name, package=package)
-    
+
     @override
     async def unload_extension(self, name: str, *, package: str | None = None):
         name = name.removeprefix('theotown:')
@@ -382,7 +383,7 @@ class Pidroid(commands.Bot):
         self.__tasks.append(loop)
         loop.start()
         return queue
-    
+
     def remove_queue(self, channel: discord.TextChannel):
         """Removes queue which was created in the specific text channel."""
 
