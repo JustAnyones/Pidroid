@@ -1,17 +1,18 @@
 import calendar
-import discord
 
+import discord
 from discord import ui, utils
 
-from pidroid.modules.plugin_store.types import CreatorEntryDict, PluginStoreStatisticsDict, PluginEntry
+from pidroid.modules.plugin_store.types import CreatorEntryDict, PluginEntry, PluginStoreStatisticsDict
 from pidroid.utils import clean_inline_translations
+
 
 def distribute_fairly(entries: list[CreatorEntryDict], limit: int = 10) -> list[int]:
     """Distributes slots fairly among entries based on their plugin counts using the Largest Remainder Method."""
     if not entries:
         return []
 
-    counts = [int(e['plugins']) for e in entries]
+    counts = [int(e["plugins"]) for e in entries]
     total = sum(counts)
 
     # In the case of no plugins, return zero allocation for everyone
@@ -44,26 +45,26 @@ class PluginEntryContainer(ui.Container["MonthlyPluginReportLayout"]):
         super().__init__()
         title = f"### {index + 1}. {clean_inline_translations(entry['name'])}"
         text = ""
-        text += "**👤 Author:** " + utils.escape_markdown(entry['author_name']) + "\n"
+        text += "**👤 Author:** " + utils.escape_markdown(entry["author_name"]) + "\n"
         text += f"**📥 Downloads:** {entry['downloads']:,}\n"
-        rating_percentage = round(entry['rating_sum'] / entry['rating_count'] * 100)
+        rating_percentage = round(entry["rating_sum"] / entry["rating_count"] * 100)
         text += f"**📊 Rating:** {rating_percentage}% ({entry['rating_count']:,} ratings)\n"
 
         url = f"https://data.theotown.com/get_file.php?t=pf&name={entry['img']}"
-        self.add_item(ui.Section(
+        _ = self.add_item(ui.Section(
             f"{title}\n{text}",
-            accessory=ui.Thumbnail[MonthlyPluginReportLayout](url)
+            accessory=ui.Thumbnail[MonthlyPluginReportLayout](url),
         ))
 
 class MonthlyPluginReportLayout(ui.LayoutView):
     def __init__(self, data: PluginStoreStatisticsDict):
         super().__init__()
 
-        plugin_count_last_month = data['plugin count last month']
-        plugin_creators_last_month = data['plugin creators last month']
-        plugin_creators_all_time = data['plugin creators all time']
-        plugin_creators_all_time_by_downloads = data['plugin creators all time by downloads']
-        plugins_all_time = data['plugins all time']
+        plugin_count_last_month = data["plugin count last month"]
+        plugin_creators_last_month = data["plugin creators last month"]
+        plugin_creators_all_time = data["plugin creators all time"]
+        plugin_creators_all_time_by_downloads = data["plugin creators all time by downloads"]
+        plugins_all_time = data["plugins all time"]
 
         year_of_data = int(data["year"])
         month_of_data = int(data["month"])
@@ -73,9 +74,9 @@ class MonthlyPluginReportLayout(ui.LayoutView):
         text = f"## Plugin Store statistics for {month_name}\n"
         text += f"In total {plugin_count_last_month} new plugins have been released in {month_name} of {year_of_data}. Major contributors were:\n"
         for i, entry in enumerate(plugin_creators_last_month):
-            escaped_name = utils.escape_markdown(entry['author_name'])
+            escaped_name = utils.escape_markdown(entry["author_name"])
             text += f"{i+1}. {escaped_name}\n {entry['plugins']:,} plugin(s) | {entry['downloads']:,} downloads\n"
-        self.add_item(ui.TextDisplay(text))
+        _ = self.add_item(ui.TextDisplay(text))
 
         # Show those plugins in a gallery, allocating slots fairly based on plugin count
         distribution = distribute_fairly(plugin_creators_last_month, limit=10)
@@ -83,11 +84,11 @@ class MonthlyPluginReportLayout(ui.LayoutView):
         for i, slot_count in enumerate(distribution):
             for j in range(slot_count):
                 gallery_items.append(discord.MediaGalleryItem(
-                    f"https://data.theotown.com/get_file.php?t=pf&name={plugin_creators_last_month[i]["plugin arr"][j]['img']}"
+                    f"https://data.theotown.com/get_file.php?t=pf&name={plugin_creators_last_month[i]["plugin arr"][j]['img']}",
                 ))
         if gallery_items:
             _ = self.add_item(ui.MediaGallery(
-                *gallery_items
+                *gallery_items,
             ))
 
         # Display most popular creators of all time by plugin count and by downloads
@@ -95,7 +96,7 @@ class MonthlyPluginReportLayout(ui.LayoutView):
         for i, entry in enumerate(plugin_creators_all_time):
             if i >= 10:
                 break
-            name = entry['author_name']
+            name = entry["author_name"]
             if i == 0:
                 name += " 🏆"
             most_popular_creators += f"{i+1}. {name}\n {entry['plugins']:,} plugin(s) | {entry['downloads']:,} downloads\n"
@@ -105,14 +106,14 @@ class MonthlyPluginReportLayout(ui.LayoutView):
         for i, entry in enumerate(plugin_creators_all_time_by_downloads):
             if i >= 10:
                 break
-            name = entry['author_name']
+            name = entry["author_name"]
             if i == 0:
                 name += " 🏆"
-            most_popular_creators_by_downloads += f"{i+1}. {name}\n {entry['plugins']:,} | {entry['downloads']:,} downloads\n"
+            most_popular_creators_by_downloads += f"{i+1}. {name}\n {entry['plugins']:,} plugin(s) | {entry['downloads']:,} downloads\n"
         _ = self.add_item(ui.TextDisplay(most_popular_creators_by_downloads + "## Current Community Favourites"))
 
         # Display top plugins of all time
-        plugins_all_time = data['plugins all time']
+        plugins_all_time = data["plugins all time"]
         for i in range(9): # Only 9 results
             top_plugin = plugins_all_time[i]
             _ = self.add_item(PluginEntryContainer(i, top_plugin))
