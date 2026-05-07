@@ -69,7 +69,7 @@ class API:
 
     async def insert_tag(self, guild_id: int, name: str, content: str, authors: list[int]) -> int:
         """Creates a tag entry in the database."""
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 entry = TagTable(
                     guild_id=guild_id,
@@ -83,10 +83,10 @@ class API:
 
     async def fetch_tag(self, id: int) -> Tag | None:
         """Returns a tag with at the specified row."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(TagTable).
-                filter(TagTable.id == id)
+                filter(TagTable.id == id),
             )
         row = result.scalar()
         if row:
@@ -95,11 +95,11 @@ class API:
 
     async def fetch_guild_tag(self, guild_id: int, tag_name: str) -> Tag | None:
         """Returns a guild tag for the appropriate name."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(TagTable).
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(tag_name)).
-                order_by(func.lower(TagTable.name).asc())
+                order_by(func.lower(TagTable.name).asc()),
             )
         row = result.scalar()
         if row:
@@ -108,11 +108,11 @@ class API:
 
     async def search_guild_tags(self, guild_id: int, tag_name: str) -> list[Tag]:
         """Returns all guild tags matching the appropriate name."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(TagTable).
                 filter(TagTable.guild_id == guild_id, TagTable.name.ilike(f'%{tag_name}%')).
-                order_by(func.lower(TagTable.name).asc())
+                order_by(func.lower(TagTable.name).asc()),
             )
         return [Tag.from_table(self.client, r) for r in result.scalars()]
 
@@ -978,7 +978,7 @@ class API:
         """Fetches TheoTown account by discord ID."""
         res = await self.get(Route(
             "/game/account/find",
-            {"discord_id": account_id}
+            {"discord_id": account_id},
         ))
         if res.code == 200:
             return TheoTownAccount(res.data)
@@ -988,19 +988,10 @@ class API:
         """Queries the TheoTown API for new plugins after the specified approval time."""
         res = await self.get(Route(
             "/game/plugin/new",
-            {"last_approval_time": last_approval_time}
+            {"last_approval_time": last_approval_time},
         ))
         res.raise_on_error()
         return [NewPlugin(np) for np in res.data]
-
-    async def fetch_new_revisions(self, last_query_time: int) -> list[NewPluginRevision]:
-        """Queries the TheoTown API for new plugin revisions after the specified query time."""
-        res = await self.get(Route(
-            "/game/revisions/new",
-            {"last_query_time": last_query_time}
-        ))
-        res.raise_on_error()
-        return [NewPluginRevision(np) for np in res.data]
 
     async def fetch_plugin_by_id(self, plugin_id: int, show_hidden: bool = False) -> list[Plugin]:
         """Queries the TheoTown API for a plugin of the specified ID."""

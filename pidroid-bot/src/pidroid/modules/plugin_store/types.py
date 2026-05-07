@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+
 class PluginEntry(TypedDict):
     id: int
     author_id: int
