@@ -137,7 +137,7 @@ class SuggestionCommandCog(commands.Cog):
                     raise BadArgument("Could not submit a suggestion: unsupported file extension. Only image files are supported!")
 
                 file = await attachment.to_file()
-                _ = embed.set_image(url=f'attachment://{filename}')
+                _ = embed.set_image(url=f"attachment://{filename}")
 
             # Add the reaction legend to the footer
             _ = embed.set_footer(text=reaction_legend)
@@ -162,7 +162,7 @@ class SuggestionCommandCog(commands.Cog):
                         text=suggestion,
                         author=ctx.author,
                         attachments=message.attachments,
-                        message_url=message.jump_url
+                        message_url=message.jump_url,
                     )
                     embed.set_author(
                         name=ctx.author,
@@ -170,8 +170,8 @@ class SuggestionCommandCog(commands.Cog):
                         icon_url=ctx.author.display_avatar.url
                     )
                     await message.edit(embed=embed)
-                except Exception as e:
-                    logger.exception(f"Failed to create suggestion issue on GitHub: {e}")
+                except Exception:
+                    logger.exception("Failed to create suggestion issue on GitHub")
 
             if config.suggestion_threads_enabled:
                 _ = await self.client.create_expiring_thread(

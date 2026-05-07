@@ -105,7 +105,7 @@ class ImageManipulationCommandCog(commands.Cog):
 
             # Save the file
             output_file = BytesIO()
-            attachment_image.save(output_file, format='png')
+            attachment_image.save(output_file, format="png")
             attachment_image.close()
 
             # Send it
@@ -160,11 +160,11 @@ class ImageManipulationCommandCog(commands.Cog):
     async def headpat_command(self, ctx: Context[Pidroid], member: discord.Member):
         if ctx.author.id == member.id:
             raise BadArgument("You cannot headpat yourself, ask someone else to be nice")
-        
+
         async with ctx.channel.typing():
             member_avatar = await load_image_from_url(self.client, member.display_avatar.with_size(256).url)
             headpat_gif = await run_in_executor(Image.open, fp=Resource('pat.gif'))
-            
+
             frames = []
             for frame in ImageSequence.Iterator(headpat_gif):
                 composite_frame = Image.new(member_avatar.mode, (256,356))
@@ -180,12 +180,12 @@ class ImageManipulationCommandCog(commands.Cog):
             output_stream = BytesIO()
             frames[0].save(
                 output_stream,
-                format='gif',
+                format="gif",
                 save_all=True,
                 append_images=frames[1:-1],
                 duration=60,
-                loop=0
-            ) 
+                loop=0,
+            )
             headpat_gif.close()
             output_stream.seek(0)
             await ctx.reply(content=member.mention, file=discord.File(output_stream, filename='headpat.gif'))
