@@ -13,7 +13,7 @@ def distribute_fairly(entries: list[CreatorEntryDict], limit: int = 10) -> list[
 
     counts = [int(e['plugins']) for e in entries]
     total = sum(counts)
-    
+
     # In the case of no plugins, return zero allocation for everyone
     if total == 0:
         return [0] * len(entries)

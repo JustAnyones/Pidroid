@@ -1,9 +1,18 @@
-from discord import (
-    CategoryChannel, ForumChannel, StageChannel, TextChannel, Thread, VoiceChannel, DMChannel, GroupChannel, PartialMessageable,
-    Member, User
-)
-
 from typing import TypeAlias
+
+from discord import (
+    CategoryChannel,
+    DMChannel,
+    ForumChannel,
+    GroupChannel,
+    Member,
+    PartialMessageable,
+    StageChannel,
+    TextChannel,
+    Thread,
+    User,
+    VoiceChannel,
+)
 
 GuildChannel: TypeAlias     = TextChannel | VoiceChannel | CategoryChannel | StageChannel | Thread | ForumChannel
 AllChannels: TypeAlias      = TextChannel | VoiceChannel | CategoryChannel | StageChannel | Thread | ForumChannel | DMChannel | GroupChannel | PartialMessageable

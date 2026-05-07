@@ -720,24 +720,24 @@ class API:
         return rewards[0]
 
     async def fetch_previous_level_reward(self, guild_id: int, level: int) -> LevelRewards | None:
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(LevelRewards).
                 filter(
                     LevelRewards.guild_id == guild_id,
-                    LevelRewards.level < level
-                ).order_by(LevelRewards.level.desc())
+                    LevelRewards.level < level,
+                ).order_by(LevelRewards.level.desc()),
             )
         return result.scalar()
 
     async def fetch_next_level_reward(self, guild_id: int, level: int) -> LevelRewards | None:
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(LevelRewards).
                 filter(
                     LevelRewards.guild_id == guild_id,
-                    LevelRewards.level > level
-                ).order_by(LevelRewards.level.desc())
+                    LevelRewards.level > level,
+                ).order_by(LevelRewards.level.desc()),
             )
         return result.scalar()
 
@@ -751,11 +751,11 @@ class API:
         user_id: int
     ) -> UserLevels:
         """Inserts an empty member level information entry to the database."""
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 entry = UserLevels(
                     guild_id=guild_id,
-                    user_id=user_id
+                    user_id=user_id,
                 )
                 session.add(entry)
             await session.commit()
@@ -765,37 +765,37 @@ class API:
 
     async def fetch_guild_level_rankings(self, guild_id: int, start: int = 0, limit: int = 10) -> list[UserLevels]:
         """Returns a list of guild levels."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(
-                    UserLevels
+                    UserLevels,
                 ).
                 filter(UserLevels.guild_id == guild_id).
                 order_by(UserLevels.total_xp.desc()).
                 limit(limit).
-                offset(start)
+                offset(start),
             )
         return list(result.scalars())
 
     async def fetch_guild_level_infos(self, guild_id: int) -> list[UserLevels]:
         """Returns the bare member level information excluding ranking information."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(
-                    UserLevels
+                    UserLevels,
                 ).
                 filter(
                     UserLevels.guild_id == guild_id
-                )
+                ),
             )
         return list(result.scalars())
 
     async def fetch_ranked_user_level_info(self, guild_id: int, user_id: int) -> UserLevels | None:
         """Returns ranked level information for the specified user."""
-        async with self.session() as session: 
+        async with self.session() as session:
             query = (
                 select(
-                    UserLevels
+                    UserLevels,
                 )
                 .where(
                     UserLevels.guild_id == guild_id,
@@ -807,23 +807,25 @@ class API:
 
     async def fetch_user_level_info(self, guild_id: int, user_id: int) -> UserLevels | None:
         """Returns the level information for the specified user."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(
-                    UserLevels
+                    UserLevels,
                 ).
                 filter(
                     UserLevels.guild_id == guild_id,
-                    UserLevels.user_id == user_id
-                )
+                    UserLevels.user_id == user_id,
+                ),
             )
         return result.scalar()
 
     async def fetch_user_level_info_between(self, guild_id: int, min_level: int, max_level: int | None) -> list[UserLevels]:
-        """Returns a list of user level information for specified levels.
-        
-        Returned user data is ``min_level <= USERS < max_level`` """
-        async with self.session() as session: 
+        """
+        Returns a list of user level information for specified levels.
+
+        Returned user data is ``min_level <= USERS < max_level``
+        """
+        async with self.session() as session:
             stmt = (
                 select(UserLevels).
                 filter(
@@ -835,18 +837,18 @@ class API:
                 stmt = stmt.filter(UserLevels.level < max_level)
             result = await session.execute(stmt)
         return list(result.scalars())
-    
+
     async def update_user_level_theme(self, row_id: int, theme_name: str):
         """Updates the user level theme."""
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 _ = await session.execute(
                     update(UserLevels).
                     filter(
-                        UserLevels.id == row_id
+                        UserLevels.id == row_id,
                     ).values(
-                        theme_name=theme_name
-                    )
+                        theme_name=theme_name,
+                    ),
                 )
             await session.commit()
 
@@ -858,7 +860,7 @@ class API:
         assert isinstance(message.author, Member)
         guild_id = message.guild.id
         member_id = message.author.id
-        
+
         # Acquire the level information before leveling up
         info = await self.fetch_user_level_info(guild_id, member_id)
         new_insert = False
@@ -886,13 +888,13 @@ class API:
             else:
                 break
 
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 _ = await session.execute(
                     update(UserLevels).
                     filter(
                         UserLevels.guild_id == guild_id,
-                        UserLevels.user_id == member_id
+                        UserLevels.user_id == member_id,
                     ).values(
                         current_xp=new_xp,
                         xp_to_next_level=new_xp_to_next_level,
@@ -924,7 +926,7 @@ class API:
         date_remind: datetime.datetime,
     ):
         """Inserts a reminder to the database."""
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 entry = Reminder(
                     user_id=user_id,
@@ -940,34 +942,34 @@ class API:
 
     async def fetch_reminder(self, *, row: int) -> Reminder | None:
         """Fetches reminder entry at the specified row."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(
-                    Reminder
+                    Reminder,
                 ).
                 filter(
-                    Reminder.id == row
-                )
+                    Reminder.id == row,
+                ),
             )
         return result.scalar()
 
     async def fetch_reminders(self, *, user_id: int) -> list[Reminder]:
         """Fetches reminders for the specified user."""
-        async with self.session() as session: 
+        async with self.session() as session:
             result = await session.execute(
                 select(
                     Reminder
                 ).
                 filter(
-                    Reminder.user_id == user_id
+                    Reminder.user_id == user_id,
                 ).
-                order_by(Reminder.date_remind.asc())
+                order_by(Reminder.date_remind.asc()),
             )
         return list(result.scalars())
 
     async def delete_reminder(self, *, row: int):
         """Deletes reminder at the specified row."""
-        async with self.session() as session: 
+        async with self.session() as session:
             async with session.begin():
                 _ = await session.execute(delete(Reminder).filter(Reminder.id==row))
             await session.commit()
