@@ -52,6 +52,8 @@ BANNABLE_PHRASES: set[str] = {
     "*discord.gg/sweetygirl",
     "*discord.com/invite/sugar-girls",
     "*https://discord.gg/dolls-girls",
+    "*https://discord.gg/cherry-girls",
+    "*https://discord.gg/honey-girls",
 }
 
 def init_hashes() -> set[imagehash.ImageHash]:
