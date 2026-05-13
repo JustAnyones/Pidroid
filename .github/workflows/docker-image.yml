@@ -1,9 +1,12 @@
-name: Docker Image CI
+name: Build and push the Docker image to ghcr.io
 
 on: workflow_dispatch
 
-jobs:
+permissions:
+  contents: read
+  packages: write
 
+jobs:
   build:
     runs-on: ubuntu-latest
     steps:
