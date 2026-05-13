@@ -58,3 +58,6 @@ ignore = ["alembic/versions"]
 reportMissingTypeStubs = false
 reportUnusedCallResult = false
 pythonVersion = "3.12"
+
+[tool.uv]
+exclude-newer = "2099-01-01T00:00:00Z"
