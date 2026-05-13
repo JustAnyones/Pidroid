@@ -1,4 +1,4 @@
-name: Test the code
+name: Run tests
 
 on: [push]
 
@@ -22,6 +22,6 @@ jobs:
     - name: Install dependencies
       run: uv sync --locked
 
-    - name: Run the testing and return the coverage report
+    - name: Run the tests and return the coverage report
       run: |
         uv run coverage run -m pytest src/tests/ && uv run coverage report -m
