@@ -4,11 +4,13 @@ on: workflow_dispatch
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # Required to push to ghcr.io
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       with:
@@ -18,7 +20,9 @@ jobs:
       run: ./build.sh
 
     - name: Login to ghcr.io
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u $ --password-stdin
 
     - name: Push to ghcr.io
       run: docker image push --all-tags ghcr.io/justanyones/pidroid
