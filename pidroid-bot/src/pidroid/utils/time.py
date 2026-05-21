@@ -2,6 +2,7 @@ import datetime
 import re
 from typing import TypedDict
 
+import discord
 from dateutil.relativedelta import relativedelta
 
 from pidroid.models.exceptions import InvalidConverterFormat, InvalidDuration
@@ -31,6 +32,7 @@ HELP_DATE_FORMATTING: str = (
     "- `yyyy-mm-dd` (2024-12-26)\n"
     "- `yyyy-mm-dd HH:MM` (2024-12-26 18:54)\n"
     "- `yyyy-mm-dd HH:MM:SS` (2024-12-26 18:54:22)\n"
+    "- `<t:1735232040>` (<t:1735232040>) (you can enter by using @time)\n"
     "Note that the time is UTC. Any other formats are not currently supported."
 )
 
@@ -52,6 +54,13 @@ DATE_STYLES = {
     "hybrid": "%Y-%m-%d @ %I:%M %p",
     "default": "%a, %b %d, %Y %I:%M %p",
 }
+
+SUPPORTED_DATE_FORMATS = [
+    "%H:%M",
+    "%Y-%m-%d",
+    "%Y-%m-%d %H:%M",
+    "%Y-%m-%d %H:%M:%S",
+]
 
 def _stringify_time_unit(value: int, unit: str, resolve_zero_seconds_to_moment: bool = False) -> str:
     """
@@ -78,25 +87,32 @@ def utcnow() -> datetime.datetime:
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 def try_convert_date_string_to_date(date_str: str) -> datetime.datetime:
-    formats = [
-        "%H:%M",
-        "%Y-%m-%d",
-        "%Y-%m-%d %H:%M",
-        "%Y-%m-%d %H:%M:%S",
-    ]
-    for date_format in formats:
+    """
+    Attempt to convert a date string to a datetime object.
+
+    Raises InvalidConverterFormat if the string is not in a supported format.
+    """
+    # Attempt to parse the string as a Discord timestamp first
+    match = discord.utils.TIMESTAMP_PATTERN.match(date_str)
+    if match:
+        return timestamp_to_datetime(int(match[1]))
+
+    # Otherwise, try the supported date formats
+    for date_format in SUPPORTED_DATE_FORMATS:
         try:
             return datetime.datetime.strptime(date_str, date_format).replace(tzinfo=datetime.timezone.utc)
         except Exception:
             continue
     raise InvalidConverterFormat(
-        f"{date_str!r} is not a supported format!\n{HELP_DATE_FORMATTING}"
+        f"{date_str!r} is not a supported format!\n{HELP_DATE_FORMATTING}",
     )
 
 def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
-    """Attempts to convert a duration string to a relativedelta object.
-    
-    Raises InvalidDuration error."""
+    """
+    Attempt to convert a duration string to a relativedelta object.
+
+    Raises InvalidDuration error if the string is not in a supported format.
+    """
     delta = duration_to_relativedelta(duration_str)
     if delta is None:
         raise InvalidDuration(
@@ -133,7 +149,7 @@ def delta_to_datetime(delta: datetime.timedelta | relativedelta) -> datetime.dat
 
 def humanize(
     delta: datetime.datetime | int | float | relativedelta,
-    timestamp: bool = True, precision: str = "seconds", max_units: int = 6
+    timestamp: bool = True, precision: str = "seconds", max_units: int = 6,
 ) -> str:
     """
     Returns a human-readable version of the relativedelta or datetime.datetime.

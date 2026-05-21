@@ -1,10 +1,11 @@
 import datetime
+from typing import override
 
 from dateutil import relativedelta
 from discord.ext.commands import BadArgument, Context, Converter
-from typing import override
 
 from pidroid.utils.time import delta_to_datetime, try_convert_date_string_to_date, try_convert_duration_to_relativedelta
+
 
 class Datetime(Converter[datetime.datetime]):
     """Convert date strings into datetime.datetime objects."""
