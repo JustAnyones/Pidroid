@@ -1,18 +1,18 @@
 import datetime
 import re
+from typing import TypedDict
 
 from dateutil.relativedelta import relativedelta
-from typing import TypedDict
 
 from pidroid.models.exceptions import InvalidConverterFormat, InvalidDuration
 
 DURATION_PATTERN = re.compile((
     r"((?P<years>\d+?) ?(years|year|Y|y) ?)?"
-    r"((?P<months>\d+?) ?(months|month|mo) ?)?"
+    r"((?P<months>\d+?) ?(months|month|mo|M) ?)?"
     r"((?P<weeks>\d+?) ?(weeks|week|W|w) ?)?"
     r"((?P<days>\d+?) ?(days|day|D|d) ?)?"
     r"((?P<hours>\d+?) ?(hours|hour|H|h) ?)?"
-    r"((?P<minutes>\d+?) ?(minutes|minute|m) ?)?"
+    r"((?P<minutes>\d+?) ?(minutes|minute|mi|m) ?)?"
     r"((?P<seconds>\d+?) ?(seconds|second|S|s))?"
 ))
 
@@ -37,20 +37,20 @@ HELP_DATE_FORMATTING: str = (
 HELP_DURATION_FORMATTING: str = (
     "Pidroid supports the following symbols for each unit of time:\n"
     "- years: `Y`, `y`, `year`, `years`\n"
-    "- months: `mo`, `month`, `months`\n"
+    "- months: `M`, `mo`, `month`, `months`\n"
     "- weeks: `w`, `W`, `week`, `weeks`\n"
     "- days: `d`, `D`, `day`, `days`\n"
     "- hours: `H`, `h`, `hour`, `hours`\n"
-    "- minutes: `m`, `minute`, `minutes`\n"
+    "- minutes: `m`, `mi`, `minute`, `minutes`\n"
     "- seconds: `S`, `s`, `second`, `seconds`\n"
-    "The units need to be provided in descending order of magnitude."
+    "The units need to be provided in descending order of magnitude without any whitespace in between, e.g. `1d12h` for 1 day and 12 hours. "
 )
 
 DATE_STYLES = {
     "custom": "%d/%m/%Y @ %I:%M %p (UTC)",
     "iso-8601": "%Y-%m-%dT%H:%M:%S+00:00",
     "hybrid": "%Y-%m-%d @ %I:%M %p",
-    "default": "%a, %b %d, %Y %I:%M %p"
+    "default": "%a, %b %d, %Y %I:%M %p",
 }
 
 def _stringify_time_unit(value: int, unit: str, resolve_zero_seconds_to_moment: bool = False) -> str:
@@ -74,20 +74,19 @@ def _stringify_time_unit(value: int, unit: str, resolve_zero_seconds_to_moment: 
     return f"{value} {unit}"
 
 def utcnow() -> datetime.datetime:
-    """Returns current datetime."""
+    """Return current datetime in UTC."""
     return datetime.datetime.now(tz=datetime.timezone.utc)
 
 def try_convert_date_string_to_date(date_str: str) -> datetime.datetime:
     formats = [
-        '%H:%M',
-        '%Y-%m-%d',
-        '%Y-%m-%d %H:%M',
-        '%Y-%m-%d %H:%M:%S'
+        "%H:%M",
+        "%Y-%m-%d",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
     ]
     for date_format in formats:
         try:
-            date = datetime.datetime.strptime(date_str, date_format)
-            return date.replace(tzinfo=datetime.timezone.utc)
+            return datetime.datetime.strptime(date_str, date_format).replace(tzinfo=datetime.timezone.utc)
         except Exception:
             continue
     raise InvalidConverterFormat(
@@ -106,7 +105,7 @@ def try_convert_duration_to_relativedelta(duration_str: str) -> relativedelta:
     return delta
 
 def duration_to_relativedelta(duration_str: str) -> relativedelta | None:
-    """Converts a duration string to a relativedelta object."""
+    """Convert a duration string to a relativedelta object."""
     match = DURATION_PATTERN.fullmatch(duration_str)
     if not match:
         return None
@@ -117,19 +116,19 @@ def duration_to_relativedelta(duration_str: str) -> relativedelta | None:
     return relativedelta(**duration_dict)
 
 def datetime_to_timedelta(date: datetime.datetime) -> datetime.timedelta:
-    """Converts a datetime object to a timedelta object."""
+    """Convert a datetime object to a timedelta object."""
     return date - utcnow()
 
 def datetime_to_duration(date: datetime.datetime) -> float:
-    """Convers a datetime object to UNIX timestamp."""
+    """Convert a datetime object to UNIX timestamp."""
     return datetime_to_timedelta(date).total_seconds()
 
 def timedelta_to_datetime(delta: datetime.timedelta) -> datetime.datetime:
-    """Converts a timedelta object to a datetime object."""
+    """Convert a timedelta object to a datetime object."""
     return utcnow() + delta
 
 def delta_to_datetime(delta: datetime.timedelta | relativedelta) -> datetime.datetime:
-    """Converts a timedelta object to a datetime object."""
+    """Convert a timedelta object to a datetime object."""
     return utcnow() + delta
 
 def humanize(
@@ -181,12 +180,8 @@ def humanize(
         del time_strings[-2]
 
     # If nothing has been found, just make the value 0 precision, e.g. `0 days`.
-    if not time_strings:
-        humanized = _stringify_time_unit(0, precision, True)
-    else:
-        humanized = ", ".join(time_strings)
+    return _stringify_time_unit(0, precision, True) if not time_strings else ", ".join(time_strings)
 
-    return humanized
 
 def time_since(past_datetime: datetime.datetime, precision: str = "seconds", max_units: int = 6) -> str:
     """
@@ -201,17 +196,17 @@ def time_since(past_datetime: datetime.datetime, precision: str = "seconds", max
     return f"{humanized} ago"
 
 def timestamp_to_datetime(timestamp: float) -> datetime.datetime:
-    """Converts a timestamp to a UTC datetime object."""
+    """Convert a timestamp to a UTC datetime object."""
     return datetime.datetime.fromtimestamp(timestamp, tz=datetime.timezone.utc)
 
 def timestamp_to_date(timestamp: float, style: str = "default", custom_format: str | None = None) -> str:
-    """Converts a timestamp to a UTC human readable date string."""
+    """Convert a timestamp to a UTC human readable date string."""
     datetime = timestamp_to_datetime(timestamp)
     return datetime_to_date(datetime, style, custom_format)
 
 def datetime_to_date(datetime: datetime.datetime, style: str = "default", custom_format: str | None = None) -> str:
-    """Converts a datetime object to a UTC human readable date string."""
-    if style == 'custom' and custom_format is not None:
+    """Convert a datetime object to a UTC human readable date string."""
+    if style == "custom" and custom_format is not None:
         style = custom_format
     else:
         style = DATE_STYLES.get(style, "%a, %b %d, %Y %I:%M %p")
