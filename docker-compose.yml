@@ -1,7 +1,7 @@
 services:
   pidroid:
     restart: unless-stopped
-    image: ghcr.io/justanyones/pidroid:latest
+    image: ghcr.io/svetikas/pidroid:latest
     volumes:
       - ./data:/app/data
     env_file:

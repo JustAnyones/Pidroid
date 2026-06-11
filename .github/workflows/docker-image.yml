@@ -25,4 +25,4 @@ jobs:
       run: echo "$GITHUB_TOKEN" | docker login ghcr.io -u $ --password-stdin
 
     - name: Push to ghcr.io
-      run: docker image push --all-tags ghcr.io/justanyones/pidroid
+      run: docker image push --all-tags ghcr.io/svetikas/pidroid

@@ -31,6 +31,6 @@ if [ -z "$GIT_COMMIT" ]; then
 fi
 
 docker build . --file pidroid-bot/Dockerfile --build-arg GIT_COMMIT="$GIT_COMMIT" --tag pidroid
-docker tag pidroid ghcr.io/justanyones/pidroid:latest
-docker tag pidroid "ghcr.io/justanyones/pidroid:$GIT_COMMIT"
-docker tag pidroid "ghcr.io/justanyones/pidroid:$VERSION_CODE"
+docker tag pidroid ghcr.io/svetikas/pidroid:latest
+docker tag pidroid "ghcr.io/svetikas/pidroid:$GIT_COMMIT"
+docker tag pidroid "ghcr.io/svetikas/pidroid:$VERSION_CODE"
