@@ -1,0 +1,37 @@
+@startuml architecture
+
+' Everything that discord provides as interfaces
+cloud "Discord" as Discord
+interface "WebSocket" as DiscordWS
+interface "REST API" as DiscordAPI
+
+Discord -- DiscordWS
+Discord -- DiscordAPI
+
+' Not exactly my own components, but I use them
+database "PostgreSQL" as DB
+queue "RabbitMQ" as Queue
+
+' Own components
+component "pidroid-bot" as Bot
+component "pidroid-api" as API
+interface "REST API" as APIInterface
+component "pidroid-web" as Web
+component "pidroid-ai" as AI
+
+' Bot relationships
+DiscordWS )-- Bot
+DiscordAPI )-- Bot
+Bot --> DB
+Bot --> Queue
+
+' Going further, nothing is yet implemented, but this is the plan
+Queue <-- AI
+
+' Not sure the best approach here, gRPC?
+Bot -- API: ???
+
+API -- APIInterface
+APIInterface )-- Web
+
+@enduml
