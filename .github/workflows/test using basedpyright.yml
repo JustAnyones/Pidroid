@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./pidroid-bot
+        working-directory: ./services/bot
     steps:
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       with:
@@ -22,7 +22,7 @@ jobs:
     - name: "Set up Python"
       uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
       with:
-        python-version-file: "pidroid-bot/pyproject.toml"
+        python-version-file: "services/bot/pyproject.toml"
 
     - name: Install dependencies
       run: uv sync --locked
