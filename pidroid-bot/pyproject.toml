@@ -24,10 +24,8 @@ dependencies = [
     "python-dotenv>=1.2.2,<2",
     "dill>=0.4.0,<0.5",
     "pynacl>=1.6.2,<2",
-    "h2>=4.2.0,<5",
     "greenlet>=3.2.4,<3.3",
     "pyjwt>=2.13.0",
-    "cryptography>=48.0.1,<48.1",
     "faststream[rabbit]>=0.6.4",
     "imagehash>=4.3.2",
 ]
