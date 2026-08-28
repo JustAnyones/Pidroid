@@ -1,23 +1,30 @@
-import aiohttp
 import asyncio
+import logging
 import os
 import signal
 import sys
-import logging
+from collections.abc import Coroutine
+from typing import Any, Protocol, TypeVar
 
+import aiohttp
 from alembic.config import CommandLine
 from discord.ext import commands
 from discord.ext.commands import Context
 
 from pidroid.client import Pidroid
 from pidroid.constants import DATA_FILE_PATH, TEMPORARY_FILE_PATH
-from pidroid.utils.types import ConfigDict # noqa: E402
+from pidroid.utils.types import ConfigDict
+
+T = TypeVar("T")
+class AsyncioRunFn(Protocol):
+    def __call__(self, coro: Coroutine[Any, Any, T], /) -> T: ...
+
+asyncio_run_fn: AsyncioRunFn = asyncio.run
 
 # Use uvloop if possible
 try:
-    import uvloop # pyright: ignore[reportMissingImports]
-    uvloop.install() # pyright: ignore[reportUnknownMemberType]
-    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy()) # pyright: ignore[reportUnknownMemberType,reportUnknownArgumentType]
+    import uvloop  # pyright: ignore[reportMissingImports]
+    asyncio_run_fn = uvloop.run # pyright: ignore[reportUnknownVariableType,reportUnknownMemberType]
 except ImportError:
     pass
 
@@ -80,7 +87,10 @@ def config_from_env() -> ConfigDict:
     }
 
 def migrate():
-    CommandLine("alembic").main(["upgrade", "head"])
+    CommandLine("alembic").main([
+        "upgrade",
+        "head",
+    ])
 
 def _register_reload_command(bot: Pidroid):
     """Registers the cog reload command for the bot."""
@@ -129,7 +139,7 @@ def main() -> None:
     _register_reload_command(bot)
 
     try:
-        asyncio.run(_start_bot(bot))
+        asyncio_run_fn(_start_bot(bot))
     except KeyboardInterrupt:
         pass
 

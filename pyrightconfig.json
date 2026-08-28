@@ -1,7 +1,7 @@
 {
   "executionEnvironments": [
     {
-      "root": "pidroid-bot",
+      "root": "services/bot",
       "extraPaths": [
         "pidroid-core"
       ]

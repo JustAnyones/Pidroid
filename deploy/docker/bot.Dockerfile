@@ -5,20 +5,21 @@ COPY --from=ghcr.io/astral-sh/uv:latest@sha256:5713fa8217f92b80223bc83aac7db36ec
 # Change the working directory to the `app` directory
 WORKDIR /app
 
+# Copy package metadata and lock files to the working directory
+COPY services/bot/pyproject.toml pyproject.toml
+COPY services/bot/uv.lock uv.lock
+
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=/pidroid-bot/uv.lock,target=uv.lock \
-    --mount=type=bind,source=/pidroid-bot/pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-install-project --no-editable
+    uv sync --locked --package pidroid-bot --no-install-project --no-editable
 
 # Copy the project files into an intermediate image
-COPY /pidroid-bot/pyproject.toml /pidroid-bot/uv.lock README.md /app/
-COPY README.md /
-COPY /pidroid-bot/src /app/src
+COPY services/bot/README.md README.md
+COPY services/bot/src src
 
-# Sync the project
+# Install the actual project
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-editable
+    uv sync --locked --package pidroid-bot --no-editable
 
 FROM python:3.12-slim-bookworm
 
@@ -36,8 +37,8 @@ RUN useradd -r -u 999 -g pidroid pidroid
 COPY --from=builder --chown=app:app /app/.venv /app/.venv
 
 # Copy over alembic migration files
-COPY /pidroid-bot/alembic/ /app/alembic/
-COPY /pidroid-bot/alembic.ini /app/alembic.ini
+COPY services/bot/alembic/ /app/alembic/
+COPY services/bot/alembic.ini /app/alembic.ini
 
 ARG GIT_COMMIT
 ENV GIT_COMMIT=$GIT_COMMIT

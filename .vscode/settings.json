@@ -2,7 +2,4 @@
     "files.exclude": {
         "**/venv": true
     },
-    "python.analysis.extraPaths": [
-        "${workspaceFolder}/pidroid-core"
-    ]
 }

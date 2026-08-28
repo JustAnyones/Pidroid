@@ -40,6 +40,6 @@ _load_env()
 _update_system_path()
 
 from pidroid.utils.types import VersionInfo # noqa: E402,I001
-version_field = metadata.version("pidroid")
+version_field = metadata.version("pidroid-bot")
 major, minor, micro = version_field.split(".")
 __VERSION__ = VersionInfo(major=major, minor=minor, micro=micro, commit_id=os.environ.get("GIT_COMMIT", ""))

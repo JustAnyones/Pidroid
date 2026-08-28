@@ -1,4 +1,4 @@
-name: Build and push the Docker image to ghcr.io
+name: Build and Push the Docker image
 
 on: workflow_dispatch
 

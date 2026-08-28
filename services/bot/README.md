@@ -28,10 +28,10 @@ python --version
 After installing Python, you will also need to install [uv](https://docs.astral.sh/uv/getting-started/installation/).
 Pidroid uses it for dependency management.
 
-After you installed uv, navigate to `pidroid-bot` directory install Pidroid's dependencies:
+After you installed uv, navigate to `services/bot` directory install Pidroid's dependencies:
 
 ```shell
-cd pidroid-bot && uv sync --locked
+cd services/bot && uv sync --locked
 ```
 
 After installing all the required packages, we need to configure the bot itself. Please check out the [configuration manual](#configuration) on how to do so.

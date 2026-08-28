@@ -15,7 +15,7 @@ get_toml_value() {
 }  
 
 # Extract the version from pyproject.toml
-VERSION_CODE=$(get_toml_value "pidroid-bot/pyproject.toml" "project" "version")
+VERSION_CODE=$(get_toml_value "services/bot/pyproject.toml" "project" "version")
 if [ -z "$VERSION_CODE" ]; then
   echo "Error: Unable to retrieve version from pyproject.toml."
   exit 1
@@ -30,7 +30,11 @@ if [ -z "$GIT_COMMIT" ]; then
   exit 1
 fi
 
-docker build . --file pidroid-bot/Dockerfile --build-arg GIT_COMMIT="$GIT_COMMIT" --tag pidroid
+docker build \
+  --file deploy/docker/bot.Dockerfile \
+  --build-arg GIT_COMMIT="$GIT_COMMIT" \
+  --tag pidroid \
+  .
 docker tag pidroid ghcr.io/svetikas/pidroid:latest
 docker tag pidroid "ghcr.io/svetikas/pidroid:$GIT_COMMIT"
 docker tag pidroid "ghcr.io/svetikas/pidroid:$VERSION_CODE"
